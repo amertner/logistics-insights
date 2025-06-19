@@ -22,7 +22,7 @@ styles.botsgui_controller_style = {
       center = {
         position = {0, 0},
         size = 1,
-        color = {r=0, g=0, b=0, a=0.7} -- semi-transparent black background
+        color = {r=0, g=0, b=0, a=0.3} -- semi-transparent black background
       },
       top = {position = {0, 0}, size = 1, color = {r=1, g=1, b=1, a=0.5}},
       bottom = {position = {0, 0}, size = 1, color = {r=1, g=1, b=1, a=0.5}},

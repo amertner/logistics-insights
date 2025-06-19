@@ -2,7 +2,7 @@ local bots_gui = {}
 
 -- Show the mini window (call this on player join or GUI update)
  function bots_gui.create_mini_window(player)
-    local gui = player.gui.screen
+    local gui = player.gui.top
     if gui.bot_insights_mini then gui.bot_insights_mini.destroy() end
 
     local mini = gui.add{
@@ -23,10 +23,10 @@ end
 
 -- Update the mini window's counter
  function bots_gui.update_mini_window(player, bot_count)
-    local gui = player.gui.screen.bot_insights_mini
+    local gui = player.gui.top.bot_insights_mini
     if not gui then 
       bots_gui.create_mini_window(player)
-      gui = player.gui.screen.bot_insights_mini
+      gui = player.gui.top.bot_insights_mini
     end
 
     if gui.bot_insights_toggle_main then
