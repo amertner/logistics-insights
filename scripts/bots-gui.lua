@@ -1,14 +1,14 @@
 local bots_gui = {}
 
 -- Show the mini window (call this on player join or GUI update)
- function bots_gui.show_mini_window(player, bot_count)
+ function bots_gui.create_mini_window(player)
     local gui = player.gui.screen
     if gui.bot_insights_mini then gui.bot_insights_mini.destroy() end
 
     local mini = gui.add{
         type = "frame",
         name = "bot_insights_mini",
-        style = "borderless_frame",
+        style = "botsgui_controller_style",
         direction = "horizontal"
     }
     mini.location = {x = 10, y = 40} -- fixed position, adjust as needed
@@ -17,13 +17,21 @@ local bots_gui = {}
         type = "sprite-button",
         name = "bot_insights_toggle_main",
         sprite = "item/logistic-robot",
-        style = "slot_button"
+        style = "slot_button",
     }
-    mini.add{
-        type = "label",
-        caption = tostring(bot_count),
-        style = "bold_label"
-    }
+end
+
+-- Update the mini window's counter
+ function bots_gui.update_mini_window(player, bot_count)
+    local gui = player.gui.screen.bot_insights_mini
+    if not gui then 
+      bots_gui.create_mini_window(player)
+      gui = player.gui.screen.bot_insights_mini
+    end
+
+    if gui.bot_insights_toggle_main then
+      gui.bot_insights_toggle_main.number = bot_count
+    end
 end
 
 -- Hide the main window and save its position
@@ -210,7 +218,7 @@ script.on_event(defines.events.on_gui_click, function(event)
         if gui.bot_insights_main then
             bots_gui.hide_main_window(player)
         else
-            local pos = global.bot_insights_positions and global.bot_insights_positions[player.index]
+            local pos = storage.bot_insights_positions and storage.bot_insights_positions[player.index]
             bots_gui.show_main_window(player, pos)
         end
     end
