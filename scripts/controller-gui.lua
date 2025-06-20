@@ -41,13 +41,16 @@ script.on_event(defines.events.on_gui_click, function(event)
     if event.element.name == "bot_insights_toggle_main" then
         local player = game.get_player(event.player_index)
         if not player or not player.valid then return end
-        local gui = player.gui.screen
-        if gui.bots_insights_window and gui.bots_insights_window.visible then
-            bots_gui.hide_main_window(player)
-        else
---            local pos = storage.bot_insights_positions and storage.bot_insights_positions[player.index]
-            bots_gui.show_main_window(player)
-        end
+
+        bots_gui.toggle_window_visible(player)
+
+--         local gui = player.gui.screen
+--         if gui.bots_insights_window and gui.bots_insights_window.visible then
+--             bots_gui.hide_main_window(player)
+--         else
+-- --            local pos = storage.bot_insights_positions and storage.bot_insights_positions[player.index]
+--             bots_gui.show_main_window(player)
+--         end
     end
 end)
 

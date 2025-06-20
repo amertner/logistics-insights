@@ -1,21 +1,16 @@
 local bots_gui = {}
 
--- Hide the main window and save its position
-function bots_gui.hide_main_window(player, player_table)
-    local gui = player.gui.screen
-    if gui.bots_insights_window then
-        -- Save position
---        player_table.bot_insights_positions = player_table.bot_insights_positions or {}
-        --player_table.bot_insights_positions[player.index] = gui.bots_insights_window.location
-        gui.bots_insights_window.visible = false
-    end
-end
+function bots_gui.toggle_window_visible(player)
+  if not player then
+    return
+  end
+  local player_table = storage.players[player.index]
+  player_table.bots_window_visible = not player_table.bots_window_visible
 
-function bots_gui.show_main_window(player, player_table)
-    local gui = player.gui.screen
-    if gui.bots_insights_window then
-        gui.bots_insights_window.visible = true
-    end
+  local gui = player.gui.screen
+  if gui.bots_insights_window then
+      gui.bots_insights_window.visible = player_table.bots_window_visible
+  end
 end
 
 function bots_gui.build(player, player_table)
@@ -104,14 +99,15 @@ function add_sorted_item_table(title, gui_table, all_entries, sort_fn, number_fi
         }
         count = count + 1
     end
-
-    return gui_table
 end
 
 function bots_gui.update(player, player_table)
-  local window = player.gui.screen.bots_insights_window
+  if not player_table or player_table.bots_window_visible == false then
+    return
+  end
+
+  window = player.gui.screen.bots_insights_window
   if not window then
-    -- bots_gui.build(player, player_table)
     return
   end
 
@@ -185,15 +181,7 @@ script.on_event(defines.events.on_gui_click, function(event)
             bots_gui.update(player, player_table)
         end
       elseif event.element.name == "bot_insights_toggle_main" then
-        local player = game.get_player(event.player_index)
-        if not player or not player.valid then return end
-        local gui = player.gui.screen
-        if gui.bot_insights_main then
-            bots_gui.hide_main_window(player)
-        else
-            local pos = storage.bot_insights_positions and storage.bot_insights_positions[player.index]
-            bots_gui.show_main_window(player, pos)
-        end
+        bots_gui.toggle_window_visible(game.get_player(event.player_index))
     end
 end)
 
