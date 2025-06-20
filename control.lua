@@ -97,6 +97,11 @@ end)
 
 -- CONTROLLER
 
+script.on_event(defines.events.on_gui_click, function(event)
+  controller_gui.onclick(event)
+  bots_gui.onclick(event)
+end)
+
 script.on_event(
   { defines.events.on_cutscene_started, defines.events.on_cutscene_finished, defines.events.on_cutscene_cancelled },
   --- @param e EventData.on_cutscene_started|EventData.on_cutscene_finished|EventData.on_cutscene_cancelled

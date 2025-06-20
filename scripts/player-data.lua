@@ -25,7 +25,7 @@ function player_data.refresh(player, player_table)
 
   player_data.update_settings(player, player_table)
 
-  bots_gui.build(player, player_table)
+  bots_gui.create_window(player, player_table)
 end
 
 return player_data

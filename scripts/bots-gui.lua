@@ -13,7 +13,7 @@ function bots_gui.toggle_window_visible(player)
   end
 end
 
-function bots_gui.build(player, player_table)
+function bots_gui.create_window(player, player_table)
   if player.gui.screen.bots_insights_window then
     player.gui.screen.bots_insights_window.destroy()
   end
@@ -173,7 +173,8 @@ function bots_gui.update(player, player_table)
         number = player_table.network.network_id,
         style = "slot_button",
         tooltip = "Network ID",
-        name = "bot-insight-test-network-id"
+        name = "bot-insight-test-network-id",
+        enabled = false
       }
       bots_table.add{
         type = "sprite-button",
@@ -181,6 +182,7 @@ function bots_gui.update(player, player_table)
         style = "slot_button",
         tooltip = "Number of roboports in network",
         number = table_size(player_table.network.cells),
+        enabled = false,
       }
       bots_table.add{
         type = "sprite-button",
@@ -188,6 +190,7 @@ function bots_gui.update(player, player_table)
         style = "slot_button",
         tooltip = "Number of logistics bots in network",
         number = player_table.network.all_logistic_robots,
+        enabled = false,
       }
       bots_table.add{
         type = "sprite-button",
@@ -195,6 +198,7 @@ function bots_gui.update(player, player_table)
         style = "slot_button",
         tooltip = "Number of requesters in network (Chests, Silos, etc)",
         number = table_size(player_table.network.requesters),
+        enabled = false,
       }
       bots_table.add{
         type = "sprite-button",
@@ -202,6 +206,7 @@ function bots_gui.update(player, player_table)
         style = "slot_button",
         tooltip = "Number of providers in network, except roboports)",
         number = table_size(player_table.network.providers)-table_size(player_table.network.cells),
+        enabled = false,
       }
       bots_table.add{
         type = "sprite-button",
@@ -209,6 +214,7 @@ function bots_gui.update(player, player_table)
         style = "slot_button",
         tooltip = "Number of storage chests in network",
         number = table_size(player_table.network.storages),
+        enabled = false,
       }
     else
       bots_table.add{
@@ -216,7 +222,8 @@ function bots_gui.update(player, player_table)
         sprite = "virtual-signal/signal-L",
         style = "slot_button",
         tooltip = "No network in range",
-        name = "bot-insight-test-network-id"
+        name = "bot-insight-test-network-id",
+        enabled = false,
       }
     end
   end
@@ -225,9 +232,9 @@ function bots_gui.update(player, player_table)
   window.visible = not in_train_gui
 end
 
-script.on_event(defines.events.on_gui_click, function(event)
+function bots_gui.onclick(event)
     if string.sub(event.element.name, 1, 16) == "bot-insight-test" then
-        -- Do nothing, or show a message, etc.
+        -- Do nothing
     end
     if event.element.name == "bot-insight-test-clear-history" then
         storage.delivery_history = {}
@@ -235,10 +242,8 @@ script.on_event(defines.events.on_gui_click, function(event)
             local player_table = storage.players[player.index]
             bots_gui.update(player, player_table)
         end
-      elseif event.element.name == "bot_insights_toggle_main" then
-        bots_gui.toggle_window_visible(game.get_player(event.player_index))
     end
-end)
+end
 
 function bots_gui.destroy(player_table)
   local bots_windows = player_table.bots_windows

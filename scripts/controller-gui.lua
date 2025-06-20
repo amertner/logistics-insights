@@ -24,7 +24,7 @@ function controller_gui.create_window(player)
 end
 
 -- Update the mini window's counter
- function controller_gui.update_window(player, bot_count)
+function controller_gui.update_window(player, bot_count)
     local gui = player.gui.top.bot_insights_mini
     if not gui then 
       controller_gui.create_window(player)
@@ -36,22 +36,13 @@ end
     end
 end
 
--- On click, toggle the main window
-script.on_event(defines.events.on_gui_click, function(event)
+function controller_gui.onclick(event)
     if event.element.name == "bot_insights_toggle_main" then
         local player = game.get_player(event.player_index)
         if not player or not player.valid then return end
 
         bots_gui.toggle_window_visible(player)
-
---         local gui = player.gui.screen
---         if gui.bots_insights_window and gui.bots_insights_window.visible then
---             bots_gui.hide_main_window(player)
---         else
--- --            local pos = storage.bot_insights_positions and storage.bot_insights_positions[player.index]
---             bots_gui.show_main_window(player)
---         end
     end
-end)
+end
 
 return controller_gui
