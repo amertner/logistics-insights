@@ -1,5 +1,6 @@
 local player_data = require("scripts.player-data")
 local bot_counter = require("scripts.bot-counter")
+local controller_gui = require("scripts.controller-gui")
 local bots_gui = require("scripts.bots-gui")
 
 -- STORAGE
@@ -19,7 +20,7 @@ end
 script.on_init(function()
   -- Called when the mod is first added to a save
   init_storages()
-  bots_gui.create_mini_window()  
+  controller_gui.create_window()
 end)
 
 script.on_load(function()
@@ -30,7 +31,7 @@ end)
 
 script.on_event(defines.events.on_player_created, function(e)
   local player = game.get_player(e.player_index)
-  bots_gui.create_mini_window()
+  controller_gui.create_window()
   player_data.init(e.player_index)
   player_data.refresh(player, storage.players[e.player_index])
 end)
@@ -84,7 +85,7 @@ script.on_nth_tick(2, function()
     end
     bot_counter.count_bots(game)
     for _, player in pairs(game.connected_players) do
-      bots_gui.update_mini_window(player, storage.bot_items["logistic-robot"])
+      controller_gui.update_window(player, storage.bot_items["logistic-robot"])
     end
 
     if game.tick % 60 == 0 then
