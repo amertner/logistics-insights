@@ -6,6 +6,7 @@ function player_data.init(player_index)
   storage.players[player_index] = {
     settings = {},
     bots_window_visible = false,
+    network = nil
   }
 end
 

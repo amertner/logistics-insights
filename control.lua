@@ -20,7 +20,6 @@ end
 script.on_init(function()
   -- Called when the mod is first added to a save
   init_storages()
-  controller_gui.create_window()
 end)
 
 script.on_load(function()
@@ -29,7 +28,7 @@ end)
 
 -- PLAYER
 
-script.on_event(defines.events.on_player_created, function(e)
+script.on_event({defines.events.on_player_created, defines.events.on_player_joined_game},function(e)
   local player = game.get_player(e.player_index)
   controller_gui.create_window()
   player_data.init(e.player_index)

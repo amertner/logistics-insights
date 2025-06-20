@@ -11,7 +11,9 @@ function bot_counter.count_bots(game)
     local con_bots = 0
     for _, player in pairs(game.players) do
         if player then
+            local player_table = storage.players[player.index]
             local network = player.force.find_logistic_network_by_position(player.position, player.surface)
+            player_table.network = network -- Store the network in player table for later use
             if network then
                 logi_bots = logi_bots + network.available_logistic_robots
                 con_bots = con_bots + network.available_construction_robots

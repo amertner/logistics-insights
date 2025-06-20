@@ -19,7 +19,7 @@ data:extend(
             name = "bot-insight-max-items",
             setting_type = "runtime-per-user",
             default_value = 6,
-            minimum_value = 1,
+            minimum_value = 6,
             maximum_value = 10,
             order = "4"
         }

@@ -164,6 +164,61 @@ function bots_gui.update(player, player_table)
       tooltip = "Clear history",
       name = "bot-insight-test-clear-history"
     }
+
+    -- Show the bot network being inspected
+    if player_table.network then
+      bots_table.add{
+        type = "sprite-button",
+        sprite = "virtual-signal/signal-L",
+        number = player_table.network.network_id,
+        style = "slot_button",
+        tooltip = "Network ID",
+        name = "bot-insight-test-network-id"
+      }
+      bots_table.add{
+        type = "sprite-button",
+        sprite = "entity/roboport",
+        style = "slot_button",
+        tooltip = "Number of roboports in network",
+        number = table_size(player_table.network.cells),
+      }
+      bots_table.add{
+        type = "sprite-button",
+        sprite = "entity/logistic-robot",
+        style = "slot_button",
+        tooltip = "Number of logistics bots in network",
+        number = player_table.network.all_logistic_robots,
+      }
+      bots_table.add{
+        type = "sprite-button",
+        sprite = "item/requester-chest",
+        style = "slot_button",
+        tooltip = "Number of requesters in network (Chests, Silos, etc)",
+        number = table_size(player_table.network.requesters),
+      }
+      bots_table.add{
+        type = "sprite-button",
+        sprite = "item/passive-provider-chest",
+        style = "slot_button",
+        tooltip = "Number of providers in network, except roboports)",
+        number = table_size(player_table.network.providers)-table_size(player_table.network.cells),
+      }
+      bots_table.add{
+        type = "sprite-button",
+        sprite = "item/storage-chest",
+        style = "slot_button",
+        tooltip = "Number of storage chests in network",
+        number = table_size(player_table.network.storages),
+      }
+    else
+      bots_table.add{
+        type = "sprite-button",
+        sprite = "virtual-signal/signal-L",
+        style = "slot_button",
+        tooltip = "No network in range",
+        name = "bot-insight-test-network-id"
+      }
+    end
   end
 
   local in_train_gui = player.opened_gui_type == defines.gui_type.entity and player.opened.type == "locomotive"
