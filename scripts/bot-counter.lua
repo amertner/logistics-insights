@@ -66,7 +66,11 @@ function bot_counter.count_bots(game)
         if player then
             local player_table = storage.players[player.index]
             local network = player.force.find_logistic_network_by_position(player.position, player.surface)
-            player_table.network = network -- Store the network in player table for later use
+            if not player_table.network or not network or player_table.network.network_id ~= network.network_id then
+                -- Clear the history when we change networks
+                storage.delivery_history = {}
+                player_table.network = network
+            end
             if network then
                 logi_bots = logi_bots + network.available_logistic_robots
                 con_bots = con_bots + network.available_construction_robots
