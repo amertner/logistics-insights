@@ -17,17 +17,45 @@ function bots_gui.create_window(player, player_table)
   if player.gui.screen.bots_insights_window then
     player.gui.screen.bots_insights_window.destroy()
   end
-
   local style = "botsgui_frame_style"
 
   local window = player.gui.screen.add{
       type = "frame",
       name = "bots_insights_window",
-      caption = "[img=item/logistic-robot] Bots insights",
       direction = "vertical",
       style = style,
       visible = player.controller_type ~= defines.controllers.cutscene,
   }
+
+  local titlebar = window.add{
+      type = "flow",
+      direction = "horizontal",
+      style_mods = {horizontally_stretchable = true, vertically_align = "center"},
+  }
+  titlebar.drag_target = window
+
+  titlebar.add{
+      type = "label",
+      caption = "[img=item/logistic-robot] Logistics insights     ",
+      style = "frame_title",
+      ignored_by_interaction = true
+  }
+
+  local spacer = titlebar.add{
+      type = "empty-widget",
+      style = "draggable_space_header",
+  }
+  spacer.style.horizontally_stretchable = true
+
+  if player_table.settings.show_history then
+      titlebar.add{
+          type = "sprite-button",
+          sprite = "utility/trash",
+          style = "frame_action_button",
+          tooltip = "Clear history",
+          name = "bot-insight-test-clear-history"
+      }
+  end
   player_table.bots_windows = window
   window.auto_center = true
 
@@ -90,6 +118,54 @@ local function add_sorted_item_table(title, gui_table, all_entries, sort_fn, num
         }
         count = count + 1
     end
+end -- add-sorted-item-table
+
+local function add_bot_activity_row(window, max_items)
+  -- Add robot activity stats row
+  local activity_icons = {
+    {sprite = "virtual-signal/signal-Y", key = "logistic-robot-total", tooltip = "Total robots"}, -- Total
+    {sprite = "entity/logistic-robot", key = "logistic-robot-available", tooltip = "Available robots"},           -- Idle
+    {sprite = "utility/hand", key = defines.robot_order_type.pickup, tooltip = "Robots picking up items"},        -- Picking
+    {sprite = "utility/right_arrow", key = defines.robot_order_type.deliver, tooltip = "Robots delivering items"},  -- Delivering
+    {sprite = "utility/warning_icon", key = "waiting-for-charge-robot", tooltip = "Robots waiting to charge"}, -- Waiting to Charge
+    {sprite = "entity/roboport", key = "charging-robot", tooltip = "Robots charging"},             -- Charging
+  }
+
+  if window.bots_activity_row then
+    window.bots_activity_row.destroy()
+  end
+
+  local activity_row = window
+
+  activity_row.add{
+    type = "label",
+    caption = "Activity",
+    style = "heading_2_label",
+  }
+
+  for i, icon in ipairs(activity_icons) do
+    activity_row.add{
+      type = "sprite-button",
+      sprite = icon.sprite,
+      style = "slot_button",
+      tooltip = icon.tooltip,
+      name = "bot-insight-activity-"..i,
+      enabled = false,
+      number = storage.bot_items[icon.key] or 0
+    }
+  end
+
+  -- Pad with blank elements if needed
+  count = #activity_icons
+  while count < max_items do
+      activity_row.add{
+        type = "sprite-button",
+        style = "slot_button",
+        name = "bot-insight-test-activity"..count,
+        enabled = false,
+      }
+      count = count + 1
+  end
 end
 
 function bots_gui.update(player, player_table)
@@ -146,18 +222,21 @@ function bots_gui.update(player, player_table)
         "avg",
         player_table.settings.max_items
     )
+  end
 
-    -- Add button to clear history
-    bots_table.add{
-      type = "sprite-button",
-      sprite = "utility/trash",
-      style = "tool_button",
-      tooltip = "Clear history",
-      name = "bot-insight-test-clear-history"
-    }
+    if player_table.settings.show_activity then
+      -- Add bot activity row
+      add_bot_activity_row(bots_table, player_table.settings.max_items)
+    end
 
     -- Show the bot network being inspected
     if player_table.network then
+
+      bots_table.add{
+        type = "label",
+        caption = "Network",
+        style = "heading_2_label",
+      }
       bots_table.add{
         type = "sprite-button",
         sprite = "virtual-signal/signal-L",
@@ -217,7 +296,6 @@ function bots_gui.update(player, player_table)
         enabled = false,
       }
     end
-  end
 
   local in_train_gui = player.opened_gui_type == defines.gui_type.entity and player.opened.type == "locomotive"
   window.visible = not in_train_gui

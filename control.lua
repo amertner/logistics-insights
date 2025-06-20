@@ -78,21 +78,27 @@ end)
 -- TICK
 
 -- count bots often, update the GUI less often
-script.on_nth_tick(2, function()
-    if storage.delivery_history == nil then
-        init_storages()
+script.on_nth_tick(1, function()
+  frequent = false
+  for _, player in pairs(game.connected_players) do
+    local player_table = storage.players[player.index]
+    if player_table.settings.show_history then
+      frequent = true
+      break
     end
-    bot_counter.count_bots(game)
-    for _, player in pairs(game.connected_players) do
-      controller_gui.update_window(player, storage.bot_items["logistic-robot"])
-    end
+  end
 
-    if game.tick % 60 == 0 then
-      for _, player in pairs(game.connected_players) do
-        local player_table = storage.players[player.index]
-        bots_gui.update(player, player_table)
-      end
+  if (frequent and game.tick % 3 == 0) or game.tick % 30 then
+    bot_counter.count_bots(game)
+  end
+
+  if game.tick % 30 == 0 then
+    for _, player in pairs(game.connected_players) do
+      local player_table = storage.players[player.index]
+      controller_gui.update_window(player, storage.bot_items["logistic-robot-available"] or 0)
+      bots_gui.update(player, player_table)
     end
+  end
 end)
 
 -- CONTROLLER

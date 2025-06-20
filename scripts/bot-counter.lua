@@ -2,15 +2,15 @@
 bot_counter = {}
 
 local function add_bot_to_bot_deliveries(bot, item_name, quality, count)
-    if storage.bot_deliveries[item_name .. "-" .. quality] == nil then
+    if storage.bot_deliveries[item_name .. quality] == nil then
         -- Order not seen before
-        storage.bot_deliveries[item_name .. "-" .. quality] = {
+        storage.bot_deliveries[item_name .. quality] = {
             item_name = item_name,
             quality_name = quality,
             count = count,
         }
     else -- It's still under way
-        storage.bot_deliveries[item_name .. "-" .. quality].count = storage.bot_deliveries[item_name .. "-" .. quality].count + count
+        storage.bot_deliveries[item_name .. quality].count = storage.bot_deliveries[item_name .. quality].count + count
     end    
 end
 
@@ -34,7 +34,7 @@ local function manage_active_deliveries_history()
     -- It will remove entries that are no longer active and update the history
     for unit_number, order in pairs(storage.bot_active_deliveries) do
         if order.last_seen < game.tick then
-            local key = order.item_name .. "-" .. order.quality_name
+            local key = order.item_name .. order.quality_name
             if storage.delivery_history[key] == nil then
                 storage.delivery_history[key] = {
                     item_name = order.item_name,
@@ -60,8 +60,10 @@ function bot_counter.count_bots(game)
     if storage.bot_active_deliveries == nil then
         storage.bot_active_deliveries = {}
     end
-    local logi_bots = 0
-    local con_bots = 0
+    local bots_total = 0
+    local bots_available = 0
+    local bots_charging = 0
+    local bots_waiting_for_charge = 0
     for _, player in pairs(game.players) do
         if player then
             local player_table = storage.players[player.index]
@@ -73,9 +75,15 @@ function bot_counter.count_bots(game)
                 player_table.network = network
             end
             if network then
-                logi_bots = logi_bots + network.available_logistic_robots
-                con_bots = con_bots + network.available_construction_robots
-                for _, bot in ipairs(network.logistic_robots) do
+                bots_total = bots_total + network.all_logistic_robots
+                bots_available = bots_available + network.available_logistic_robots
+                for _, cell in pairs(network.cells) do
+                    if cell.valid then
+                        bots_charging = bots_charging + cell.charging_robot_count
+                        bots_waiting_for_charge = bots_waiting_for_charge + cell.to_charge_robot_count
+                    end
+                end
+                for _, bot in pairs(network.logistic_robots) do
                     if bot.valid and bot.robot_order_queue then
                         for _, order in pairs(bot.robot_order_queue) do
                             -- Record order, deliver, etc
@@ -83,7 +91,6 @@ function bot_counter.count_bots(game)
                             local item_name = order.target_item.name.name
                             local item_count = order.target_count
                             local quality = order.target_item.quality.name
-                            local key = item_name .. "-" .. quality
                             -- For Deliveries, record the item 
                             if order.type == defines.robot_order_type.deliver and item_name then
                                 add_bot_to_bot_deliveries(bot, item_name, quality, item_count)
@@ -102,8 +109,10 @@ function bot_counter.count_bots(game)
             end -- if network
         end
     end
-    storage.bot_items["logistic-robot"] = logi_bots
-    storage.bot_items["construction-robot"] = con_bots
+    storage.bot_items["logistic-robot-total"] = bots_total
+    storage.bot_items["logistic-robot-available"] = bots_available
+    storage.bot_items["charging-robot"] = bots_charging
+    storage.bot_items["waiting-for-charge-robot"] = bots_waiting_for_charge
 end
 
 return bot_counter
