@@ -23,7 +23,7 @@ function bots_gui.create_window(player, player_table)
   local window = player.gui.screen.add{
       type = "frame",
       name = "bots_insights_window",
-      caption = "Bots",
+      caption = "[img=item/logistic-robot] Bots insights",
       direction = "vertical",
       style = style,
       visible = player.controller_type ~= defines.controllers.cutscene,
@@ -48,22 +48,12 @@ local function sanitize_entity_name(str)
 end
 
 -- Adds table GUI element displaying item sprites and numbers in sort order.
-function add_sorted_item_table(title, gui_table, all_entries, sort_fn, number_field, max_items)
+local function add_sorted_item_table(title, gui_table, all_entries, sort_fn, number_field, max_items)
     -- Collect entries into an array
     local sorted_entries = {}
 
     for index, entry in pairs(all_entries) do
-      if number_field then
-        table.insert(sorted_entries, entry)
-      else
-        table.insert(sorted_entries, {
-            item_name = index,
-            count = entry or 0
-        })
-      end
-    end
-    if number_field == nil then
-      number_field = "count" -- Default field if not specified
+      table.insert(sorted_entries, entry)
     end
 
     -- Sort using the provided function
@@ -85,7 +75,8 @@ function add_sorted_item_table(title, gui_table, all_entries, sort_fn, number_fi
             style = "slot_button",
             quality = entry.quality_name or "normal",
             number = entry[number_field],
-            name = "bot-insight-test-"..sanitize_entity_name(title)..count
+            name = "bot-insight-test-"..sanitize_entity_name(title)..count,
+            tooltip = string.format("Items: %d", entry.count)
         }
         count = count + 1
     end
