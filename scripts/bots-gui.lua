@@ -13,20 +13,7 @@ function bots_gui.toggle_window_visible(player)
   end
 end
 
-function bots_gui.create_window(player, player_table)
-  if player.gui.screen.bots_insights_window then
-    player.gui.screen.bots_insights_window.destroy()
-  end
-  local style = "botsgui_frame_style"
-
-  local window = player.gui.screen.add{
-      type = "frame",
-      name = "bots_insights_window",
-      direction = "vertical",
-      style = style,
-      visible = player.controller_type ~= defines.controllers.cutscene,
-  }
-
+local function add_titlebar(window, player_table)
   local titlebar = window.add{
       type = "flow",
       direction = "horizontal",
@@ -66,15 +53,32 @@ function bots_gui.create_window(player, player_table)
           name = "bot-insight-clear-history"
       }
   end
-  player_table.bots_windows = window
-  window.auto_center = true
 
+end
+
+function bots_gui.create_window(player, player_table)
+  if player.gui.screen.bots_insights_window then
+    player.gui.screen.bots_insights_window.destroy()
+  end
+  local style = "botsgui_frame_style"
+
+  local window = player.gui.screen.add{
+      type = "frame",
+      name = "bots_insights_window",
+      direction = "vertical",
+      style = style,
+      visible = player.controller_type ~= defines.controllers.cutscene,
+  }
+
+  add_titlebar(window, player_table)
   local bots_table = window.add{
     type = "table",
     name = "bots_table",
     column_count = player_table.settings.max_items+1
   }
-  player_table.bots_table =bots_table
+  window.auto_center = true
+  player_table.bots_windows = window
+  player_table.bots_table = bots_table
 
   bots_gui.update(player, player_table)
 end
@@ -89,7 +93,6 @@ end
 local function add_sorted_item_table(title, gui_table, all_entries, sort_fn, number_field, max_items, paused)
     -- Collect entries into an array
     local sorted_entries = {}
-
     for index, entry in pairs(all_entries) do
       table.insert(sorted_entries, entry)
     end
@@ -97,7 +100,7 @@ local function add_sorted_item_table(title, gui_table, all_entries, sort_fn, num
     -- Sort using the provided function
     table.sort(sorted_entries, sort_fn)
 
-    gui_table.add{
+    local table_row = gui_table.add{
       type = "label",
       caption = title,
       style = "heading_2_label"
@@ -130,7 +133,8 @@ local function add_sorted_item_table(title, gui_table, all_entries, sort_fn, num
         }
         count = count + 1
     end
-end -- add-sorted-item-table
+    return table_row
+end -- add_sorted_item_table
 
 local function add_bot_activity_row(window, max_items)
   -- Add robot activity stats row
@@ -147,9 +151,7 @@ local function add_bot_activity_row(window, max_items)
     window.bots_activity_row.destroy()
   end
 
-  local activity_row = window
-
-  activity_row.add{
+  local activity_row = window.add{
     type = "label",
     caption = "Activity",
     style = "heading_2_label",
@@ -157,7 +159,7 @@ local function add_bot_activity_row(window, max_items)
   }
 
   for i, icon in ipairs(activity_icons) do
-    activity_row.add{
+    window.add{
       type = "sprite-button",
       sprite = icon.sprite,
       style = "slot_button",
@@ -171,7 +173,7 @@ local function add_bot_activity_row(window, max_items)
   -- Pad with blank elements if needed
   count = #activity_icons
   while count < max_items do
-      activity_row.add{
+      window.add{
         type = "sprite-button",
         style = "slot_button",
         name = "bot-insight-test-activity"..count,
@@ -179,7 +181,8 @@ local function add_bot_activity_row(window, max_items)
       }
       count = count + 1
   end
-end
+  return activity_row
+end -- add_bot_activity_row
 
 function bots_gui.update(player, player_table)
   if not player_table or player_table.bots_window_visible == false then
@@ -199,7 +202,7 @@ function bots_gui.update(player, player_table)
   bots_table.clear()
 
   if player_table.settings.show_delivering and not player_table.stopped then
-    add_sorted_item_table(
+    local deliveries_table = add_sorted_item_table(
       "Deliveries",
       bots_table,
       storage.bot_deliveries,
@@ -212,7 +215,7 @@ function bots_gui.update(player, player_table)
 
   -- Show history data
   if player_table.settings.show_history and storage.delivery_history and not player_table.stopped then
-    add_sorted_item_table(
+    local history_row = add_sorted_item_table(
       "Total items",
       bots_table,
       storage.delivery_history,
@@ -221,7 +224,7 @@ function bots_gui.update(player, player_table)
       player_table.settings.max_items,
       player_table.stopped
     )
-    add_sorted_item_table(
+    local ticks_row = add_sorted_item_table(
         "Total ticks",
         bots_table,
         storage.delivery_history,
@@ -230,7 +233,7 @@ function bots_gui.update(player, player_table)
         player_table.settings.max_items,
       player_table.stopped
     )
-    add_sorted_item_table(
+    local ticksperitem_row = add_sorted_item_table(
         "Ticks/item",
         bots_table,
         storage.delivery_history,
@@ -243,7 +246,7 @@ function bots_gui.update(player, player_table)
 
     if player_table.settings.show_activity then
       -- Add bot activity row
-      add_bot_activity_row(bots_table, player_table.settings.max_items)
+      local activity_row = add_bot_activity_row(bots_table, player_table.settings.max_items)
     end
 
     -- Show the bot network being inspected
