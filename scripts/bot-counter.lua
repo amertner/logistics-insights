@@ -83,27 +83,29 @@ function bot_counter.count_bots(game)
                         bots_waiting_for_charge = bots_waiting_for_charge + cell.to_charge_robot_count
                     end
                 end
-                counted = 0
-                for _, bot in pairs(network.logistic_robots) do
-                        -- counted = counted + 1
-                        -- if counted > 300 then
-                        --     break
-                        -- end
-                    if bot.valid and table_size(bot.robot_order_queue) > 0 then
-                        order = bot.robot_order_queue[1]
-                        -- Record order, deliver, etc
-                        storage.bot_items[order.type] = (storage.bot_items[order.type] or 0) + 1
-                        local item_name = order.target_item.name.name
-                        local item_count = order.target_count
-                        local quality = order.target_item.quality.name
-                        -- For Deliveries, record the item 
-                        if order.type == defines.robot_order_type.deliver and item_name then
-                            add_bot_to_bot_deliveries(bot, item_name, quality, item_count)
-                            if player_table.settings.show_history then
-                                add_bot_to_active_deliveries(bot, item_name, quality, item_count)
+                if  not player_table.stopped then
+                    counted = 0
+                    for _, bot in pairs(network.logistic_robots) do
+                            -- counted = counted + 1
+                            -- if counted > 300 then
+                            --     break
+                            -- end
+                        if bot.valid and table_size(bot.robot_order_queue) > 0 then
+                            order = bot.robot_order_queue[1]
+                            -- Record order, deliver, etc
+                            storage.bot_items[order.type] = (storage.bot_items[order.type] or 0) + 1
+                            local item_name = order.target_item.name.name
+                            local item_count = order.target_count
+                            local quality = order.target_item.quality.name
+                            -- For Deliveries, record the item 
+                            if order.type == defines.robot_order_type.deliver and item_name then
+                                add_bot_to_bot_deliveries(bot, item_name, quality, item_count)
+                                if player_table.settings.show_history then
+                                    add_bot_to_active_deliveries(bot, item_name, quality, item_count)
+                                end
                             end
-                        end
 
+                        end
                     end
                 end
                 -- Remove orders no longer active from the list and add to history
