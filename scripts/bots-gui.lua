@@ -31,6 +31,7 @@ function bots_gui.create_window(player, player_table)
       type = "flow",
       direction = "horizontal",
       style_mods = {horizontally_stretchable = true, vertically_align = "center"},
+      color = {r=0, g=0, b=0, a=0.85} -- dark, mostly opaque
   }
   titlebar.drag_target = window
 
@@ -51,7 +52,7 @@ function bots_gui.create_window(player, player_table)
       titlebar.add{
           type = "sprite-button",
           sprite = "utility/trash",
-          style = "frame_action_button",
+          style = "tool_button",
           tooltip = "Clear history",
           name = "bot-insight-test-clear-history"
       }

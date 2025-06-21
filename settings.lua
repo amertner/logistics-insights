@@ -12,14 +12,14 @@ data:extend(
             name = "bot-insight-show-history",
             setting_type = "runtime-per-user",
             default_value = true,
-            order = "1"
+            order = "2"
         },
         {
             type = "bool-setting",
             name = "bot-insight-show-activity",
             setting_type = "runtime-per-user",
             default_value = true,
-            order = "1"
+            order = "3"
         },
         {
             type = "int-setting",
