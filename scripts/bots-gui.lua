@@ -348,6 +348,7 @@ function bots_gui.onclick(event)
       local player_table = storage.players[player.index]
       player_table.stopped = not player_table.stopped or false
       update_gathering_data(player_table.stopped, event.element)
+      bots_gui.update(player, player_table)
     end
   end
 end
