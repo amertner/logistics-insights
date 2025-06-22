@@ -7,42 +7,42 @@ function controller_gui.create_window(player)
   local gui = player.gui.top
   if gui.bot_insights_mini then gui.bot_insights_mini.destroy() end
 
-  local mini = gui.add{
-      type = "frame",
-      name = "bot_insights_mini",
-      style = "botsgui_controller_style",
-      direction = "horizontal"
+  local mini = gui.add {
+    type = "frame",
+    name = "bot_insights_mini",
+    style = "botsgui_controller_style",
+    direction = "horizontal"
   }
-  mini.location = {x = 10, y = 40} -- fixed position, adjust as needed
+  mini.location = { x = 10, y = 40 } -- fixed position, adjust as needed
 
-  mini.add{
-      type = "sprite-button",
-      name = "bot_insights_toggle_main",
-      sprite = "item/logistic-robot",
-      style = "slot_button",
+  mini.add {
+    type = "sprite-button",
+    name = "bot_insights_toggle_main",
+    sprite = "item/logistic-robot",
+    style = "slot_button",
   }
 end
 
 -- Update the mini window's counter
 function controller_gui.update_window(player, bot_count)
-    local gui = player.gui.top.bot_insights_mini
-    if not gui then 
-      controller_gui.create_window(player)
-      gui = player.gui.top.bot_insights_mini
-    end
+  local gui = player.gui.top.bot_insights_mini
+  if not gui then
+    controller_gui.create_window(player)
+    gui = player.gui.top.bot_insights_mini
+  end
 
-    if gui.bot_insights_toggle_main then
-      gui.bot_insights_toggle_main.number = bot_count
-    end
+  if gui.bot_insights_toggle_main then
+    gui.bot_insights_toggle_main.number = bot_count
+  end
 end
 
 function controller_gui.onclick(event)
-    if event.element.name == "bot_insights_toggle_main" then
-        local player = game.get_player(event.player_index)
-        if not player or not player.valid then return end
+  if event.element.name == "bot_insights_toggle_main" then
+    local player = game.get_player(event.player_index)
+    if not player or not player.valid then return end
 
-        bots_gui.toggle_window_visible(player)
-    end
+    bots_gui.toggle_window_visible(player)
+  end
 end
 
 return controller_gui

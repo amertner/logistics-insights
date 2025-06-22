@@ -28,7 +28,7 @@ end)
 
 -- PLAYER
 
-script.on_event({defines.events.on_player_created, defines.events.on_player_joined_game},function(e)
+script.on_event({ defines.events.on_player_created, defines.events.on_player_joined_game }, function(e)
   local player = game.get_player(e.player_index)
   controller_gui.create_window()
   player_data.init(e.player_index)
@@ -40,7 +40,8 @@ script.on_event(defines.events.on_player_removed, function(e)
 end)
 
 script.on_event(
-  { defines.events.on_player_display_resolution_changed, defines.events.on_player_display_scale_changed, defines.events.on_player_joined_game },
+  { defines.events.on_player_display_resolution_changed, defines.events.on_player_display_scale_changed, defines.events
+      .on_player_joined_game },
   --- @param e EventData.on_player_display_resolution_changed|EventData.on_player_display_scale_changed
   function(e)
     local player = game.get_player(e.player_index)
@@ -48,15 +49,15 @@ script.on_event(
       return
     end
     if storage.players then
-        local player_table = storage.players[e.player_index]
-        bots_gui.update(player, player_table)
+      local player_table = storage.players[e.player_index]
+      bots_gui.update(player, player_table)
     end
   end
 )
 
 -- SETTINGS
 
-script.on_configuration_changed(function (e)
+script.on_configuration_changed(function(e)
   -- Called when the mod is updated or the save is loaded
   if e.mod_changes and e.mod_changes["bot-insight"] then
     init_storages()
