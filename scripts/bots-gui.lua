@@ -138,12 +138,12 @@ end -- add_sorted_item_table
 local function add_bot_activity_row(window, max_items)
   -- Add robot activity stats row
   local activity_icons = {
-    { sprite = "virtual-signal/signal-Y", key = "logistic-robot-total",           tooltip = "Total robots" },      -- Total
-    { sprite = "entity/logistic-robot",   key = "logistic-robot-available",       tooltip = "Available robots" },  -- Idle
-    { sprite = "utility/hand",            key = defines.robot_order_type.pickup,  tooltip = "Robots picking up items" }, -- Picking
-    { sprite = "utility/right_arrow",     key = defines.robot_order_type.deliver, tooltip = "Robots delivering items" }, -- Delivering
-    { sprite = "utility/warning_icon",    key = "waiting-for-charge-robot",       tooltip = "Robots waiting to charge" }, -- Waiting to Charge
-    { sprite = "entity/roboport",         key = "charging-robot",                 tooltip = "Robots charging" },   -- Charging
+    { sprite = "entity/logistic-robot",                   key = "logistic-robot-total",           tooltip = "Total robots" },
+    { sprite = "virtual-signal/signal-input",             key = defines.robot_order_type.pickup,  tooltip = "Robots picking up items" },
+    { sprite = "virtual-signal/signal-output",            key = defines.robot_order_type.deliver, tooltip = "Robots delivering items" },
+    { sprite = "virtual-signal/signal-battery-low",       key = "waiting-for-charge-robot",       tooltip = "Robots waiting to charge" },
+    { sprite = "virtual-signal/signal-battery-mid-level", key = "charging-robot",                 tooltip = "Robots charging" },
+    { sprite = "virtual-signal/signal-battery-full",      key = "logistic-robot-available",       tooltip = "Available robots" },
   }
 
   if window.bots_activity_row then
@@ -164,7 +164,7 @@ local function add_bot_activity_row(window, max_items)
       style = "slot_button",
       tooltip = icon.tooltip,
       name = "bot-insight-activity-" .. i,
-      enabled = false,
+      enabled = true,
       number = storage.bot_items[icon.key] or 0
     }
   end
@@ -173,15 +173,73 @@ local function add_bot_activity_row(window, max_items)
   count = #activity_icons
   while count < max_items do
     window.add {
-      type = "sprite-button",
-      style = "slot_button",
-      name = "bot-insight-test-activity" .. count,
-      enabled = false,
+      type = "empty-widget",
     }
     count = count + 1
   end
   return activity_row
 end -- add_bot_activity_row
+
+local function add_network_row(bots_table, player_table)
+  if player_table.network then
+    bots_table.add {
+      type = "label",
+      caption = "Network",
+      style = "heading_2_label",
+    }
+    bots_table.add {
+      type = "sprite-button",
+      sprite = "virtual-signal/signal-L",
+      number = player_table.network.network_id,
+      style = "slot_button",
+      tooltip = "Network ID",
+      name = "bot-insight-test-network-id",
+    }
+    bots_table.add {
+      type = "sprite-button",
+      sprite = "entity/roboport",
+      style = "slot_button",
+      tooltip = "Number of roboports in network",
+      number = table_size(player_table.network.cells),
+    }
+    bots_table.add {
+      type = "sprite-button",
+      sprite = "entity/logistic-robot",
+      style = "slot_button",
+      tooltip = "Number of logistics bots in network",
+      number = player_table.network.all_logistic_robots,
+    }
+    bots_table.add {
+      type = "sprite-button",
+      sprite = "item/requester-chest",
+      style = "slot_button",
+      tooltip = "Number of requesters in network (Chests, Silos, etc)",
+      number = table_size(player_table.network.requesters),
+    }
+    bots_table.add {
+      type = "sprite-button",
+      sprite = "item/passive-provider-chest",
+      style = "slot_button",
+      tooltip = "Number of providers in network, except roboports)",
+      number = table_size(player_table.network.providers) - table_size(player_table.network.cells),
+    }
+    bots_table.add {
+      type = "sprite-button",
+      sprite = "item/storage-chest",
+      style = "slot_button",
+      tooltip = "Number of storage chests in network",
+      number = table_size(player_table.network.storages),
+    }
+  else
+    bots_table.add {
+      type = "sprite-button",
+      sprite = "virtual-signal/signal-L",
+      style = "slot_button",
+      tooltip = "No network in range",
+      name = "bot-insight-test-network-id",
+    }
+  end
+end -- add_network_row
 
 function bots_gui.update(player, player_table)
   if not player_table or player_table.bots_window_visible == false then
@@ -249,71 +307,7 @@ function bots_gui.update(player, player_table)
   end
 
   -- Show the bot network being inspected
-  if player_table.network then
-    bots_table.add {
-      type = "label",
-      caption = "Network",
-      style = "heading_2_label",
-    }
-    bots_table.add {
-      type = "sprite-button",
-      sprite = "virtual-signal/signal-L",
-      number = player_table.network.network_id,
-      style = "slot_button",
-      tooltip = "Network ID",
-      name = "bot-insight-test-network-id",
-      enabled = false
-    }
-    bots_table.add {
-      type = "sprite-button",
-      sprite = "entity/roboport",
-      style = "slot_button",
-      tooltip = "Number of roboports in network",
-      number = table_size(player_table.network.cells),
-      enabled = false,
-    }
-    bots_table.add {
-      type = "sprite-button",
-      sprite = "entity/logistic-robot",
-      style = "slot_button",
-      tooltip = "Number of logistics bots in network",
-      number = player_table.network.all_logistic_robots,
-      enabled = false,
-    }
-    bots_table.add {
-      type = "sprite-button",
-      sprite = "item/requester-chest",
-      style = "slot_button",
-      tooltip = "Number of requesters in network (Chests, Silos, etc)",
-      number = table_size(player_table.network.requesters),
-      enabled = false,
-    }
-    bots_table.add {
-      type = "sprite-button",
-      sprite = "item/passive-provider-chest",
-      style = "slot_button",
-      tooltip = "Number of providers in network, except roboports)",
-      number = table_size(player_table.network.providers) - table_size(player_table.network.cells),
-      enabled = false,
-    }
-    bots_table.add {
-      type = "sprite-button",
-      sprite = "item/storage-chest",
-      style = "slot_button",
-      tooltip = "Number of storage chests in network",
-      number = table_size(player_table.network.storages),
-      enabled = false,
-    }
-  else
-    bots_table.add {
-      type = "sprite-button",
-      sprite = "virtual-signal/signal-L",
-      style = "slot_button",
-      tooltip = "No network in range",
-      name = "bot-insight-test-network-id",
-      enabled = false,
-    }
-  end
+  local network_row = add_network_row(bots_table, player_table)
 
   local in_train_gui = player.opened_gui_type == defines.gui_type.entity and player.opened.type == "locomotive"
   window.visible = not in_train_gui
