@@ -36,13 +36,15 @@ local function add_titlebar(window, player_table)
   }
   spacer.style.horizontally_stretchable = true
 
-  titlebar.add {
-    type = "sprite-button",
-    sprite = "utility/stop",
-    style = "tool_button",
-    name = "bot-insights-stop",
-    tooltip = "Pause gathering per-robot data"
-  }
+  if player_table.settings.show_delivering or player_table.settings.show_history then
+    titlebar.add {
+      type = "sprite-button",
+      sprite = "utility/stop",
+      style = "tool_button",
+      name = "bot-insights-pause",
+      tooltip = "Pause gathering per-robot data"
+    }
+  end
 
   if player_table.settings.show_history then
     titlebar.add {
@@ -135,15 +137,15 @@ local function add_sorted_item_table(title, gui_table, all_entries, sort_fn, num
   return table_row
 end -- add_sorted_item_table
 
-local function add_bot_activity_row(window, max_items)
+local function add_bot_activity_row(window, max_items, paused)
   -- Add robot activity stats row
   local activity_icons = {
-    { sprite = "entity/logistic-robot",                   key = "logistic-robot-total",           tooltip = "Total robots" },
-    { sprite = "virtual-signal/signal-input",             key = defines.robot_order_type.pickup,  tooltip = "Robots picking up items" },
-    { sprite = "virtual-signal/signal-output",            key = defines.robot_order_type.deliver, tooltip = "Robots delivering items" },
-    { sprite = "virtual-signal/signal-battery-low",       key = "waiting-for-charge-robot",       tooltip = "Robots waiting to charge" },
-    { sprite = "virtual-signal/signal-battery-mid-level", key = "charging-robot",                 tooltip = "Robots charging" },
-    { sprite = "virtual-signal/signal-battery-full",      key = "logistic-robot-available",       tooltip = "Available robots" },
+    { sprite = "entity/logistic-robot",                   key = "logistic-robot-total",           tooltip = "Total robots", onwithpause = true },
+    { sprite = "virtual-signal/signal-input",             key = defines.robot_order_type.pickup,  tooltip = "Robots picking up items", onwithpause = false },
+    { sprite = "virtual-signal/signal-output",            key = defines.robot_order_type.deliver, tooltip = "Robots delivering items", onwithpause = false },
+    { sprite = "virtual-signal/signal-battery-low",       key = "waiting-for-charge-robot",       tooltip = "Robots waiting to charge", onwithpause = true },
+    { sprite = "virtual-signal/signal-battery-mid-level", key = "charging-robot",                 tooltip = "Robots charging", onwithpause = true },
+    { sprite = "virtual-signal/signal-battery-full",      key = "logistic-robot-available",       tooltip = "Available robots", onwithpause = true },
   }
 
   if window.bots_activity_row then
@@ -164,7 +166,7 @@ local function add_bot_activity_row(window, max_items)
       style = "slot_button",
       tooltip = icon.tooltip,
       name = "bot-insight-activity-" .. i,
-      enabled = true,
+      enabled = icon.onwithpause or not paused,
       number = storage.bot_items[icon.key] or 0
     }
   end
@@ -258,7 +260,7 @@ function bots_gui.update(player, player_table)
 
   bots_table.clear()
 
-  if player_table.settings.show_delivering and not player_table.stopped then
+  if player_table.settings.show_delivering and not player_table.settings.paused then
     local deliveries_table = add_sorted_item_table(
       "Deliveries",
       bots_table,
@@ -266,12 +268,12 @@ function bots_gui.update(player, player_table)
       function(a, b) return a.count > b.count end,
       "count",
       player_table.settings.max_items,
-      player_table.stopped
+      player_table.settings.paused
     )
   end
 
   -- Show history data
-  if player_table.settings.show_history and storage.delivery_history and not player_table.stopped then
+  if player_table.settings.show_history and storage.delivery_history and not player_table.settings.paused then
     local history_row = add_sorted_item_table(
       "Total items",
       bots_table,
@@ -279,7 +281,7 @@ function bots_gui.update(player, player_table)
       function(a, b) return a.count > b.count end,
       "count",
       player_table.settings.max_items,
-      player_table.stopped
+      player_table.settings.paused
     )
     local ticks_row = add_sorted_item_table(
       "Total ticks",
@@ -288,7 +290,7 @@ function bots_gui.update(player, player_table)
       function(a, b) return a.ticks > b.ticks end,
       "ticks",
       player_table.settings.max_items,
-      player_table.stopped
+      player_table.settings.paused
     )
     local ticksperitem_row = add_sorted_item_table(
       "Ticks/item",
@@ -297,31 +299,30 @@ function bots_gui.update(player, player_table)
       function(a, b) return a.avg > b.avg end,
       "avg",
       player_table.settings.max_items,
-      player_table.stopped
+      player_table.settings.paused
     )
   end
 
   if player_table.settings.show_activity then
-    -- Add bot activity row
-    local activity_row = add_bot_activity_row(bots_table, player_table.settings.max_items)
+    add_bot_activity_row(bots_table, player_table.settings.max_items, player_table.settings.paused)
   end
 
   -- Show the bot network being inspected
-  local network_row = add_network_row(bots_table, player_table)
+  add_network_row(bots_table, player_table)
 
   local in_train_gui = player.opened_gui_type == defines.gui_type.entity and player.opened.type == "locomotive"
   window.visible = not in_train_gui
 end
 
-local function update_gathering_data(stopped, control_element)
+local function update_gathering_data(paused, control_element)
   -- Update the gathering state for all players
   for _, player in pairs(game.connected_players) do
     local player_table = storage.players[player.index]
     if player_table then
-      player_table.stopped = stopped or false
+      player_table.settings.paused = paused or false
     end
   end
-  if stopped then
+  if paused then
     control_element.sprite = "utility/play"
     control_element.tooltip = "Start gathering per-robot data"
   else
@@ -342,12 +343,12 @@ function bots_gui.onclick(event)
       local player_table = storage.players[player.index]
       bots_gui.update(player, player_table)
     end
-  elseif event.element.name == "bot-insights-stop" then
+  elseif event.element.name == "bot-insights-pause" then
     -- Start/stop gathering insights
     for _, player in pairs(game.connected_players) do
       local player_table = storage.players[player.index]
-      player_table.stopped = not player_table.stopped or false
-      update_gathering_data(player_table.stopped, event.element)
+      player_table.settings.paused = not player_table.settings.paused or false
+      update_gathering_data(player_table.settings.paused, event.element)
       bots_gui.update(player, player_table)
     end
   end

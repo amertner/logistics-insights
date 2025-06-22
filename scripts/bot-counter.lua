@@ -82,7 +82,7 @@ function bot_counter.count_bots(game)
                         bots_waiting_for_charge = bots_waiting_for_charge + cell.to_charge_robot_count
                     end
                 end
-                if not player_table.stopped then
+                if not player_table.settings.paused and (player_table.settings.show_delivering or player_table.settings.show_history) then
                     counted = 0
                     for _, bot in pairs(network.logistic_robots) do
                         -- counted = counted + 1
