@@ -8,8 +8,8 @@ function bots_gui.toggle_window_visible(player)
   player_table.bots_window_visible = not player_table.bots_window_visible
 
   local gui = player.gui.screen
-  if gui.bots_insights_window then
-    gui.bots_insights_window.visible = player_table.bots_window_visible
+  if gui.logistics_insights_window then
+    gui.logistics_insights_window.visible = player_table.bots_window_visible
   end
 end
 
@@ -58,14 +58,14 @@ local function add_titlebar(window, player_table)
 end
 
 function bots_gui.create_window(player, player_table)
-  if player.gui.screen.bots_insights_window then
-    player.gui.screen.bots_insights_window.destroy()
+  if player.gui.screen.logistics_insights_window then
+    player.gui.screen.logistics_insights_window.destroy()
   end
   local style = "botsgui_frame_style"
 
   local window = player.gui.screen.add {
     type = "frame",
-    name = "bots_insights_window",
+    name = "logistics_insights_window",
     direction = "vertical",
     style = style,
     visible = player.controller_type ~= defines.controllers.cutscene,
@@ -77,10 +77,13 @@ function bots_gui.create_window(player, player_table)
     name = "bots_table",
     column_count = player_table.settings.max_items + 1
   }
-  window.auto_center = true
   player_table.bots_windows = window
   player_table.bots_table = bots_table
-
+  if player_table.window_location then
+      window.location = player_table.window_location
+  else
+    window.auto_center = true
+  end
   bots_gui.update(player, player_table)
 end
 
@@ -248,14 +251,14 @@ function bots_gui.update(player, player_table)
     return
   end
 
-  window = player.gui.screen.bots_insights_window
+  window = player.gui.screen.logistics_insights_window
   if not window then
-    return
+    return -- can't find the window
   end
 
   local bots_table = player_table.bots_table
   if not bots_table or not bots_table.valid then
-    return
+    return -- can't find the bots table, something is wrong
   end
 
   bots_table.clear()
@@ -361,5 +364,12 @@ function bots_gui.destroy(player_table)
     player_table.bots_windows = nil
   end
 end
+
+script.on_event(defines.events.on_gui_location_changed, function(event)
+    if event.element and event.element.name == "logistics_insights_window" then
+        local player_table = storage.players[event.player_index]
+        player_table.window_location = event.element.location
+    end
+end)
 
 return bots_gui
