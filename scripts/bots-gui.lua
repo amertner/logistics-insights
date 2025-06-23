@@ -266,7 +266,7 @@ function bots_gui.update(player, player_table)
 
   bots_table.clear()
 
-  if player_table.settings.show_delivering and not player_table.settings.paused then
+  if player_table.settings.show_delivering and not player_table.paused then
     local deliveries_table = add_sorted_item_table(
       "Deliveries",
       bots_table,
@@ -274,13 +274,13 @@ function bots_gui.update(player, player_table)
       function(a, b) return a.count > b.count end,
       "count",
       player_table.settings.max_items,
-      player_table.settings.paused,
+      player_table.paused,
       "Items currently being delivered, sorted by count"
     )
   end
 
   -- Show history data
-  if player_table.settings.show_history and storage.delivery_history and not player_table.settings.paused then
+  if player_table.settings.show_history and storage.delivery_history and not player_table.paused then
     local history_row = add_sorted_item_table(
       "Total items",
       bots_table,
@@ -288,7 +288,7 @@ function bots_gui.update(player, player_table)
       function(a, b) return a.count > b.count end,
       "count",
       player_table.settings.max_items,
-      player_table.settings.paused,
+      player_table.paused,
       "Sum of items delivered by bots in current network, biggest number first"
     )
     local ticks_row = add_sorted_item_table(
@@ -298,7 +298,7 @@ function bots_gui.update(player, player_table)
       function(a, b) return a.ticks > b.ticks end,
       "ticks",
       player_table.settings.max_items,
-      player_table.settings.paused
+      player_table.paused,
       "Total time taken to deliver, longest time first"
     )
     local ticksperitem_row = add_sorted_item_table(
@@ -308,13 +308,13 @@ function bots_gui.update(player, player_table)
       function(a, b) return a.avg > b.avg end,
       "avg",
       player_table.settings.max_items,
-      player_table.settings.paused,
+      player_table.paused,
       "Average time taken to deliver each item, highest average first"
     )
   end
 
   if player_table.settings.show_activity then
-    add_bot_activity_row(bots_table, player_table.settings.max_items, player_table.settings.paused)
+    add_bot_activity_row(bots_table, player_table.settings.max_items, player_table.paused)
   end
 
   -- Show the bot network being inspected
@@ -329,7 +329,7 @@ local function update_gathering_data(paused, control_element)
   for _, player in pairs(game.connected_players) do
     local player_table = storage.players[player.index]
     if player_table then
-      player_table.settings.paused = paused or false
+      player_table.paused = paused or false
     end
   end
   if paused then
@@ -356,8 +356,8 @@ function bots_gui.onclick(event)
     -- Start/stop gathering insights
     local player = game.get_player(event.player_index)
     local player_table = storage.players[event.player_index]
-    player_table.settings.paused = not player_table.settings.paused or false
-    update_gathering_data(player_table.settings.paused, event.element)
+    player_table.paused = not player_table.paused or false
+    update_gathering_data(player_table.paused, event.element)
     bots_gui.update(player, player_table)
   end
 end
