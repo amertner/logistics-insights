@@ -68,7 +68,7 @@ function bots_gui.create_window(player, player_table)
     name = "logistics_insights_window",
     direction = "vertical",
     style = style,
-    visible = player.controller_type ~= defines.controllers.cutscene,
+    visible = player_table.bots_window_visible and player.controller_type ~= defines.controllers.cutscene,
   }
 
   add_titlebar(window, player_table)

@@ -30,7 +30,7 @@ end)
 
 script.on_event({ defines.events.on_player_created }, function(e)
   local player = game.get_player(e.player_index)
-  controller_gui.create_window()
+  controller_gui.create_window(player)
   player_data.init(e.player_index)
   player_data.refresh(player, storage.players[e.player_index])
 end)
@@ -120,7 +120,9 @@ script.on_event(
     if not player_table then
       return
     end
-    player_table.bots_window.visible = player.controller_type ~= defines.controllers.cutscene
+    if player_table.bots_window_visible then
+      player_table.bots_window_visible = player.controller_type ~= defines.controllers.cutscene
+    end
   end
 )
 
