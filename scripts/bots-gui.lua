@@ -52,7 +52,7 @@ local function add_titlebar(window, player_table)
       sprite = "utility/trash",
       style = "tool_button",
       tooltip = "Clear history",
-      name = "bot-insight-clear-history"
+      name = "logistics-insights-clear-history"
     }
   end
 end
@@ -121,7 +121,7 @@ local function add_sorted_item_table(title, gui_table, all_entries, sort_fn, num
       style = "slot_button",
       quality = entry.quality_name or "normal",
       number = entry[number_field],
-      name = "bot-insight-test-" .. sanitize_entity_name(title) .. count,
+      name = "logistics-insights-test-" .. sanitize_entity_name(title) .. count,
       tooltip = string.format("Items: %d", entry.count),
       enabled = not paused
     }
@@ -133,7 +133,7 @@ local function add_sorted_item_table(title, gui_table, all_entries, sort_fn, num
     gui_table.add {
       type = "sprite-button",
       style = "slot_button",
-      name = "bot-insight-test-" .. sanitize_entity_name(title) .. count,
+      name = "logistics-insights-test-" .. sanitize_entity_name(title) .. count,
       enabled = false,
     }
     count = count + 1
@@ -170,7 +170,7 @@ local function add_bot_activity_row(window, max_items, paused)
       sprite = icon.sprite,
       style = "slot_button",
       tooltip = icon.tooltip,
-      name = "bot-insight-activity-" .. i,
+      name = "logistics-insights-activity-" .. i,
       enabled = icon.onwithpause or not paused,
       number = storage.bot_items[icon.key] or 0
     }
@@ -201,7 +201,7 @@ local function add_network_row(bots_table, player_table)
       number = player_table.network.network_id,
       style = "slot_button",
       tooltip = "Network ID",
-      name = "bot-insight-test-network-id",
+      name = "logistics-insights-test-network-id",
     }
     bots_table.add {
       type = "sprite-button",
@@ -244,7 +244,7 @@ local function add_network_row(bots_table, player_table)
       sprite = "virtual-signal/signal-L",
       style = "slot_button",
       tooltip = "No network in range",
-      name = "bot-insight-test-network-id",
+      name = "logistics-insights-test-network-id",
     }
   end
 end -- add_network_row
@@ -344,10 +344,10 @@ end
 -- ONCLICK
 
 function bots_gui.onclick(event)
-  if string.sub(event.element.name, 1, 16) == "bot-insight-test" then
+  if string.sub(event.element.name, 1, 16) == "logistics-insights-test" then
     -- Do nothing
   end
-  if event.element.name == "bot-insight-clear-history" then
+  if event.element.name == "logistics-insights-clear-history" then
     storage.delivery_history = {}
     local player = game.get_player(event.player_index)
     local player_table = storage.players[event.player_index]
