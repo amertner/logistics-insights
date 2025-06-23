@@ -1,9 +1,10 @@
 {
-  "name": "bot-insights",
-  "version": "0.1.0",
-  "title": "Bot Insights",
+  "name": "logistics-insights",
+  "version": "0.1.1",
+  "title": "Logistics Insights",
   "author": "Allan Mertner",
   "factorio_version": "2.0",
   "dependencies": ["base >= 2.0.48"],
-  "description": "Get insights about what your logistics bots are carrying"
+  "multiplayer": "no",
+  "description": "Get insights about what the logistics bots in your current network are doing. This includes information about how many are charging, idle, picking up and delivering, as well as information about items most frequently delivered, time to deliver, etc."
 }

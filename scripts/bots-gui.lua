@@ -41,7 +41,7 @@ local function add_titlebar(window, player_table)
       type = "sprite-button",
       sprite = "utility/stop",
       style = "tool_button",
-      name = "bot-insights-pause",
+      name = "logistics-insights-pause",
       tooltip = "Pause gathering per-robot data"
     }
   end
@@ -352,7 +352,7 @@ function bots_gui.onclick(event)
     local player = game.get_player(event.player_index)
     local player_table = storage.players[event.player_index]
     bots_gui.update(player, player_table)
-  elseif event.element.name == "bot-insights-pause" then
+  elseif event.element.name == "logistics-insights-pause" then
     -- Start/stop gathering insights
     local player = game.get_player(event.player_index)
     local player_table = storage.players[event.player_index]

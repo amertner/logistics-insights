@@ -3,8 +3,7 @@
         {
             "name": "spaceage",
             "factorio_version": "2.0.55",
-            "factorioPath": "/Volumes/ExtData/SteamGames/steamapps/common/Factorio/factorio.app/Contents/MacOS/factorio",
-            "active": true
+            "factorioPath": "/Volumes/ExtData/SteamGames/steamapps/common/Factorio/factorio.app/Contents/MacOS/factorio"
         }
     ],
     "Lua.workspace.userThirdParty": [
