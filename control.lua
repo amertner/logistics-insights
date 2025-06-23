@@ -78,26 +78,17 @@ end)
 -- TICK
 
 -- count bots often, update the GUI less often
-script.on_nth_tick(1, function()
-  frequent = false
-  for _, player in pairs(game.connected_players) do
-    local player_table = storage.players[player.index]
-    if player_table.settings.show_history then
-      frequent = true
-      break
-    end
-  end
+script.on_nth_tick(3, function()
+  local player_table = player_data.get_singleplayer_table()
 
-  if (frequent and game.tick % 3 == 0) or (game.tick % 30 == 0) then
+  if (player_table.settings.show_history and (game.tick % 3 == 0)) or (game.tick % 60 == 0) then
     bot_counter.count_bots(game)
   end
 
-  if game.tick % 30 == 0 then
-    for _, player in pairs(game.connected_players) do
-      local player_table = storage.players[player.index]
-      controller_gui.update_window(player, storage.bot_items["logistic-robot-available"] or 0)
-      bots_gui.update(player, player_table)
-    end
+  if game.tick % 60 == 0 then
+    local player = player_data.get_singleplayer_player()
+    controller_gui.update_window(player, storage.bot_items["logistic-robot-available"] or 0)
+    bots_gui.update(player, player_table)
   end
 end)
 
@@ -112,14 +103,10 @@ script.on_event(
   { defines.events.on_cutscene_started, defines.events.on_cutscene_finished, defines.events.on_cutscene_cancelled },
   --- @param e EventData.on_cutscene_started|EventData.on_cutscene_finished|EventData.on_cutscene_cancelled
   function(e)
-    local player = game.get_player(e.player_index)
-    if not player then
-      return
-    end
-    local player_table = storage.players[e.player_index]
-    if not player_table then
-      return
-    end
+    -- Hide the bots window when a cutscene starts, show it again when it ends
+    local player = player_data.get_singleplayer_player()
+    local player_table = player_data.get_singleplayer_table()
+
     if player_table.bots_window_visible then
       player_table.bots_window_visible = player.controller_type ~= defines.controllers.cutscene
     end
@@ -127,14 +114,9 @@ script.on_event(
 )
 
 script.on_event(defines.events.on_player_controller_changed, function(e)
-  local player = game.get_player(e.player_index)
-  if not player then
-    return
-  end
-  local player_table = storage.players[e.player_index]
-  if not player_table then
-    return
-  end
+  local player = player_data.get_singleplayer_player()
+  local player_table = player_data.get_singleplayer_table()
+
   bots_gui.update(player, player_table)
 end)
 
@@ -142,18 +124,13 @@ script.on_event(
   { defines.events.on_gui_opened, defines.events.on_gui_closed },
   --- @param e EventData.on_gui_opened|EventData.on_gui_closed
   function(e)
+    -- Show/hide the GUI when the player opens a locomotive view
     if e.gui_type ~= defines.gui_type.entity or e.entity.type ~= "locomotive" then
       return
     end
+    local player = player_data.get_singleplayer_player()
+    local player_table = player_data.get_singleplayer_table()
 
-    local player = game.get_player(e.player_index)
-    if not player then
-      return
-    end
-    local player_table = storage.players[e.player_index]
-    if not player_table then
-      return
-    end
     bots_gui.update(player, player_table)
   end
 )

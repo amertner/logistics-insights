@@ -25,6 +25,17 @@ function player_data.update_settings(player, player_table)
   assert(player_table.player_index == index, "Player index mismatch: " .. player_table.player_index .. " vs " .. index)
 end
 
+function player_data.get_singleplayer_table()
+  -- In singleplayer mode, there is only one player. Return the player_table.
+  local player = game.connected_players[1]
+  return storage.players[player.index]
+end
+
+function player_data.get_singleplayer_player()
+  -- In singleplayer mode, there is only one player. Return the player.
+  return game.connected_players[1]
+end
+
 function player_data.refresh(player, player_table)
   bots_gui.destroy(player_table)
 
