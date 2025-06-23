@@ -68,7 +68,7 @@ script.on_configuration_changed(function(e)
 end)
 
 script.on_event(defines.events.on_runtime_mod_setting_changed, function(e)
-  if string.sub(e.setting, 1, 11) == "logistics-insight" then
+  if string.sub(e.setting, 1, 17) == "logistics-insight" then
     local player = game.get_player(e.player_index)
     local player_table = storage.players[e.player_index]
     player_data.refresh(player, player_table)
@@ -88,7 +88,7 @@ script.on_nth_tick(1, function()
     end
   end
 
-  if (frequent and game.tick % 3 == 0) or game.tick % 30 then
+  if (frequent and game.tick % 3 == 0) or (game.tick % 30 == 0) then
     bot_counter.count_bots(game)
   end
 

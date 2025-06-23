@@ -21,12 +21,18 @@ function player_data.update_settings(player, player_table)
   }
   player_table.settings = settings
   player_table.player_index = player.index
+  index = game.connected_players[1].index
+  assert(player_table.player_index == index, "Player index mismatch: " .. player_table.player_index .. " vs " .. index)
 end
 
 function player_data.refresh(player, player_table)
   bots_gui.destroy(player_table)
 
+  paused_is_irrelevant = not player_table.settings.show_delivering and not player_table.settings.show_history
   player_data.update_settings(player, player_table)
+  if paused_is_irrelevant and (player_table.settings.show_delivering or player_table.settings.show_history) then
+    player_table.paused = false -- unpause if it was paused without any effect
+  end
 
   bots_gui.create_window(player, player_table)
 end
