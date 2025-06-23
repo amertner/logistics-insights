@@ -20,6 +20,7 @@ function player_data.update_settings(player, player_table)
     show_activity = mod_settings["logistics-insights-show-activity"].value,
   }
   player_table.settings = settings
+  player_table.player_index = player.index
 end
 
 function player_data.refresh(player, player_table)

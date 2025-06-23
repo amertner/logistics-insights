@@ -1,5 +1,6 @@
 bot_counter = {}
 
+-- Keep track of how many items of each type is being delivered right now
 local function add_bot_to_bot_deliveries(bot, item_name, quality, count)
     if storage.bot_deliveries[item_name .. quality] == nil then
         -- Order not seen before
@@ -54,10 +55,11 @@ local function manage_active_deliveries_history()
 end
 
 function bot_counter.count_bots(game)
-    storage.bot_items = {}
-    storage.bot_deliveries = {}
+    storage.bot_items = {} -- for bot activity
+    storage.bot_deliveries = {} -- how many items of each type is being delivered right now
     if storage.bot_active_deliveries == nil then
-        storage.bot_active_deliveries = {}
+      -- This is for history, so don't reset it every time
+      storage.bot_active_deliveries = {} -- a list of bots currently delivering items
     end
     local bots_total = 0
     local bots_available = 0
