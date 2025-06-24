@@ -267,10 +267,21 @@ local function update_progressbar(progressbar, progress)
   if not progressbar or not progressbar.valid then
     return
   end
-  if not progress or progress.total == 0 then
+  chunk_size = player_data.get_singleplayer_table().settings.chunk_size or 400
+  if not progress  then
     progressbar.value = 1
+    progressbar.tooltip = string.format("Chunk size %d", chunk_size)
+  elseif progress.total == 0 then
+    progressbar.value = 1
+    progressbar.tooltip = string.format("Chunk size %d", chunk_size)
   else
     progressbar.value = progress.current / progress.total
+    progressbar.tooltip = string.format(
+      "Chunk size %d\nProcessed %d/%d (%.0f%%)",
+      chunk_size,
+      progress.current-1,
+      progress.total,
+      ((progress.current-1) / progress.total) * 100)
   end
 end
 
@@ -366,14 +377,14 @@ local function update_network_row(player_table)
       else
         cell.tooltip = string.format(tooltip, value)
       end
-      cell.enabled = not player_table.paused
+      -- cell.enabled = not player_table.paused
     end
   end
 
   if player_table.network then
     update_element(player_table.ui.network.id, player_table.network.network_id, 
-      "Network ID %d")
-    update_element(player_table.ui.network.roboports, table_size(player_table.network.cells), 
+      "Network ID 1", "Network ID %d")
+    update_element(player_table.ui.network.roboports, table_size(player_table.network.cells),
       "1 roboport in network", "%d roboports in network")
     update_element(player_table.ui.network.logistics_bots, player_table.network.all_logistic_robots,
       "1 logistics bot in network", "%d logistics bots in network")

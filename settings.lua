@@ -29,7 +29,17 @@ data:extend(
             minimum_value = 6,
             maximum_value = 10,
             order = "4"
+        },
+        {
+            type = "int-setting",
+            name = "logistics-insights-chunk-size",
+            setting_type = "runtime-per-user",
+            default_value = 400,
+            minimum_value = 20,
+            maximum_value = 100000,
+            order = "5"
         }
+        
 }
 
 )
