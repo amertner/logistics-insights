@@ -5,7 +5,7 @@ local player_data = require("scripts.player-data")
 
 function chunker.new(call_on_init, call_on_processing, call_on_completion)
   local instance = {
-    CHUNK_SIZE = 20,   -- May be changed by user setting
+    CHUNK_SIZE = 200,
     current_index = 1,
     processing_list = nil,
     partial_data = {},
@@ -26,6 +26,12 @@ function chunker:initialise_chunking(list)
     self.CHUNK_SIZE = self.player_table.settings.chunk_size
   end
   self.on_init(self.partial_data)
+end
+
+function chunker:reset()
+  -- Reset the counter and claim completion
+  self:initialise_chunking(nil)
+  self.on_completion(self.partial_data)
 end
 
 function chunker:is_done()

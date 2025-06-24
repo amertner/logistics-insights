@@ -299,7 +299,7 @@ function bots_gui.create_window(player, player_table)
   if player_table.window_location then
     window.location = player_table.window_location
   else
-    window.auto_center = true
+    window.location = { 100, 0 }
   end
   bots_gui.update(player, player_table)
 end
@@ -337,9 +337,9 @@ local function update_sorted_item_row(player_table, title, all_entries, sort_fn,
     if number_field == "count" then
       cell.tooltip = string.format("%d %s %s", entry.count, entry.quality_name or "normal", entry.item_name)
     elseif number_field == "ticks" then
-      cell.tooltip = string.format("%d ticks\nto process %d %s %s", entry.ticks, entry.count, entry.quality_name or "normal", entry.item_name)
+      cell.tooltip = string.format("%d ticks\nto deliver %d %s %s", entry.ticks, entry.count, entry.quality_name or "normal", entry.item_name)
     elseif number_field == "avg" then
-      cell.tooltip = string.format("An average of %.1f ticks\nto process %d %s %s", entry.avg, entry.count, entry.quality_name or "normal", entry.item_name)
+      cell.tooltip = string.format("An average of %.1f ticks\nto deliver %d %s %s", entry.avg, entry.count, entry.quality_name or "normal", entry.item_name)
     end
     cell.enabled = true
     count = count + 1
@@ -357,15 +357,32 @@ local function update_sorted_item_row(player_table, title, all_entries, sort_fn,
 end -- update_sorted_item_row
 
 local function update_activity_row(player_table)
-  for key, window in pairs(player_table.ui.activity.cells) do
-    num = storage.bot_items[key] or 0
-    window.cell.number = num
-    if num == 1 then
-      item = "robot"
-    else
-      item = "robots"
+  local reset_activity_buttons = function(ui_table, sprite, number, tip, disable)
+    -- Reset all cells in the ui_table to empty
+    for _, cell in pairs(ui_table) do
+      if cell and cell.cell.type == "sprite-button" then
+        cell = cell.cell -- Get the actual sprite-button
+        if sprite then cell.sprite = "" end
+        if tip then cell.tooltip = "" end
+        if number then cell.number = nil end
+        if disable then cell.enabled = false end
+      end
     end
-    window.cell.tooltip = string.format(window.tip, num, item)
+  end
+
+  if player_table.network then
+    for key, window in pairs(player_table.ui.activity.cells) do
+      num = storage.bot_items[key] or 0
+      window.cell.number = num
+      if num == 1 then
+        item = "robot"
+      else
+        item = "robots"
+      end
+      window.cell.tooltip = string.format(window.tip, num, item)
+    end
+  else
+    reset_activity_buttons(player_table.ui.activity.cells, false, true, true, false)
   end
 end
 
@@ -379,6 +396,18 @@ local function update_network_row(player_table)
         cell.tooltip = string.format(tooltip, value)
       end
       -- cell.enabled = not player_table.paused
+    end
+  end
+
+  local reset_network_buttons = function(ui_table, sprite, number, tip, disable)
+    -- Reset all cells in the ui_table to empty
+    for _, cell in pairs(ui_table) do
+      if cell and cell.type == "sprite-button" then
+        if sprite then cell.sprite = "" end
+        if tip then cell.tooltip = "" end
+        if number then cell.number = nil end
+        if disable then cell.enabled = false end
+      end
     end
   end
 
@@ -398,12 +427,7 @@ local function update_network_row(player_table)
       "1 storage chest in network", "%d storage chests in network")
   else
     update_element(player_table.ui.network.id, 0, "No logistics network")
-    player_table.ui.network.id.number = 0
-    player_table.ui.network.roboports.number = 0
-    player_table.ui.network.logistics_bots.number = 0
-    player_table.ui.network.requesters.number = 0
-    player_table.ui.network.providers.number = 0
-    player_table.ui.network.storages.number = 0
+    reset_network_buttons(player_table.ui.network, false, true, true, false)
   end
 end -- update_network_row
 
@@ -453,7 +477,10 @@ function bots_gui.update(player, player_table)
   update_network_row(player_table)
 
   local in_train_gui = player.opened_gui_type == defines.gui_type.entity and player.opened.type == "locomotive"
-  window.visible = not in_train_gui
+  window = player.gui.screen.logistics_insights_window
+  if window then
+    window.visible = not in_train_gui
+  end
 end -- update contents
 
 function bots_gui.update_chunk_progress(player_table, chunk_progress)

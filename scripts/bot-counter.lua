@@ -3,41 +3,11 @@ bot_counter = {}
 local player_data = require("scripts.player-data")
 local chunker = require("scripts.chunker")
 
--- Keep track of how many items of each type is being delivered right now
-local function add_item_to_bot_deliveries(item_name, quality, count, partial_data)
-  key = item_name .. quality
-  if partial_data.item_deliveries[key] == nil then
-    -- Order not seen before
-    partial_data.item_deliveries[key] = {
-      item_name = item_name,
-      quality_name = quality,
-      count = count,
-    }
-  else -- This item is already being delivered by another bot
-    partial_data.item_deliveries[key].count = partial_data.item_deliveries[key].count + count
-  end
-end
-
-local function add_bot_to_active_deliveries(bot, item_name, quality, count)
-  if storage.bot_active_deliveries[bot.unit_number] == nil then
-    -- Order not seen before
-    storage.bot_active_deliveries[bot.unit_number] = {
-      item_name = item_name,
-      quality_name = quality,
-      count = count,
-      first_seen = game.tick,
-      last_seen = game.tick,
-    }
-  else -- It's still under way
-    storage.bot_active_deliveries[bot.unit_number].last_seen = game.tick
-  end
-end
-
 local function manage_active_deliveries_history()
   -- This function is called to manage the history of active deliveries
   -- It will remove entries that are no longer active and update the history
   for unit_number, order in pairs(storage.bot_active_deliveries) do
-    if order.last_seen < game.tick-50 then -- This is a bit nasty, improve
+    if order.last_seen < game.tick-50 then -- TODO This is a bit nasty, improve
       local key = order.item_name .. order.quality_name
       if storage.delivery_history[key] == nil then
         storage.delivery_history[key] = {
@@ -84,6 +54,36 @@ local function bot_initialise(partial_data)
   partial_data.item_deliveries = {} -- Reset deliveries for this chunk
 end
 
+-- Keep track of how many items of each type is being delivered right now
+local function add_item_to_bot_deliveries(item_name, quality, count, partial_data)
+  key = item_name .. quality
+  if partial_data.item_deliveries[key] == nil then
+    -- Order not seen before
+    partial_data.item_deliveries[key] = {
+      item_name = item_name,
+      quality_name = quality,
+      count = count,
+    }
+  else -- This item is already being delivered by another bot
+    partial_data.item_deliveries[key].count = partial_data.item_deliveries[key].count + count
+  end
+end
+
+local function add_bot_to_active_deliveries(bot, item_name, quality, count)
+  if storage.bot_active_deliveries[bot.unit_number] == nil then
+    -- Order not seen before
+    storage.bot_active_deliveries[bot.unit_number] = {
+      item_name = item_name,
+      quality_name = quality,
+      count = count,
+      first_seen = game.tick,
+      last_seen = game.tick,
+    }
+  else -- It's still under way
+    storage.bot_active_deliveries[bot.unit_number].last_seen = game.tick
+  end
+end
+
 local function bot_processing(bot, partial_data, player_table)
   if bot.valid and table_size(bot.robot_order_queue) > 0 then
     order = bot.robot_order_queue[1]
@@ -116,28 +116,25 @@ local bot_chunker = chunker.new(bot_initialise, bot_processing, bot_chunks_done)
 
 
 -- Main counting function, called periodically
-function bot_counter.count_bots(game)
-  if storage.bot_active_deliveries == nil then
-    -- This is for history, so don't reset it every time
-    storage.bot_active_deliveries = {} -- a list of bots currently delivering items
-  end
-  local bots_total = 0
-  local bots_available = 0
-
+function bot_counter.gather_data(game)
   local player = player_data.get_singleplayer_player()
   local player_table = player_data.get_singleplayer_table()
 
   local network = player.force.find_logistic_network_by_position(player.position, player.surface)
   if not player_table.network or not player_table.network.valid or not network or
       player_table.network.network_id ~= network.network_id then
-    -- Clear the history when we change networks
+    -- Clear all current state when we change networks
+    activity_chunker:reset()
+    bot_chunker:reset()
+    storage.bot_items = {}
     storage.delivery_history = {}
+    storage.bot_active_deliveries = {}
     player_table.network = network
   end
 
   if network then
-    bots_total = network.all_logistic_robots
-    bots_available = network.available_logistic_robots
+    storage.bot_items["logistic-robot-total"] = network.all_logistic_robots
+    storage.bot_items["logistic-robot-available"] = network.available_logistic_robots
     if activity_chunker:is_done() then
       activity_chunker:initialise_chunking(network.cells)
     end
@@ -151,16 +148,13 @@ function bot_counter.count_bots(game)
     end
     -- Remove orders no longer active from the list and add to history
     if not player_table.paused and player_table.settings.show_history then
+      if storage.bot_active_deliveries == nil then
+        storage.bot_active_deliveries = {}
+      end
       manage_active_deliveries_history()
     end
   end -- if network
-  if not storage.progress then
-    storage.progress = {}
-  end
-  --storage.progress["network-chunking"] = activity_chunker:get_chunks_remaining()
-  --storage.progress["bot-chunking"] = bot_chunker:get_chunks_remaining()
-  storage.bot_items["logistic-robot-total"] = bots_total
-  storage.bot_items["logistic-robot-available"] = bots_available
+
   return {
     activity_progress = activity_chunker:get_progress(),
     bot_progress = bot_chunker:get_progress(),

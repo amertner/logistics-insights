@@ -7,7 +7,6 @@ local bots_gui = require("scripts.bots-gui")
 
 local function init_storages()
   storage.bot_items = {}
-  storage.progress = {}
   storage.bot_deliveries = {}
   storage.bot_active_deliveries = {}
   storage.delivery_history = {}
@@ -31,6 +30,7 @@ end)
 -- PLAYER
 
 script.on_event({ defines.events.on_player_created }, function(e)
+  -- Called when a game is created or a mod is added to an existing game
   local player = game.get_player(e.player_index)
   controller_gui.create_window(player)
   player_data.init(e.player_index)
@@ -88,7 +88,7 @@ script.on_nth_tick(10, function()
 
   if (frequent and (game.tick % 10 == 0)) or 
     (game.tick % 60 == 0) then
-    chunk_progress = bot_counter.count_bots(game)
+    chunk_progress = bot_counter.gather_data(game)
     bots_gui.update_chunk_progress(player_table, chunk_progress)
   end
 
