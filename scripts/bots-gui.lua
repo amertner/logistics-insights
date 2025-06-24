@@ -197,6 +197,7 @@ local function add_sorted_item_row(player_table, gui_table, title, titletip)
   end
 end
 
+-- Chreate the main table with all the rows needed
 local function create_bots_table(player, player_table)
   if not player or not player_table then
     return
@@ -223,39 +224,26 @@ local function create_bots_table(player, player_table)
     )
   end
 
-  -- Show history data
-  -- if player_table.settings.show_history and storage.delivery_history and not player_table.paused then
-  --   local history_row = add_sorted_item_table(
-  --     "Total items",
-  --     bots_table,
-  --     storage.delivery_history,
-  --     function(a, b) return a.count > b.count end,
-  --     "count",
-  --     player_table.settings.max_items,
-  --     player_table.paused,
-  --     "Sum of items delivered by bots in current network, biggest number first"
-  --   )
-  --   local ticks_row = add_sorted_item_table(
-  --     "Total ticks",
-  --     bots_table,
-  --     storage.delivery_history,
-  --     function(a, b) return a.ticks > b.ticks end,
-  --     "ticks",
-  --     player_table.settings.max_items,
-  --     player_table.paused,
-  --     "Total time taken to deliver, longest time first"
-  --   )
-  --   local ticksperitem_row = add_sorted_item_table(
-  --     "Ticks/item",
-  --     bots_table,
-  --     storage.delivery_history,
-  --     function(a, b) return a.avg > b.avg end,
-  --     "avg",
-  --     player_table.settings.max_items,
-  --     player_table.paused,
-  --     "Average time taken to deliver each item, highest average first"
-  --   )
-  -- end
+  if player_table.settings.show_history and storage.delivery_history and not player_table.paused then
+    add_sorted_item_row(
+      player_table,
+      bots_table,
+      "Total items",
+      "Sum of items delivered by bots in current network, biggest number first"
+    )
+    add_sorted_item_row(
+      player_table,
+      bots_table,
+      "Total ticks",
+      "Total time taken to deliver, longest time first"
+    )
+    add_sorted_item_row(
+      player_table,
+      bots_table,
+      "Ticks/item",
+      "Average time taken to deliver each item, highest average first"
+    )
+  end
 
   if player_table.settings.show_activity then
     add_bot_activity_row(bots_table, player_table)
@@ -347,9 +335,8 @@ local function update_sorted_item_row(player_table, title, all_entries, sort_fn,
   while count < player_table.settings.max_items do
     cell = player_table.ui[title].cells[count + 1]
     cell.sprite = ""
-    cell.caption = ""
     cell.tooltip = ""
-    cell.number = 0
+    cell.number = nil
     cell.enabled = false
     count = count + 1
   end
@@ -425,7 +412,29 @@ function bots_gui.update(player, player_table)
       "count"
     )
   end
-
+  if player_table.settings.show_history and storage.delivery_history and not player_table.paused then
+    update_sorted_item_row(
+      player_table,
+      "Total items",
+      storage.delivery_history,
+      function(a, b) return a.count > b.count end,
+      "count"
+    )
+    update_sorted_item_row(
+      player_table,
+      "Total ticks",
+      storage.delivery_history,
+      function(a, b) return a.ticks > b.ticks end,
+      "ticks"
+    )
+    update_sorted_item_row(
+      player_table,
+      "Ticks/item",
+      storage.delivery_history,
+      function(a, b) return a.avg > b.avg end,
+      "avg"
+    )
+  end
   update_activity_row(player_table)
   update_network_row(player_table)
 
