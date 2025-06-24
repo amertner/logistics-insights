@@ -308,6 +308,15 @@ end
 
 -- Display item sprites and numbers in sort order.
 local function update_sorted_item_row(player_table, title, all_entries, sort_fn, number_field)
+  -- If paused, just disable all the fields
+  if player_table.paused then
+    for i = 1, player_table.settings.max_items do
+      cell = player_table.ui[title].cells[i]
+      cell.enabled = false
+    end
+    return
+  end
+
   -- Collect entries into an array
   local sorted_entries = {}
   for index, entry in pairs(all_entries) do
@@ -325,9 +334,14 @@ local function update_sorted_item_row(player_table, title, all_entries, sort_fn,
     cell.sprite = "item/" .. entry.item_name
     cell.quality = entry.quality_name or "normal"
     cell.number = entry[number_field]
-    cell.tooltip = string.format("%d %s %s", entry.count, entry.quality_name or "normal", entry.item_name)
-    cell.enabled = not player_table.paused
-    -- name = "logistics-insights-test-" .. sanitize_entity_name(title) .. count,
+    if number_field == "count" then
+      cell.tooltip = string.format("%d %s %s", entry.count, entry.quality_name or "normal", entry.item_name)
+    elseif number_field == "ticks" then
+      cell.tooltip = string.format("%d ticks\nto process %d %s %s", entry.ticks, entry.count, entry.quality_name or "normal", entry.item_name)
+    elseif number_field == "avg" then
+      cell.tooltip = string.format("An average of %.1f ticks\nto process %d %s %s", entry.avg, entry.count, entry.quality_name or "normal", entry.item_name)
+    end
+    cell.enabled = true
     count = count + 1
   end
 
@@ -412,7 +426,7 @@ function bots_gui.update(player, player_table)
       "count"
     )
   end
-  if player_table.settings.show_history and storage.delivery_history and not player_table.paused then
+  if player_table.settings.show_history and storage.delivery_history then
     update_sorted_item_row(
       player_table,
       "Total items",

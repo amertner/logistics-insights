@@ -37,7 +37,7 @@ local function manage_active_deliveries_history()
   -- This function is called to manage the history of active deliveries
   -- It will remove entries that are no longer active and update the history
   for unit_number, order in pairs(storage.bot_active_deliveries) do
-    if order.last_seen < game.tick then
+    if order.last_seen < game.tick-50 then -- This is a bit nasty, improve
       local key = order.item_name .. order.quality_name
       if storage.delivery_history[key] == nil then
         storage.delivery_history[key] = {
