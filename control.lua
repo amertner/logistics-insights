@@ -7,6 +7,7 @@ local bots_gui = require("scripts.bots-gui")
 
 local function init_storages()
   storage.bot_items = {}
+  storage.progress = {}
   storage.bot_deliveries = {}
   storage.bot_active_deliveries = {}
   storage.delivery_history = {}
@@ -20,6 +21,7 @@ end
 script.on_init(function()
   -- Called when the mod is first added to a save
   init_storages()
+  bots_gui.create_window(player_data.get_singleplayer_player(), player_data.get_singleplayer_table())
 end)
 
 script.on_load(function()
@@ -69,9 +71,11 @@ end)
 
 script.on_event(defines.events.on_runtime_mod_setting_changed, function(e)
   if string.sub(e.setting, 1, 17) == "logistics-insight" then
-    local player = game.get_player(e.player_index)
-    local player_table = storage.players[e.player_index]
+    local player = player_data.get_singleplayer_player()
+    local player_table = player_data.get_singleplayer_table()
+    bots_gui.destroy(player, player_table)
     player_data.refresh(player, player_table)
+    bots_gui.create_window(player, player_table)
   end
 end)
 
@@ -84,7 +88,8 @@ script.on_nth_tick(10, function()
 
   if (frequent and (game.tick % 10 == 0)) or 
     (game.tick % 60 == 0) then
-    bot_counter.count_bots(game)
+    chunk_progress = bot_counter.count_bots(game)
+    bots_gui.update_chunk_progress(player_table, chunk_progress)
   end
 
   if game.tick % 60 == 0 then

@@ -1,7 +1,5 @@
 local player_data = {}
 
-local bots_gui = require("scripts.bots-gui")
-
 function player_data.init(player_index)
   storage.players[player_index] = {
     settings = {},
@@ -36,16 +34,19 @@ function player_data.get_singleplayer_player()
   return game.connected_players[1]
 end
 
-function player_data.refresh(player, player_table)
-  bots_gui.destroy(player_table)
+function player_data.register_ui(player_table, name)
+  if not player_table.ui then
+    player_table.ui = {}
+  end
+  player_table.ui[name] = {}
+end
 
+function player_data.refresh(player, player_table)
   paused_is_irrelevant = not player_table.settings.show_delivering and not player_table.settings.show_history
   player_data.update_settings(player, player_table)
   if paused_is_irrelevant and (player_table.settings.show_delivering or player_table.settings.show_history) then
     player_table.paused = false -- unpause if it was paused without any effect
   end
-
-  bots_gui.create_window(player, player_table)
 end
 
 return player_data

@@ -5,7 +5,7 @@ local player_data = require("scripts.player-data")
 
 function chunker.new(call_on_init, call_on_processing, call_on_completion)
   local instance = {
-    CHUNK_SIZE = 800,   -- May be changed by user setting
+    CHUNK_SIZE = 200,   -- May be changed by user setting
     current_index = 1,
     processing_list = nil,
     partial_data = {},
@@ -26,6 +26,28 @@ end
 
 function chunker:is_done()
   return not self.processing_list or #self.processing_list == 0 or self.current_index > #self.processing_list
+end
+
+function chunker:get_chunks_remaining()
+  if self:is_done() then
+    return 0
+  else
+    return math.ceil((#self.processing_list - self.current_index + 1) / self.CHUNK_SIZE)
+  end
+end
+
+function chunker:get_progress()
+  if not self.processing_list then
+    return {
+      current = 0,
+      total = 0,
+    }
+  else
+    return {
+      current = self.current_index,
+      total = #self.processing_list,
+    }
+  end
 end
 
 function chunker:process_chunk()

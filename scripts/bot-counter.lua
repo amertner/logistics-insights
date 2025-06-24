@@ -74,7 +74,8 @@ local function network_chunks_done(data)
   storage.bot_items["waiting-for-charge-robot"] = data.bots_waiting_for_charge
 end
 
-local network_chunker = chunker.new(network_initialise, network_processing, network_chunks_done)
+local activity_chunker = chunker.new(network_initialise, network_processing, network_chunks_done)
+
 
 -- Counting bots in chunks
 local function bot_initialise(partial_data)
@@ -113,8 +114,8 @@ end
 
 local bot_chunker = chunker.new(bot_initialise, bot_processing, bot_chunks_done)
 
--- 
 
+-- Main counting function, called periodically
 function bot_counter.count_bots(game)
   if storage.bot_active_deliveries == nil then
     -- This is for history, so don't reset it every time
@@ -137,10 +138,10 @@ function bot_counter.count_bots(game)
   if network then
     bots_total = network.all_logistic_robots
     bots_available = network.available_logistic_robots
-    if network_chunker:is_done() then
-      network_chunker:initialise_chunking(network.cells)
+    if activity_chunker:is_done() then
+      activity_chunker:initialise_chunking(network.cells)
     end
-    network_chunker:process_chunk()
+    activity_chunker:process_chunk()
 
     if not player_table.paused and (player_table.settings.show_delivering or player_table.settings.show_history) then
       if bot_chunker:is_done() then
@@ -153,8 +154,17 @@ function bot_counter.count_bots(game)
       manage_active_deliveries_history()
     end
   end -- if network
+  if not storage.progress then
+    storage.progress = {}
+  end
+  --storage.progress["network-chunking"] = activity_chunker:get_chunks_remaining()
+  --storage.progress["bot-chunking"] = bot_chunker:get_chunks_remaining()
   storage.bot_items["logistic-robot-total"] = bots_total
   storage.bot_items["logistic-robot-available"] = bots_available
+  return {
+    activity_progress = activity_chunker:get_progress(),
+    bot_progress = bot_chunker:get_progress(),
+  }
 end
 
 return bot_counter
