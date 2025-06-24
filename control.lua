@@ -78,10 +78,12 @@ end)
 -- TICK
 
 -- count bots often, update the GUI less often
-script.on_nth_tick(3, function()
+script.on_nth_tick(10, function()
   local player_table = player_data.get_singleplayer_table()
+  frequent = not player_table.settings.pause and player_table.settings.show_history
 
-  if (player_table.settings.show_history and (game.tick % 3 == 0)) or (game.tick % 60 == 0) then
+  if (frequent and (game.tick % 10 == 0)) or 
+    (game.tick % 60 == 0) then
     bot_counter.count_bots(game)
   end
 

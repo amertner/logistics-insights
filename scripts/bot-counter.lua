@@ -1,18 +1,20 @@
-local player_data = require("scripts.player-data")
-
 bot_counter = {}
 
+local player_data = require("scripts.player-data")
+local chunker = require("scripts.chunker")
+
 -- Keep track of how many items of each type is being delivered right now
-local function add_bot_to_bot_deliveries(bot, item_name, quality, count)
-  if storage.bot_deliveries[item_name .. quality] == nil then
+local function add_item_to_bot_deliveries(item_name, quality, count, partial_data)
+  key = item_name .. quality
+  if partial_data.item_deliveries[key] == nil then
     -- Order not seen before
-    storage.bot_deliveries[item_name .. quality] = {
+    partial_data.item_deliveries[key] = {
       item_name = item_name,
       quality_name = quality,
       count = count,
     }
-  else   -- It's still under way
-    storage.bot_deliveries[item_name .. quality].count = storage.bot_deliveries[item_name .. quality].count + count
+  else -- This item is already being delivered by another bot
+    partial_data.item_deliveries[key].count = partial_data.item_deliveries[key].count + count
   end
 end
 
@@ -26,7 +28,7 @@ local function add_bot_to_active_deliveries(bot, item_name, quality, count)
       first_seen = game.tick,
       last_seen = game.tick,
     }
-  else   -- It's still under way
+  else -- It's still under way
     storage.bot_active_deliveries[bot.unit_number].last_seen = game.tick
   end
 end
@@ -51,26 +53,79 @@ local function manage_active_deliveries_history()
       if ticks < 1 then ticks = 1 end
       history_order.ticks = (history_order.ticks or 0) + ticks
       history_order.avg = history_order.ticks / history_order.count
-      storage.bot_active_deliveries[unit_number] = nil       -- remove from active list
+      storage.bot_active_deliveries[unit_number] = nil -- remove from active list
     end
   end
 end
 
+-- Counting network cells in chunks
+local function network_initialise(partial_data)
+  partial_data.bots_charging = 0
+  partial_data.bots_waiting_for_charge = 0
+end
+
+local function network_processing(entity, partial_data, player_table)
+  partial_data.bots_charging = partial_data.bots_charging + entity.charging_robot_count
+  partial_data.bots_waiting_for_charge = partial_data.bots_waiting_for_charge + entity.to_charge_robot_count
+end
+
+local function network_chunks_done(data)
+  storage.bot_items["charging-robot"] = data.bots_charging
+  storage.bot_items["waiting-for-charge-robot"] = data.bots_waiting_for_charge
+end
+
+local network_chunker = chunker.new(network_initialise, network_processing, network_chunks_done)
+
+-- Counting bots in chunks
+local function bot_initialise(partial_data)
+  partial_data.delivering_bots = 0
+  partial_data.picking_bots = 0
+  partial_data.item_deliveries = {} -- Reset deliveries for this chunk
+end
+
+local function bot_processing(bot, partial_data, player_table)
+  if bot.valid and table_size(bot.robot_order_queue) > 0 then
+    order = bot.robot_order_queue[1]
+    if order.type == defines.robot_order_type.deliver then
+      partial_data.delivering_bots = (partial_data.delivering_bots or 0) + 1
+    elseif order.type == defines.robot_order_type.pickup then
+      partial_data.picking_bots = (partial_data.picking_bots or 0) + 1
+    end
+
+    local item_name = order.target_item.name.name
+    local item_count = order.target_count
+    local quality = order.target_item.quality.name
+    -- For Deliveries, record the item
+    if order.type == defines.robot_order_type.deliver and item_name then
+      add_item_to_bot_deliveries(item_name, quality, item_count, partial_data)
+      if player_table.settings.show_history then
+        add_bot_to_active_deliveries(bot, item_name, quality, item_count)
+      end
+    end
+  end
+end
+
+local function bot_chunks_done(data)
+  storage.bot_items[defines.robot_order_type.deliver] = data.delivering_bots or 0
+  storage.bot_items[defines.robot_order_type.pickup] = data.picking_bots or 0
+  storage.bot_deliveries = data.item_deliveries or {}
+end
+
+local bot_chunker = chunker.new(bot_initialise, bot_processing, bot_chunks_done)
+
+-- 
+
 function bot_counter.count_bots(game)
-  storage.bot_items = {}        -- for bot activity
-  storage.bot_deliveries = {}   -- how many items of each type is being delivered right now
   if storage.bot_active_deliveries == nil then
     -- This is for history, so don't reset it every time
-    storage.bot_active_deliveries = {}   -- a list of bots currently delivering items
+    storage.bot_active_deliveries = {} -- a list of bots currently delivering items
   end
   local bots_total = 0
   local bots_available = 0
-  local bots_charging = 0
-  local bots_waiting_for_charge = 0
 
   local player = player_data.get_singleplayer_player()
   local player_table = player_data.get_singleplayer_table()
-  
+
   local network = player.force.find_logistic_network_by_position(player.position, player.surface)
   if not player_table.network or not player_table.network.valid or not network or
       player_table.network.network_id ~= network.network_id then
@@ -78,48 +133,28 @@ function bot_counter.count_bots(game)
     storage.delivery_history = {}
     player_table.network = network
   end
+
   if network then
-    bots_total = bots_total + network.all_logistic_robots
-    bots_available = bots_available + network.available_logistic_robots
-    for _, cell in pairs(network.cells) do
-      if cell.valid then
-        bots_charging = bots_charging + cell.charging_robot_count
-        bots_waiting_for_charge = bots_waiting_for_charge + cell.to_charge_robot_count
-      end
+    bots_total = network.all_logistic_robots
+    bots_available = network.available_logistic_robots
+    if network_chunker:is_done() then
+      network_chunker:initialise_chunking(network.cells)
     end
+    network_chunker:process_chunk()
+
     if not player_table.paused and (player_table.settings.show_delivering or player_table.settings.show_history) then
-      counted = 0
-      for _, bot in pairs(network.logistic_robots) do
-        -- counted = counted + 1
-        -- if counted > 300 then
-        --     break
-        -- end
-        if bot.valid and table_size(bot.robot_order_queue) > 0 then
-          order = bot.robot_order_queue[1]
-          -- Record order, deliver, etc
-          storage.bot_items[order.type] = (storage.bot_items[order.type] or 0) + 1
-          local item_name = order.target_item.name.name
-          local item_count = order.target_count
-          local quality = order.target_item.quality.name
-          -- For Deliveries, record the item
-          if order.type == defines.robot_order_type.deliver and item_name then
-            add_bot_to_bot_deliveries(bot, item_name, quality, item_count)
-            if player_table.settings.show_history then
-              add_bot_to_active_deliveries(bot, item_name, quality, item_count)
-            end
-          end
-        end
+      if bot_chunker:is_done() then
+        bot_chunker:initialise_chunking(network.logistic_robots)
       end
+      bot_chunker:process_chunk()
     end
     -- Remove orders no longer active from the list and add to history
-    if player_table.settings.show_history then
+    if not player_table.paused and player_table.settings.show_history then
       manage_active_deliveries_history()
     end
   end -- if network
   storage.bot_items["logistic-robot-total"] = bots_total
   storage.bot_items["logistic-robot-available"] = bots_available
-  storage.bot_items["charging-robot"] = bots_charging
-  storage.bot_items["waiting-for-charge-robot"] = bots_waiting_for_charge
 end
 
 return bot_counter
