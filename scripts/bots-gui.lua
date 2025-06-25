@@ -167,7 +167,7 @@ local function add_network_row(bots_table, player_table)
   }
 end -- add_network_row
 
-local function add_sorted_item_row(player_table, gui_table, title, titletip)
+local function add_sorted_item_row(player_table, gui_table, title, titletip, need_progressbar)
   player_data.register_ui(player_table, title)
 
   local cell = gui_table.add {
@@ -180,12 +180,14 @@ local function add_sorted_item_row(player_table, gui_table, title, titletip)
     style = "heading_2_label",
     tooltip = titletip,
   }
-  progressbar = cell.add {
-    type = "progressbar",
-    name = title .. "_progressbar",
-  }
-  progressbar.style.horizontally_stretchable = true
-  player_table.ui[title].progressbar = progressbar
+  if need_progressbar then
+    progressbar = cell.add {
+      type = "progressbar",
+      name = title .. "_progressbar",
+    }
+    progressbar.style.horizontally_stretchable = true
+    player_table.ui[title].progressbar = progressbar
+  end
 
   player_table.ui[title].cells = {}
   for count = 1, player_table.settings.max_items do
@@ -220,7 +222,8 @@ local function create_bots_table(player, player_table)
       player_table,
       bots_table,
       "Deliveries",
-      "Items currently being delivered, sorted by count"
+      "Items currently being delivered, sorted by count",
+      true
     )
   end
 
@@ -229,19 +232,22 @@ local function create_bots_table(player, player_table)
       player_table,
       bots_table,
       "Total items",
-      "Sum of items delivered by bots in current network, biggest number first"
+      "Sum of items delivered by bots in current network, biggest number first",
+      false
     )
     add_sorted_item_row(
       player_table,
       bots_table,
       "Total ticks",
-      "Total time taken to deliver, longest time first"
+      "Total time taken to deliver, longest time first",
+      false
     )
     add_sorted_item_row(
       player_table,
       bots_table,
       "Ticks/item",
-      "Average time taken to deliver each item, highest average first"
+      "Average time taken to deliver each item, highest average first",
+      false
     )
   end
 
@@ -297,9 +303,10 @@ function bots_gui.create_window(player, player_table)
   player_table.bots_table = bots_table
   create_bots_table(player, player_table)
   if player_table.window_location then
+    -- Restore the previous location, if it exists
     window.location = player_table.window_location
   else
-    window.location = { 100, 0 }
+    window.location = { x = 200, y = 0 }
   end
   bots_gui.update(player, player_table)
 end
@@ -476,11 +483,11 @@ function bots_gui.update(player, player_table)
   update_activity_row(player_table)
   update_network_row(player_table)
 
-  local in_train_gui = player.opened_gui_type == defines.gui_type.entity and player.opened.type == "locomotive"
-  window = player.gui.screen.logistics_insights_window
-  if window then
-    window.visible = not in_train_gui
-  end
+  -- local in_train_gui = player.opened_gui_type == defines.gui_type.entity and player.opened.type == "locomotive"
+  -- window = player.gui.screen.logistics_insights_window
+  -- if window then
+  --   window.visible = not in_train_gui
+  -- end
 end -- update contents
 
 function bots_gui.update_chunk_progress(player_table, chunk_progress)

@@ -20,6 +20,8 @@ end
 script.on_init(function()
   -- Called when the mod is first added to a save
   init_storages()
+  player = player_data.get_singleplayer_player()
+  controller_gui.create_window(player)
   bots_gui.create_window(player_data.get_singleplayer_player(), player_data.get_singleplayer_table())
 end)
 
