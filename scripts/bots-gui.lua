@@ -1,6 +1,7 @@
 local bots_gui = {}
 
 local player_data = require("scripts.player-data")
+local locations_window = require("scripts.location-gui")
 
 function bots_gui.toggle_window_visible(player)
   if not player then
@@ -25,9 +26,6 @@ end
 local function add_titlebar(window, player_table)
   local titlebar = window.add {
     type = "flow",
-    direction = "horizontal",
-    style_mods = { horizontally_stretchable = true, vertically_align = "center" },
-    color = { r = 0, g = 0, b = 0, a = 0.85 }, -- dark, mostly opaque
     name = "bots_insights_titlebar"
   }
   titlebar.drag_target = window
@@ -39,11 +37,15 @@ local function add_titlebar(window, player_table)
     ignored_by_interaction = true
   }
 
-  local spacer = titlebar.add {
+  local dragger = titlebar.add {
     type = "empty-widget",
     style = "draggable_space_header",
+    height = 24,
+    right_margin = 4,
+    ignored_by_interaction = true
   }
-  spacer.style.horizontally_stretchable = true
+  dragger.style.horizontally_stretchable = true
+  dragger.style.vertically_stretchable = true
 
   if player_table.settings.show_delivering or player_table.settings.show_history then
     titlebar.add {
@@ -138,32 +140,37 @@ local function add_network_row(bots_table, player_table)
     type = "sprite-button",
     sprite = "virtual-signal/signal-L",
     style = "slot_button",
-    name = "logistics-insights-test-network-id",
+    name = "logistics-insights-network-id",
   }
   player_table.ui.network.roboports = bots_table.add {
     type = "sprite-button",
     sprite = "entity/roboport",
     style = "slot_button",
+    name = "logistics-insights-roboports",
   }
   player_table.ui.network.logistics_bots = bots_table.add {
     type = "sprite-button",
     sprite = "entity/logistic-robot",
     style = "slot_button",
+    name = "logistics-insights-logistics_bots",
   }
   player_table.ui.network.requesters = bots_table.add {
     type = "sprite-button",
     sprite = "item/requester-chest",
     style = "slot_button",
+    name = "logistics-insights-requesters",
   }
   player_table.ui.network.providers = bots_table.add {
     type = "sprite-button",
     sprite = "item/passive-provider-chest",
     style = "slot_button",
+    name = "logistics-insights-providers",
   }
   player_table.ui.network.storages = bots_table.add {
     type = "sprite-button",
     sprite = "item/storage-chest",
     style = "slot_button",
+    name = "logistics-insights-storages",
   }
 end -- add_network_row
 
@@ -235,13 +242,14 @@ local function create_bots_table(player, player_table)
       "Sum of items delivered by bots in current network, biggest number first",
       false
     )
-    add_sorted_item_row(
-      player_table,
-      bots_table,
-      "Total ticks",
-      "Total time taken to deliver, longest time first",
-      false
-    )
+    -- Total Ticks line not interesting enough to include
+    -- add_sorted_item_row(
+    --   player_table,
+    --   bots_table,
+    --   "Total ticks",
+    --   "Total time taken to deliver, longest time first",
+    --   false
+    -- )
     add_sorted_item_row(
       player_table,
       bots_table,
@@ -262,7 +270,7 @@ local function update_progressbar(progressbar, progress)
     return
   end
   chunk_size = player_data.get_singleplayer_table().settings.chunk_size or 400
-  if not progress  then
+  if not progress then
     progressbar.value = 1
     progressbar.tooltip = string.format("Chunk size %d", chunk_size)
   elseif progress.total == 0 then
@@ -273,9 +281,9 @@ local function update_progressbar(progressbar, progress)
     progressbar.tooltip = string.format(
       "Chunk size %d\nProcessed %d/%d (%.0f%%)",
       chunk_size,
-      progress.current-1,
+      progress.current - 1,
       progress.total,
-      ((progress.current-1) / progress.total) * 100)
+      ((progress.current - 1) / progress.total) * 100)
   end
 end
 
@@ -344,9 +352,11 @@ local function update_sorted_item_row(player_table, title, all_entries, sort_fn,
     if number_field == "count" then
       cell.tooltip = string.format("%d %s %s", entry.count, entry.quality_name or "normal", entry.item_name)
     elseif number_field == "ticks" then
-      cell.tooltip = string.format("%d ticks\nto deliver %d %s %s", entry.ticks, entry.count, entry.quality_name or "normal", entry.item_name)
+      cell.tooltip = string.format("%d ticks\nto deliver %d %s %s", entry.ticks, entry.count,
+        entry.quality_name or "normal", entry.item_name)
     elseif number_field == "avg" then
-      cell.tooltip = string.format("An average of %.1f ticks\nto deliver %d %s %s", entry.avg, entry.count, entry.quality_name or "normal", entry.item_name)
+      cell.tooltip = string.format("An average of %.1f ticks\nto deliver %d %s %s", entry.avg, entry.count,
+        entry.quality_name or "normal", entry.item_name)
     end
     cell.enabled = true
     count = count + 1
@@ -402,7 +412,6 @@ local function update_network_row(player_table)
       else
         cell.tooltip = string.format(tooltip, value)
       end
-      -- cell.enabled = not player_table.paused
     end
   end
 
@@ -419,14 +428,19 @@ local function update_network_row(player_table)
   end
 
   if player_table.network then
-    update_element(player_table.ui.network.id, player_table.network.network_id, 
+    update_element(player_table.ui.network.id, player_table.network.network_id,
       "Network ID 1", "Network ID %d")
     update_element(player_table.ui.network.roboports, table_size(player_table.network.cells),
       "1 roboport in network", "%d roboports in network")
+    player_table.ui.network.roboports.tags = { follow = false }
+
     update_element(player_table.ui.network.logistics_bots, player_table.network.all_logistic_robots,
       "1 logistics bot in network", "%d logistics bots in network")
+    player_table.ui.network.logistics_bots.tags = { follow = true }
+
     update_element(player_table.ui.network.requesters, table_size(player_table.network.requesters),
       "1 requester in network (Chests, Silos, etc)", "%d requesters in network (Chests, Silos, etc)")
+    player_table.ui.network.requesters.tags = { follow = false }
     update_element(player_table.ui.network.providers,
       table_size(player_table.network.providers) - table_size(player_table.network.cells),
       "1 provider in network, plus roboports", "%d providers in network, plus roboports")
@@ -465,13 +479,13 @@ function bots_gui.update(player, player_table)
       function(a, b) return a.count > b.count end,
       "count"
     )
-    update_sorted_item_row(
-      player_table,
-      "Total ticks",
-      storage.delivery_history,
-      function(a, b) return a.ticks > b.ticks end,
-      "ticks"
-    )
+    -- update_sorted_item_row(
+    --   player_table,
+    --   "Total ticks",
+    --   storage.delivery_history,
+    --   function(a, b) return a.ticks > b.ticks end,
+    --   "ticks"
+    -- )
     update_sorted_item_row(
       player_table,
       "Ticks/item",
@@ -513,24 +527,66 @@ local function update_gathering_data(paused, control_element)
   end
 end
 
+local function get_random(list)
+  if list and #list ~= table_size(list) then
+    assert(false, "Need to use table_size!")
+  end
+  if not list or #list == 0 then
+    return nil
+  end
+  local index = math.random(1, #list)
+  return list[index]
+end
+
+---@param player LuaPlayer
+---@param player_data
+---@param element LuaGuiElement sprite-button
+---@param mouse_button defines.mouse_button_type
+function bots_gui.open_location_on_map(player, player_data, element, mouse_button)
+  local instructions = element.tags --[[@as ClickInstructions]]
+  follow = false
+  if element.name == "logistics-insights-roboports" then
+    item = get_random(player_data.network.cells)
+    if item then
+      item = item.owner
+    end
+  elseif element.name == "logistics-insights-requesters" then
+    item = get_random(player_data.network.requesters)
+  elseif element.name == "logistics-insights-logistics_bots" then
+    item = get_random(player_data.network.logistic_robots)
+    follow = true
+  else
+    item = nil
+  end
+  if item == nil then
+    return
+  end
+
+  if mouse_button == defines.mouse_button_type.left then
+    ResultLocation.open(player, item, follow)
+  end
+end
+
 -- ONCLICK
 
 function bots_gui.onclick(event)
-  if string.sub(event.element.name, 1, 16) == "logistics-insights-test" then
-    -- Do nothing
-  end
-  if event.element.name == "logistics-insights-clear-history" then
-    storage.delivery_history = {}
+  if string.sub(event.element.name, 1, 18) == "logistics-insights" then
     local player = game.get_player(event.player_index)
     local player_table = storage.players[event.player_index]
-    bots_gui.update(player, player_table)
-  elseif event.element.name == "logistics-insights-pause" then
-    -- Start/stop gathering insights
-    local player = game.get_player(event.player_index)
-    local player_table = storage.players[event.player_index]
-    player_table.paused = not player_table.paused or false
-    update_gathering_data(player_table.paused, event.element)
-    bots_gui.update(player, player_table)
+    if event.element.name == "logistics-insights-clear-history" then
+      storage.delivery_history = {}
+      bots_gui.update(player, player_table)
+    elseif event.element.name == "logistics-insights-pause" then
+      -- Start/stop gathering insights
+      player_table.paused = not player_table.paused or false
+      update_gathering_data(player_table.paused, event.element)
+      bots_gui.update(player, player_table)
+    elseif event.element.tags then
+      -- locations_window.create(player, storage.players[event.player_index])
+      if player then
+        bots_gui.open_location_on_map(player, player_table, event.element, event.button)
+      end
+    end
   end
 end
 
