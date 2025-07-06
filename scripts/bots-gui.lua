@@ -53,7 +53,7 @@ local function add_titlebar(window, player_table)
       sprite = "utility/stop",
       style = "tool_button",
       name = "logistics-insights-pause",
-      tooltip = "Pause gathering per-robot data"
+      tooltip = {"bots-gui.pause-gathering-tooltip"},
     }
   end
 
@@ -62,7 +62,7 @@ local function add_titlebar(window, player_table)
       type = "sprite-button",
       sprite = "utility/trash",
       style = "tool_button",
-      tooltip = "Clear history",
+      tooltip = {"bots-gui.clear-history-tooltip"},
       name = "logistics-insights-clear-history"
     }
   end
@@ -79,27 +79,27 @@ local function add_bot_activity_row(bots_table, player_table)
   local activity_icons = {
     { sprite = "entity/logistic-robot",
       key = "logistic-robot-total",
-      tip = {"activity-row.robots_total_tip"},
+      tip = {"activity-row.robots-total-tooltip"},
       onwithpause = true },
     { sprite = "virtual-signal/signal-battery-full",      
       key = "logistic-robot-available",  
-      tip = {"activity-row.robots_available_tip"},         
+      tip = {"activity-row.robots-available-tooltip"},         
       onwithpause = true },
     { sprite = "virtual-signal/signal-battery-mid-level", 
       key = "charging-robot",            
-      tip = {"activity-row.robots_charging_tip"},         
+      tip = {"activity-row.robots-charging-tooltip"},         
       onwithpause = true },
     { sprite = "virtual-signal/signal-battery-low",       
       key = "waiting-for-charge-robot",  
-      tip = {"activity-row.robots_waiting_tip"},         
+      tip = {"activity-row.robots-waiting-tooltip"},         
       onwithpause = true },
     { sprite = "virtual-signal/signal-input",             
       key = "picking",                   
-      tip = {"activity-row.robots_picking_up_tip"},         
+      tip = {"activity-row.robots-picking_up-tooltip"},         
       onwithpause = false },
     { sprite = "virtual-signal/signal-output",            
       key = "delivering",                
-      tip = {"activity-row.robots_delivering_tip"},         
+      tip = {"activity-row.robots-delivering-tooltip"},         
       onwithpause = false },
   }
 
@@ -111,9 +111,9 @@ local function add_bot_activity_row(bots_table, player_table)
   }
   cell.add {
     type = "label",
-    caption = "Activity",
+    caption = {"activity-row.header"},
     style = "heading_2_label",
-    tooltip = "What are the bots doing right now?",
+    tooltip = {"activity-row.header-tooltip"},
   }
   progressbar = cell.add {
     type = "progressbar",
@@ -152,9 +152,9 @@ local function add_network_row(bots_table, player_table)
   player_data.register_ui(player_table, "network")
   bots_table.add {
     type = "label",
-    caption = "Network",
+    caption = {"network-row.header"},
     style = "heading_2_label",
-    tooltip = "Data about the current logistic network",
+    tooltip = {"network-row.header-tooltip"},
   }
   player_table.ui.network.id = bots_table.add {
     type = "sprite-button",
@@ -199,7 +199,7 @@ local function add_network_row(bots_table, player_table)
   }
 end -- add_network_row
 
-local function add_sorted_item_row(player_table, gui_table, title, titletip, need_progressbar)
+local function add_sorted_item_row(player_table, gui_table, title, need_progressbar)
   player_data.register_ui(player_table, title)
 
   local cell = gui_table.add {
@@ -208,9 +208,9 @@ local function add_sorted_item_row(player_table, gui_table, title, titletip, nee
   }
   cell.add {
     type = "label",
-    caption = title,
+    caption = {"item-row." .. title .. "-title"},
     style = "heading_2_label",
-    tooltip = titletip,
+    tooltip = {"item-row." .. title .. "-tooltip"},
   }
   if need_progressbar then
     progressbar = cell.add {
@@ -253,8 +253,7 @@ local function create_bots_table(player, player_table)
     add_sorted_item_row(
       player_table,
       bots_table,
-      "Deliveries",
-      "Items currently being delivered, sorted by count",
+      "deliveries-row",
       true
     )
   end
@@ -263,8 +262,7 @@ local function create_bots_table(player, player_table)
     add_sorted_item_row(
       player_table,
       bots_table,
-      "Total items",
-      "Sum of items delivered by bots in current network, biggest number first",
+      "totals-row",
       false
     )
     -- Total Ticks line not interesting enough to include
@@ -278,8 +276,7 @@ local function create_bots_table(player, player_table)
     add_sorted_item_row(
       player_table,
       bots_table,
-      "Ticks/item",
-      "Average time taken to deliver each item, highest average first",
+      "avgticks-row",
       false
     )
   end
@@ -295,20 +292,13 @@ local function update_progressbar(progressbar, progress)
     return
   end
   chunk_size = player_data.get_singleplayer_table().settings.chunk_size or 400
-  if not progress then
+  if not progress or progress.total == 0 then
     progressbar.value = 1
-    progressbar.tooltip = string.format("Chunk size %d", chunk_size)
-  elseif progress.total == 0 then
-    progressbar.value = 1
-    progressbar.tooltip = string.format("Chunk size %d", chunk_size)
+    progressbar.tooltip = {"bots-gui.chunk-size-tooltip", chunk_size}
   else
     progressbar.value = progress.current / progress.total
-    progressbar.tooltip = string.format(
-      "Chunk size %d\nProcessed %d/%d (%.0f%%)",
-      chunk_size,
-      progress.current - 1,
-      progress.total,
-      ((progress.current - 1) / progress.total) * 100)
+    percentage = math.floor(((progress.current - 1) / progress.total) * 100 + 0.5)
+    progressbar.tooltip = {"bots-gui.chunk-processed-tooltip", chunk_size, progress.current - 1, progress.total, percentage}
   end
 end
 
@@ -375,13 +365,12 @@ local function update_sorted_item_row(player_table, title, all_entries, sort_fn,
     cell.quality = entry.quality_name or "normal"
     cell.number = entry[number_field]
     if number_field == "count" then
-      cell.tooltip = string.format("%d %s %s", entry.count, entry.quality_name or "normal", entry.item_name)
+      cell.tooltip = {"item-row.count-field-tooltip", entry.count, entry.quality_name or "normal", entry.item_name}
     elseif number_field == "ticks" then
-      cell.tooltip = string.format("%d ticks\nto deliver %d %s %s", entry.ticks, entry.count,
-        entry.quality_name or "normal", entry.item_name)
+      cell.tooltip = {"item-row.ticks-field-tooltip", entry.ticks, entry.count, entry.quality_name or "normal", entry.item_name}
     elseif number_field == "avg" then
-      cell.tooltip = string.format("An average of %.1f ticks\nto deliver %d %s %s", entry.avg, entry.count,
-        entry.quality_name or "normal", entry.item_name)
+      ticks_formatted = string.format("%.1f", entry.avg)
+      cell.tooltip = {"item-row.avg-field-tooltip", ticks_formatted, entry.count, entry.quality_name or "normal", entry.item_name}
     end
     cell.enabled = true
     count = count + 1
@@ -481,7 +470,7 @@ function bots_gui.update(player, player_table)
   if show_deliveries(player_table) then
     update_sorted_item_row(
       player_table,
-      "Deliveries",
+      "deliveries-row",
       storage.bot_deliveries,
       function(a, b) return a.count > b.count end,
       "count"
@@ -490,7 +479,7 @@ function bots_gui.update(player, player_table)
   if player_table.settings.show_history and storage.delivery_history then
     update_sorted_item_row(
       player_table,
-      "Total items",
+      "totals-row",
       storage.delivery_history,
       function(a, b) return a.count > b.count end,
       "count"
@@ -504,7 +493,7 @@ function bots_gui.update(player, player_table)
     -- )
     update_sorted_item_row(
       player_table,
-      "Ticks/item",
+      "avgticks-row",
       storage.delivery_history,
       function(a, b) return a.avg > b.avg end,
       "avg"
@@ -523,7 +512,7 @@ end -- update contents
 function bots_gui.update_chunk_progress(player_table, chunk_progress)
   if player_table.ui == nil then return end
   update_progressbar(player_table.ui.activity.progressbar, chunk_progress.activity_progress)
-  update_progressbar(player_table.ui["Deliveries"].progressbar, chunk_progress.bot_progress)
+  update_progressbar(player_table.ui["deliveries-row"].progressbar, chunk_progress.bot_progress)
 end
 
 local function update_gathering_data(paused, control_element)
@@ -536,10 +525,10 @@ local function update_gathering_data(paused, control_element)
   end
   if paused then
     control_element.sprite = "utility/play"
-    control_element.tooltip = "Start gathering per-robot data"
+    control_element.tooltip = {"bots-gui.start-gathering-tooltip"}
   else
     control_element.sprite = "utility/stop"
-    control_element.tooltip = "Pause gathering per-robot data"
+    control_element.tooltip = {"bots-gui.pause-gathering-tooltip"}
   end
 end
 

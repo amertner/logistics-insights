@@ -20,7 +20,7 @@ function controller_gui.create_window(player)
     name = "logistics_insights_toggle_main",
     sprite = "item/logistic-robot",
     style = "slot_button",
-    tooltip = "Toggle visibility of the Logistics Insights window",
+    tooltip = {"controller-gui.toggle-tooltip"},
   }
 end
 
