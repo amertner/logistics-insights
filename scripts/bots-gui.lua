@@ -690,7 +690,7 @@ local get_list_function = {
 ---@param player_data player_data
 ---@param element LuaGuiElement sprite-button
 ---@param mouse_button defines.mouse_button_type
-function bots_gui.open_location_on_map(player, player_data, element, mouse_button)
+function bots_gui.highlight_locations_on_map(player, player_data, element, focus_on_element)
   fn = get_list_function[element.name]
   if not fn then
     return
@@ -701,22 +701,20 @@ function bots_gui.open_location_on_map(player, player_data, element, mouse_butto
     return
   end
 
-  if mouse_button == defines.mouse_button_type.left then
-    if game.tick_paused then
-      game.tick_paused = false -- Unpause the game
-      return
-    end
-    if viewdata.follow then
-      game.tick_paused = true -- Pause the game
-    end
-    toview = {
-      position = viewdata.item.position,
-      surface = viewdata.item.surface.name,
-      zoom = 0.8,
-      items = viewdata.items,
-    }
-    ResultLocation.open(player, toview)
+  if game.tick_paused then
+    game.tick_paused = false -- Unpause the game
+    return
   end
+  if viewdata.follow then
+    game.tick_paused = true -- Pause the game
+  end
+  toview = {
+    position = viewdata.item.position,
+    surface = viewdata.item.surface.name,
+    zoom = 0.8,
+    items = viewdata.items,
+  }
+  ResultLocation.open(player, toview, focus_on_element)
 end
 
 -- ONCLICK
@@ -734,9 +732,9 @@ function bots_gui.onclick(event)
       update_gathering_data(player_table.paused, event.element)
       bots_gui.update(player, player_table)
     elseif event.element.tags then
-      -- locations_window.create(player, storage.players[event.player_index])
       if player then
-        bots_gui.open_location_on_map(player, player_table, event.element, event.button)
+        -- right-click: also focus on random element
+        bots_gui.highlight_locations_on_map(player, player_table, event.element, event.button == defines.mouse_button_type.right)
       end
     end
   end

@@ -106,17 +106,19 @@ end
 
 ---@param player LuaPlayer
 ---@param results ResultLocationData
-function ResultLocation.open(player, results)
+function ResultLocation.open(player, results, change_position)
   local surface_name = results.surface
   local position = results.position
   local zoom_level = 0.8 -- TODO player.mod_settings["fs-initial-zoom"].value * player.display_resolution.width / 1920
 
-  player.set_controller{
-    type = defines.controllers.remote,
-    position = position,
-    surface = surface_name,
-  }
-  player.zoom = zoom_level -- TODO zoom out when showing map tags
+  if change_position then
+    player.set_controller{
+      type = defines.controllers.remote,
+      position = position,
+      surface = surface_name,
+    }
+    player.zoom = zoom_level -- TODO zoom out when showing map tags
+  end
 
   data = {
     surface = surface_name,
