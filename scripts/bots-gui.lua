@@ -79,27 +79,27 @@ local function add_bot_activity_row(bots_table, player_table)
   local activity_icons = {
     { sprite = "entity/logistic-robot",
       key = "logistic-robot-total",
-      tip = {"bots-gui.robots_total_tip"},
+      tip = {"activity-row.robots_total_tip"},
       onwithpause = true },
     { sprite = "virtual-signal/signal-battery-full",      
       key = "logistic-robot-available",  
-      tip = {"bots-gui.robots_available_tip"},         
+      tip = {"activity-row.robots_available_tip"},         
       onwithpause = true },
     { sprite = "virtual-signal/signal-battery-mid-level", 
       key = "charging-robot",            
-      tip = {"bots-gui.robots_charging_tip"},         
+      tip = {"activity-row.robots_charging_tip"},         
       onwithpause = true },
     { sprite = "virtual-signal/signal-battery-low",       
       key = "waiting-for-charge-robot",  
-      tip = {"bots-gui.robots_waiting_tip"},         
+      tip = {"activity-row.robots_waiting_tip"},         
       onwithpause = true },
     { sprite = "virtual-signal/signal-input",             
       key = "picking",                   
-      tip = {"bots-gui.robots_picking_up_tip"},         
+      tip = {"activity-row.robots_picking_up_tip"},         
       onwithpause = false },
     { sprite = "virtual-signal/signal-output",            
       key = "delivering",                
-      tip = {"bots-gui.robots_delivering_tip"},         
+      tip = {"activity-row.robots_delivering_tip"},         
       onwithpause = false },
   }
 
@@ -428,13 +428,17 @@ local function update_bot_activity_row(player_table)
 end -- update_bot_activity_row
 
 local function update_network_row(player_table)
-  local function update_element(cell, value, tooltip1, tooltip)
+  local function update_element(cell, value, localized_tooltip, clickable)
     if cell and cell.valid then
       cell.number = value or 0
-      if value == 1 or tooltip == nil then
-        cell.tooltip = tooltip1
+      if localized_tooltip then
+        if clickable then
+          cell.tooltip = {"", {localized_tooltip, value},  "\n", {"bots-gui.show-location-tooltip"}}
+        else
+          cell.tooltip = {localized_tooltip, value}
+        end
       else
-        cell.tooltip = string.format(tooltip, value)
+        cell.tooltip = value or ""
       end
     end
   end
@@ -452,23 +456,15 @@ local function update_network_row(player_table)
   end
 
   if player_table.network then
-    update_element(player_table.ui.network.id, player_table.network.network_id,
-      "Network ID 1", "Network ID %d")
-    update_element(player_table.ui.network.roboports, table_size(player_table.network.cells),
-      "1 roboport in network", "%d roboports in network")
-
-    update_element(player_table.ui.network.logistics_bots, player_table.network.all_logistic_robots,
-      "1 logistics bot in network", "%d logistics bots in network")
-
-    update_element(player_table.ui.network.requesters, table_size(player_table.network.requesters),
-      "1 requester in network (Chests, Silos, etc)", "%d requesters in network (Chests, Silos, etc)")
+    update_element(player_table.ui.network.id, player_table.network.network_id, "network-row.network-id-tooltip", false)
+    update_element(player_table.ui.network.roboports, table_size(player_table.network.cells), "network-row.roboports-tooltip", true)
+    update_element(player_table.ui.network.logistics_bots, player_table.network.all_logistic_robots, "network-row.logistic-bots-tooltip", true)
+    update_element(player_table.ui.network.requesters, table_size(player_table.network.requesters), "network-row.requesters-tooltip", true)
     update_element(player_table.ui.network.providers,
-      table_size(player_table.network.providers) - table_size(player_table.network.cells),
-      "1 provider in network, plus roboports", "%d providers in network, plus roboports")
-    update_element(player_table.ui.network.storages, table_size(player_table.network.storages),
-      "1 storage chest in network", "%d storage chests in network")
+      table_size(player_table.network.providers) - table_size(player_table.network.cells), "network-row.providers-tooltip", true)
+    update_element(player_table.ui.network.storages, table_size(player_table.network.storages), "network-row.storages-tooltip", true)
   else
-    update_element(player_table.ui.network.id, 0, "No logistics network")
+    update_element(player_table.ui.network.id, nil, "network-row.no-network-tooltip", false)
     reset_network_buttons(player_table.ui.network, false, true, true, false)
   end
 end -- update_network_row
