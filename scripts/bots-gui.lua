@@ -77,12 +77,30 @@ end
 local function add_bot_activity_row(bots_table, player_table)
   -- Add robot activity stats row
   local activity_icons = {
-    { sprite = "entity/logistic-robot",                   key = "logistic-robot-total",      tooltip = "%d total %s",             onwithpause = true },
-    { sprite = "virtual-signal/signal-battery-full",      key = "logistic-robot-available",  tooltip = "%d available %s",         onwithpause = true },
-    { sprite = "virtual-signal/signal-battery-mid-level", key = "charging-robot",            tooltip = "%d %s charging",          onwithpause = true },
-    { sprite = "virtual-signal/signal-battery-low",       key = "waiting-for-charge-robot",  tooltip = "%d %s waiting to charge", onwithpause = true },
-    { sprite = "virtual-signal/signal-input",             key = "picking",                   tooltip = "%d %s picking up items",  onwithpause = false },
-    { sprite = "virtual-signal/signal-output",            key = "delivering",                tooltip = "%d %s delivering items",  onwithpause = false },
+    { sprite = "entity/logistic-robot",
+      key = "logistic-robot-total",
+      tip = {"bots-gui.robots_total_tip"},
+      onwithpause = true },
+    { sprite = "virtual-signal/signal-battery-full",      
+      key = "logistic-robot-available",  
+      tip = {"bots-gui.robots_available_tip"},         
+      onwithpause = true },
+    { sprite = "virtual-signal/signal-battery-mid-level", 
+      key = "charging-robot",            
+      tip = {"bots-gui.robots_charging_tip"},         
+      onwithpause = true },
+    { sprite = "virtual-signal/signal-battery-low",       
+      key = "waiting-for-charge-robot",  
+      tip = {"bots-gui.robots_waiting_tip"},         
+      onwithpause = true },
+    { sprite = "virtual-signal/signal-input",             
+      key = "picking",                   
+      tip = {"bots-gui.robots_picking_up_tip"},         
+      onwithpause = false },
+    { sprite = "virtual-signal/signal-output",            
+      key = "delivering",                
+      tip = {"bots-gui.robots_delivering_tip"},         
+      onwithpause = false },
   }
 
   player_data.register_ui(player_table, "activity")
@@ -108,7 +126,7 @@ local function add_bot_activity_row(bots_table, player_table)
   for i, icon in ipairs(activity_icons) do
     cellname = "logistics-insights-" .. icon.key
     player_table.ui.activity.cells[icon.key] = {
-      tip = icon.tooltip,
+      tip = icon.tip,
       cell = bots_table.add {
         type = "sprite-button",
         sprite = icon.sprite,
@@ -398,12 +416,11 @@ local function update_bot_activity_row(player_table)
     for key, window in pairs(player_table.ui.activity.cells) do
       num = storage.bot_items[key] or 0
       window.cell.number = num
-      if num == 1 then
-        item = "robot"
+      if window.onwithpause then
+        window.cell.tooltip = {"", {"bots-gui.format_robots", num}, window.tip, "\n", {"bots-gui.show-location-tooltip"}}
       else
-        item = "robots"
+        window.cell.tooltip = {"", {"bots-gui.format_robots", num}, window.tip, "\n", {"bots-gui.show-location-and-pause-tooltip"}}
       end
-      window.cell.tooltip = string.format(window.tip, num, item)
     end
   else
     reset_activity_buttons(player_table.ui.activity.cells, false, true, true, false)
