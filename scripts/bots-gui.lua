@@ -428,17 +428,17 @@ local function update_bot_activity_row(player_table)
 end -- update_bot_activity_row
 
 local function update_network_row(player_table)
-  local function update_element(cell, value, localized_tooltip, clickable)
+  local function update_element(cell, value, localized_tooltip, clicktip)
     if cell and cell.valid then
       cell.number = value or 0
       if localized_tooltip then
-        if clickable then
-          cell.tooltip = {"", {localized_tooltip, value},  "\n", {"bots-gui.show-location-tooltip"}}
+        if clicktip then
+          cell.tooltip = {"", {localized_tooltip, value},  "\n", {clicktip}}
         else
           cell.tooltip = {localized_tooltip, value}
         end
       else
-        cell.tooltip = value or ""
+        cell.tooltip = ""
       end
     end
   end
@@ -456,15 +456,14 @@ local function update_network_row(player_table)
   end
 
   if player_table.network then
-    update_element(player_table.ui.network.id, player_table.network.network_id, "network-row.network-id-tooltip", false)
-    update_element(player_table.ui.network.roboports, table_size(player_table.network.cells), "network-row.roboports-tooltip", true)
-    update_element(player_table.ui.network.logistics_bots, player_table.network.all_logistic_robots, "network-row.logistic-bots-tooltip", true)
-    update_element(player_table.ui.network.requesters, table_size(player_table.network.requesters), "network-row.requesters-tooltip", true)
-    update_element(player_table.ui.network.providers,
-      table_size(player_table.network.providers) - table_size(player_table.network.cells), "network-row.providers-tooltip", true)
-    update_element(player_table.ui.network.storages, table_size(player_table.network.storages), "network-row.storages-tooltip", true)
+    update_element(player_table.ui.network.id, player_table.network.network_id, "network-row.network-id-tooltip", nil)
+    update_element(player_table.ui.network.roboports, table_size(player_table.network.cells), "network-row.roboports-tooltip", "bots-gui.show-location-tooltip")
+    update_element(player_table.ui.network.logistics_bots, player_table.network.all_logistic_robots, "network-row.logistic-bots-tooltip", "bots-gui.show-location-and-pause-tooltip")
+    update_element(player_table.ui.network.requesters, table_size(player_table.network.requesters), "network-row.requesters-tooltip", "bots-gui.show-location-tooltip")
+    update_element(player_table.ui.network.providers, table_size(player_table.network.providers) - table_size(player_table.network.cells), "network-row.providers-tooltip", "bots-gui.show-location-tooltip")
+    update_element(player_table.ui.network.storages, table_size(player_table.network.storages), "network-row.storages-tooltip", "bots-gui.show-location-tooltip")
   else
-    update_element(player_table.ui.network.id, nil, "network-row.no-network-tooltip", false)
+    update_element(player_table.ui.network.id, nil, "network-row.no-network-tooltip", nil)
     reset_network_buttons(player_table.ui.network, false, true, true, false)
   end
 end -- update_network_row
@@ -641,6 +640,16 @@ local function get_item_list_and_focus_from_botlist(bot_list, order_type)
   return get_item_list_and_focus_mobile(filtered_list)
 end
 
+local function get_item_list_and_focus_exclude_roboports(item_list)
+  list = {}
+  for _, item in pairs(item_list) do
+    if item and item.valid and item.type ~= "roboport" then
+      table.insert(list, item)
+    end
+  end
+  return get_item_list_and_focus(list)
+end
+
 local get_list_function = {
   -- Activity row buttons
   ["logistics-insights-logistic-robot-total"] = function(pd)
@@ -669,7 +678,7 @@ local get_list_function = {
     return get_item_list_and_focus_mobile(pd.network.logistic_robots)
   end,
   ["logistics-insights-providers"] = function(pd)
-    return get_item_list_and_focus(pd.network.providers)
+    return get_item_list_and_focus_exclude_roboports(pd.network.providers)
   end,
   ["logistics-insights-storages"] = function(pd)
     return get_item_list_and_focus(pd.network.storages)
