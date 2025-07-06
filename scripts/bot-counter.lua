@@ -112,8 +112,8 @@ local function bot_processing(bot, partial_data, player_table)
 end
 
 local function bot_chunks_done(data)
-  storage.bot_items[defines.robot_order_type.deliver] = data.delivering_bots or 0
-  storage.bot_items[defines.robot_order_type.pickup] = data.picking_bots or 0
+  storage.bot_items["delivering"] = data.delivering_bots or 0
+  storage.bot_items["picking"] = data.picking_bots or 0
   storage.bot_deliveries = data.item_deliveries or {}
 end
 

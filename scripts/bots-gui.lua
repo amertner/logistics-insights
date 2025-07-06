@@ -74,19 +74,19 @@ local function sanitize_entity_name(str)
   return string.gsub(string.lower(str), "[^a-z0-9_-]", "_")
 end
 
-local function add_bot_activity_row(window, player_table)
+local function add_bot_activity_row(bots_table, player_table)
   -- Add robot activity stats row
   local activity_icons = {
-    { sprite = "entity/logistic-robot",                   key = "logistic-robot-total",           tooltip = "%d total %s",             onwithpause = true },
-    { sprite = "virtual-signal/signal-battery-full",      key = "logistic-robot-available",       tooltip = "%d available %s",         onwithpause = true },
-    { sprite = "virtual-signal/signal-battery-mid-level", key = "charging-robot",                 tooltip = "%d %s charging",          onwithpause = true },
-    { sprite = "virtual-signal/signal-battery-low",       key = "waiting-for-charge-robot",       tooltip = "%d %s waiting to charge", onwithpause = true },
-    { sprite = "virtual-signal/signal-input",             key = defines.robot_order_type.pickup,  tooltip = "%d %s picking up items",  onwithpause = false },
-    { sprite = "virtual-signal/signal-output",            key = defines.robot_order_type.deliver, tooltip = "%d %s delivering items",  onwithpause = false },
+    { sprite = "entity/logistic-robot",                   key = "logistic-robot-total",      tooltip = "%d total %s",             onwithpause = true },
+    { sprite = "virtual-signal/signal-battery-full",      key = "logistic-robot-available",  tooltip = "%d available %s",         onwithpause = true },
+    { sprite = "virtual-signal/signal-battery-mid-level", key = "charging-robot",            tooltip = "%d %s charging",          onwithpause = true },
+    { sprite = "virtual-signal/signal-battery-low",       key = "waiting-for-charge-robot",  tooltip = "%d %s waiting to charge", onwithpause = true },
+    { sprite = "virtual-signal/signal-input",             key = "picking",                   tooltip = "%d %s picking up items",  onwithpause = false },
+    { sprite = "virtual-signal/signal-output",            key = "delivering",                tooltip = "%d %s delivering items",  onwithpause = false },
   }
 
   player_data.register_ui(player_table, "activity")
-  local cell = window.add {
+  local cell = bots_table.add {
     name = "bots_activity_row",
     type = "flow",
     direction = "vertical"
@@ -106,22 +106,24 @@ local function add_bot_activity_row(window, player_table)
 
   player_table.ui.activity.cells = {}
   for i, icon in ipairs(activity_icons) do
+    cellname = "logistics-insights-" .. icon.key
     player_table.ui.activity.cells[icon.key] = {
       tip = icon.tooltip,
-      cell = window.add {
+      cell = bots_table.add {
         type = "sprite-button",
         sprite = icon.sprite,
         style = "slot_button",
-        name = "logistics-insights-activity-" .. i,
+        name = cellname, -- "logistics-insights-activity-" .. i,
         enabled = icon.onwithpause or not player_table.paused,
-      }
+        tags = { follow = true }
+      },
     }
   end
 
   -- Pad with blank elements if needed
   count = #activity_icons
   while count < player_table.settings.max_items do
-    window.add {
+    bots_table.add {
       type = "empty-widget",
     }
     count = count + 1
@@ -147,30 +149,35 @@ local function add_network_row(bots_table, player_table)
     sprite = "entity/roboport",
     style = "slot_button",
     name = "logistics-insights-roboports",
+    tags = { follow = false }
   }
   player_table.ui.network.logistics_bots = bots_table.add {
     type = "sprite-button",
     sprite = "entity/logistic-robot",
     style = "slot_button",
     name = "logistics-insights-logistics_bots",
+    tags = { follow = true }
   }
   player_table.ui.network.requesters = bots_table.add {
     type = "sprite-button",
     sprite = "item/requester-chest",
     style = "slot_button",
     name = "logistics-insights-requesters",
+    tags = { follow = false }
   }
   player_table.ui.network.providers = bots_table.add {
     type = "sprite-button",
     sprite = "item/passive-provider-chest",
     style = "slot_button",
     name = "logistics-insights-providers",
+    tags = { follow = false }
   }
   player_table.ui.network.storages = bots_table.add {
     type = "sprite-button",
     sprite = "item/storage-chest",
     style = "slot_button",
     name = "logistics-insights-storages",
+    tags = { follow = false }
   }
 end -- add_network_row
 
@@ -373,7 +380,7 @@ local function update_sorted_item_row(player_table, title, all_entries, sort_fn,
   end
 end -- update_sorted_item_row
 
-local function update_activity_row(player_table)
+local function update_bot_activity_row(player_table)
   local reset_activity_buttons = function(ui_table, sprite, number, tip, disable)
     -- Reset all cells in the ui_table to empty
     for _, cell in pairs(ui_table) do
@@ -401,7 +408,7 @@ local function update_activity_row(player_table)
   else
     reset_activity_buttons(player_table.ui.activity.cells, false, true, true, false)
   end
-end
+end -- update_bot_activity_row
 
 local function update_network_row(player_table)
   local function update_element(cell, value, tooltip1, tooltip)
@@ -432,15 +439,12 @@ local function update_network_row(player_table)
       "Network ID 1", "Network ID %d")
     update_element(player_table.ui.network.roboports, table_size(player_table.network.cells),
       "1 roboport in network", "%d roboports in network")
-    player_table.ui.network.roboports.tags = { follow = false }
 
     update_element(player_table.ui.network.logistics_bots, player_table.network.all_logistic_robots,
       "1 logistics bot in network", "%d logistics bots in network")
-    player_table.ui.network.logistics_bots.tags = { follow = true }
 
     update_element(player_table.ui.network.requesters, table_size(player_table.network.requesters),
       "1 requester in network (Chests, Silos, etc)", "%d requesters in network (Chests, Silos, etc)")
-    player_table.ui.network.requesters.tags = { follow = false }
     update_element(player_table.ui.network.providers,
       table_size(player_table.network.providers) - table_size(player_table.network.cells),
       "1 provider in network, plus roboports", "%d providers in network, plus roboports")
@@ -494,7 +498,7 @@ function bots_gui.update(player, player_table)
       "avg"
     )
   end
-  update_activity_row(player_table)
+  update_bot_activity_row(player_table)
   update_network_row(player_table)
 
   -- local in_train_gui = player.opened_gui_type == defines.gui_type.entity and player.opened.type == "locomotive"
@@ -538,32 +542,158 @@ local function get_random(list)
   return list[index]
 end
 
+---@param cell_list LuaLogisticCell[] 
+---@return LuaEntity[]|nil  -- Returns a list of bots
+local function find_charging_robots(cell_list)
+  if not cell_list or #cell_list == 0 then
+    return nil
+  end
+  local bot_list = {}
+  for _, cell in pairs(cell_list) do
+    if cell and cell.valid and cell.charging_robots then
+      for _, bot in pairs(cell.charging_robots) do
+        table.insert(bot_list, bot)
+      end
+    end
+  end
+  return bot_list
+end
+
+---@param cell_list LuaLogisticCell[] 
+---@return LuaEntity[]|nil  -- Returns a list of bots
+local function find_waiting_to_charge_robots(cell_list)
+  if not cell_list or #cell_list == 0 then
+    return nil
+  end
+  local bot_list = {}
+  for _, cell in pairs(cell_list) do
+    if cell and cell.valid and cell.to_charge_robots then
+      for _, bot in pairs(cell.to_charge_robots) do
+        table.insert(bot_list, bot)
+      end
+    end
+  end
+  return bot_list
+end
+
+local function get_item_list_and_focus_from_cells(item_list, find_fn)
+  if find_fn == nil then
+    return {items = nil, item = nil, follow = false}
+  end
+  filtered_list = find_fn(item_list)
+  if filtered_list == nil or #filtered_list == 0 then
+    return {items = nil, item = nil, follow = false}
+  else
+    rando = get_random(filtered_list)
+    return {items = filtered_list, item = rando, follow = false}
+  end
+end
+
+local function get_item_list_and_focus(item_list)
+  rando = get_random(item_list)
+  return {items = item_list, item = rando, follow = false}
+end
+
+local function get_item_list_and_focus_mobile(item_list)
+  rando = get_random(item_list)
+  if rando then
+    return {items = item_list, item = rando, follow = true}
+  else
+    return {items = item_list, item = nil, follow = false}
+  end
+end
+
+local function get_item_list_and_focus_owner(item_list)
+  ownerlist = {}
+  for _, item in pairs(item_list) do
+    if item and item.valid and item.owner then
+      table.insert(ownerlist, item.owner)
+    end
+  end
+  return get_item_list_and_focus(ownerlist)
+end
+
+local function get_item_list_and_focus_from_botlist(bot_list, order_type)
+  if not bot_list or #bot_list == 0 then
+    return {items = nil, item = nil, follow = false}
+  end
+  local filtered_list = {}
+  for _, bot in pairs(bot_list) do
+    if bot and bot.valid  and table_size(bot.robot_order_queue) > 0 then
+     if bot.robot_order_queue[1].type == order_type then
+      table.insert(filtered_list, bot)
+     end
+    end
+  end
+  return get_item_list_and_focus_mobile(filtered_list)
+end
+
+local get_list_function = {
+  -- Activity row buttons
+  ["logistics-insights-logistic-robot-total"] = function(pd)
+    return get_item_list_and_focus_mobile(pd.network.logistic_robots)
+  end,
+  ["logistics-insights-charging-robot"] = function(pd)
+    return get_item_list_and_focus_from_cells(pd.network.cells, find_charging_robots)
+  end,
+  ["logistics-insights-waiting-for-charge-robot"] = function(pd)
+    return get_item_list_and_focus_from_cells(pd.network.cells, find_waiting_to_charge_robots)
+  end,
+  ["logistics-insights-delivering"] = function(pd)
+    return get_item_list_and_focus_from_botlist(pd.network.logistic_robots, defines.robot_order_type.deliver)
+  end,
+  ["logistics-insights-picking"] = function(pd)
+    return get_item_list_and_focus_from_botlist(pd.network.logistic_robots, defines.robot_order_type.pickup)
+  end,
+  -- Network row buttons
+  ["logistics-insights-roboports"] = function(pd)
+    return get_item_list_and_focus_owner(pd.network.cells)
+  end,
+  ["logistics-insights-requesters"] = function(pd)
+    return get_item_list_and_focus(pd.network.requesters)
+  end,
+  ["logistics-insights-logistics_bots"] = function(pd)
+    return get_item_list_and_focus_mobile(pd.network.logistic_robots)
+  end,
+  ["logistics-insights-providers"] = function(pd)
+    return get_item_list_and_focus(pd.network.providers)
+  end,
+  ["logistics-insights-storages"] = function(pd)
+    return get_item_list_and_focus(pd.network.storages)
+  end,
+}
+
+
 ---@param player LuaPlayer
----@param player_data
+---@param player_data player_data
 ---@param element LuaGuiElement sprite-button
 ---@param mouse_button defines.mouse_button_type
 function bots_gui.open_location_on_map(player, player_data, element, mouse_button)
-  local instructions = element.tags --[[@as ClickInstructions]]
-  follow = false
-  if element.name == "logistics-insights-roboports" then
-    item = get_random(player_data.network.cells)
-    if item then
-      item = item.owner
-    end
-  elseif element.name == "logistics-insights-requesters" then
-    item = get_random(player_data.network.requesters)
-  elseif element.name == "logistics-insights-logistics_bots" then
-    item = get_random(player_data.network.logistic_robots)
-    follow = true
-  else
-    item = nil
+  fn = get_list_function[element.name]
+  if not fn then
+    return
   end
-  if item == nil then
+
+  viewdata = fn(player_data)
+  if viewdata == nil or viewdata.item == nil then
     return
   end
 
   if mouse_button == defines.mouse_button_type.left then
-    ResultLocation.open(player, item, follow)
+    if game.tick_paused then
+      game.tick_paused = false -- Unpause the game
+      return
+    end
+    if viewdata.follow then
+      game.tick_paused = true -- Pause the game
+    end
+    toview = {
+      position = viewdata.item.position,
+      surface = viewdata.item.surface.name,
+      zoom = 0.8,
+      items = viewdata.items,
+    }
+    ResultLocation.open(player, toview)
   end
 end
 

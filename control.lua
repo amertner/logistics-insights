@@ -2,8 +2,17 @@ local player_data = require("scripts.player-data")
 local bot_counter = require("scripts.bot-counter")
 local controller_gui = require("scripts.controller-gui")
 local bots_gui = require("scripts.bots-gui")
+ResultLocation = require("scripts.result-location")
+
+---@alias SurfaceName string
+
+---@class ResultLocationData
+---@field position MapPosition
+---@field surface SurfaceName
+---@field items LuaEntity[]
 
 -- STORAGE
+
 
 local function init_storages()
   storage.bot_items = {}
@@ -84,11 +93,11 @@ end)
 -- TICK
 
 -- count bots often, update the GUI less often
-script.on_nth_tick(10, function()
+script.on_nth_tick(1, function()
   local player_table = player_data.get_singleplayer_table()
   frequent = not player_table.settings.pause and player_table.settings.show_history
 
-  if (frequent and (game.tick % 10 == 0)) or 
+  if (frequent and (game.tick % 10 == 0)) or
     (game.tick % 60 == 0) then
     chunk_progress = bot_counter.gather_data(game)
     bots_gui.update_chunk_progress(player_table, chunk_progress)
@@ -99,7 +108,9 @@ script.on_nth_tick(10, function()
     controller_gui.update_window(player, storage.bot_items["logistic-robot-available"] or 0)
     bots_gui.update(player, player_table)
   end
+
 end)
+
 
 -- CONTROLLER
 
