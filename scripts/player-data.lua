@@ -39,6 +39,14 @@ function player_data.get_singleplayer_player()
   return game.connected_players[1]
 end
 
+function player_data.toggle_history_collection(player_table)
+  player_table.paused = not player_table.paused
+end
+
+function player_data.is_paused(player_table)
+  return player_table.paused
+end
+
 function player_data.register_ui(player_table, name)
   if not player_table.ui then
     player_table.ui = {}

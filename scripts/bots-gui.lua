@@ -210,7 +210,8 @@ local function add_sorted_item_row(player_table, gui_table, title, need_progress
     type = "label",
     caption = {"item-row." .. title .. "-title"},
     style = "heading_2_label",
-    tooltip = {"item-row." .. title .. "-tooltip"},
+    name = "logistics-insights-sorted-" .. title .. "-title",
+    tooltip = {"", {"item-row." .. title .. "-tooltip"}, "\n\n", {"item-row.toggle-gathering-tooltip"}}
   }
   if need_progressbar then
     progressbar = cell.add {
@@ -226,10 +227,11 @@ local function add_sorted_item_row(player_table, gui_table, title, need_progress
     player_table.ui[title].cells[count] = gui_table.add {
       type = "sprite-button",
       style = "slot_button",
+      name = "logistics-insights-sorted-" .. title .. count,
       enabled = false,
     }
   end
-end
+end -- add_sorted_item_row
 
 -- Chreate the main table with all the rows needed
 local function create_bots_table(player, player_table)
@@ -250,38 +252,15 @@ local function create_bots_table(player, player_table)
   bots_table.clear()
 
   if show_deliveries(player_table) then
-    add_sorted_item_row(
-      player_table,
-      bots_table,
-      "deliveries-row",
-      true
-    )
+    add_sorted_item_row(player_table, bots_table, "deliveries-row", true)
   end
 
   if player_table.settings.show_history and storage.delivery_history and not player_table.paused then
-    add_sorted_item_row(
-      player_table,
-      bots_table,
-      "totals-row",
-      false
-    )
-    -- Total Ticks line not interesting enough to include
-    -- add_sorted_item_row(
-    --   player_table,
-    --   bots_table,
-    --   "Total ticks",
-    --   "Total time taken to deliver, longest time first",
-    --   false
-    -- )
-    add_sorted_item_row(
-      player_table,
-      bots_table,
-      "avgticks-row",
-      false
-    )
+    add_sorted_item_row(player_table, bots_table, "totals-row", false)
+    add_sorted_item_row(player_table, bots_table, "avgticks-row", false)
   end
 
-  if player_table.settings.show_activity then
+  if player_table.settings.show_activity then -- There is an option for this as it's expensive
     add_bot_activity_row(bots_table, player_table)
   end
   add_network_row(bots_table, player_table)
@@ -337,9 +316,22 @@ end
 -- Updating the window with live data
 
 -- Display item sprites and numbers in sort order.
-local function update_sorted_item_row(player_table, title, all_entries, sort_fn, number_field)
-  -- If paused, just disable all the fields
-  if player_table.paused then
+local function update_sorted_item_row(player_table, title, all_entries, sort_fn, number_field, clearing)
+
+  local function getcelltooltip(entry)
+    if number_field == "count" then
+      tip = {"", {"item-row.count-field-tooltip", entry.count, entry.quality_name or "normal", entry.item_name}}
+    elseif number_field == "ticks" then
+      tip = {"", {"item-row.ticks-field-tooltip", entry.ticks, entry.count, entry.quality_name or "normal", entry.item_name}}
+    elseif number_field == "avg" then
+      ticks_formatted = string.format("%.1f", entry.avg)
+      tip = {"", {"item-row.avg-field-tooltip", ticks_formatted, entry.count, entry.quality_name or "normal", entry.item_name}}
+    end
+    return tip
+  end
+
+  -- If paused, just disable all the fields, unless we just cleared history
+  if player_table.paused and not clearing then
     for i = 1, player_table.settings.max_items do
       cell = player_table.ui[title].cells[i]
       cell.enabled = false
@@ -364,15 +356,8 @@ local function update_sorted_item_row(player_table, title, all_entries, sort_fn,
     cell.sprite = "item/" .. entry.item_name
     cell.quality = entry.quality_name or "normal"
     cell.number = entry[number_field]
-    if number_field == "count" then
-      cell.tooltip = {"item-row.count-field-tooltip", entry.count, entry.quality_name or "normal", entry.item_name}
-    elseif number_field == "ticks" then
-      cell.tooltip = {"item-row.ticks-field-tooltip", entry.ticks, entry.count, entry.quality_name or "normal", entry.item_name}
-    elseif number_field == "avg" then
-      ticks_formatted = string.format("%.1f", entry.avg)
-      cell.tooltip = {"item-row.avg-field-tooltip", ticks_formatted, entry.count, entry.quality_name or "normal", entry.item_name}
-    end
-    cell.enabled = true
+    cell.tooltip = getcelltooltip(entry)
+    cell.enabled = not player_table.paused
     count = count + 1
   end
 
@@ -457,7 +442,7 @@ local function update_network_row(player_table)
   end
 end -- update_network_row
 
-function bots_gui.update(player, player_table)
+function bots_gui.update(player, player_table, clearing)
   -- Update the bots table with current data, do not recreate it
   if not player or not player.valid or not player_table then
     return -- no player table, can't do anything
@@ -473,7 +458,8 @@ function bots_gui.update(player, player_table)
       "deliveries-row",
       storage.bot_deliveries,
       function(a, b) return a.count > b.count end,
-      "count"
+      "count",
+      clearing
     )
   end
   if player_table.settings.show_history and storage.delivery_history then
@@ -482,7 +468,8 @@ function bots_gui.update(player, player_table)
       "totals-row",
       storage.delivery_history,
       function(a, b) return a.count > b.count end,
-      "count"
+      "count",
+      clearing
     )
     -- update_sorted_item_row(
     --   player_table,
@@ -496,7 +483,8 @@ function bots_gui.update(player, player_table)
       "avgticks-row",
       storage.delivery_history,
       function(a, b) return a.avg > b.avg end,
-      "avg"
+      "avg",
+      clearing
     )
   end
   update_bot_activity_row(player_table)
@@ -516,6 +504,8 @@ function bots_gui.update_chunk_progress(player_table, chunk_progress)
 end
 
 local function update_gathering_data(paused, control_element)
+  player_table = player_data.get_singleplayer_table()
+
   -- Update the gathering state for all players
   for _, player in pairs(game.connected_players) do
     local player_table = storage.players[player.index]
@@ -707,19 +697,25 @@ function bots_gui.highlight_locations_on_map(player, player_data, element, focus
 end
 
 -- ONCLICK
+local function starts_with(str, prefix)
+  return string.sub(str, 1, string.len(prefix)) == prefix
+end
 
 function bots_gui.onclick(event)
-  if string.sub(event.element.name, 1, 18) == "logistics-insights" then
+  if starts_with(event.element.name, "logistics-insights") then
     local player = game.get_player(event.player_index)
     local player_table = storage.players[event.player_index]
-    if event.element.name == "logistics-insights-clear-history" then
-      storage.delivery_history = {}
-      bots_gui.update(player, player_table)
-    elseif event.element.name == "logistics-insights-pause" then
-      -- Start/stop gathering insights
-      player_table.paused = not player_table.paused or false
-      update_gathering_data(player_table.paused, event.element)
-      bots_gui.update(player, player_table)
+    if starts_with(event.element.name, "logistics-insights-sorted") then
+      if event.button == defines.mouse_button_type.right then
+        -- right-click: clear history
+        storage.delivery_history = {}
+        bots_gui.update(player, player_table, true)
+      else
+        -- left-click: pause/unpause gathering
+        player_data.toggle_history_collection(player_table)
+        --update_gathering_data(player_table.paused, event.element)
+        bots_gui.update(player, player_table, false)
+      end
     elseif event.element.tags then
       if player then
         -- right-click: also focus on random element

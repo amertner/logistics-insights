@@ -145,7 +145,7 @@ function bot_counter.gather_data(game)
     end
     activity_chunker:process_chunk()
 
-    if not player_table.paused then -- These are the expensive ones, so only do them when not paused
+    if not player_data.is_paused(player_table) then -- These are the expensive ones, so only do them when not paused
       if player_table.settings.show_delivering or player_table.settings.show_history then
         if bot_chunker:is_done() then
           bot_chunker:initialise_chunking(network.logistic_robots)
