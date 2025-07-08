@@ -38,6 +38,14 @@ data:extend(
       minimum_value = 20,
       maximum_value = 100000,
       order = "5"
+    }
+    ,
+    {
+      type = "bool-setting",
+      name = "li-pause-for-bots",
+      setting_type = "runtime-per-user",
+      default_value = true,
+      order = "6"
     },
     {
       type = "int-setting",
@@ -46,7 +54,7 @@ data:extend(
       default_value = 10,
       minimum_value = 0,
       maximum_value = 1000,
-      order = "bb"
+      order = "7"
     }
     ,
     {
@@ -56,6 +64,6 @@ data:extend(
       default_value = 0.3,
       minimum_value = 0.05,
       maximum_value = 10,
-      order = "a",
+      order = "8",
     }, }
 )

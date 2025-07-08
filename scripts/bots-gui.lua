@@ -663,7 +663,7 @@ function bots_gui.highlight_locations_on_map(player, player_data, element, focus
     return
   end
 
-  if viewdata.follow then
+  if viewdata.follow and player.mod_settings["li-pause-for-bots"].value then
     game_state.freeze_game()
   end
   toview = {
