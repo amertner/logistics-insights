@@ -207,12 +207,12 @@ local function add_sorted_item_row(player_table, gui_table, title, need_progress
     direction = "vertical"
   }
   cell.add {
-    type = "label",
+    type = "button",
     caption = {"item-row." .. title .. "-title"},
-    style = "heading_2_label",
+    style = "tool_button", -- or "button", which is nicer but a bit too big
     name = "logistics-insights-sorted-" .. title .. "-title",
     tooltip = {"", {"item-row." .. title .. "-tooltip"}, "\n\n", {"item-row.toggle-gathering-tooltip"}}
-  }
+  }.style.horizontally_stretchable = true
   if need_progressbar then
     progressbar = cell.add {
       type = "progressbar",
@@ -713,7 +713,6 @@ function bots_gui.onclick(event)
       else
         -- left-click: pause/unpause gathering
         player_data.toggle_history_collection(player_table)
-        --update_gathering_data(player_table.paused, event.element)
         bots_gui.update(player, player_table, false)
       end
     elseif event.element.tags then
