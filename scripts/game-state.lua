@@ -35,4 +35,8 @@ function game_state.is_paused()
   return game.tick_paused
 end
 
+function game_state.needs_buttons()
+  return game_state.unfreeze_button == nil or game_state.freeze_button == nil
+end
+
 return game_state

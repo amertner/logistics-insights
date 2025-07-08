@@ -455,6 +455,15 @@ function bots_gui.update(player, player_table, clearing)
     return
   end
 
+  if game_state.needs_buttons() then
+    local titlebar = player.gui.screen.logistics_insights_window.bots_insights_titlebar
+    if titlebar then
+      local unfreeze = titlebar["logistics-insights-unfreeze"]
+      local freeze = titlebar["logistics-insights-freeze"]
+      game_state.init(unfreeze, freeze)
+    end
+  end
+
   if show_deliveries(player_table) then
     update_sorted_item_row(
       player_table,
