@@ -12,9 +12,9 @@ data:extend{
     type = "sprite",
     name = "li_play",
     filename = "__logistics-insights__/graphics/play-button.png",
-    size = 64,
+    size = 128,
     scale = 1.0,
-    flags = {"gui-icon"},
+    flags = {"icon"},
     tint = { r = 0, g = 1, b = 0 }
   },
   {
@@ -23,7 +23,7 @@ data:extend{
     filename = "__logistics-insights__/graphics/step-button.png",
     size = 64,
     scale = 1.0,
-    flags = {"gui-icon"},
+    flags = {"icon"},
     tint = { r = 0, g = 1, b = 0 }
   }
 }
