@@ -35,7 +35,7 @@ data:extend(
       name = "li-chunk-size",
       setting_type = "runtime-per-user",
       default_value = 400,
-      minimum_value = 20,
+      minimum_value = 10,
       maximum_value = 100000,
       order = "5"
     }
