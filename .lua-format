@@ -1,0 +1,6 @@
+{
+  "indent_width": 2,
+  "continuation_indent_width": 2,
+  "align_table_field": true,
+  "column_limit": 120
+}

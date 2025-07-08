@@ -32,7 +32,7 @@ end
 ---@param surface SurfaceName
 ---@param items LuaEntity[]
 function ResultLocation.draw_markers(player, surface, items)
-  local time_to_live = 10*60 -- TODO player.mod_settings["fs-highlight-duration"].value * 60
+  local time_to_live = player.mod_settings["logistics-insights-highlight-duration"].value * 60
   -- Draw new markers
   for _, item in pairs(items) do
     if item.selection_box then
