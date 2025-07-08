@@ -1,6 +1,6 @@
 local player_data = {}
 
----@class player_data 
+---@class PlayerData 
 ---@field network LuaLogisticNetwork|nil
 ---@field player_index uint
 ---@field settings LuaCustomTable<string,ModSetting>

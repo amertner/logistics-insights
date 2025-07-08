@@ -1,5 +1,6 @@
 local bots_gui = {}
 
+local utils = require("scripts.utils")
 local player_data = require("scripts.player-data")
 local game_state = require("scripts.game-state")
 
@@ -11,6 +12,9 @@ function bots_gui.toggle_window_visible(player)
   player_table.bots_window_visible = not player_table.bots_window_visible
 
   local gui = player.gui.screen
+  if not gui.logistics_insights_window then
+    bots_gui.create_window(player, player_table)
+  end
   if gui.logistics_insights_window then
     gui.logistics_insights_window.visible = player_table.bots_window_visible
   end
@@ -502,36 +506,6 @@ function bots_gui.update_chunk_progress(player_table, chunk_progress)
   update_progressbar(player_table.ui["deliveries-row"].progressbar, chunk_progress.bot_progress)
 end
 
-local function update_gathering_data(paused, control_element)
-  player_table = player_data.get_singleplayer_table()
-
-  -- Update the gathering state for all players
-  for _, player in pairs(game.connected_players) do
-    local player_table = storage.players[player.index]
-    if player_table then
-      player_table.paused = paused or false
-    end
-  end
-  if paused then
-    control_element.sprite = "utility/play"
-    control_element.tooltip = {"bots-gui.start-gathering-tooltip"}
-  else
-    control_element.sprite = "utility/stop"
-    control_element.tooltip = {"bots-gui.pause-gathering-tooltip"}
-  end
-end
-
-local function get_random(list)
-  if list and #list ~= table_size(list) then
-    assert(false, "Need to use table_size!")
-  end
-  if not list or #list == 0 then
-    return nil
-  end
-  local index = math.random(1, #list)
-  return list[index]
-end
-
 ---@param cell_list LuaLogisticCell[] 
 ---@return LuaEntity[]|nil  -- Returns a list of bots
 local function find_charging_robots(cell_list)
@@ -574,18 +548,18 @@ local function get_item_list_and_focus_from_cells(item_list, find_fn)
   if filtered_list == nil or #filtered_list == 0 then
     return {items = nil, item = nil, follow = false}
   else
-    rando = get_random(filtered_list)
+    rando = utils.get_random(filtered_list)
     return {items = filtered_list, item = rando, follow = false}
   end
 end
 
 local function get_item_list_and_focus(item_list)
-  rando = get_random(item_list)
+  rando = utils.get_random(item_list)
   return {items = item_list, item = rando, follow = false}
 end
 
 local function get_item_list_and_focus_mobile(item_list)
-  rando = get_random(item_list)
+  rando = utils.get_random(item_list)
   if rando then
     return {items = item_list, item = rando, follow = true}
   else
@@ -664,7 +638,7 @@ local get_list_function = {
 }
 
 ---@param player LuaPlayer
----@param player_data player_data
+---@param player_data PlayerData
 ---@param element LuaGuiElement sprite-button
 ---@param focus_on_element boolean
 function bots_gui.highlight_locations_on_map(player, player_data, element, focus_on_element)
@@ -691,21 +665,18 @@ function bots_gui.highlight_locations_on_map(player, player_data, element, focus
 end
 
 -- ONCLICK
-local function starts_with(str, prefix)
-  return string.sub(str, 1, string.len(prefix)) == prefix
-end
-
 function bots_gui.onclick(event)
-  if starts_with(event.element.name, "logistics-insights") then
-    local player = game.get_player(event.player_index)
-    local player_table = storage.players[event.player_index]
+  if utils.starts_with(event.element.name, "logistics-insights") then
+    local player = player_data.get_singleplayer_player()
+    local player_table = player_data.get_singleplayer_table()
     if event.element.name == "logistics-insights-unfreeze" then
+      ResultLocation.clear_markers(player)
       game_state.unfreeze_game()
     elseif event.element.name == "logistics-insights-freeze" then
       game_state.freeze_game()
     elseif event.element.name == "logistics-insights-step" then
       game_state.step_game()
-    elseif starts_with(event.element.name, "logistics-insights-sorted") then
+    elseif utils.starts_with(event.element.name, "logistics-insights-sorted") then
       if event.button == defines.mouse_button_type.right then
         -- right-click: clear history
         storage.delivery_history = {}
@@ -715,11 +686,9 @@ function bots_gui.onclick(event)
         player_data.toggle_history_collection(player_table)
         bots_gui.update(player, player_table, false)
       end
-    elseif event.element.tags then
-      if player then
-        -- right-click: also focus on random element
-        bots_gui.highlight_locations_on_map(player, player_table, event.element, event.button == defines.mouse_button_type.right)
-      end
+    elseif event.element.tags and player then
+      -- right-click: also focus on random element
+      bots_gui.highlight_locations_on_map(player, player_table, event.element, event.button == defines.mouse_button_type.right)
     end
   end
 end

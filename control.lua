@@ -30,8 +30,10 @@ script.on_init(function()
   -- Called when the mod is first added to a save
   init_storages()
   player = player_data.get_singleplayer_player()
-  controller_gui.create_window(player)
-  bots_gui.create_window(player_data.get_singleplayer_player(), player_data.get_singleplayer_table())
+  if player then
+    controller_gui.create_window(player)
+    bots_gui.create_window(player_data.get_singleplayer_player(), player_data.get_singleplayer_table())
+  end
 end)
 
 script.on_load(function()
@@ -127,7 +129,7 @@ script.on_event(
     local player = player_data.get_singleplayer_player()
     local player_table = player_data.get_singleplayer_table()
 
-    if player_table.bots_window_visible then
+    if player_table and player_table.bots_window_visible then
       player_table.bots_window_visible = player.controller_type ~= defines.controllers.cutscene
     end
   end
