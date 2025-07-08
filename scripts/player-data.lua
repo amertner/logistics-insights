@@ -1,9 +1,11 @@
 local player_data = {}
 
 ---@class PlayerData 
----@field network LuaLogisticNetwork|nil
----@field player_index uint
 ---@field settings LuaCustomTable<string,ModSetting>
+---@field bots_window_visible boolean
+---@field network LuaLogisticNetwork|nil
+---@field paused boolean
+---@field player_index uint
 function player_data.init(player_index)
   storage.players[player_index] = {
     settings = {},

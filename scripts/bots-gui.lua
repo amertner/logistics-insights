@@ -36,7 +36,7 @@ local function add_titlebar(window, player_table)
 
   titlebar.add {
     type = "label",
-    caption = "Logistics insights", -- Could add "[img=item/logistic-robot]""
+    caption = {"mod-name.logistics-insight"},
     style = "frame_title",
     ignored_by_interaction = true
   }
@@ -83,25 +83,25 @@ local function add_bot_activity_row(bots_table, player_table)
       key = "logistic-robot-total",
       tip = {"activity-row.robots-total-tooltip"},
       onwithpause = true },
-    { sprite = "virtual-signal/signal-battery-full",      
-      key = "logistic-robot-available",  
-      tip = {"activity-row.robots-available-tooltip"},         
+    { sprite = "virtual-signal/signal-battery-full",
+      key = "logistic-robot-available",
+      tip = {"activity-row.robots-available-tooltip"},
       onwithpause = true },
-    { sprite = "virtual-signal/signal-battery-mid-level", 
-      key = "charging-robot",            
-      tip = {"activity-row.robots-charging-tooltip"},         
+    { sprite = "virtual-signal/signal-battery-mid-level",
+      key = "charging-robot",
+      tip = {"activity-row.robots-charging-tooltip"},
       onwithpause = true },
-    { sprite = "virtual-signal/signal-battery-low",       
-      key = "waiting-for-charge-robot",  
-      tip = {"activity-row.robots-waiting-tooltip"},         
+    { sprite = "virtual-signal/signal-battery-low",
+      key = "waiting-for-charge-robot",
+      tip = {"activity-row.robots-waiting-tooltip"},
       onwithpause = true },
-    { sprite = "virtual-signal/signal-input",             
-      key = "picking",                   
-      tip = {"activity-row.robots-picking_up-tooltip"},         
+    { sprite = "virtual-signal/signal-input",
+      key = "picking",
+      tip = {"activity-row.robots-picking_up-tooltip"},
       onwithpause = false },
-    { sprite = "virtual-signal/signal-output",            
-      key = "delivering",                
-      tip = {"activity-row.robots-delivering-tooltip"},         
+    { sprite = "virtual-signal/signal-output",
+      key = "delivering",
+      tip = {"activity-row.robots-delivering-tooltip"},
       onwithpause = false },
   }
 
@@ -506,7 +506,7 @@ function bots_gui.update_chunk_progress(player_table, chunk_progress)
   update_progressbar(player_table.ui["deliveries-row"].progressbar, chunk_progress.bot_progress)
 end
 
----@param cell_list LuaLogisticCell[] 
+---@param cell_list LuaLogisticCell[]
 ---@return LuaEntity[]|nil  -- Returns a list of bots
 local function find_charging_robots(cell_list)
   if not cell_list or #cell_list == 0 then
@@ -523,7 +523,7 @@ local function find_charging_robots(cell_list)
   return bot_list
 end
 
----@param cell_list LuaLogisticCell[] 
+---@param cell_list LuaLogisticCell[]
 ---@return LuaEntity[]|nil  -- Returns a list of bots
 local function find_waiting_to_charge_robots(cell_list)
   if not cell_list or #cell_list == 0 then
