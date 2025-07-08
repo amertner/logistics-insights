@@ -1,5 +1,6 @@
 -- This code is originally from FactorySearch v1.13.3
 local math2d = require("math2d")
+local game_state = require("scripts.game-state")
 
 local add_vector = math2d.position.add
 local subtract_vector = math2d.position.subtract
@@ -8,8 +9,8 @@ local rotate_vector = math2d.position.rotate_vector
 local LINE_COLOR = { r = 0, g = 0.9, b = 0, a = 1 }
 local LINE_WIDTH = 4
 local HALF_WIDTH = (LINE_WIDTH / 2) / 32  -- 32 pixels per tile
-local ARROW_TARGET_OFFSET = { 0, -0.75 }
-local ARROW_ORIENTATED_OFFSET = { 0, -4 }
+local ARROW_TARGET_OFFSET = { 0, -1 }
+local ARROW_ORIENTATED_OFFSET = { 0, -1 }
 
 local ResultLocation = {}
 
@@ -92,8 +93,42 @@ function ResultLocation.draw_markers(player, surface, items)
 end
 
 ---@param player LuaPlayer
+---@param surface SurfaceName
+---@param items LuaEntity[]
+function ResultLocation.draw_arrows(player, surface, items)
+  -- For bots, show an arrow pointing towards its destination
+  for _, item in pairs(items) do
+    if item.name ~= "logistic-robot" then
+      return
+    end
+
+    if item.robot_order_queue and #item.robot_order_queue > 0 then
+        target = item.robot_order_queue[1].target or nil
+        if target then
+            targetpos = target.position or nil
+        end
+    else
+        targetpos = nil
+    end
+
+    rendering.draw_sprite{
+      sprite = "li_arrow",
+      x_scale = 1,
+      y_scale = 1,
+      target = {entity=item, offset=ARROW_TARGET_OFFSET},
+      --use_target_orientation = true,
+      orientation_target = targetpos,
+      oriented_offset = ARROW_ORIENTATED_OFFSET,
+      surface = surface,
+      time_to_live = player.mod_settings["fs-highlight-duration"].value * 60,
+      players = {player},
+    }
+  end
+end
+
+---@param player LuaPlayer
 ---@param data ResultLocationData
-function ResultLocation.highlight(player, data)
+function ResultLocation.highlight(player, data, draw)
   local surface_name = data.surface
 
   ResultLocation.clear_markers(player)
@@ -101,7 +136,12 @@ function ResultLocation.highlight(player, data)
   -- In case surface was deleted
   if not game.surfaces[surface_name] then return end
 
-  ResultLocation.draw_markers(player, surface_name, data.items)
+  if draw.arrows then
+    ResultLocation.draw_arrows(player, surface_name, data.items)
+  end
+  if draw.markers then
+    ResultLocation.draw_markers(player, surface_name, data.items)
+  end
 end
 
 ---@param player LuaPlayer
@@ -126,7 +166,10 @@ function ResultLocation.open(player, results, change_position)
     items = results.items or {}
   }
 
-  ResultLocation.highlight(player, data)
+  ResultLocation.highlight(player, data, {
+    arrows = false, -- Still work in progress
+    markers = true
+  })
 end
 
 
