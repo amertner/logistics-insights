@@ -47,25 +47,27 @@ local function add_titlebar(window, player_table)
   dragger.style.horizontally_stretchable = true
   dragger.style.vertically_stretchable = true
 
-  if player_table.settings.show_delivering or player_table.settings.show_history then
-    titlebar.add {
-      type = "sprite-button",
-      sprite = "utility/stop",
-      style = "tool_button",
-      name = "logistics-insights-pause",
-      tooltip = {"bots-gui.pause-gathering-tooltip"},
-    }
-  end
-
-  if player_table.settings.show_history then
-    titlebar.add {
-      type = "sprite-button",
-      sprite = "utility/trash",
-      style = "tool_button",
-      tooltip = {"bots-gui.clear-history-tooltip"},
-      name = "logistics-insights-clear-history"
-    }
-  end
+  titlebar.add {
+    type = "sprite-button",
+    sprite = "li_play",
+    style = "tool_button",
+    name = "logistics-insights-start",
+    tooltip = {"bots-gui.start-game-tooltip"},
+  }
+  titlebar.add {
+    type = "sprite-button",
+    sprite = "li_pause",
+    style = "tool_button",
+    name = "logistics-insights-pause",
+    tooltip = {"bots-gui.freeze-game-tooltip"},
+  }
+  titlebar.add {
+    type = "sprite-button",
+    sprite = "li_step",
+    style = "tool_button",
+    name = "logistics-insights-step",
+    tooltip = {"bots-gui.step-game-tooltip"},
+  }
 end
 
 -- Replace any character not allowed with an underscore
@@ -668,7 +670,7 @@ local get_list_function = {
 ---@param player LuaPlayer
 ---@param player_data player_data
 ---@param element LuaGuiElement sprite-button
----@param mouse_button defines.mouse_button_type
+---@param focus_on_element boolean
 function bots_gui.highlight_locations_on_map(player, player_data, element, focus_on_element)
   fn = get_list_function[element.name]
   if not fn then

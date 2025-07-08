@@ -1,3 +1,4 @@
+require("prototypes.sprite")
 local styles = data.raw["gui-style"].default
 
 styles.botsgui_frame_style = {
