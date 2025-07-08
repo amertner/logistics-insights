@@ -229,7 +229,8 @@ local function add_sorted_item_row(player_table, gui_table, title, need_progress
     player_table.ui[title].cells[count] = gui_table.add {
       type = "sprite-button",
       style = "slot_button",
-      name = "logistics-insights-sorted-" .. title .. count,
+      -- If name is set, clicking on it will toggle gathering the info
+      --name = "logistics-insights-sorted-" .. title .. count,
       enabled = false,
     }
   end

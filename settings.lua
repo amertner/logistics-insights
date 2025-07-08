@@ -47,6 +47,15 @@ data:extend(
       minimum_value = 0,
       maximum_value = 1000,
       order = "bb"
-    },
-  }
+    }
+    ,
+    {
+      type = "double-setting",
+      name = "logistics-insights-initial-zoom",
+      setting_type = "runtime-per-user",
+      default_value = 0.3,
+      minimum_value = 0.05,
+      maximum_value = 10,
+      order = "a",
+    }, }
 )

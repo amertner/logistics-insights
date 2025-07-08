@@ -149,7 +149,7 @@ end
 function ResultLocation.open(player, results, change_position)
   local surface_name = results.surface
   local position = results.position
-  local zoom_level = 0.8 -- TODO player.mod_settings["fs-initial-zoom"].value * player.display_resolution.width / 1920
+  local zoom_level = player.mod_settings["logistics-insights-initial-zoom"].value * player.display_resolution.width / 1920
 
   if change_position then
     player.set_controller{
