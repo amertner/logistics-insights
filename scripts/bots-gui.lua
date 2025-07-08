@@ -551,19 +551,6 @@ local function find_waiting_to_charge_robots(cell_list)
   return bot_list
 end
 
-local function get_item_list_and_focus_from_cells(item_list, find_fn)
-  if find_fn == nil then
-    return {items = nil, item = nil, follow = false}
-  end
-  filtered_list = find_fn(item_list)
-  if filtered_list == nil or #filtered_list == 0 then
-    return {items = nil, item = nil, follow = false}
-  else
-    rando = utils.get_random(filtered_list)
-    return {items = filtered_list, item = rando, follow = false}
-  end
-end
-
 local function get_item_list_and_focus(item_list)
   rando = utils.get_random(item_list)
   return {items = item_list, item = rando, follow = false}
@@ -575,6 +562,18 @@ local function get_item_list_and_focus_mobile(item_list)
     return {items = item_list, item = rando, follow = true}
   else
     return {items = item_list, item = nil, follow = false}
+  end
+end
+
+local function get_item_list_and_focus_from_cells(item_list, find_fn)
+  if find_fn == nil then
+    return {items = nil, item = nil, follow = false}
+  end
+  filtered_list = find_fn(item_list)
+  if filtered_list == nil or #filtered_list == 0 then
+    return {items = nil, item = nil, follow = false}
+  else
+    return get_item_list_and_focus_mobile(filtered_list)
   end
 end
 
