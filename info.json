@@ -1,10 +1,10 @@
 {
   "name": "logistics-insights",
-  "version": "0.1.1",
+  "version": "0.8.0",
   "title": "Logistics Insights",
   "author": "Allan Mertner",
   "factorio_version": "2.0",
   "dependencies": ["base >= 2.0.48"],
   "multiplayer": "no",
-  "description": "Get insights about what the logistics bots in your current network are doing. This includes information about how many are charging, idle, picking up and delivering, as well as information about items most frequently delivered, time to deliver, etc."
+  "description": "Get insights about what the logistics bots in your current network are doing. This includes information about how many are charging, idle, picking up and delivering, as well as information about items most frequently delivered, time to deliver, etc. Freeze the game to see what is going on and find out whether your bots are working on the things you want them to."
 }
