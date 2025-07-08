@@ -1,7 +1,7 @@
 local bots_gui = {}
 
 local player_data = require("scripts.player-data")
-local locations_window = require("scripts.location-gui")
+local game_state = require("scripts.game-state")
 
 function bots_gui.toggle_window_visible(player)
   if not player then
@@ -47,18 +47,18 @@ local function add_titlebar(window, player_table)
   dragger.style.horizontally_stretchable = true
   dragger.style.vertically_stretchable = true
 
-  titlebar.add {
+  unfreeze = titlebar.add {
     type = "sprite-button",
     sprite = "li_play",
     style = "tool_button",
-    name = "logistics-insights-start",
-    tooltip = {"bots-gui.start-game-tooltip"},
+    name = "logistics-insights-unfreeze",
+    tooltip = {"bots-gui.unfreeze-game-tooltip"},
   }
-  titlebar.add {
+  freeze = titlebar.add {
     type = "sprite-button",
     sprite = "li_pause",
     style = "tool_button",
-    name = "logistics-insights-pause",
+    name = "logistics-insights-freeze",
     tooltip = {"bots-gui.freeze-game-tooltip"},
   }
   titlebar.add {
@@ -68,12 +68,8 @@ local function add_titlebar(window, player_table)
     name = "logistics-insights-step",
     tooltip = {"bots-gui.step-game-tooltip"},
   }
-end
-
--- Replace any character not allowed with an underscore
-local function sanitize_entity_name(str)
-  -- Convert to lowercase, replace invalid chars with "_"
-  return string.gsub(string.lower(str), "[^a-z0-9_-]", "_")
+  game_state.init(unfreeze, freeze)
+  game_state.force_update_ui()
 end
 
 local function add_bot_activity_row(bots_table, player_table)
@@ -304,6 +300,7 @@ function bots_gui.create_window(player, player_table)
     name = "bots_table",
     column_count = player_table.settings.max_items + 1
   }
+
   player_table.bots_table = bots_table
   create_bots_table(player, player_table)
   if player_table.window_location then
@@ -666,7 +663,6 @@ local get_list_function = {
   end,
 }
 
-
 ---@param player LuaPlayer
 ---@param player_data player_data
 ---@param element LuaGuiElement sprite-button
@@ -682,12 +678,8 @@ function bots_gui.highlight_locations_on_map(player, player_data, element, focus
     return
   end
 
-  if game.tick_paused then
-    game.tick_paused = false -- Unpause the game
-    return
-  end
   if viewdata.follow then
-    game.tick_paused = true -- Pause the game
+    game_state.freeze_game()
   end
   toview = {
     position = viewdata.item.position,
@@ -707,7 +699,13 @@ function bots_gui.onclick(event)
   if starts_with(event.element.name, "logistics-insights") then
     local player = game.get_player(event.player_index)
     local player_table = storage.players[event.player_index]
-    if starts_with(event.element.name, "logistics-insights-sorted") then
+    if event.element.name == "logistics-insights-unfreeze" then
+      game_state.unfreeze_game()
+    elseif event.element.name == "logistics-insights-freeze" then
+      game_state.freeze_game()
+    elseif event.element.name == "logistics-insights-step" then
+      game_state.step_game()
+    elseif starts_with(event.element.name, "logistics-insights-sorted") then
       if event.button == defines.mouse_button_type.right then
         -- right-click: clear history
         storage.delivery_history = {}
