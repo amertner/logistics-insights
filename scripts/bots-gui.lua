@@ -461,6 +461,7 @@ function bots_gui.update(player, player_table, clearing)
       local unfreeze = titlebar["logistics-insights-unfreeze"]
       local freeze = titlebar["logistics-insights-freeze"]
       game_state.init(unfreeze, freeze)
+      game_state.force_update_ui()
     end
   end
 
