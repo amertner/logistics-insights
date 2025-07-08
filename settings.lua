@@ -2,28 +2,28 @@ data:extend(
   {
     {
       type = "bool-setting",
-      name = "logistics-insights-show-bot-delivering",
+      name = "li-show-bot-delivering",
       setting_type = "runtime-per-user",
       default_value = true,
       order = "1"
     },
     {
       type = "bool-setting",
-      name = "logistics-insights-show-history",
+      name = "li-show-history",
       setting_type = "runtime-per-user",
       default_value = true,
       order = "2"
     },
     {
       type = "bool-setting",
-      name = "logistics-insights-show-activity",
+      name = "li-show-activity",
       setting_type = "runtime-per-user",
       default_value = true,
       order = "3"
     },
     {
       type = "int-setting",
-      name = "logistics-insights-max-items",
+      name = "li-max-items",
       setting_type = "runtime-per-user",
       default_value = 8,
       minimum_value = 6,
@@ -32,7 +32,7 @@ data:extend(
     },
     {
       type = "int-setting",
-      name = "logistics-insights-chunk-size",
+      name = "li-chunk-size",
       setting_type = "runtime-per-user",
       default_value = 400,
       minimum_value = 20,
@@ -49,7 +49,7 @@ data:extend(
     },
     {
       type = "int-setting",
-      name = "logistics-insights-highlight-duration",
+      name = "li-highlight-duration",
       setting_type = "runtime-per-user",
       default_value = 10,
       minimum_value = 0,
@@ -59,7 +59,7 @@ data:extend(
     ,
     {
       type = "double-setting",
-      name = "logistics-insights-initial-zoom",
+      name = "li-initial-zoom",
       setting_type = "runtime-per-user",
       default_value = 0.3,
       minimum_value = 0.05,

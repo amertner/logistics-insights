@@ -33,7 +33,7 @@ end
 ---@param surface SurfaceName
 ---@param items LuaEntity[]
 function ResultLocation.draw_markers(player, surface, items)
-  local time_to_live = player.mod_settings["logistics-insights-highlight-duration"].value * 60
+  local time_to_live = player.mod_settings["li-highlight-duration"].value * 60
   -- Draw new markers
   for _, item in pairs(items) do
     if item.selection_box then
@@ -149,7 +149,7 @@ end
 function ResultLocation.open(player, results, change_position)
   local surface_name = results.surface
   local position = results.position
-  local zoom_level = player.mod_settings["logistics-insights-initial-zoom"].value * player.display_resolution.width / 1920
+  local zoom_level = player.mod_settings["li-initial-zoom"].value * player.display_resolution.width / 1920
 
   if change_position then
     player.set_controller{

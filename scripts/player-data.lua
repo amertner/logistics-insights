@@ -18,11 +18,11 @@ end
 function player_data.update_settings(player, player_table)
   local mod_settings = player.mod_settings
   local settings = {
-    show_delivering = mod_settings["logistics-insights-show-bot-delivering"].value,
-    max_items = mod_settings["logistics-insights-max-items"].value,
-    show_history = mod_settings["logistics-insights-show-history"].value,
-    show_activity = mod_settings["logistics-insights-show-activity"].value,
-    chunk_size = mod_settings["logistics-insights-chunk-size"].value,
+    show_delivering = mod_settings["li-show-bot-delivering"].value,
+    max_items = mod_settings["li-max-items"].value,
+    show_history = mod_settings["li-show-history"].value,
+    show_activity = mod_settings["li-show-activity"].value,
+    chunk_size = mod_settings["li-chunk-size"].value,
   }
   player_table.settings = settings
   player_table.player_index = player.index
