@@ -23,6 +23,7 @@ function player_data.update_settings(player, player_table)
     show_history = mod_settings["li-show-history"].value,
     show_activity = mod_settings["li-show-activity"].value,
     chunk_size = mod_settings["li-chunk-size"].value,
+    pause_for_bots = mod_settings["li-pause-for-bots"].value,
   }
   player_table.settings = settings
   player_table.player_index = player.index

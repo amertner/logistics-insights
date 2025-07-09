@@ -411,7 +411,7 @@ local function update_bot_activity_row(player_table)
     for key, window in pairs(player_table.ui.activity.cells) do
       num = storage.bot_items[key] or 0
       window.cell.number = num
-      if window.onwithpause then
+      if window.onwithpause or not player_table.settings.pause_for_bots then
         window.cell.tooltip = {"", {"bots-gui.format_robots", num}, window.tip, "\n", {"bots-gui.show-location-tooltip"}}
       else
         window.cell.tooltip = {"", {"bots-gui.format_robots", num}, window.tip, "\n", {"bots-gui.show-location-and-pause-tooltip"}}
@@ -451,9 +451,14 @@ local function update_network_row(player_table)
   end
 
   if player_table.network then
+    if player_table.settings.pause_for_bots then
+      bottip = "bots-gui.show-location-and-pause-tooltip"
+    else
+      bottip = "bots-gui.show-location-tooltip"
+    end
     update_element(player_table.ui.network.id, player_table.network.network_id, "network-row.network-id-tooltip", nil)
     update_element(player_table.ui.network.roboports, table_size(player_table.network.cells), "network-row.roboports-tooltip", "bots-gui.show-location-tooltip")
-    update_element(player_table.ui.network.logistics_bots, player_table.network.all_logistic_robots, "network-row.logistic-bots-tooltip", "bots-gui.show-location-and-pause-tooltip")
+    update_element(player_table.ui.network.logistics_bots, player_table.network.all_logistic_robots, "network-row.logistic-bots-tooltip", bottip)
     update_element(player_table.ui.network.requesters, table_size(player_table.network.requesters), "network-row.requesters-tooltip", "bots-gui.show-location-tooltip")
     update_element(player_table.ui.network.providers, table_size(player_table.network.providers) - table_size(player_table.network.cells), "network-row.providers-tooltip", "bots-gui.show-location-tooltip")
     update_element(player_table.ui.network.storages, table_size(player_table.network.storages), "network-row.storages-tooltip", "bots-gui.show-location-tooltip")
