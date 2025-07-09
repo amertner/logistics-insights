@@ -23,6 +23,8 @@ Before a base reaches megabase level, I keep the LI window open to keep an eye o
 ## In the Delivering/Total/Ticks rows
 - If some items take a disproportionate amount of time to deliver (i.e. they show up early in the Ticks/item list), I'll consider transporting those using belts instead, or creating a source of items closer to where it's needed
 - If there is some item that's being transported unnecessarily (i.e. it shows up early in the Totals list), I'll see if I could belt that item instead. For example, in one case I found that my bots were transporting iron ore 90% of the time, filling up my storage chests, all because I accidentally put ore in an active provider chest.
+- Sometimes, a small number of items are delivered a long way, cluttering up the Ticks/item statistics. Right-click on one of the buttons to clear the history and start again.
+- If I don't need this display right now, click on one of the buttons to temporarily pause it. Or change the setting to remove the rows entirely, making the window smaller.
 
 ## In the Activity row
 - If too many bots are "waiting to charge", I need to build more roboports
