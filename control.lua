@@ -96,7 +96,7 @@ end)
 -- TICK
 
 -- count bots often, update the GUI less often
-script.on_nth_tick(1, function()
+script.on_nth_tick(10, function()
   local player_table = player_data.get_singleplayer_table()
   frequent = not player_table.settings.pause and player_table.settings.show_history
 
@@ -108,7 +108,7 @@ script.on_nth_tick(1, function()
 
   if game.tick % 60 == 0 then
     local player = player_data.get_singleplayer_player()
-    bots_gui.ensure_ui_consistency(player)
+    bots_gui.ensure_ui_consistency(player, player_table)
     controller_gui.update_window(player, storage.bot_items["logistic-robot-available"] or 0)
     bots_gui.update(player, player_table)
   end

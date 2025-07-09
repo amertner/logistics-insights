@@ -20,7 +20,12 @@ function bots_gui.toggle_window_visible(player)
   end
 end
 
-function bots_gui.ensure_ui_consistency(player)
+function bots_gui.ensure_ui_consistency(player, player_table)
+  local gui = player.gui.screen
+  if not gui.logistics_insights_window or not player_table.ui then
+    bots_gui.create_window(player, player_table)
+  end
+
   if game_state.needs_buttons() then
     local titlebar = player.gui.screen.logistics_insights_window.bots_insights_titlebar
     if titlebar then
@@ -48,7 +53,7 @@ local function add_titlebar(window, player_table)
 
   titlebar.add {
     type = "label",
-    caption = {"mod-name.logistics-insight"},
+    caption = {"mod-name.logistics-insights"},
     style = "frame_title",
     ignored_by_interaction = true
   }
@@ -468,7 +473,7 @@ function bots_gui.update(player, player_table, clearing)
     return
   end
 
-  bots_gui.ensure_ui_consistency(player)
+  bots_gui.ensure_ui_consistency(player, player_table)
 
   if show_deliveries(player_table) then
     update_sorted_item_row(
