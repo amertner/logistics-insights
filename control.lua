@@ -2,6 +2,7 @@ local player_data = require("scripts.player-data")
 local bot_counter = require("scripts.bot-counter")
 local controller_gui = require("scripts.controller-gui")
 local bots_gui = require("scripts.bots-gui")
+local utils = require("scripts.utils")
 ResultLocation = require("scripts.result-location")
 
 ---@alias SurfaceName string
@@ -73,7 +74,7 @@ script.on_event(
 
 script.on_configuration_changed(function(e)
   -- Called when the mod is updated or the save is loaded
-  if e.mod_changes and e.mod_changes["logistics-insight"] then
+  if e.mod_changes and e.mod_changes["logistics-insights"] then
     init_storages()
     for _, player in pairs(game.connected_players) do
       local player_table = storage.players[player.index]
@@ -83,7 +84,7 @@ script.on_configuration_changed(function(e)
 end)
 
 script.on_event(defines.events.on_runtime_mod_setting_changed, function(e)
-  if string.sub(e.setting, 1, 17) == "logistics-insight" then
+  if utils.starts_with(e.setting, "li-") then
     local player = player_data.get_singleplayer_player()
     local player_table = player_data.get_singleplayer_table()
     bots_gui.destroy(player, player_table)
@@ -107,6 +108,7 @@ script.on_nth_tick(1, function()
 
   if game.tick % 60 == 0 then
     local player = player_data.get_singleplayer_player()
+    bots_gui.ensure_ui_consistency(player)
     controller_gui.update_window(player, storage.bot_items["logistic-robot-available"] or 0)
     bots_gui.update(player, player_table)
   end

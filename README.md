@@ -69,6 +69,10 @@ There are many ways in which this mod could become more useful, and I'll be look
 - I'd love to show a heat map of activity on the mini map, but I can't see a way for a mod to do this. Do you know how?
 - Maybe it would be useful to also show what Construction Bots are doing? Not sure about that, maybe that's another mod!
 
+## Known issues
+
+If you load a game that was saved while frozen, all entities will show a yellow blinking icon for some reason. Unfreeze or single-step the game to clear this condition.
+
 ## Translation
 
 The mod is not yet translated to languages other than English, though all strings are set up in a way that makes it possible. I intend to make it possible to submit translations at some point.

@@ -20,6 +20,18 @@ function bots_gui.toggle_window_visible(player)
   end
 end
 
+function bots_gui.ensure_ui_consistency(player)
+  if game_state.needs_buttons() then
+    local titlebar = player.gui.screen.logistics_insights_window.bots_insights_titlebar
+    if titlebar then
+      local unfreeze = titlebar["logistics-insights-unfreeze"]
+      local freeze = titlebar["logistics-insights-freeze"]
+      game_state.init(unfreeze, freeze)
+      game_state.force_update_ui()
+    end
+  end
+end
+
 local function show_deliveries(player_table)
   -- Show deliveries if the setting is enabled or if history is shown
   return player_table.settings.show_delivering or player_table.settings.show_history
@@ -456,15 +468,7 @@ function bots_gui.update(player, player_table, clearing)
     return
   end
 
-  if game_state.needs_buttons() then
-    local titlebar = player.gui.screen.logistics_insights_window.bots_insights_titlebar
-    if titlebar then
-      local unfreeze = titlebar["logistics-insights-unfreeze"]
-      local freeze = titlebar["logistics-insights-freeze"]
-      game_state.init(unfreeze, freeze)
-      game_state.force_update_ui()
-    end
-  end
+  bots_gui.ensure_ui_consistency(player)
 
   if show_deliveries(player_table) then
     update_sorted_item_row(
