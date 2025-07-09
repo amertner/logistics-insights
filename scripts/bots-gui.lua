@@ -397,7 +397,7 @@ local function update_bot_activity_row(player_table)
   local reset_activity_buttons = function(ui_table, sprite, number, tip, disable)
     -- Reset all cells in the ui_table to empty
     for _, cell in pairs(ui_table) do
-      if cell and cell.cell.type == "sprite-button" then
+      if cell and cell.valid and cell.cell.type == "sprite-button" then
         cell = cell.cell -- Get the actual sprite-button
         if sprite then cell.sprite = "" end
         if tip then cell.tooltip = "" end
@@ -409,12 +409,14 @@ local function update_bot_activity_row(player_table)
 
   if player_table.network then
     for key, window in pairs(player_table.ui.activity.cells) do
-      num = storage.bot_items[key] or 0
-      window.cell.number = num
-      if window.onwithpause or not player_table.settings.pause_for_bots then
-        window.cell.tooltip = {"", {"bots-gui.format_robots", num}, window.tip, "\n", {"bots-gui.show-location-tooltip"}}
-      else
-        window.cell.tooltip = {"", {"bots-gui.format_robots", num}, window.tip, "\n", {"bots-gui.show-location-and-pause-tooltip"}}
+      if window.cell.valid then
+        num = storage.bot_items[key] or nil
+        window.cell.number = num
+        if window.onwithpause or not player_table.settings.pause_for_bots then
+          window.cell.tooltip = {"", {"bots-gui.format_robots", num}, window.tip, "\n", {"bots-gui.show-location-tooltip"}}
+        else
+          window.cell.tooltip = {"", {"bots-gui.format_robots", num}, window.tip, "\n", {"bots-gui.show-location-and-pause-tooltip"}}
+        end
       end
     end
   else
@@ -425,7 +427,7 @@ end -- update_bot_activity_row
 local function update_network_row(player_table)
   local function update_element(cell, value, localized_tooltip, clicktip)
     if cell and cell.valid then
-      cell.number = value or 0
+      cell.number = value
       if localized_tooltip then
         if clicktip then
           cell.tooltip = {"", {localized_tooltip, value},  "\n", {clicktip}}
@@ -463,8 +465,8 @@ local function update_network_row(player_table)
     update_element(player_table.ui.network.providers, table_size(player_table.network.providers) - table_size(player_table.network.cells), "network-row.providers-tooltip", "bots-gui.show-location-tooltip")
     update_element(player_table.ui.network.storages, table_size(player_table.network.storages), "network-row.storages-tooltip", "bots-gui.show-location-tooltip")
   else
-    update_element(player_table.ui.network.id, nil, "network-row.no-network-tooltip", nil)
     reset_network_buttons(player_table.ui.network, false, true, true, false)
+    update_element(player_table.ui.network.id, nil, "network-row.no-network-tooltip", nil)
   end
 end -- update_network_row
 

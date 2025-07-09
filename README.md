@@ -75,6 +75,8 @@ There are many ways in which this mod could become more useful, and I'll be look
 
 If you load a game that was saved while frozen, all entities will show a yellow blinking icon for some reason. Unfreeze or single-step the game to clear this condition.
 
+If you freeze the game, the mod does not pick up a new network (even if you move or change map position) until you unfreeze it.
+
 ## Translation
 
 The mod is not yet translated to languages other than English, though all strings are set up in a way that makes it possible. I intend to make it possible to submit translations at some point.
