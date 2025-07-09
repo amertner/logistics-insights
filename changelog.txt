@@ -1,0 +1,5 @@
+---------------------------------------------------------------------------------------------------
+Version: 0.8.1
+Date: 2025-07-10
+  Features:
+    - First release. Keeps track of your logistic bots and their activity.
