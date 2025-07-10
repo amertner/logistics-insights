@@ -397,7 +397,7 @@ local function update_bot_activity_row(player_table)
   local reset_activity_buttons = function(ui_table, sprite, number, tip, disable)
     -- Reset all cells in the ui_table to empty
     for _, cell in pairs(ui_table) do
-      if cell and cell.valid and cell.cell.type == "sprite-button" then
+      if cell and cell.cell and cell.cell.valid and cell.cell.type == "sprite-button" then
         cell = cell.cell -- Get the actual sprite-button
         if sprite then cell.sprite = "" end
         if tip then cell.tooltip = "" end

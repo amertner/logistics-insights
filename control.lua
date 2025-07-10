@@ -158,3 +158,17 @@ script.on_event(
     bots_gui.update(player, player_table)
   end
 )
+
+script.on_event(defines.events.on_player_changed_surface, function(e)
+  local player = game.get_player(e.player_index)
+  if not player then return end
+
+  local player_table = storage.players[player.index]
+  if not player_table then return end
+
+  window = player.gui.screen.logistics_insights_window
+  if window then
+    -- If there is a space platform, ricity network, there can't be bots
+    window.visible = player_table.bots_window_visible and not player.surface.platform
+  end
+end)
