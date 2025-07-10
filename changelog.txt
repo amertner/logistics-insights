@@ -14,9 +14,10 @@ Date: 2025-07-10
 ---------------------------------------------------------------------------------------------------
 Version: 0.8.3
 Date: 2025-07-11
+  Features:
+    - The main tooltip now shows information about bots and what the mod is doing, even when the window is hidden.
+    - Added a setting to pause gathering of bot activity while the window is hidden
   Changes:
     - Tooltip for the toggle button now shows what the number represents: idle/available bots
     - The main window is now 90% opaque instead of 50% transparent
     - There are now separate buttons for toggling delivery information and clearing the history.
-  Features:
-    - Added a setting to pause gathering of bot activity while the window is hidden

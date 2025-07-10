@@ -111,10 +111,9 @@ script.on_nth_tick(10, function()
   if game.tick % 60 == 0 then
     local player = player_data.get_singleplayer_player()
     bots_gui.ensure_ui_consistency(player, player_table)
-    controller_gui.update_window(player, storage.bot_items["logistic-robot-available"] or 0)
+    controller_gui.update_window(player, player_table)
     bots_gui.update(player, player_table)
   end
-
 end)
 
 
