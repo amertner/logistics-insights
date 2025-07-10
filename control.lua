@@ -1,8 +1,11 @@
+local migration = require("__flib__.migration")
+
 local player_data = require("scripts.player-data")
 local bot_counter = require("scripts.bot-counter")
 local controller_gui = require("scripts.controller-gui")
 local bots_gui = require("scripts.bots-gui")
 local utils = require("scripts.utils")
+local migrations = require("scripts.migrations")
 ResultLocation = require("scripts.result-location")
 
 ---@alias SurfaceName string
@@ -73,12 +76,11 @@ script.on_event(
 -- SETTINGS
 
 script.on_configuration_changed(function(e)
-  -- Called when the mod is updated or the save is loaded
-  if e.mod_changes and e.mod_changes["logistics-insights"] then
+  if migration.on_config_changed(e, migrations) then
     init_storages()
-    for _, player in pairs(game.connected_players) do
+    for i, player in pairs(game.players) do
       local player_table = storage.players[player.index]
-      player_data.refresh(player, player_table)
+      player_data.refresh(player, storage.players[i])
     end
   end
 end)
@@ -98,7 +100,7 @@ end)
 -- count bots often, update the GUI less often
 script.on_nth_tick(10, function()
   local player_table = player_data.get_singleplayer_table()
-  frequent = not player_table.settings.pause and player_table.settings.show_history
+  frequent = not player_data.is_paused(player_table) and player_table.settings.show_history
 
   if (frequent and (game.tick % 10 == 0)) or
     (game.tick % 60 == 0) then

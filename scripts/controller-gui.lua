@@ -34,6 +34,7 @@ function controller_gui.update_window(player, bot_count)
 
   if gui.logistics_insights_toggle_main then
     gui.logistics_insights_toggle_main.number = bot_count
+    gui.logistics_insights_toggle_main.tooltip = {"controller-gui.toggle-tooltip", bot_count}
   end
 end
 

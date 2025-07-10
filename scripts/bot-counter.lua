@@ -153,7 +153,7 @@ function bot_counter.gather_data(game)
         bot_chunker:process_chunk()
       else
         storage.bot_items["delivering"] = nil
-        storage.bot_items["picking"] = nil     
+        storage.bot_items["picking"] = nil
       end
 
       -- Find orders that have been delivered add to history

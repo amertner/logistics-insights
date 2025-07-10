@@ -22,6 +22,13 @@ data:extend(
       order = "3"
     },
     {
+      type = "bool-setting",
+      name = "li-pause-while-hidden",
+      setting_type = "runtime-per-user",
+      default_value = true,
+      order = "3.5"
+    },
+    {
       type = "int-setting",
       name = "li-max-items",
       setting_type = "runtime-per-user",

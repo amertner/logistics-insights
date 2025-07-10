@@ -11,3 +11,10 @@ Date: 2025-07-10
     - Hides the main window when the player looks at a Space Platform
   Bugfixes:
     - Fixed an issue where the Activity row would not update correctly when no network was present.
+---------------------------------------------------------------------------------------------------
+Version: 0.8.3
+Date: 2025-07-11
+  Changes:
+    - Tooltip for the toggle button now shows what the number represents: idle/available bots
+  Features:
+    - Added a setting to pause gathering of bot activity while the window is hidden

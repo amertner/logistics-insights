@@ -24,6 +24,7 @@ function player_data.update_settings(player, player_table)
     show_activity = mod_settings["li-show-activity"].value,
     chunk_size = mod_settings["li-chunk-size"].value,
     pause_for_bots = mod_settings["li-pause-for-bots"].value,
+    pause_while_hidden = mod_settings["li-pause-while-hidden"].value,
   }
   player_table.settings = settings
   player_table.player_index = player.index
@@ -47,7 +48,8 @@ function player_data.toggle_history_collection(player_table)
 end
 
 function player_data.is_paused(player_table)
-  return player_table.paused
+  return player_table.paused or
+          (player_table.settings.pause_while_hidden and not player_table.bots_window_visible)
 end
 
 function player_data.register_ui(player_table, name)
