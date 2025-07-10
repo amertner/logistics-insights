@@ -218,20 +218,78 @@ local function add_network_row(bots_table, player_table)
   }
 end -- add_network_row
 
-local function add_sorted_item_row(player_table, gui_table, title, need_progressbar)
+local function update_startstop_button(player_table)
+  -- Update button appearance to reflect current state
+  if not player_data then
+    return
+  end
+  element = player_table.ui["startstop"]
+
+  if element then
+    if player_data.is_paused(player_table) then
+      element.sprite = "li_play"
+    else
+      element.sprite = "li_pause"
+    end
+  end
+end
+
+local function add_sorted_item_row(player_table, gui_table, title, button_title, need_progressbar)
   player_data.register_ui(player_table, title)
 
   local cell = gui_table.add {
     type = "flow",
     direction = "vertical"
   }
-  cell.add {
-    type = "button",
+  local hcell = cell.add {
+    type = "flow",
+    direction = "horizontal"
+  }
+  hcell.style.horizontally_stretchable = true
+
+  -- Add left-aligned label
+  hcell.add {
+    type = "label",
     caption = {"item-row." .. title .. "-title"},
-    style = "tool_button", -- or "button", which is nicer but a bit too big
-    name = "logistics-insights-sorted-" .. title .. "-title",
-    tooltip = {"", {"item-row." .. title .. "-tooltip"}, "\n\n", {"item-row.toggle-gathering-tooltip"}}
-  }.style.horizontally_stretchable = true
+    style = "heading_2_label",
+    tooltip = {"", {"item-row." .. title .. "-tooltip"}}
+  }
+
+  if button_title then
+    -- Add flexible spacer that pushes button to the right
+    space = hcell.add {
+      type = "empty-widget",
+      style = "draggable_space",
+      name = "spacer" .. title,
+    }
+    space.style.horizontally_stretchable = true
+
+    -- Determine the sprite based on button type and current state
+    if button_title == "startstop" then
+      sprite = "li_pause"
+      tip = {"item-row.toggle-gathering-tooltip"}
+    elseif button_title == "clear" then
+      sprite = "utility/trash"
+      tip = {"item-row.clear-history-tooltip"}
+    end
+
+    -- Add right-aligned button that's vertically centered with the label
+    row_button = hcell.add {
+      type = "sprite-button",
+      style = "mini_button", -- Small button size
+      sprite = sprite,
+      name = "logistics-insights-sorted-" .. button_title,
+      tooltip = tip
+    }
+
+    -- Make button vertically centered with a small top margin for alignment
+    row_button.style.top_margin = 2
+    hcell.style.vertical_align = "center"
+    if button_title == "startstop" then
+      player_table.ui.startstop = row_button
+    end
+  end
+
   if need_progressbar then
     progressbar = cell.add {
       type = "progressbar",
@@ -246,8 +304,6 @@ local function add_sorted_item_row(player_table, gui_table, title, need_progress
     player_table.ui[title].cells[count] = gui_table.add {
       type = "sprite-button",
       style = "slot_button",
-      -- If name is set, clicking on it will toggle gathering the info
-      --name = "logistics-insights-sorted-" .. title .. count,
       enabled = false,
     }
   end
@@ -272,12 +328,12 @@ local function create_bots_table(player, player_table)
   bots_table.clear()
 
   if show_deliveries(player_table) then
-    add_sorted_item_row(player_table, bots_table, "deliveries-row", true)
+    add_sorted_item_row(player_table, bots_table, "deliveries-row", "startstop", true)
   end
 
   if player_table.settings.show_history and storage.delivery_history and not player_table.paused then
-    add_sorted_item_row(player_table, bots_table, "totals-row", false)
-    add_sorted_item_row(player_table, bots_table, "avgticks-row", false)
+    add_sorted_item_row(player_table, bots_table, "totals-row", "clear", false)
+    add_sorted_item_row(player_table, bots_table, "avgticks-row", nil, false)
   end
 
   if player_table.settings.show_activity then -- There is an option for this as it's expensive
@@ -703,13 +759,13 @@ function bots_gui.onclick(event)
     elseif event.element.name == "logistics-insights-step" then
       game_state.step_game()
     elseif utils.starts_with(event.element.name, "logistics-insights-sorted") then
-      if event.button == defines.mouse_button_type.right then
-        -- right-click: clear history
+      if event.element.name == "logistics-insights-sorted-clear" then
+        -- Start/stop gathering deliveries
         storage.delivery_history = {}
         bots_gui.update(player, player_table, true)
-      else
-        -- left-click: pause/unpause gathering
+      elseif event.element.name == "logistics-insights-sorted-startstop" then
         player_data.toggle_history_collection(player_table)
+        update_startstop_button(player_table)
         bots_gui.update(player, player_table, false)
       end
     elseif event.element.tags and player then

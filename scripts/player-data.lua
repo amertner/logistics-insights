@@ -29,6 +29,7 @@ function player_data.update_settings(player, player_table)
   player_table.settings = settings
   player_table.player_index = player.index
   index = game.connected_players[1].index
+  ui = {}
   assert(player_table.player_index == index, "Player index mismatch: " .. player_table.player_index .. " vs " .. index)
 end
 
