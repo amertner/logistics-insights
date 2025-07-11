@@ -1,16 +1,8 @@
 ---------------------------------------------------------------------------------------------------
-Version: 0.8.1
-Date: 2025-07-10
-  Features:
-    - First release. Keeps track of your logistic bots and their activity.
-
----------------------------------------------------------------------------------------------------
-Version: 0.8.2
-Date: 2025-07-10
-  Changes:
-    - Hides the main window when the player looks at a Space Platform
+Version: 0.8.4
+Date: 2025-07-11
   Bugfixes:
-    - Fixed an issue where the Activity row would not update correctly when no network was present.
+    - Fixed a crash when there was no active logistics network introduced in 0.8.3.
 ---------------------------------------------------------------------------------------------------
 Version: 0.8.3
 Date: 2025-07-11
@@ -21,3 +13,15 @@ Date: 2025-07-11
     - Tooltip for the toggle button now shows what the number represents: idle/available bots
     - The main window is now 90% opaque instead of 50% transparent
     - There are now separate buttons for toggling delivery information and clearing the history.
+---------------------------------------------------------------------------------------------------
+Version: 0.8.2
+Date: 2025-07-10
+  Changes:
+    - Hides the main window when the player looks at a Space Platform
+  Bugfixes:
+    - Fixed an issue where the Activity row would not update correctly when no network was present.
+---------------------------------------------------------------------------------------------------
+Version: 0.8.1
+Date: 2025-07-10
+  Features:
+    - First release. Keeps track of your logistic bots and their activity.
