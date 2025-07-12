@@ -21,15 +21,15 @@ function controller_gui.create_window(player)
     name = "logistics_insights_toggle_main",
     sprite = "item/logistic-robot",
     style = "slot_button",
-    tooltip = {"controller-gui.main_tooltip_click"},
+    tooltip = { "controller-gui.main_tooltip_click" }
   }
 end
 
 local function get_status(paused)
   if paused then
-    return {"controller-gui.paused"}
+    return { "controller-gui.paused" }
   else
-    return {"controller-gui.active"}
+    return { "controller-gui.active" }
   end
 end
 
@@ -46,23 +46,19 @@ function controller_gui.update_window(player, player_table)
       idle_count = storage.bot_items["logistic-robot-available"]
       total_count = storage.bot_items["logistic-robot-total"]
       gui.logistics_insights_toggle_main.number = idle_count
-      tip = {"controller-gui.main_tooltip", idle_count, total_count, player_table.network.network_id}
+      tip = { "controller-gui.main_tooltip", idle_count, total_count, player_table.network.network_id }
       status = get_status(player_data.is_paused(player_table))
       if player_table.settings.show_delivering then
-        tip = {"", tip, {"controller-gui.main_tooltip_delivering", status}}
+        tip = { "", tip, { "controller-gui.main_tooltip_delivering", status } }
       end
-      if player_table.settings.show_history then
-        tip = {"", tip, {"controller-gui.main_tooltip_history", status}}
-      end
-      if player_table.settings.show_activity then
-        tip = {"", tip, {"controller-gui.main_tooltip_activity", status}}
-      end
+      if player_table.settings.show_history then tip = { "", tip, { "controller-gui.main_tooltip_history", status } } end
+      if player_table.settings.show_activity then tip = { "", tip, { "controller-gui.main_tooltip_activity", status } } end
     else
       gui.logistics_insights_toggle_main.number = nil
-      tip = {"controller-gui.no-network"}
+      tip = { "controller-gui.no-network" }
     end
 
-    gui.logistics_insights_toggle_main.tooltip = {"", tip, {"controller-gui.main_tooltip_click"}}
+    gui.logistics_insights_toggle_main.tooltip = { "", tip, { "controller-gui.main_tooltip_click" } }
   end
 end
 

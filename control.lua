@@ -17,7 +17,6 @@ local migrations = require("scripts.migrations")
 
 -- STORAGE
 
-
 local function init_storages()
   storage.bot_items = {}
   storage.bot_deliveries = {}
@@ -114,7 +113,7 @@ script.on_nth_tick(1, function()
     local bot_progress = bot_counter.gather_bot_data(player, player_table)
     bots_gui.update_bot_chunk_progress(player_table, bot_progress)
   end
-  
+
   if game.tick % player_data.activity_chunk_interval(player_table) == 0 then
     local activity_progress = activity_counter.gather_data(player, player_table)
     bots_gui.update_activity_chunk_progress(player_table, activity_progress)

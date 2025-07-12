@@ -2,7 +2,6 @@ local bot_counter = {}
 
 local player_data = require("scripts.player-data")
 local chunker = require("scripts.chunker")
-local activity_counter = require("scripts.activity-counter")
 
 -- Cache frequently used functions and values for performance
 local pairs = pairs
@@ -32,13 +31,13 @@ local function manage_active_deliveries_history(tick_margin)
     bot_active_deliveries = {}
     storage.bot_active_deliveries = bot_active_deliveries
   end
-  
+
   -- Cache global access
   local delivery_history = storage.delivery_history
   local current_tick = game.tick
   local expired_bots = {}
   local count_to_remove = 0
-  
+
   -- First pass: collect keys to remove and process history updates
   for unit_number, order in pairs(bot_active_deliveries) do
     if order.last_seen < current_tick - tick_margin then
@@ -52,25 +51,25 @@ local function manage_active_deliveries_history(tick_margin)
           ticks = 0,
         }
       end
-      
+
       -- Update history with this completed delivery
       local history_order = delivery_history[key]
       local order_count = order.count
       history_order.count = (history_order.count or 0) + order_count
-      
+
       local ticks = order.last_seen - order.first_seen
       if ticks < 1 then ticks = 1 end
-      
+
       -- Update history stats
       history_order.ticks = (history_order.ticks or 0) + ticks
       history_order.avg = history_order.ticks / history_order.count
-      
+
       -- Mark for removal
       count_to_remove = count_to_remove + 1
       expired_bots[count_to_remove] = unit_number
     end
   end
-  
+
   -- Second pass: remove expired entries
   for i = 1, count_to_remove do
     bot_active_deliveries[expired_bots[i]] = nil

@@ -7,7 +7,7 @@ local math_ceil = math.ceil
 local cached_player = nil
 local cached_player_table = nil
 
----@class PlayerData 
+---@class PlayerData
 ---@field settings LuaCustomTable<string,ModSetting>
 ---@field bots_window_visible boolean
 ---@field network LuaLogisticNetwork|nil
@@ -84,7 +84,7 @@ end
 
 function player_data.is_paused(player_table)
   return player_table.paused or
-          (player_table.settings.pause_while_hidden and not player_table.bots_window_visible)
+      (player_table.settings.pause_while_hidden and not player_table.bots_window_visible)
 end
 
 function player_data.is_included_robot(bot)
@@ -97,7 +97,7 @@ function player_data.bot_chunk_interval(player_table)
 end
 
 function player_data.set_activity_chunks(player_table, chunks)
-    -- Scale the update interval based on how often the UI updates, but not too often
+  -- Scale the update interval based on how often the UI updates, but not too often
   local interval = player_data.ui_update_interval(player_table) / math_max(1, chunks)
   local bot_interval = player_data.bot_chunk_interval(player_table)
   if interval < bot_interval then
