@@ -1,4 +1,4 @@
-bot_counter = {}
+local bot_counter = {}
 
 local player_data = require("scripts.player-data")
 local chunker = require("scripts.chunker")
@@ -43,7 +43,7 @@ end
 
 -- Keep track of how many items of each type is being delivered right now
 local function add_item_to_bot_deliveries(item_name, quality, count, partial_data)
-  key = item_name .. quality
+  local key = item_name .. quality
   if partial_data.item_deliveries[key] == nil then
     -- Order not seen before
     partial_data.item_deliveries[key] = {
@@ -150,7 +150,7 @@ function bot_counter.gather_bot_data(player, player_table)
   
   -- Update delivery history
   if player_table.settings.show_history then
-    tick_margin = math.max(0, bot_chunker:num_chunks() * player_data.bot_chunk_interval(player_table) - 1)
+    local tick_margin = math.max(0, bot_chunker:num_chunks() * player_data.bot_chunk_interval(player_table) - 1)
     manage_active_deliveries_history(bot_chunker, tick_margin)
   end
   

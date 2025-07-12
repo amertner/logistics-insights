@@ -68,14 +68,14 @@ local function add_titlebar(window, player_table)
   dragger.style.horizontally_stretchable = true
   dragger.style.vertically_stretchable = true
 
-  unfreeze = titlebar.add {
+  local unfreeze = titlebar.add {
     type = "sprite-button",
     sprite = "li_play",
     style = "tool_button",
     name = "logistics-insights-unfreeze",
     tooltip = {"bots-gui.unfreeze-game-tooltip"},
   }
-  freeze = titlebar.add {
+  local freeze = titlebar.add {
     type = "sprite-button",
     sprite = "li_pause",
     style = "tool_button",
@@ -146,7 +146,7 @@ local function add_bot_activity_row(bots_table, player_table)
     style = "heading_2_label",
     tooltip = {"activity-row.header-tooltip"},
   }
-  progressbar = cell.add {
+  local progressbar = cell.add {
     type = "progressbar",
     name = "activity_progressbar",
   }
@@ -155,7 +155,7 @@ local function add_bot_activity_row(bots_table, player_table)
 
   player_table.ui.activity.cells = {}
   for i, icon in ipairs(activity_icons) do
-    cellname = "logistics-insights-" .. icon.key
+    local cellname = "logistics-insights-" .. icon.key
     player_table.ui.activity.cells[icon.key] = {
       tip = icon.tip,
       onwithpause = icon.onwithpause,
@@ -173,7 +173,7 @@ local function add_bot_activity_row(bots_table, player_table)
   end
 
   -- Pad with blank elements if needed
-  count = #activity_icons
+  local count = #activity_icons
   while count < player_table.settings.max_items do
     bots_table.add {
       type = "empty-widget",
@@ -238,7 +238,7 @@ local function update_startstop_button(player_table)
   if not player_data then
     return
   end
-  element = player_table.ui["startstop"]
+  local element = player_table.ui["startstop"]
 
   if element then
     if player_data.is_paused(player_table) then
@@ -272,7 +272,7 @@ local function add_sorted_item_row(player_table, gui_table, title, button_title,
 
   if button_title then
     -- Add flexible spacer that pushes button to the right
-    space = hcell.add {
+    local space = hcell.add {
       type = "empty-widget",
       style = "draggable_space",
       name = "spacer" .. title,
@@ -280,6 +280,7 @@ local function add_sorted_item_row(player_table, gui_table, title, button_title,
     space.style.horizontally_stretchable = true
 
     -- Determine the sprite based on button type and current state
+    local sprite, tip
     if button_title == "startstop" then
       sprite = "li_pause"
       tip = {"item-row.toggle-gathering-tooltip"}
@@ -289,7 +290,7 @@ local function add_sorted_item_row(player_table, gui_table, title, button_title,
     end
 
     -- Add right-aligned button that's vertically centered with the label
-    row_button = hcell.add {
+    local row_button = hcell.add {
       type = "sprite-button",
       style = "mini_button", -- Small button size
       sprite = sprite,
@@ -306,7 +307,7 @@ local function add_sorted_item_row(player_table, gui_table, title, button_title,
   end
 
   if need_progressbar then
-    progressbar = cell.add {
+    local progressbar = cell.add {
       type = "progressbar",
       name = title .. "_progressbar",
     }
@@ -330,7 +331,7 @@ local function create_bots_table(player, player_table)
     return
   end
 
-  window = player.gui.screen.logistics_insights_window
+  local window = player.gui.screen.logistics_insights_window
   if not window then
     return -- can't find the window
   end
@@ -361,13 +362,13 @@ local function update_progressbar(progressbar, progress)
   if not progressbar or not progressbar.valid then
     return
   end
-  chunk_size = player_data.get_singleplayer_table().settings.chunk_size or 400
+  local chunk_size = player_data.get_singleplayer_table().settings.chunk_size or 400
   if not progress or progress.total == 0 then
     progressbar.value = 1
     progressbar.tooltip = {"bots-gui.chunk-size-tooltip", chunk_size}
   else
     progressbar.value = progress.current / progress.total
-    percentage = math.floor(((progress.current - 1) / progress.total) * 100 + 0.5)
+    local percentage = math.floor(((progress.current - 1) / progress.total) * 100 + 0.5)
     progressbar.tooltip = {"bots-gui.chunk-processed-tooltip", chunk_size, progress.current - 1, progress.total, percentage}
   end
 end
@@ -411,12 +412,13 @@ end
 local function update_sorted_item_row(player_table, title, all_entries, sort_fn, number_field, clearing)
 
   local function getcelltooltip(entry)
+    local tip
     if number_field == "count" then
       tip = {"", {"item-row.count-field-tooltip", entry.count, entry.quality_name or "normal", entry.item_name}}
     elseif number_field == "ticks" then
       tip = {"", {"item-row.ticks-field-tooltip", entry.ticks, entry.count, entry.quality_name or "normal", entry.item_name}}
     elseif number_field == "avg" then
-      ticks_formatted = string.format("%.1f", entry.avg)
+      local ticks_formatted = string.format("%.1f", entry.avg)
       tip = {"", {"item-row.avg-field-tooltip", ticks_formatted, entry.count, entry.quality_name or "normal", entry.item_name}}
     end
     return tip
@@ -425,7 +427,7 @@ local function update_sorted_item_row(player_table, title, all_entries, sort_fn,
   -- If paused, just disable all the fields, unless we just cleared history
   if player_table.paused and not clearing then
     for i = 1, player_table.settings.max_items do
-      cell = player_table.ui[title].cells[i]
+      local cell = player_table.ui[title].cells[i]
       cell.enabled = false
     end
     return
@@ -444,7 +446,7 @@ local function update_sorted_item_row(player_table, title, all_entries, sort_fn,
   local count = 0
   for _, entry in ipairs(sorted_entries) do
     if count >= player_table.settings.max_items then break end
-    cell = player_table.ui[title].cells[count + 1]
+    local cell = player_table.ui[title].cells[count + 1]
     cell.sprite = "item/" .. entry.item_name
     cell.quality = entry.quality_name or "normal"
     cell.number = entry[number_field]
@@ -455,7 +457,7 @@ local function update_sorted_item_row(player_table, title, all_entries, sort_fn,
 
   -- Pad with blank elements
   while count < player_table.settings.max_items do
-    cell = player_table.ui[title].cells[count + 1]
+    local cell = player_table.ui[title].cells[count + 1]
     cell.sprite = ""
     cell.tooltip = ""
     cell.number = nil
@@ -481,8 +483,9 @@ local function update_bot_activity_row(player_table)
   if player_table.network then
     for key, window in pairs(player_table.ui.activity.cells) do
       if window.cell.valid then
-        num = storage.bot_items[key] or 0
+        local num = storage.bot_items[key] or 0
         window.cell.number = num
+        local robotstr
         if window.include_construction then
           robotstr = {"bots-gui.format-all-robots", num}
         else
@@ -533,6 +536,7 @@ local function update_network_row(player_table)
   end
 
   if player_table.network then
+    local bottip
     if player_table.settings.pause_for_bots then
       bottip = "bots-gui.show-location-and-pause-tooltip"
     else
@@ -656,12 +660,12 @@ local function find_waiting_to_charge_robots(player_table, cell_list)
 end
 
 local function get_item_list_and_focus(item_list)
-  rando = utils.get_random(item_list)
+  local rando = utils.get_random(item_list)
   return {items = item_list, item = rando, follow = false}
 end
 
 local function get_item_list_and_focus_mobile(item_list)
-  rando = utils.get_random(item_list)
+  local rando = utils.get_random(item_list)
   if rando then
     return {items = item_list, item = rando, follow = true}
   else
@@ -673,7 +677,7 @@ local function get_item_list_and_focus_from_player_table(player_table, find_fn)
   if find_fn == nil or player_table == nil or player_table.network == nil or player_table.network.cells == nil then
     return {items = nil, item = nil, follow = false}
   end
-  filtered_list = find_fn(player_table, player_table.network.cells)
+  local filtered_list = find_fn(player_table, player_table.network.cells)
   if filtered_list == nil or #filtered_list == 0 then
     return {items = nil, item = nil, follow = false}
   else
@@ -682,7 +686,7 @@ local function get_item_list_and_focus_from_player_table(player_table, find_fn)
 end
 
 local function get_item_list_and_focus_owner(item_list)
-  ownerlist = {}
+  local ownerlist = {}
   for _, item in pairs(item_list) do
     if item and item.valid and item.owner then
       table.insert(ownerlist, item.owner)
@@ -707,7 +711,7 @@ local function get_item_list_and_focus_from_botlist(bot_list, order_type)
 end
 
 local function get_item_list_and_focus_exclude_roboports(item_list)
-  list = {}
+  local list = {}
   for _, item in pairs(item_list) do
     if item and item.valid and item.type ~= "roboport" then
       table.insert(list, item)
@@ -756,7 +760,7 @@ local get_list_function = {
 ---@param element LuaGuiElement sprite-button
 ---@param focus_on_element boolean
 function bots_gui.highlight_locations_on_map(player, player_table, element, focus_on_element)
-  fn = get_list_function[element.name]
+  local fn = get_list_function[element.name]
   if not fn then
     return
   end
@@ -765,7 +769,7 @@ function bots_gui.highlight_locations_on_map(player, player_table, element, focu
     return -- Fix crash when outside of network
   end
 
-  viewdata = fn(player_table)
+  local viewdata = fn(player_table)
   if viewdata == nil or viewdata.item == nil then
     return
   end
@@ -773,7 +777,7 @@ function bots_gui.highlight_locations_on_map(player, player_table, element, focu
   if viewdata.follow and player.mod_settings["li-pause-for-bots"].value then
     game_state.freeze_game()
   end
-  toview = {
+  local toview = {
     position = viewdata.item.position,
     surface = viewdata.item.surface.name,
     zoom = 0.8,
@@ -823,7 +827,9 @@ end
 script.on_event(defines.events.on_gui_location_changed, function(event)
   if event.element and event.element.name == "logistics_insights_window" then
     local player_table = storage.players[event.player_index]
-    player_table.window_location = event.element.location
+    if player_table then
+      player_table.window_location = event.element.location
+    end
   end
 end)
 

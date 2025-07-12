@@ -7,7 +7,6 @@ local controller_gui = require("scripts.controller-gui")
 local bots_gui = require("scripts.bots-gui")
 local utils = require("scripts.utils")
 local migrations = require("scripts.migrations")
-ResultLocation = require("scripts.result-location")
 
 ---@alias SurfaceName string
 
@@ -34,7 +33,7 @@ end
 script.on_init(function()
   -- Called when the mod is first added to a save
   init_storages()
-  player = player_data.get_singleplayer_player()
+  local player = player_data.get_singleplayer_player()
   if player then
     controller_gui.create_window(player)
     bots_gui.create_window(player_data.get_singleplayer_player(), player_data.get_singleplayer_table())
@@ -104,12 +103,12 @@ script.on_nth_tick(1, function()
   local player_table = player_data.get_singleplayer_table()
 
   if game.tick % player_data.bot_chunk_interval(player_table) == 0 then
-    bot_progress = bot_counter.gather_bot_data(player, player_table)
+    local bot_progress = bot_counter.gather_bot_data(player, player_table)
     bots_gui.update_bot_chunk_progress(player_table, bot_progress)
   end
   
   if game.tick % player_data.activity_chunk_interval(player_table) == 0 then
-    activity_progress = activity_counter.gather_data(player, player_table)
+    local activity_progress = activity_counter.gather_data(player, player_table)
     bots_gui.update_activity_chunk_progress(player_table, activity_progress)
   end
 

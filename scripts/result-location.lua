@@ -36,6 +36,7 @@ function ResultLocation.draw_markers(player, surface, items)
   local time_to_live = player.mod_settings["li-highlight-duration"].value * 60
   -- Draw new markers
   for _, item in pairs(items) do
+    local selection_box
     if item.selection_box then
       selection_box = item.selection_box
     elseif item.bounding_box then
