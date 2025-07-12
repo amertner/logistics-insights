@@ -746,6 +746,10 @@ function bots_gui.highlight_locations_on_map(player, player_table, element, focu
     return
   end
 
+  if player_table.network == nil then
+    return -- Fix crash when outside of network
+  end
+
   viewdata = fn(player_table)
   if viewdata == nil or viewdata.item == nil then
     return
