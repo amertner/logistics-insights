@@ -4,35 +4,78 @@ local player_data = require("scripts.player-data")
 local chunker = require("scripts.chunker")
 local activity_counter = require("scripts.activity-counter")
 
-local function manage_active_deliveries_history(bot_chunker, tick_margin)
+-- Cache frequently used functions and values for performance
+local pairs = pairs
+local table_size = table_size
+local math_max = math.max
+local defines_robot_order_type_deliver = defines.robot_order_type.deliver
+local defines_robot_order_type_pickup = defines.robot_order_type.pickup
+
+-- Create a table to store combined keys for reduced memory fragmentation
+local delivery_keys = {}
+
+local function get_delivery_key(item_name, quality)
+  local cache_key = item_name .. quality
+  local key = delivery_keys[cache_key]
+  if not key then
+    key = cache_key
+    delivery_keys[cache_key] = key
+  end
+  return key
+end
+
+local function manage_active_deliveries_history(tick_margin)
   -- This function is called to manage the history of active deliveries
   -- It will remove entries that are no longer active and update the history
-  if storage.bot_active_deliveries == nil then
-    storage.bot_active_deliveries = {}
+  local bot_active_deliveries = storage.bot_active_deliveries
+  if bot_active_deliveries == nil then
+    bot_active_deliveries = {}
+    storage.bot_active_deliveries = bot_active_deliveries
   end
-
-  for unit_number, order in pairs(storage.bot_active_deliveries) do
-    if order.last_seen < game.tick-tick_margin then
-      local key = order.item_name .. order.quality_name
-      if storage.delivery_history[key] == nil then
-        storage.delivery_history[key] = {
+  
+  -- Cache global access
+  local delivery_history = storage.delivery_history
+  local current_tick = game.tick
+  local expired_bots = {}
+  local count_to_remove = 0
+  
+  -- First pass: collect keys to remove and process history updates
+  for unit_number, order in pairs(bot_active_deliveries) do
+    if order.last_seen < current_tick - tick_margin then
+      -- Use get_delivery_key for consistent string interning
+      local key = get_delivery_key(order.item_name, order.quality_name)
+      if not delivery_history[key] then
+        delivery_history[key] = {
           item_name = order.item_name,
           quality_name = order.quality_name,
           count = 0,
           ticks = 0,
         }
       end
-      local history_order = storage.delivery_history[key]
-      history_order.count = (history_order.count or 0) + order.count
+      
+      -- Update history with this completed delivery
+      local history_order = delivery_history[key]
+      local order_count = order.count
+      history_order.count = (history_order.count or 0) + order_count
+      
       local ticks = order.last_seen - order.first_seen
       if ticks < 1 then ticks = 1 end
+      
+      -- Update history stats
       history_order.ticks = (history_order.ticks or 0) + ticks
       history_order.avg = history_order.ticks / history_order.count
-      storage.bot_active_deliveries[unit_number] = nil -- remove from active list
+      
+      -- Mark for removal
+      count_to_remove = count_to_remove + 1
+      expired_bots[count_to_remove] = unit_number
     end
   end
+  
+  -- Second pass: remove expired entries
+  for i = 1, count_to_remove do
+    bot_active_deliveries[expired_bots[i]] = nil
+  end
 end
-
 
 -- Counting bots in chunks
 local function bot_initialise(partial_data)
@@ -43,7 +86,7 @@ end
 
 -- Keep track of how many items of each type is being delivered right now
 local function add_item_to_bot_deliveries(item_name, quality, count, partial_data)
-  local key = item_name .. quality
+  local key = get_delivery_key(item_name, quality)
   if partial_data.item_deliveries[key] == nil then
     -- Order not seen before
     partial_data.item_deliveries[key] = {
@@ -73,10 +116,10 @@ end
 
 local function bot_processing(bot, partial_data, player_table)
   if bot.valid and table_size(bot.robot_order_queue) > 0 then
-    order = bot.robot_order_queue[1]
-    if order.type == defines.robot_order_type.deliver then
+    local order = bot.robot_order_queue[1]
+    if order.type == defines_robot_order_type_deliver then
       partial_data.delivering_bots = (partial_data.delivering_bots or 0) + 1
-    elseif order.type == defines.robot_order_type.pickup then
+    elseif order.type == defines_robot_order_type_pickup then
       partial_data.picking_bots = (partial_data.picking_bots or 0) + 1
     end
 
@@ -84,7 +127,7 @@ local function bot_processing(bot, partial_data, player_table)
     local item_count = order.target_count
     local quality = order.target_item.quality.name
     -- For Deliveries, record the item
-    if order.type == defines.robot_order_type.deliver and item_name then
+    if order.type == defines_robot_order_type_deliver and item_name then
       add_item_to_bot_deliveries(item_name, quality, item_count, partial_data)
       if player_table.settings.show_history then
         add_bot_to_active_deliveries(bot, item_name, quality, item_count)
@@ -128,16 +171,18 @@ function bot_counter.gather_bot_data(player, player_table)
   if not update_network(player, player_table) then
     return { current = 0, total = 0 }
   end
-  
+
   local network = player_table.network
   local progress = { current = 0, total = 0 }
-  
+
   if player_data.is_paused(player_table) then
     return progress
   end
-  
+  local show_delivering = player_table.settings.show_delivering
+  local show_history = player_table.settings.show_history
+
   -- Process robot delivery data if needed
-  if player_table.settings.show_delivering or player_table.settings.show_history then
+  if show_delivering or show_history then
     if bot_chunker:is_done() then
       bot_chunker:initialise_chunking(network.logistic_robots, player_table)
     end
@@ -147,13 +192,13 @@ function bot_counter.gather_bot_data(player, player_table)
     storage.bot_items["delivering"] = nil
     storage.bot_items["picking"] = nil
   end
-  
+
   -- Update delivery history
-  if player_table.settings.show_history then
-    local tick_margin = math.max(0, bot_chunker:num_chunks() * player_data.bot_chunk_interval(player_table) - 1)
-    manage_active_deliveries_history(bot_chunker, tick_margin)
+  if show_history then
+    local tick_margin = math_max(0, bot_chunker:num_chunks() * player_data.bot_chunk_interval(player_table) - 1)
+    manage_active_deliveries_history(tick_margin)
   end
-  
+
   return progress
 end
 

@@ -5,6 +5,10 @@ local player_data = require("scripts.player-data")
 local game_state = require("scripts.game-state")
 local ResultLocation = require("scripts.result-location")
 
+-- Cache frequently used constants
+local defines_robot_order_type_deliver = defines.robot_order_type.deliver
+local defines_robot_order_type_pickup = defines.robot_order_type.pickup
+
 function bots_gui.toggle_window_visible(player)
   if not player then
     return
@@ -737,10 +741,10 @@ local get_list_function = {
     return get_item_list_and_focus_from_player_table(pd, find_waiting_to_charge_robots)
   end,
   ["logistics-insights-delivering"] = function(pd)
-    return get_item_list_and_focus_from_botlist(pd.network.logistic_robots, defines.robot_order_type.deliver)
+    return get_item_list_and_focus_from_botlist(pd.network.logistic_robots, defines_robot_order_type_deliver)
   end,
   ["logistics-insights-picking"] = function(pd)
-    return get_item_list_and_focus_from_botlist(pd.network.logistic_robots, defines.robot_order_type.pickup)
+    return get_item_list_and_focus_from_botlist(pd.network.logistic_robots, defines_robot_order_type_pickup)
   end,
   -- Network row buttons
   ["logistics-insights-roboports"] = function(pd)

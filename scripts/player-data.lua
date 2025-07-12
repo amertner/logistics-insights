@@ -1,5 +1,12 @@
 local player_data = {}
 
+-- Cache frequently used functions for performance
+local math_max = math.max
+local math_ceil = math.ceil
+
+local cached_player = nil
+local cached_player_table = nil
+
 ---@class PlayerData 
 ---@field settings LuaCustomTable<string,ModSetting>
 ---@field bots_window_visible boolean
@@ -38,13 +45,19 @@ end
 
 function player_data.get_singleplayer_table()
   -- In singleplayer mode, there is only one player. Return the player_table.
-  local player = game.connected_players[1]
-  return storage.players[player.index]
+  if not cached_player_table then
+    local player = game.connected_players[1]
+    cached_player_table = storage.players[player.index]
+  end
+  return cached_player_table
 end
 
 function player_data.get_singleplayer_player()
   -- In singleplayer mode, there is only one player. Return the player.
-  return game.connected_players[1]
+  if not cached_player then
+    cached_player = game.connected_players[1]
+  end
+  return cached_player
 end
 
 function player_data.toggle_history_collection(player_table)
@@ -67,13 +80,13 @@ end
 
 function player_data.set_activity_chunks(player_table, chunks)
     -- Scale the update interval based on how often the UI updates, but not too often
-  interval = player_data.ui_update_interval(player_table) / math.max(1, chunks)
-  bot_interval = player_data.bot_chunk_interval(player_table)
+  local interval = player_data.ui_update_interval(player_table) / math_max(1, chunks)
+  local bot_interval = player_data.bot_chunk_interval(player_table)
   if interval < bot_interval then
     interval = bot_interval
   end
 
-  player_table.current_activity_interval = math.ceil(interval)
+  player_table.current_activity_interval = math_ceil(interval)
 end
 
 function player_data.activity_chunk_interval(player_table)
