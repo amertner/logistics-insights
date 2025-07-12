@@ -3,14 +3,13 @@ bot_counter = {}
 local player_data = require("scripts.player-data")
 local chunker = require("scripts.chunker")
 
-local function manage_active_deliveries_history(bot_chunker)
+local function manage_active_deliveries_history(bot_chunker, tick_margin)
   -- This function is called to manage the history of active deliveries
   -- It will remove entries that are no longer active and update the history
   if storage.bot_active_deliveries == nil then
     storage.bot_active_deliveries = {}
   end
 
-  tick_margin = bot_chunker:num_chunks() * 10 - 1
   for unit_number, order in pairs(storage.bot_active_deliveries) do
     if order.last_seen < game.tick-tick_margin then
       local key = order.item_name .. order.quality_name
@@ -154,6 +153,7 @@ function bot_counter.gather_activity_data(player, player_table)
   -- Process cell data
   if activity_chunker:is_done() then
     activity_chunker:initialise_chunking(network.cells, player_table)
+    player_data.set_activity_chunks(player_table, activity_chunker:num_chunks())
   end
   activity_chunker:process_chunk()
   
@@ -188,7 +188,8 @@ function bot_counter.gather_bot_data(player, player_table)
   
   -- Update delivery history
   if player_table.settings.show_history then
-    manage_active_deliveries_history(bot_chunker)
+    tick_margin = math.max(0, bot_chunker:num_chunks() * player_data.bot_chunk_interval(player_table) - 1)
+    manage_active_deliveries_history(bot_chunker, tick_margin)
   end
   
   return progress

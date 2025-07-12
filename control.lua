@@ -101,15 +101,18 @@ end)
 script.on_nth_tick(1, function()
   local player = player_data.get_singleplayer_player()
   local player_table = player_data.get_singleplayer_table()
-  
-  if game.tick % player_data.chunk_interval(player_table) == 0 then
+
+  if game.tick % player_data.bot_chunk_interval(player_table) == 0 then
     bot_progress = bot_counter.gather_bot_data(player, player_table)
     bots_gui.update_bot_chunk_progress(player_table, bot_progress)
   end
-
-  if game.tick % player_data.ui_update_interval(player_table) == 0 then -- activity and full UI
+  
+  if game.tick % player_data.activity_chunk_interval(player_table) == 0 then
     activity_progress = bot_counter.gather_activity_data(player, player_table)
-    bots_gui.update_activity_chunk_progress(player_table, activity_progress) -- progress indicators
+    bots_gui.update_activity_chunk_progress(player_table, activity_progress)
+  end
+
+  if game.tick % player_data.ui_update_interval(player_table) == 0 then
     bots_gui.ensure_ui_consistency(player, player_table)
     controller_gui.update_window(player, player_table)
     bots_gui.update(player, player_table)

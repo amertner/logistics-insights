@@ -23,13 +23,14 @@ function player_data.update_settings(player, player_table)
     show_history = mod_settings["li-show-history"].value,
     show_activity = mod_settings["li-show-activity"].value,
     chunk_size = mod_settings["li-chunk-size"].value,
-    chunk_interval = mod_settings["li-chunk-processing-interval"].value,
+    bot_chunk_interval = mod_settings["li-chunk-processing-interval"].value,
     ui_update_interval = mod_settings["li-ui-update-interval"].value,
     pause_for_bots = mod_settings["li-pause-for-bots"].value,
     pause_while_hidden = mod_settings["li-pause-while-hidden"].value,
   }
   player_table.settings = settings
   player_table.player_index = player.index
+  player_table.current_activity_size = 0
   index = game.connected_players[1].index
   ui = {}
   assert(player_table.player_index == index, "Player index mismatch: " .. player_table.player_index .. " vs " .. index)
@@ -60,8 +61,23 @@ function player_data.is_included_robot(bot)
   -- return bot and bot.name == "logistics-robot" -- Option to expand in the future
 end
 
-function player_data.chunk_interval(player_table)
-  return player_table.settings.chunk_interval or 10
+function player_data.bot_chunk_interval(player_table)
+  return player_table.settings.bot_chunk_interval or 10
+end
+
+function player_data.set_activity_chunks(player_table, chunks)
+    -- Scale the update interval based on how often the UI updates, but not too often
+  interval = player_data.ui_update_interval(player_table) / math.max(1, chunks)
+  bot_interval = player_data.bot_chunk_interval(player_table)
+  if interval < bot_interval then
+    interval = bot_interval
+  end
+
+  player_table.current_activity_interval = math.ceil(interval)
+end
+
+function player_data.activity_chunk_interval(player_table)
+  return player_table.current_activity_interval or 60
 end
 
 function player_data.ui_update_interval(player_table)

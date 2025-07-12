@@ -635,9 +635,9 @@ local function find_waiting_to_charge_robots(player_table, cell_list)
   for _, cell in pairs(cell_list) do
     if cell and cell.valid and cell.to_charge_robots then
       for _, bot in pairs(cell.to_charge_robots) do
-        if player_table.is_included_robot(bot) then
-          table.insert(bot_list, bot)
-        end
+        -- if player_data.is_included_robot(bot) then
+        table.insert(bot_list, bot)
+        -- end
       end
     end
   end
