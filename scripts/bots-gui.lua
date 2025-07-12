@@ -99,31 +99,37 @@ local function add_bot_activity_row(bots_table, player_table)
     { sprite = "entity/logistic-robot",
       key = "logistic-robot-total",
       tip = {"activity-row.robots-total-tooltip"},
+      clicktip = true,
       onwithpause = true,
       include_construction = false},
     { sprite = "virtual-signal/signal-battery-full",
       key = "logistic-robot-available",
       tip = {"activity-row.robots-available-tooltip"},
+      clicktip = false,
       onwithpause = false,
       include_construction = false },
     { sprite = "virtual-signal/signal-battery-mid-level",
       key = "charging-robot",
       tip = {"activity-row.robots-charging-tooltip"},
+      clicktip = true,
       onwithpause = false,
       include_construction = true },
     { sprite = "virtual-signal/signal-battery-low",
       key = "waiting-for-charge-robot",
       tip = {"activity-row.robots-waiting-tooltip"},
+      clicktip = true,
       onwithpause = false,
       include_construction = true },
     { sprite = "virtual-signal/signal-input",
       key = "picking",
       tip = {"activity-row.robots-picking_up-tooltip"},
+      clicktip = true,
       onwithpause = false,
       include_construction = false },
     { sprite = "virtual-signal/signal-output",
       key = "delivering",
       tip = {"activity-row.robots-delivering-tooltip"},
+      clicktip = true,
       onwithpause = false,
       include_construction = false },
   }
@@ -153,6 +159,7 @@ local function add_bot_activity_row(bots_table, player_table)
     player_table.ui.activity.cells[icon.key] = {
       tip = icon.tip,
       onwithpause = icon.onwithpause,
+      clicktip = icon.clicktip,
       include_construction = icon.include_construction,
       cell = bots_table.add {
         type = "sprite-button",
@@ -481,10 +488,14 @@ local function update_bot_activity_row(player_table)
         else
           robotstr = {"bots-gui.format-logistics-robots", num}
         end
-        if window.onwithpause or not player_table.settings.pause_for_bots then
-          window.cell.tooltip = {"", robotstr, window.tip, "\n", {"bots-gui.show-location-tooltip"}}
+        if window.clicktip then
+          if window.onwithpause or not player_table.settings.pause_for_bots then
+            window.cell.tooltip = {"", robotstr, window.tip, "\n", {"bots-gui.show-location-tooltip"}}
+          else
+            window.cell.tooltip = {"", robotstr, window.tip, "\n", {"bots-gui.show-location-and-pause-tooltip"}}
+          end
         else
-          window.cell.tooltip = {"", robotstr, window.tip, "\n", {"bots-gui.show-location-and-pause-tooltip"}}
+          window.cell.tooltip = {"", robotstr, window.tip}
         end
       end
     end
