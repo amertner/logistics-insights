@@ -2,6 +2,7 @@ local migration = require("__flib__.migration")
 
 local player_data = require("scripts.player-data")
 local bot_counter = require("scripts.bot-counter")
+local activity_counter = require("scripts.activity-counter")
 local controller_gui = require("scripts.controller-gui")
 local bots_gui = require("scripts.bots-gui")
 local utils = require("scripts.utils")
@@ -108,7 +109,7 @@ script.on_nth_tick(1, function()
   end
   
   if game.tick % player_data.activity_chunk_interval(player_table) == 0 then
-    activity_progress = bot_counter.gather_activity_data(player, player_table)
+    activity_progress = activity_counter.gather_data(player, player_table)
     bots_gui.update_activity_chunk_progress(player_table, activity_progress)
   end
 

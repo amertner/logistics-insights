@@ -2,6 +2,7 @@ bot_counter = {}
 
 local player_data = require("scripts.player-data")
 local chunker = require("scripts.chunker")
+local activity_counter = require("scripts.activity-counter")
 
 local function manage_active_deliveries_history(bot_chunker, tick_margin)
   -- This function is called to manage the history of active deliveries
@@ -31,24 +32,6 @@ local function manage_active_deliveries_history(bot_chunker, tick_margin)
     end
   end
 end
-
--- Counting network cells in chunks
-local function network_initialise(partial_data)
-  partial_data.bots_charging = 0
-  partial_data.bots_waiting_for_charge = 0
-end
-
-local function network_processing(entity, partial_data, player_table)
-  partial_data.bots_charging = partial_data.bots_charging + entity.charging_robot_count
-  partial_data.bots_waiting_for_charge = partial_data.bots_waiting_for_charge + entity.to_charge_robot_count
-end
-
-local function network_chunks_done(data)
-  storage.bot_items["charging-robot"] = data.bots_charging
-  storage.bot_items["waiting-for-charge-robot"] = data.bots_waiting_for_charge
-end
-
-local activity_chunker = chunker.new(network_initialise, network_processing, network_chunks_done)
 
 
 -- Counting bots in chunks
@@ -126,9 +109,9 @@ local function update_network(player, player_table)
   if not player_table.network or not player_table.network.valid or not network or
       player_table.network.network_id ~= network.network_id then
     -- Clear all current state when we change networks
-    activity_chunker:reset()
+    activity_counter.reset_chunker() -- Tell activity_counter to reset its chunker
     bot_chunker:reset()
-    storage.bot_items = {}
+    storage.bot_items = storage.bot_items or {}
     storage.delivery_history = {}
     storage.bot_active_deliveries = {}
     player_table.network = network
@@ -137,28 +120,7 @@ local function update_network(player, player_table)
   return network and network.valid
 end
 
--- Gather activity data (cells, charging robots, etc.)
-function bot_counter.gather_activity_data(player, player_table)
-  -- First update and validate network
-  if not update_network(player, player_table) then
-    return { current = 0, total = 0 }
-  end
-  
-  local network = player_table.network
-  
-  -- Store basic network stats
-  storage.bot_items["logistic-robot-total"] = network.all_logistic_robots
-  storage.bot_items["logistic-robot-available"] = network.available_logistic_robots
-  
-  -- Process cell data
-  if activity_chunker:is_done() then
-    activity_chunker:initialise_chunking(network.cells, player_table)
-    player_data.set_activity_chunks(player_table, activity_chunker:num_chunks())
-  end
-  activity_chunker:process_chunk()
-  
-  return activity_chunker:get_progress()
-end
+-- No longer need the forwarding function as control.lua now calls activity_counter directly
 
 -- Gather bot delivery data
 function bot_counter.gather_bot_data(player, player_table)
