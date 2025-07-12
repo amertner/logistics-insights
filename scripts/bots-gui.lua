@@ -3,6 +3,7 @@ local bots_gui = {}
 local utils = require("scripts.utils")
 local player_data = require("scripts.player-data")
 local game_state = require("scripts.game-state")
+local ResultLocation = require("scripts.result-location")
 
 function bots_gui.toggle_window_visible(player)
   if not player then
