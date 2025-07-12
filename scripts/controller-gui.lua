@@ -47,24 +47,14 @@ function controller_gui.update_window(player, player_table)
       total_count = storage.bot_items["logistic-robot-total"]
       gui.logistics_insights_toggle_main.number = idle_count
       tip = {"controller-gui.main_tooltip", idle_count, total_count, player_table.network.network_id}
+      status = get_status(player_data.is_paused(player_table))
       if player_table.settings.show_delivering then
-        status = get_status(player_data.is_paused(player_table))
         tip = {"", tip, {"controller-gui.main_tooltip_delivering", status}}
       end
       if player_table.settings.show_history then
-        status = get_status(player_data.is_paused(player_table))
         tip = {"", tip, {"controller-gui.main_tooltip_history", status}}
       end
       if player_table.settings.show_activity then
-        if player_data.is_paused(player_table) then
-          if player_table.settings.show_delivering or player_table.settings.show_history then
-            status = {"controller-gui.partial"}
-          else
-            status = {"controller-gui.active"}
-          end
-        else
-          status = {"controller-gui.active"}
-        end
         tip = {"", tip, {"controller-gui.main_tooltip_activity", status}}
       end
     else

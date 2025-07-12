@@ -87,7 +87,7 @@ local function add_titlebar(window, player_table)
     type = "sprite-button",
     sprite = "li_step",
     style = "tool_button",
-    name = "logistics-insights-step",
+   name = "logistics-insights-step",
     tooltip = {"bots-gui.step-game-tooltip"},
   }
   game_state.init(unfreeze, freeze)
@@ -561,7 +561,7 @@ function bots_gui.update(player, player_table, clearing)
     return -- no player table, can't do anything
   end
 
-  if not player_table.ui then
+  if not player_table.ui or not player_table.bots_window_visible then
     return
   end
 
@@ -614,12 +614,16 @@ end -- update contents
 
 function bots_gui.update_activity_chunk_progress(player_table, progress)
   if player_table.ui == nil then return end
-  update_progressbar(player_table.ui.activity.progressbar, progress)
+  if player_table.bots_window_visible then
+    update_progressbar(player_table.ui.activity.progressbar, progress)
+  end
 end
 
 function bots_gui.update_bot_chunk_progress(player_table, progress)
   if player_table.ui == nil then return end
-  update_progressbar(player_table.ui["deliveries-row"].progressbar, progress)
+  if player_table.bots_window_visible then
+    update_progressbar(player_table.ui["deliveries-row"].progressbar, progress)
+  end
 end
 
 ---@param cell_list LuaLogisticCell[]

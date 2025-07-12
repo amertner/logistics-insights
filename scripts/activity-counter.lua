@@ -43,16 +43,20 @@ end
 -- Gather activity data (cells, charging robots, etc.)
 function activity_counter.gather_data(player, player_table)
   -- First update and validate network
+  progress = { current = 0, total = 0 }
   if not update_network(player, player_table) then
-    return { current = 0, total = 0 }
+    return progress
   end
-  
   local network = player_table.network
   
   -- Store basic network stats
   storage.bot_items["logistic-robot-total"] = network.all_logistic_robots
   storage.bot_items["logistic-robot-available"] = network.available_logistic_robots
   
+  if player_data.is_paused(player_table) then
+    return progress
+  end
+
   -- Process cell data
   if activity_chunker:is_done() then
     activity_chunker:initialise_chunking(network.cells, player_table)
