@@ -68,6 +68,7 @@ function controller_gui.update_window(player, player_table)
         tip = {"", tip, {"controller-gui.main_tooltip_activity", status}}
       end
     else
+      gui.logistics_insights_toggle_main.number = nil
       tip = {"controller-gui.no-network"}
     end
 
