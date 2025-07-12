@@ -3,16 +3,16 @@ bot_counter = {}
 local player_data = require("scripts.player-data")
 local chunker = require("scripts.chunker")
 
-local function manage_active_deliveries_history()
+local function manage_active_deliveries_history(bot_chunker)
   -- This function is called to manage the history of active deliveries
   -- It will remove entries that are no longer active and update the history
   if storage.bot_active_deliveries == nil then
     storage.bot_active_deliveries = {}
   end
 
+  tick_margin = bot_chunker:num_chunks() * 10 - 1
   for unit_number, order in pairs(storage.bot_active_deliveries) do
-     -- TODO This is a bit nasty, improve if we allow users to choose tick rate of updates
-    if order.last_seen < game.tick-50 then
+    if order.last_seen < game.tick-tick_margin then
       local key = order.item_name .. order.quality_name
       if storage.delivery_history[key] == nil then
         storage.delivery_history[key] = {
@@ -158,7 +158,7 @@ function bot_counter.gather_data(game)
 
       -- Find orders that have been delivered add to history
       if player_table.settings.show_history then
-        manage_active_deliveries_history()
+        manage_active_deliveries_history(bot_chunker)
       end
     end
   end -- if network

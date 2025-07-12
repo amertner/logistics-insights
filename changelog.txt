@@ -4,6 +4,7 @@ Date: 2025-07-11
   Changes:
     - Tooltips now show icons instead of text wherever appropriate
   Bugfixes:
+    - Delivery history now takes chunk size into account, avoiding undercounting for short-distance deliveries
     - Fixed an issue where the tooltip for delivering/picking up would show template text if no bots were in the network
     - Fixed a crash when clicking on an activity button when outside of a logistics network
 ---------------------------------------------------------------------------------------------------

@@ -34,6 +34,14 @@ function chunker:reset()
   self.on_completion(self.partial_data)
 end
 
+function chunker:num_chunks()
+  if not self.processing_list or #self.processing_list == 0 then
+    return 0
+  else
+    return math.ceil(#self.processing_list / self.CHUNK_SIZE)
+  end
+end
+
 function chunker:is_done()
   return not self.processing_list or #self.processing_list == 0 or self.current_index > #self.processing_list
 end
