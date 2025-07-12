@@ -145,43 +145,25 @@ end
 local bot_chunker = chunker.new(bot_initialise, bot_processing, bot_chunks_done)
 
 
--- Get or update the network, return true if the network is valid and update player_table.network
-local function update_network(player, player_table)
-  local network = player.force.find_logistic_network_by_position(player.position, player.surface)
-  
-  if not player_table.network or not player_table.network.valid or not network or
-      player_table.network.network_id ~= network.network_id then
-    -- Clear all current state when we change networks
-    activity_counter.reset_chunker() -- Tell activity_counter to reset its chunker
-    bot_chunker:reset()
-    storage.bot_items = storage.bot_items or {}
-    storage.delivery_history = {}
-    storage.bot_active_deliveries = {}
-    player_table.network = network
-  end
-  
-  return network and network.valid
+function bot_counter.network_changed(player, player_table)
+  -- Clear all current state when we change networks
+  bot_chunker:reset()
+  storage.bot_items = storage.bot_items or {}
+  storage.delivery_history = {}
+  storage.bot_active_deliveries = {}
 end
-
--- No longer need the forwarding function as control.lua now calls activity_counter directly
 
 -- Gather bot delivery data
 function bot_counter.gather_bot_data(player, player_table)
-  -- First update and validate network
-  if not update_network(player, player_table) then
-    return { current = 0, total = 0 }
-  end
-
   local network = player_table.network
   local progress = { current = 0, total = 0 }
 
-  if player_data.is_paused(player_table) then
+  if not network or player_data.is_paused(player_table) then
     return progress
   end
   local show_delivering = player_table.settings.show_delivering
   local show_history = player_table.settings.show_history
 
-  -- Process robot delivery data if needed
   if show_delivering or show_history then
     if bot_chunker:is_done() then
       bot_chunker:initialise_chunking(network.logistic_robots, player_table)

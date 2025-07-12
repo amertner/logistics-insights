@@ -60,6 +60,24 @@ function player_data.get_singleplayer_player()
   return cached_player
 end
 
+function player_data.check_network_changed(player, player_table)
+  if not player or not player.valid then
+    return false
+  end
+
+  -- Get or update the network, return true if the network is changed
+  local network = player.force.find_logistic_network_by_position(player.position, player.surface)
+  local player_table_network = player_table.network
+
+  if not player_table_network or not player_table_network.valid or not network or
+      player_table_network.network_id ~= network.network_id then
+    player_table.network = network
+    return true
+  else
+    return false
+  end
+end
+
 function player_data.toggle_history_collection(player_table)
   player_table.paused = not player_table.paused
 end

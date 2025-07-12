@@ -29,24 +29,8 @@ end
 
 local activity_chunker = require("scripts.chunker").new(network_initialise, network_processing, network_chunks_done)
 
--- Get or update the network, return true if the network is valid and update player_table.network
-local function update_network(player, player_table)
-  local network = player.force.find_logistic_network_by_position(player.position, player.surface)
-  local current_network = player_table.network
-  
-  if not current_network or not current_network.valid or not network or
-      current_network.network_id ~= network.network_id then
-    -- Clear activity state when we change networks
-    activity_chunker:reset()
-    storage.bot_items = storage.bot_items or {}
-    player_table.network = network
-  end
-  
-  return network and network.valid
-end
 
--- Reset chunker state (called from bot-counter when network changes)
-function activity_counter.reset_chunker()
+function activity_counter.network_changed(player, player_table)
   activity_chunker:reset()
 end
 
@@ -54,11 +38,11 @@ end
 function activity_counter.gather_data(player, player_table)
   -- First update and validate network
   local progress = { current = 0, total = 0 }  -- Use local variable to avoid global access
-  if not update_network(player, player_table) then
-    return progress
-  end
   local network = player_table.network
   local bot_items = storage.bot_items  -- Cache the table lookup
+  if not network then
+    return progress
+  end
   
   -- Store basic network stats
   bot_items["logistic-robot-total"] = network.all_logistic_robots

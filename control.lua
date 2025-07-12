@@ -103,6 +103,13 @@ script.on_nth_tick(1, function()
   local player = player_data.get_singleplayer_player()
   local player_table = player_data.get_singleplayer_table()
 
+  if game.tick % 30 == 0 then -- Update this twice a second only
+    if player_data.check_network_changed(player, player_table) then
+      bot_counter.network_changed(player, player_table)
+      activity_counter.network_changed(player, player_table)
+    end
+  end
+
   if game.tick % player_data.bot_chunk_interval(player_table) == 0 then
     local bot_progress = bot_counter.gather_bot_data(player, player_table)
     bots_gui.update_bot_chunk_progress(player_table, bot_progress)
