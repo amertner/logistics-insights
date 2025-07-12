@@ -81,13 +81,18 @@ There are many ways in which this mod could become more useful, and I'll be look
 
 ## Known issues
 
-If you load a game that was saved while frozen, all entities will show a yellow blinking icon for some reason. Unfreeze or single-step the game to clear this condition.
+- If you load a game that was saved while frozen, all entities will show a yellow blinking icon for some reason. Unfreeze or single-step the game to clear this condition.
+- If you freeze the game, the mod does not pick up a new network (even if you move or change map position) until you unfreeze it.
 
-If you freeze the game, the mod does not pick up a new network (even if you move or change map position) until you unfreeze it.
+## Want to contribute?
+
+If you want to contribute, please create a pull request (with new translations for example).
+
+You can also create an issue if you find a bug or have an idea for a feature, either on Github or on the Factorio Mod Portal.
 
 ## Translation
 
-The mod is not yet translated to languages other than English, though all strings are set up in a way that makes it possible. I intend to make it possible to submit translations at some point.
+The mod is currently only available in **English** and **Danish**, verifying that all strings are set up in a way that makes it possible. If you would like to contribute a translation, please either open a pull request or contact me on <farzag@mertner.com>.
 
 ## Thanks
 
