@@ -23,6 +23,8 @@ function player_data.update_settings(player, player_table)
     show_history = mod_settings["li-show-history"].value,
     show_activity = mod_settings["li-show-activity"].value,
     chunk_size = mod_settings["li-chunk-size"].value,
+    chunk_interval = mod_settings["li-chunk-processing-interval"].value,
+    ui_update_interval = mod_settings["li-ui-update-interval"].value,
     pause_for_bots = mod_settings["li-pause-for-bots"].value,
     pause_while_hidden = mod_settings["li-pause-while-hidden"].value,
   }
@@ -56,6 +58,14 @@ end
 function player_data.is_included_robot(bot)
   return true -- For now, include all bots.
   -- return bot and bot.name == "logistics-robot" -- Option to expand in the future
+end
+
+function player_data.chunk_interval(player_table)
+  return player_table.settings.chunk_interval or 10
+end
+
+function player_data.ui_update_interval(player_table)
+  return player_table.settings.ui_update_interval or 60
 end
 
 function player_data.register_ui(player_table, name)

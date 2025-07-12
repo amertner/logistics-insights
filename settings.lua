@@ -48,6 +48,26 @@ data:extend(
     }
     ,
     {
+      type = "int-setting",
+      name = "li-chunk-processing-interval",
+      setting_type = "runtime-per-user",
+      default_value = 10,
+      minimum_value = 1,
+      maximum_value = 120,
+      order = "5.2"
+    }
+    ,
+    {
+      type = "int-setting",
+      name = "li-ui-update-interval",
+      setting_type = "runtime-per-user",
+      default_value = 60,
+      minimum_value = 10,
+      maximum_value = 120,
+      order = "5.3"
+    }
+    ,
+    {
       type = "bool-setting",
       name = "li-pause-for-bots",
       setting_type = "runtime-per-user",

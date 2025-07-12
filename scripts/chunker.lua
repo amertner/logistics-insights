@@ -18,10 +18,10 @@ function chunker.new(call_on_init, call_on_processing, call_on_completion)
   return instance
 end
 
-function chunker:initialise_chunking(list)
+function chunker:initialise_chunking(list, player_table)
   self.processing_list = list
   self.current_index = 1
-  self.player_table = player_data.get_singleplayer_table()
+  self.player_table = player_table
   if self.player_table.settings.chunk_size then
     self.CHUNK_SIZE = self.player_table.settings.chunk_size
   end
@@ -30,7 +30,7 @@ end
 
 function chunker:reset()
   -- Reset the counter and claim completion
-  self:initialise_chunking(nil)
+  self:initialise_chunking(nil, self.player_table)
   self.on_completion(self.partial_data)
 end
 

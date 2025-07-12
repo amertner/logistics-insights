@@ -97,18 +97,16 @@ end)
 
 -- TICK
 
--- count bots often, update the GUI less often
-script.on_nth_tick(10, function()
+-- Count bots and update the UI
+script.on_nth_tick(1, function()
   local player_table = player_data.get_singleplayer_table()
-  frequent = not player_data.is_paused(player_table) and player_table.settings.show_history
-
-  if (frequent and (game.tick % 10 == 0)) or
-    (game.tick % 60 == 0) then
-    chunk_progress = bot_counter.gather_data(game)
-    bots_gui.update_chunk_progress(player_table, chunk_progress)
+  if game.tick % player_data.chunk_interval(player_table) == 0 then
+    -- Process a chunk of bots
+    chunk_progress = bot_counter.gather_data(player_table)
+    bots_gui.update_chunk_progress(player_table, chunk_progress) -- progress indicators
   end
 
-  if game.tick % 60 == 0 then
+  if game.tick % player_data.ui_update_interval(player_table) == 0 then -- full UI
     local player = player_data.get_singleplayer_player()
     bots_gui.ensure_ui_consistency(player, player_table)
     controller_gui.update_window(player, player_table)

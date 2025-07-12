@@ -121,9 +121,8 @@ local bot_chunker = chunker.new(bot_initialise, bot_processing, bot_chunks_done)
 
 
 -- Main counting function, called periodically
-function bot_counter.gather_data(game)
+function bot_counter.gather_data(player_table)
   local player = player_data.get_singleplayer_player()
-  local player_table = player_data.get_singleplayer_table()
 
   local network = player.force.find_logistic_network_by_position(player.position, player.surface)
   if not player_table.network or not player_table.network.valid or not network or
@@ -137,18 +136,18 @@ function bot_counter.gather_data(game)
     player_table.network = network
   end
 
-  if network then
+  if network and network.valid then
     storage.bot_items["logistic-robot-total"] = network.all_logistic_robots
     storage.bot_items["logistic-robot-available"] = network.available_logistic_robots
     if activity_chunker:is_done() then
-      activity_chunker:initialise_chunking(network.cells)
+      activity_chunker:initialise_chunking(network.cells, player_table)
     end
     activity_chunker:process_chunk()
 
     if not player_data.is_paused(player_table) then -- These are the expensive ones, so only do them when not paused
       if player_table.settings.show_delivering or player_table.settings.show_history then
         if bot_chunker:is_done() then
-          bot_chunker:initialise_chunking(network.logistic_robots)
+          bot_chunker:initialise_chunking(network.logistic_robots, player_table)
         end
         bot_chunker:process_chunk()
       else

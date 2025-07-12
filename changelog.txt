@@ -1,6 +1,9 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.8.5
 Date: 2025-07-11
+  Features:
+    - Added a setting to control the chunk processing interval, allowing better control of performance/accuracy trade-offs
+    - Added a setting to control the UI update interval
   Changes:
     - Tooltips now show icons instead of text wherever appropriate
   Bugfixes:
