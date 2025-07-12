@@ -5,6 +5,7 @@ Date: 2025-07-11
     - Tooltips now show icons instead of text wherever appropriate
   Bugfixes:
     - Fixed an issue where the tooltip for delivering/picking up would show template text if no bots were in the network
+    - Fixed a crash when clicking on an activity button when outside of a logistics network
 ---------------------------------------------------------------------------------------------------
 Version: 0.8.4
 Date: 2025-07-11
