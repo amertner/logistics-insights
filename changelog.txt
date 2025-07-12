@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.8.5
+Date: 2025-07-11
+  Changes:
+    - Tooltips now show icons instead of text wherever appropriate
+  Bugfixes:
+    - Fixed an issue where the tooltip for delivering/picking up would show template text if no bots were in the network
+---------------------------------------------------------------------------------------------------
 Version: 0.8.4
 Date: 2025-07-11
   Bugfixes:

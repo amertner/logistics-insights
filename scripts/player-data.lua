@@ -53,6 +53,11 @@ function player_data.is_paused(player_table)
           (player_table.settings.pause_while_hidden and not player_table.bots_window_visible)
 end
 
+function player_data.is_included_robot(bot)
+  return true -- For now, include all bots.
+  -- return bot and bot.name == "logistics-robot" -- Option to expand in the future
+end
+
 function player_data.register_ui(player_table, name)
   if not player_table.ui then
     player_table.ui = {}

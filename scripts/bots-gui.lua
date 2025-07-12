@@ -99,27 +99,33 @@ local function add_bot_activity_row(bots_table, player_table)
     { sprite = "entity/logistic-robot",
       key = "logistic-robot-total",
       tip = {"activity-row.robots-total-tooltip"},
-      onwithpause = true },
+      onwithpause = true,
+      include_construction = false},
     { sprite = "virtual-signal/signal-battery-full",
       key = "logistic-robot-available",
       tip = {"activity-row.robots-available-tooltip"},
-      onwithpause = true },
+      onwithpause = false,
+      include_construction = false },
     { sprite = "virtual-signal/signal-battery-mid-level",
       key = "charging-robot",
       tip = {"activity-row.robots-charging-tooltip"},
-      onwithpause = true },
+      onwithpause = true,
+      include_construction = true },
     { sprite = "virtual-signal/signal-battery-low",
       key = "waiting-for-charge-robot",
       tip = {"activity-row.robots-waiting-tooltip"},
-      onwithpause = true },
+      onwithpause = true,
+      include_construction = true },
     { sprite = "virtual-signal/signal-input",
       key = "picking",
       tip = {"activity-row.robots-picking_up-tooltip"},
-      onwithpause = false },
+      onwithpause = false,
+      include_construction = false },
     { sprite = "virtual-signal/signal-output",
       key = "delivering",
       tip = {"activity-row.robots-delivering-tooltip"},
-      onwithpause = false },
+      onwithpause = false,
+      include_construction = false },
   }
 
   player_data.register_ui(player_table, "activity")
@@ -146,6 +152,8 @@ local function add_bot_activity_row(bots_table, player_table)
     cellname = "logistics-insights-" .. icon.key
     player_table.ui.activity.cells[icon.key] = {
       tip = icon.tip,
+      onwithpause = icon.onwithpause,
+      include_construction = icon.include_construction,
       cell = bots_table.add {
         type = "sprite-button",
         sprite = icon.sprite,
@@ -466,12 +474,17 @@ local function update_bot_activity_row(player_table)
   if player_table.network then
     for key, window in pairs(player_table.ui.activity.cells) do
       if window.cell.valid then
-        num = storage.bot_items[key] or nil
+        num = storage.bot_items[key] or 0
         window.cell.number = num
-        if window.onwithpause or not player_table.settings.pause_for_bots then
-          window.cell.tooltip = {"", {"bots-gui.format_robots", num}, window.tip, "\n", {"bots-gui.show-location-tooltip"}}
+        if window.include_construction then
+          robotstr = {"bots-gui.format-all-robots", num}
         else
-          window.cell.tooltip = {"", {"bots-gui.format_robots", num}, window.tip, "\n", {"bots-gui.show-location-and-pause-tooltip"}}
+          robotstr = {"bots-gui.format-logistics-robots", num}
+        end
+        if window.onwithpause or not player_table.settings.pause_for_bots then
+          window.cell.tooltip = {"", robotstr, window.tip, "\n", {"bots-gui.show-location-tooltip"}}
+        else
+          window.cell.tooltip = {"", robotstr, window.tip, "\n", {"bots-gui.show-location-and-pause-tooltip"}}
         end
       end
     end
@@ -591,7 +604,7 @@ end
 
 ---@param cell_list LuaLogisticCell[]
 ---@return LuaEntity[]|nil  -- Returns a list of bots
-local function find_charging_robots(cell_list)
+local function find_charging_robots(player_table, cell_list)
   if not cell_list or #cell_list == 0 then
     return nil
   end
@@ -599,7 +612,9 @@ local function find_charging_robots(cell_list)
   for _, cell in pairs(cell_list) do
     if cell and cell.valid and cell.charging_robots then
       for _, bot in pairs(cell.charging_robots) do
-        table.insert(bot_list, bot)
+        if player_table.is_included_robot(bot) then
+          table.insert(bot_list, bot)
+        end
       end
     end
   end
@@ -608,7 +623,7 @@ end
 
 ---@param cell_list LuaLogisticCell[]
 ---@return LuaEntity[]|nil  -- Returns a list of bots
-local function find_waiting_to_charge_robots(cell_list)
+local function find_waiting_to_charge_robots(player_table, cell_list)
   if not cell_list or #cell_list == 0 then
     return nil
   end
@@ -616,7 +631,9 @@ local function find_waiting_to_charge_robots(cell_list)
   for _, cell in pairs(cell_list) do
     if cell and cell.valid and cell.to_charge_robots then
       for _, bot in pairs(cell.to_charge_robots) do
-        table.insert(bot_list, bot)
+        if player_table.is_included_robot(bot) then
+          table.insert(bot_list, bot)
+        end
       end
     end
   end
@@ -637,11 +654,11 @@ local function get_item_list_and_focus_mobile(item_list)
   end
 end
 
-local function get_item_list_and_focus_from_cells(item_list, find_fn)
-  if find_fn == nil then
+local function get_item_list_and_focus_from_player_table(player_table, find_fn)
+  if find_fn == nil or player_table == nil or player_table.network == nil or player_table.network.cells == nil then
     return {items = nil, item = nil, follow = false}
   end
-  filtered_list = find_fn(item_list)
+  filtered_list = find_fn(player_table, player_table.network.cells.item_list)
   if filtered_list == nil or #filtered_list == 0 then
     return {items = nil, item = nil, follow = false}
   else
@@ -690,10 +707,10 @@ local get_list_function = {
     return get_item_list_and_focus_mobile(pd.network.logistic_robots)
   end,
   ["logistics-insights-charging-robot"] = function(pd)
-    return get_item_list_and_focus_from_cells(pd.network.cells, find_charging_robots)
+    return get_item_list_and_focus_from_player_table(pd, find_charging_robots)
   end,
   ["logistics-insights-waiting-for-charge-robot"] = function(pd)
-    return get_item_list_and_focus_from_cells(pd.network.cells, find_waiting_to_charge_robots)
+    return get_item_list_and_focus_from_player_table(pd, find_waiting_to_charge_robots)
   end,
   ["logistics-insights-delivering"] = function(pd)
     return get_item_list_and_focus_from_botlist(pd.network.logistic_robots, defines.robot_order_type.deliver)
@@ -720,16 +737,16 @@ local get_list_function = {
 }
 
 ---@param player LuaPlayer
----@param player_data PlayerData
+---@param player_table PlayerData
 ---@param element LuaGuiElement sprite-button
 ---@param focus_on_element boolean
-function bots_gui.highlight_locations_on_map(player, player_data, element, focus_on_element)
+function bots_gui.highlight_locations_on_map(player, player_table, element, focus_on_element)
   fn = get_list_function[element.name]
   if not fn then
     return
   end
 
-  viewdata = fn(player_data)
+  viewdata = fn(player_table)
   if viewdata == nil or viewdata.item == nil then
     return
   end
