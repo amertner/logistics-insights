@@ -5,7 +5,14 @@ local player_data = require("scripts.player-data")
 local game_state = require("scripts.game-state")
 local ResultLocation = require("scripts.result-location")
 
--- Cache frequently used constants
+-- Cache frequently used functions and constants
+local pairs = pairs
+local ipairs = ipairs
+local table_insert = table.insert
+local table_sort = table.sort
+local math_min = math.min
+local math_floor = math.floor
+local string_format = string.format
 local defines_robot_order_type_deliver = defines.robot_order_type.deliver
 local defines_robot_order_type_pickup = defines.robot_order_type.pickup
 
@@ -363,18 +370,65 @@ local function create_bots_table(player, player_table)
   add_network_row(bots_table, player_table)
 end
 
+-- Caching frequently accessed values
+local cached_chunk_size = 0
+local cached_tooltip_complete = nil
+local cached_tooltip_data = {}
+
+-- Function to update cached values when settings change
+function bots_gui.update_chunk_size_cache()
+  local new_chunk_size = player_data.get_singleplayer_table().settings.chunk_size or 400
+  
+  -- Only invalidate caches if the value actually changed
+  if new_chunk_size ~= cached_chunk_size then
+    cached_chunk_size = new_chunk_size
+    cached_tooltip_complete = nil
+    cached_tooltip_data = {}
+  end
+end
+
 local function update_progressbar(progressbar, progress)
   if not progressbar or not progressbar.valid then
     return
   end
-  local chunk_size = player_data.get_singleplayer_table().settings.chunk_size or 400
+  
+  -- Initialize the cache if it's not set yet
+  if cached_chunk_size == 0 then
+    bots_gui.update_chunk_size_cache()
+  end
+  
   if not progress or progress.total == 0 then
-    progressbar.value = 1
-    progressbar.tooltip = {"bots-gui.chunk-size-tooltip", chunk_size}
+    -- Create tooltip only once for the "complete" state
+    if not cached_tooltip_complete then
+      cached_tooltip_complete = {"bots-gui.chunk-size-tooltip", cached_chunk_size}
+    end
+    
+    -- Only update if needed (value might already be 1)
+    if progressbar.value ~= 1 then
+      progressbar.value = 1
+    end
+    
+    progressbar.tooltip = cached_tooltip_complete
   else
-    progressbar.value = progress.current / progress.total
-    local percentage = math.floor(((progress.current - 1) / progress.total) * 100 + 0.5)
-    progressbar.tooltip = {"bots-gui.chunk-processed-tooltip", chunk_size, progress.current - 1, progress.total, percentage}
+    -- Calculate the new value
+    local new_value = progress.current / progress.total
+
+    if math.abs(progressbar.value - new_value) > 0.01 then
+      progressbar.value = new_value
+      
+      local current_minus_one = progress.current - 1
+      local percentage = math_floor((current_minus_one / progress.total) * 100 + 0.5)
+      
+      local cache_key = current_minus_one .. "_" .. progress.total
+      if not cached_tooltip_data[cache_key] then
+        if table_size(cached_tooltip_data) > 500 then
+          cached_tooltip_data = {}
+        end
+        cached_tooltip_data[cache_key] = {"bots-gui.chunk-processed-tooltip", cached_chunk_size, current_minus_one, progress.total, percentage}
+      end
+      
+      progressbar.tooltip = cached_tooltip_data[cache_key]
+    end
   end
 end
 
@@ -423,7 +477,9 @@ local function update_sorted_item_row(player_table, title, all_entries, sort_fn,
     elseif number_field == "ticks" then
       tip = {"", {"item-row.ticks-field-tooltip", entry.ticks, entry.count, entry.quality_name or "normal", entry.item_name}}
     elseif number_field == "avg" then
-      local ticks_formatted = string.format("%.1f", entry.avg)
+      local int_part = math_floor(entry.avg)
+      local decimal_part = math_floor((entry.avg - int_part) * 10 + 0.5)
+      local ticks_formatted = int_part .. "." .. decimal_part
       tip = {"", {"item-row.avg-field-tooltip", ticks_formatted, entry.count, entry.quality_name or "normal", entry.item_name}}
     end
     return tip
@@ -438,14 +494,56 @@ local function update_sorted_item_row(player_table, title, all_entries, sort_fn,
     return
   end
 
-  -- Collect entries into an array
-  local sorted_entries = {}
-  for index, entry in pairs(all_entries) do
-    table.insert(sorted_entries, entry)
+  -- Pre-allocate array by counting entries first
+  local entry_count = 0
+  for _ in pairs(all_entries) do
+    entry_count = entry_count + 1
   end
 
-  -- Sort using the provided function
-  table.sort(sorted_entries, sort_fn)
+  -- Only create as large an array as needed for display
+  local max_needed = math_min(entry_count, player_table.settings.max_items)
+  local sorted_entries = {}
+  
+  if entry_count <= max_needed then
+    local idx = 1
+    for _, entry in pairs(all_entries) do
+      sorted_entries[idx] = entry
+      idx = idx + 1
+    end
+    table_sort(sorted_entries, sort_fn)
+  else
+    -- For large collections, maintain a sorted top-N list
+    local idx = 1
+    for _, entry in pairs(all_entries) do
+      if idx <= max_needed then
+        sorted_entries[idx] = entry
+        idx = idx + 1
+      else
+        -- Once we have max_needed items, sort them
+        if idx == max_needed + 1 then
+          table_sort(sorted_entries, sort_fn)
+          idx = idx + 1 -- Increment to avoid re-sorting
+        end
+        
+        -- Check if this entry belongs in our top-N
+        if sort_fn(entry, sorted_entries[max_needed]) then
+          -- Find insertion point (binary search would be more efficient for large max_needed)
+          local insert_pos = max_needed
+          while insert_pos > 1 and sort_fn(entry, sorted_entries[insert_pos-1]) do
+            insert_pos = insert_pos - 1
+          end
+          
+          -- Shift elements to make room
+          for j = max_needed, insert_pos + 1, -1 do
+            sorted_entries[j] = sorted_entries[j-1]
+          end
+          
+          -- Insert the new element
+          sorted_entries[insert_pos] = entry
+        end
+      end
+    end
+  end
 
   -- Add up to max_items entries
   local count = 0

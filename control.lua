@@ -91,6 +91,7 @@ script.on_event(defines.events.on_runtime_mod_setting_changed, function(e)
     local player_table = player_data.get_singleplayer_table()
     bots_gui.destroy(player, player_table)
     player_data.refresh(player, player_table)
+    bots_gui.update_chunk_size_cache()
     bots_gui.create_window(player, player_table)
   end
 end)

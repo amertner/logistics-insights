@@ -69,13 +69,18 @@ function chunker:get_progress()
 end
 
 function chunker:process_chunk()
-  if not self.processing_list or #self.processing_list == 0 then
+  local processing_list = self.processing_list
+  if not processing_list or #processing_list == 0 then
     return
   end
 
-  local end_index = math.min(self.current_index + self.CHUNK_SIZE - 1, #self.processing_list)
-  for i = self.current_index, end_index do
-    local entity = self.processing_list[i]
+  local list_size = #processing_list
+  local current_index = self.current_index
+  local chunk_size = self.CHUNK_SIZE
+  local end_index = math.min(current_index + chunk_size - 1, list_size)
+  
+  for i = current_index, end_index do
+    local entity = processing_list[i]
     if entity.valid then
       self.on_process_entity(entity, self.partial_data, self.player_table)
     end
@@ -83,7 +88,7 @@ function chunker:process_chunk()
 
   self.current_index = end_index + 1
 
-  if self.current_index > #self.processing_list then
+  if end_index + 1 > list_size then
     self.on_completion(self.partial_data)
   end
 end
