@@ -109,12 +109,12 @@ local function add_bot_activity_row(bots_table, player_table)
     { sprite = "virtual-signal/signal-battery-mid-level",
       key = "charging-robot",
       tip = {"activity-row.robots-charging-tooltip"},
-      onwithpause = true,
+      onwithpause = false,
       include_construction = true },
     { sprite = "virtual-signal/signal-battery-low",
       key = "waiting-for-charge-robot",
       tip = {"activity-row.robots-waiting-tooltip"},
-      onwithpause = true,
+      onwithpause = false,
       include_construction = true },
     { sprite = "virtual-signal/signal-input",
       key = "picking",
@@ -596,10 +596,14 @@ function bots_gui.update(player, player_table, clearing)
   -- end
 end -- update contents
 
-function bots_gui.update_chunk_progress(player_table, chunk_progress)
+function bots_gui.update_activity_chunk_progress(player_table, progress)
   if player_table.ui == nil then return end
-  update_progressbar(player_table.ui.activity.progressbar, chunk_progress.activity_progress)
-  update_progressbar(player_table.ui["deliveries-row"].progressbar, chunk_progress.bot_progress)
+  update_progressbar(player_table.ui.activity.progressbar, progress)
+end
+
+function bots_gui.update_bot_chunk_progress(player_table, progress)
+  if player_table.ui == nil then return end
+  update_progressbar(player_table.ui["deliveries-row"].progressbar, progress)
 end
 
 ---@param cell_list LuaLogisticCell[]
@@ -612,9 +616,9 @@ local function find_charging_robots(player_table, cell_list)
   for _, cell in pairs(cell_list) do
     if cell and cell.valid and cell.charging_robots then
       for _, bot in pairs(cell.charging_robots) do
-        if player_table.is_included_robot(bot) then
-          table.insert(bot_list, bot)
-        end
+        -- if player_data.is_included_robot(bot) then
+        table.insert(bot_list, bot)
+        -- end
       end
     end
   end
@@ -658,7 +662,7 @@ local function get_item_list_and_focus_from_player_table(player_table, find_fn)
   if find_fn == nil or player_table == nil or player_table.network == nil or player_table.network.cells == nil then
     return {items = nil, item = nil, follow = false}
   end
-  filtered_list = find_fn(player_table, player_table.network.cells.item_list)
+  filtered_list = find_fn(player_table, player_table.network.cells)
   if filtered_list == nil or #filtered_list == 0 then
     return {items = nil, item = nil, follow = false}
   else

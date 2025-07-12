@@ -30,7 +30,7 @@ end
 
 function chunker:reset()
   -- Reset the counter and claim completion
-  self:initialise_chunking(nil, self.player_table)
+  self:initialise_chunking(nil, self.player_table or player_data.get_singleplayer_table())
   self.on_completion(self.partial_data)
 end
 

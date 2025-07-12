@@ -120,11 +120,10 @@ end
 local bot_chunker = chunker.new(bot_initialise, bot_processing, bot_chunks_done)
 
 
--- Main counting function, called periodically
-function bot_counter.gather_data(player_table)
-  local player = player_data.get_singleplayer_player()
-
+-- Get or update the network, return true if the network is valid and update player_table.network
+local function update_network(player, player_table)
   local network = player.force.find_logistic_network_by_position(player.position, player.surface)
+  
   if not player_table.network or not player_table.network.valid or not network or
       player_table.network.network_id ~= network.network_id then
     -- Clear all current state when we change networks
@@ -135,37 +134,64 @@ function bot_counter.gather_data(player_table)
     storage.bot_active_deliveries = {}
     player_table.network = network
   end
+  
+  return network and network.valid
+end
 
-  if network and network.valid then
-    storage.bot_items["logistic-robot-total"] = network.all_logistic_robots
-    storage.bot_items["logistic-robot-available"] = network.available_logistic_robots
-    if activity_chunker:is_done() then
-      activity_chunker:initialise_chunking(network.cells, player_table)
+-- Gather activity data (cells, charging robots, etc.)
+function bot_counter.gather_activity_data(player, player_table)
+  -- First update and validate network
+  if not update_network(player, player_table) then
+    return { current = 0, total = 0 }
+  end
+  
+  local network = player_table.network
+  
+  -- Store basic network stats
+  storage.bot_items["logistic-robot-total"] = network.all_logistic_robots
+  storage.bot_items["logistic-robot-available"] = network.available_logistic_robots
+  
+  -- Process cell data
+  if activity_chunker:is_done() then
+    activity_chunker:initialise_chunking(network.cells, player_table)
+  end
+  activity_chunker:process_chunk()
+  
+  return activity_chunker:get_progress()
+end
+
+-- Gather bot delivery data
+function bot_counter.gather_bot_data(player, player_table)
+  -- First update and validate network
+  if not update_network(player, player_table) then
+    return { current = 0, total = 0 }
+  end
+  
+  local network = player_table.network
+  local progress = { current = 0, total = 0 }
+  
+  if player_data.is_paused(player_table) then
+    return progress
+  end
+  
+  -- Process robot delivery data if needed
+  if player_table.settings.show_delivering or player_table.settings.show_history then
+    if bot_chunker:is_done() then
+      bot_chunker:initialise_chunking(network.logistic_robots, player_table)
     end
-    activity_chunker:process_chunk()
-
-    if not player_data.is_paused(player_table) then -- These are the expensive ones, so only do them when not paused
-      if player_table.settings.show_delivering or player_table.settings.show_history then
-        if bot_chunker:is_done() then
-          bot_chunker:initialise_chunking(network.logistic_robots, player_table)
-        end
-        bot_chunker:process_chunk()
-      else
-        storage.bot_items["delivering"] = nil
-        storage.bot_items["picking"] = nil
-      end
-
-      -- Find orders that have been delivered add to history
-      if player_table.settings.show_history then
-        manage_active_deliveries_history(bot_chunker)
-      end
-    end
-  end -- if network
-
-  return {
-    activity_progress = activity_chunker:get_progress(),
-    bot_progress = bot_chunker:get_progress(),
-  }
+    bot_chunker:process_chunk()
+    progress = bot_chunker:get_progress()
+  else
+    storage.bot_items["delivering"] = nil
+    storage.bot_items["picking"] = nil
+  end
+  
+  -- Update delivery history
+  if player_table.settings.show_history then
+    manage_active_deliveries_history(bot_chunker)
+  end
+  
+  return progress
 end
 
 return bot_counter
