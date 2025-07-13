@@ -4,15 +4,14 @@ local utils = require("scripts.utils")
 local player_data = require("scripts.player-data")
 local game_state = require("scripts.game-state")
 local ResultLocation = require("scripts.result-location")
+local localization = require("scripts.localization")
 
 -- Cache frequently used functions and constants
 local pairs = pairs
 local ipairs = ipairs
-local table_insert = table.insert
 local table_sort = table.sort
 local math_min = math.min
 local math_floor = math.floor
-local string_format = string.format
 local defines_robot_order_type_deliver = defines.robot_order_type.deliver
 local defines_robot_order_type_pickup = defines.robot_order_type.pickup
 
@@ -472,15 +471,17 @@ local function update_sorted_item_row(player_table, title, all_entries, sort_fn,
 
   local function getcelltooltip(entry)
     local tip
+    local quality_item = localization.get_quality_item(entry.quality_name, entry.item_name)
+    
     if number_field == "count" then
-      tip = {"", {"item-row.count-field-tooltip", entry.count, entry.quality_name or "normal", entry.item_name}}
+      tip = {"", {"item-row.count-field-tooltip", entry.count, quality_item}}
     elseif number_field == "ticks" then
-      tip = {"", {"item-row.ticks-field-tooltip", entry.ticks, entry.count, entry.quality_name or "normal", entry.item_name}}
+      tip = {"", {"item-row.ticks-field-tooltip", entry.ticks, entry.count, quality_item}}
     elseif number_field == "avg" then
       local int_part = math_floor(entry.avg)
       local decimal_part = math_floor((entry.avg - int_part) * 10 + 0.5)
       local ticks_formatted = int_part .. "." .. decimal_part
-      tip = {"", {"item-row.avg-field-tooltip", ticks_formatted, entry.count, entry.quality_name or "normal", entry.item_name}}
+      tip = {"", {"item-row.avg-field-tooltip", ticks_formatted, entry.count, quality_item}}
     end
     return tip
   end
