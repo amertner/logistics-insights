@@ -11,14 +11,16 @@ local cached_player_table = nil
 ---@field settings LuaCustomTable<string,ModSetting>
 ---@field bots_window_visible boolean
 ---@field network LuaLogisticNetwork|nil
----@field paused boolean
+---@field paused boolean -- Whether data gathering is paused
+---@field fixed_network boolean -- Whether to keep watching the current network even if the player moves away
 ---@field player_index uint
 function player_data.init(player_index)
   storage.players[player_index] = {
     settings = {},
     bots_window_visible = false, -- Start invisible
     network = nil,
-    paused = false
+    paused = false,
+    fixed_network = false,
   }
 end
 
@@ -62,6 +64,10 @@ end
 
 function player_data.check_network_changed(player, player_table)
   if not player or not player.valid then
+    return false
+  end
+
+  if player_table and player_table.fixed_network then
     return false
   end
 

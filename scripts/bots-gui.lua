@@ -639,14 +639,22 @@ local function update_network_row(player_table)
     end
   end
 
+  local idclicktip
+  if player_table.fixed_network then
+    idclicktip = "network-row.follow-network-tooltip"
+  else
+    idclicktip = "network-row.fixed-network-tooltip"
+  end
+
   if player_table.network then
+    local network_id = player_table.network.network_id
     local bottip
     if player_table.settings.pause_for_bots then
       bottip = "bots-gui.show-location-and-pause-tooltip"
     else
       bottip = "bots-gui.show-location-tooltip"
     end
-    update_element(player_table.ui.network.id, player_table.network.network_id, "network-row.network-id-tooltip", nil)
+    update_element(player_table.ui.network.id, network_id, "network-row.network-id-tooltip", idclicktip)
     update_element(player_table.ui.network.roboports, table_size(player_table.network.cells), "network-row.roboports-tooltip", "bots-gui.show-location-tooltip")
     update_element(player_table.ui.network.logistics_bots, player_table.network.all_logistic_robots, "network-row.logistic-bots-tooltip", bottip)
     update_element(player_table.ui.network.requesters, table_size(player_table.network.requesters), "network-row.requesters-tooltip", "bots-gui.show-location-tooltip")
@@ -654,7 +662,10 @@ local function update_network_row(player_table)
     update_element(player_table.ui.network.storages, table_size(player_table.network.storages), "network-row.storages-tooltip", "bots-gui.show-location-tooltip")
   else
     reset_network_buttons(player_table.ui.network, false, true, true, false)
-    update_element(player_table.ui.network.id, nil, "network-row.no-network-tooltip", nil)
+    if not player_table.fixed_network then
+      idclicktip = "network-row.no-network-clicktip"
+    end
+    update_element(player_table.ui.network.id, nil, "network-row.no-network-tooltip", idclicktip)
   end
 end -- update_network_row
 
@@ -906,6 +917,9 @@ function bots_gui.onclick(event)
       game_state.freeze_game()
     elseif event.element.name == "logistics-insights-step" then
       game_state.step_game()
+    elseif event.element.name == "logistics-insights-network-id" then
+      event.element.toggled = not event.element.toggled
+      player_table.fixed_network = event.element.toggled
     elseif utils.starts_with(event.element.name, "logistics-insights-sorted") then
       if event.element.name == "logistics-insights-sorted-clear" then
         -- Start/stop gathering deliveries

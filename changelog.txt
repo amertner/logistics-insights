@@ -2,6 +2,7 @@
 Version: 0.8.6
 Date: 2025-07-13
   Features:
+    - New ability to fix the network being watched, even if focus changes to another one
     - Added a Danish language translation (mostly to prove it can be done :)
     - Item names and quality in tooltips are now localized
   Changes:
