@@ -42,7 +42,6 @@ function player_data.update_settings(player, player_table)
   player_table.current_activity_size = 0
   index = game.connected_players[1].index
   ui = {}
-  assert(player_table.player_index == index, "Player index mismatch: " .. player_table.player_index .. " vs " .. index)
 end
 
 function player_data.get_singleplayer_table()

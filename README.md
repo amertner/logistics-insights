@@ -13,7 +13,8 @@ Logistics Insights can help:
 - When highlighting bots, the game temporarily freezes, allowing you to inspect the state of things
 - You can freeze and single-step the game manually as well
 - You can easily pause and restart gathering of what is being delivered to reduce impact on game speed
-- Hide and show the main window by clicking the "logistics bot icon window" that's always open.
+- Hide and show the main window by clicking the "logistics bot icon window" that's always open
+- Either analyse the network you're looking at, or keep analysing a specific one
 
 Logistics Insights focuses on a single bot network at a time, whether it's the one where the player is located or one you're looking at via the map view. It does not gather info on all networks at the same time.
 
