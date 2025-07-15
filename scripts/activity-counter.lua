@@ -34,7 +34,7 @@ function activity_counter.gather_data(player, player_table)
   local progress = { current = 0, total = 0 } -- Use local variable to avoid global access
   local network = player_table.network
   local bot_items = storage.bot_items       -- Cache the table lookup
-  if not network then
+  if not network or not network.valid then
     return progress
   end
 

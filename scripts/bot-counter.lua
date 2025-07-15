@@ -99,6 +99,9 @@ local function add_item_to_bot_deliveries(item_name, quality, count, partial_dat
 end
 
 local function add_bot_to_active_deliveries(bot, item_name, quality, count)
+  if not bot.valid then
+    return
+  end
   if storage.bot_active_deliveries[bot.unit_number] == nil then
     -- Order not seen before
     storage.bot_active_deliveries[bot.unit_number] = {
@@ -114,7 +117,7 @@ local function add_bot_to_active_deliveries(bot, item_name, quality, count)
 end
 
 local function bot_processing(bot, partial_data, player_table)
-  if bot.valid and table_size(bot.robot_order_queue) > 0 then
+  if bot and bot.valid and table_size(bot.robot_order_queue) > 0 then
     local order = bot.robot_order_queue[1]
     if order.type == defines_robot_order_type_deliver then
       partial_data.delivering_bots = (partial_data.delivering_bots or 0) + 1
@@ -157,7 +160,7 @@ function bot_counter.gather_bot_data(player, player_table)
   local network = player_table.network
   local progress = { current = 0, total = 0 }
 
-  if not network or player_data.is_paused(player_table) then
+  if not network or not network.valid or player_data.is_paused(player_table) then
     return progress
   end
   local show_delivering = player_table.settings.show_delivering
