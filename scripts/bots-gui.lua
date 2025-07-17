@@ -432,7 +432,10 @@ local function update_progressbar(progressbar, progress)
   end
 end
 
+
+-------------------------------------------------------------------------------
 -- Create main window and all rows needed based on settings
+-------------------------------------------------------------------------------
 function bots_gui.create_window(player, player_table)
   if player.gui.screen.logistics_insights_window then
     player.gui.screen.logistics_insights_window.destroy()
@@ -585,18 +588,25 @@ local function update_bot_activity_row(player_table)
     end
   end
 
+  local function get_robotstr(window, num)
+    if window.include_construction then
+      return {"bots-gui.format-all-robots", num}
+    else
+      return {"bots-gui.format-logistics-robots", num}
+    end
+  end
+
   if player_table.network then
     for key, window in pairs(player_table.ui.activity.cells) do
       if window.cell.valid then
+        -- Even if paused, the Total and Available robot counts are available
+        local is_active = not player_table.paused or key == "logistic-robot-total" or key == "logistic-robot-available"
         local num = storage.bot_items[key] or 0
         window.cell.number = num
-        local robotstr
-        if window.include_construction then
-          robotstr = {"bots-gui.format-all-robots", num}
-        else
-          robotstr = {"bots-gui.format-logistics-robots", num}
-        end
-        if window.clicktip then
+        window.cell.enabled = true
+        local robotstr = get_robotstr(window, num)
+        if window.clicktip and is_active then
+          -- Only show the "what happens if you click" tooltip if the button is active
           if window.onwithpause or not player_table.settings.pause_for_bots then
             window.cell.tooltip = {"", robotstr, window.tip, "\n", {"bots-gui.show-location-tooltip"}}
           else
@@ -605,9 +615,10 @@ local function update_bot_activity_row(player_table)
         else
           window.cell.tooltip = {"", robotstr, window.tip}
         end
+        window.cell.enabled = is_active
       end
     end
-  else
+  else -- No network, reset all activity buttons
     reset_activity_buttons(player_table.ui.activity.cells, false, true, true, false)
   end
 end -- update_bot_activity_row
@@ -716,6 +727,10 @@ local function update_network_row(player_table)
   end
 end -- update_network_row
 
+-------------------------------------------------------------------------------
+-- Main function to update the bots GUI, assumes all the elements exist
+-------------------------------------------------------------------------------
+
 function bots_gui.update(player, player_table, clearing)
   -- Update the bots table with current data, do not recreate it
   if not player or not player.valid or not player_table then
@@ -786,6 +801,10 @@ function bots_gui.update_bot_chunk_progress(player_table, progress)
     update_progressbar(player_table.ui["deliveries-row"].progressbar, progress)
   end
 end
+
+-------------------------------------------------------------------------------
+-- Functions to find items to highlight on the map when clicked
+-------------------------------------------------------------------------------
 
 ---@param cell_list LuaLogisticCell[]
 ---@return LuaEntity[]|nil  -- Returns a list of bots
