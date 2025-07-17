@@ -5,4 +5,7 @@ return {
   ["0.8.5"] = function()
     return true -- force reload of settings to load new ones
   end,
+  ["0.8.9"] = function()
+    return false -- force reload of settings to load new ones
+  end,
 }

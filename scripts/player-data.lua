@@ -1,5 +1,7 @@
 local player_data = {}
 
+local TickCounter = require("scripts.tick-counter")
+
 -- Cache frequently used functions for performance
 local math_max = math.max
 local math_ceil = math.ceil
@@ -19,6 +21,7 @@ function player_data.init(player_index)
     settings = {},
     bots_window_visible = false, -- Start invisible
     network = nil,
+    tick_counter = TickCounter.new(),
     paused = false,
     fixed_network = false,
   }
@@ -77,6 +80,7 @@ function player_data.check_network_changed(player, player_table)
   if not player_table_network or not player_table_network.valid or not network or
       player_table_network.network_id ~= network.network_id then
     player_table.network = network
+    player_table.tick_counter:reset() -- Reset the tick counter when network changes
     return true
   else
     return false
@@ -85,6 +89,9 @@ end
 
 function player_data.toggle_history_collection(player_table)
   player_table.paused = not player_table.paused
+  player_table.tick_counter:toggle()
+  assert(player_table.paused == player_table.tick_counter:is_paused(),
+         "PlayerData paused state should match TickCounter paused state")
 end
 
 function player_data.is_paused(player_table)

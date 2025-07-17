@@ -1,6 +1,7 @@
 local bots_gui = {}
 
 local utils = require("scripts.utils")
+local flib_format = require("__flib__.format")
 local player_data = require("scripts.player-data")
 local game_state = require("scripts.game-state")
 local ResultLocation = require("scripts.result-location")
@@ -627,6 +628,13 @@ local function update_network_row(player_table)
     end
   end
 
+  local function update_key_element(cell, value, main_completed_tooltip)
+    if cell and cell.valid then
+      cell.number = value
+      cell.tooltip = {"", main_completed_tooltip}
+    end
+  end
+
   local reset_network_buttons = function(ui_table, sprite, number, tip, disable)
     -- Reset all cells in the ui_table to empty
     for _, cell in pairs(ui_table) do
@@ -639,22 +647,61 @@ local function update_network_row(player_table)
     end
   end
 
-  local idclicktip
-  if player_table.fixed_network then
-    idclicktip = "network-row.follow-network-tooltip"
-  else
-    idclicktip = "network-row.fixed-network-tooltip"
+  local function create_networkid_information_tooltip(network, network_id, is_fixed, clicktip)
+    -- Line 1: Network ID: xyz (Dynamic/Fixed)
+    local tip
+    if is_fixed then
+      tip = {"network-row.network-id-tooltip", network_id, {"network-row.network-id-fixed-tooltip"}}
+    else
+      tip = {"network-row.network-id-tooltip", network_id, {"network-row.network-id-dynamic-tooltip"}}
+    end
+
+    --- Located on: (Planet)
+    if network.cells and #network.cells > 0 then
+      local cell = network.cells[1]
+      if cell and cell.valid and cell.owner and cell.owner.valid then
+        local surface = cell.owner.surface
+        if surface and surface.valid then          
+          tip = {"", tip, "\n", {"network-row.network-id-surface-tooltip", surface.name}}
+        end
+      end
+    end
+
+    -- History data: "Disabled in settings", "Paused", or "Collected for X ticks"
+    if player_table.settings.show_history then
+      local tickstr
+      if player_data.is_paused(player_table) then
+        tickstr =  flib_format.time(player_table.tick_counter:time_since_paused(), false)
+        tip = {"", tip, "\n", {"network-row.network-id-history", {"network-row.paused-for", tickstr}}}
+      else
+        tickstr = flib_format.time(player_table.tick_counter:total_unpaused(), false)
+        tip = {"", tip, "\n", {"network-row.network-id-history", {"network-row.network-id-history-collected-for", tickstr}}}
+      end
+    else
+      tip = {"", tip, "\n", {"network-row.network-id-history", {"network-row.network-id-history-disabled"}}}
+    end
+
+    return {"", tip, "\n\n", {clicktip}}
   end
 
-  if player_table.network then
+  local networkidclicktip
+  if player_table.fixed_network then
+    networkidclicktip = "network-row.follow-network-tooltip"
+  else
+    networkidclicktip = "network-row.fixed-network-tooltip"
+  end
+
+  if player_table.network and player_table.network.valid then
     local network_id = player_table.network.network_id
+    local networkidtip = create_networkid_information_tooltip(player_table.network, network_id, player_table.fixed_network, networkidclicktip)
+    update_key_element(player_table.ui.network.id, network_id, networkidtip)
+
     local bottip
     if player_table.settings.pause_for_bots then
       bottip = "bots-gui.show-location-and-pause-tooltip"
     else
       bottip = "bots-gui.show-location-tooltip"
     end
-    update_element(player_table.ui.network.id, network_id, "network-row.network-id-tooltip", idclicktip)
     update_element(player_table.ui.network.roboports, table_size(player_table.network.cells), "network-row.roboports-tooltip", "bots-gui.show-location-tooltip")
     update_element(player_table.ui.network.logistics_bots, player_table.network.all_logistic_robots, "network-row.logistic-bots-tooltip", bottip)
     update_element(player_table.ui.network.requesters, table_size(player_table.network.requesters), "network-row.requesters-tooltip", "bots-gui.show-location-tooltip")
@@ -663,9 +710,9 @@ local function update_network_row(player_table)
   else
     reset_network_buttons(player_table.ui.network, false, true, true, false)
     if not player_table.fixed_network then
-      idclicktip = "network-row.no-network-clicktip"
+      networkidclicktip = "network-row.no-network-clicktip"
     end
-    update_element(player_table.ui.network.id, nil, "network-row.no-network-tooltip", idclicktip)
+    update_element(player_table.ui.network.id, nil, "network-row.no-network-tooltip", networkidclicktip)
   end
 end -- update_network_row
 
@@ -911,27 +958,31 @@ function bots_gui.onclick(event)
     local player = player_data.get_singleplayer_player()
     local player_table = player_data.get_singleplayer_table()
     if event.element.name == "logistics-insights-unfreeze" then
+      -- Unfreeze the game after it's been frozen
       ResultLocation.clear_markers(player)
       game_state.unfreeze_game()
     elseif event.element.name == "logistics-insights-freeze" then
+      -- Freeze the game so player can inspect the state
       game_state.freeze_game()
     elseif event.element.name == "logistics-insights-step" then
+      -- Single-step the game to see what happens
       game_state.step_game()
     elseif event.element.name == "logistics-insights-network-id" then
+      -- Clicking the network ID button toggles between fixed and dynamic network
       event.element.toggled = not event.element.toggled
       player_table.fixed_network = event.element.toggled
-    elseif utils.starts_with(event.element.name, "logistics-insights-sorted") then
-      if event.element.name == "logistics-insights-sorted-clear" then
-        -- Start/stop gathering deliveries
-        storage.delivery_history = {}
-        bots_gui.update(player, player_table, true)
-      elseif event.element.name == "logistics-insights-sorted-startstop" then
-        player_data.toggle_history_collection(player_table)
-        update_startstop_button(player_table)
-        bots_gui.update(player, player_table, false)
-      end
+    elseif event.element.name == "logistics-insights-sorted-clear" then
+      -- Clear the delivery history and clear the timer
+      storage.delivery_history = {}
+      player_table.tick_counter:clear()
+      bots_gui.update(player, player_table, true)
+    elseif event.element.name == "logistics-insights-sorted-startstop" then
+      -- Start/stop collecting delivery history
+      player_data.toggle_history_collection(player_table)
+      update_startstop_button(player_table)
+      bots_gui.update(player, player_table, false)
     elseif event.element.tags and player then
-      -- right-click: also focus on random element
+      -- Highlight elements. If right-click, also focus on random element
       bots_gui.highlight_locations_on_map(player, player_table, event.element, event.button == defines.mouse_button_type.right)
     end
   end

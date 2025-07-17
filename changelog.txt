@@ -1,7 +1,12 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.8.9
+Date: 2025-07-17
+  Features:
+    - More details about the network being monitored, including time active and location
+---------------------------------------------------------------------------------------------------
 Version: 0.8.8
 Date: 2025-07-15
-  Bugfixeds:
+  Bugfixes:
     - Fixed a crash when the network being watched was entirely destroyed
 ---------------------------------------------------------------------------------------------------
 Version: 0.8.7
