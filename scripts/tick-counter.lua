@@ -6,6 +6,8 @@
 local TickCounter = {}
 TickCounter.__index = TickCounter
 
+---@class TickCounter
+
 -- Create a new tick counter
 function TickCounter.new(initial_tick)
   local self = setmetatable({}, TickCounter)

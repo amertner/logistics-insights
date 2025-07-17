@@ -178,7 +178,7 @@ local function add_bot_activity_row(bots_table, player_table)
         sprite = icon.sprite,
         style = "slot_button",
         name = cellname, -- "logistics-insights-activity-" .. i,
-        enabled = icon.onwithpause or not player_table.paused,
+        enabled = icon.onwithpause or not player_data.is_paused(player_table),
         tags = { follow = true }
       },
     }
@@ -359,7 +359,7 @@ local function create_bots_table(player, player_table)
     add_sorted_item_row(player_table, bots_table, "deliveries-row", "startstop", true)
   end
 
-  if player_table.settings.show_history and storage.delivery_history and not player_table.paused then
+  if player_table.settings.show_history and storage.delivery_history and not player_table.history_timer:is_paused() then
     add_sorted_item_row(player_table, bots_table, "totals-row", "clear", false)
     add_sorted_item_row(player_table, bots_table, "avgticks-row", nil, false)
   end
@@ -491,7 +491,7 @@ local function update_sorted_item_row(player_table, title, all_entries, sort_fn,
   end
 
   -- If paused, just disable all the fields, unless we just cleared history
-  if player_table.paused and not clearing then
+  if player_data.is_paused(player_table) and not clearing then
     for i = 1, player_table.settings.max_items do
       local cell = player_table.ui[title].cells[i]
       cell.enabled = false
@@ -554,17 +554,19 @@ local function update_sorted_item_row(player_table, title, all_entries, sort_fn,
   local count = 0
   for _, entry in ipairs(sorted_entries) do
     if count >= player_table.settings.max_items then break end
+    if not player_table.ui[title] then break end
     local cell = player_table.ui[title].cells[count + 1]
     cell.sprite = "item/" .. entry.item_name
     cell.quality = entry.quality_name or "normal"
     cell.number = entry[number_field]
     cell.tooltip = getcelltooltip(entry)
-    cell.enabled = not player_table.paused
+    cell.enabled = not player_data.is_paused(player_table)
     count = count + 1
   end
 
   -- Pad with blank elements
   while count < player_table.settings.max_items do
+    if not player_table.ui[title] then break end
     local cell = player_table.ui[title].cells[count + 1]
     cell.sprite = ""
     cell.tooltip = ""
@@ -600,7 +602,8 @@ local function update_bot_activity_row(player_table)
     for key, window in pairs(player_table.ui.activity.cells) do
       if window.cell.valid then
         -- Even if paused, the Total and Available robot counts are available
-        local is_active = not player_table.paused or key == "logistic-robot-total" or key == "logistic-robot-available"
+        local is_active = not player_data.is_paused(player_table) or
+                          key == "logistic-robot-total" or key == "logistic-robot-available"
         local num = storage.bot_items[key] or 0
         window.cell.number = num
         window.cell.enabled = true
@@ -682,10 +685,10 @@ local function update_network_row(player_table)
     if player_table.settings.show_history then
       local tickstr
       if player_data.is_paused(player_table) then
-        tickstr =  flib_format.time(player_table.tick_counter:time_since_paused(), false)
+        tickstr =  flib_format.time(player_table.history_timer:time_since_paused(), false)
         tip = {"", tip, "\n", {"network-row.network-id-history", {"network-row.paused-for", tickstr}}}
       else
-        tickstr = flib_format.time(player_table.tick_counter:total_unpaused(), false)
+        tickstr = flib_format.time(player_table.history_timer:total_unpaused(), false)
         tip = {"", tip, "\n", {"network-row.network-id-history", {"network-row.network-id-history-collected-for", tickstr}}}
       end
     else
@@ -993,7 +996,7 @@ function bots_gui.onclick(event)
     elseif event.element.name == "logistics-insights-sorted-clear" then
       -- Clear the delivery history and clear the timer
       storage.delivery_history = {}
-      player_table.tick_counter:clear()
+      player_table.history_timer:clear()
       bots_gui.update(player, player_table, true)
     elseif event.element.name == "logistics-insights-sorted-startstop" then
       -- Start/stop collecting delivery history

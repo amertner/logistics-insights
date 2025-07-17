@@ -13,16 +13,15 @@ local cached_player_table = nil
 ---@field settings LuaCustomTable<string,ModSetting>
 ---@field bots_window_visible boolean
 ---@field network LuaLogisticNetwork|nil
----@field paused boolean -- Whether data gathering is paused
 ---@field fixed_network boolean -- Whether to keep watching the current network even if the player moves away
+---@field history_timer TickCounter
 ---@field player_index uint
 function player_data.init(player_index)
   storage.players[player_index] = {
     settings = {},
     bots_window_visible = false, -- Start invisible
     network = nil,
-    tick_counter = TickCounter.new(),
-    paused = false,
+    history_timer = TickCounter.new(),
     fixed_network = false,
   }
 end
@@ -80,7 +79,7 @@ function player_data.check_network_changed(player, player_table)
   if not player_table_network or not player_table_network.valid or not network or
       player_table_network.network_id ~= network.network_id then
     player_table.network = network
-    player_table.tick_counter:reset() -- Reset the tick counter when network changes
+    player_table.history_timer:reset() -- Reset the tick counter when network changes
     return true
   else
     return false
@@ -88,14 +87,11 @@ function player_data.check_network_changed(player, player_table)
 end
 
 function player_data.toggle_history_collection(player_table)
-  player_table.paused = not player_table.paused
-  player_table.tick_counter:toggle()
-  assert(player_table.paused == player_table.tick_counter:is_paused(),
-         "PlayerData paused state should match TickCounter paused state")
+  player_table.history_timer:toggle()
 end
 
 function player_data.is_paused(player_table)
-  return player_table.paused or
+  return player_table.history_timer:is_paused() or
       (player_table.settings.pause_while_hidden and not player_table.bots_window_visible)
 end
 
@@ -138,7 +134,36 @@ function player_data.refresh(player, player_table)
   paused_is_irrelevant = not player_table.settings.show_delivering and not player_table.settings.show_history
   player_data.update_settings(player, player_table)
   if paused_is_irrelevant and (player_table.settings.show_delivering or player_table.settings.show_history) then
-    player_table.paused = false -- unpause if it was paused without any effect
+    -- unpause if it was paused without any effect
+    player_table.history_timer:resume()
+  end
+end
+
+-- Helper function to restore metatable connections for TickCounter objects
+local function restore_tick_counter(counter)
+  if counter and type(counter) == "table" then
+    -- Check if this looks like a TickCounter object
+    if counter.start_tick and counter.paused ~= nil then
+      -- Reconnect the metatable
+      setmetatable(counter, TickCounter)
+      return true
+    end
+  end
+  return false
+end
+
+-- Restore metatables for all tick counters
+function player_data.restore_tick_counters()
+  if not storage or not storage.players then
+    return
+  end
+  
+  -- Go through all player data and restore any TickCounter objects
+  for _, player_table in pairs(storage.players) do
+    if player_table then
+      -- Restore the history_timer
+      restore_tick_counter(player_table.history_timer)
+    end
   end
 end
 
