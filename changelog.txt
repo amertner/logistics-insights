@@ -3,8 +3,10 @@ Version: 0.8.9
 Date: 2025-07-18
   Features:
     - More details about the network being monitored, including time active, paused and location
+    - Added a settings button to easily open the mod settings
   Bugfixes:
     - When paused, the relevant buttons in the Activity row are now disabled
+    - Don't show the Deliveries row if disabled, even if it's calculated to show History
 ---------------------------------------------------------------------------------------------------
 Version: 0.8.8
 Date: 2025-07-15

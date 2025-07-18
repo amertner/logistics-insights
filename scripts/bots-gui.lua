@@ -355,7 +355,7 @@ local function create_bots_table(player, player_table)
 
   bots_table.clear()
 
-  if show_deliveries(player_table) then
+  if player_table.settings.show_delivering then
     add_sorted_item_row(player_table, bots_table, "deliveries-row", "startstop", true)
   end
 
@@ -757,7 +757,7 @@ function bots_gui.update(player, player_table, clearing)
 
   bots_gui.ensure_ui_consistency(player, player_table)
 
-  if show_deliveries(player_table) then
+  if player_table.settings.show_delivering then
     update_sorted_item_row(
       player_table,
       "deliveries-row",
