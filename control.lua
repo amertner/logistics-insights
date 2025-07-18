@@ -1,4 +1,4 @@
-local migration = require("__flib__.migration")
+local flib_migration = require("__flib__.migration")
 
 local player_data = require("scripts.player-data")
 local bot_counter = require("scripts.bot-counter")
@@ -6,7 +6,7 @@ local activity_counter = require("scripts.activity-counter")
 local controller_gui = require("scripts.controller-gui")
 local bots_gui = require("scripts.bots-gui")
 local utils = require("scripts.utils")
-local migrations = require("scripts.migrations")
+local li_migrations = require("scripts.migrations")
 
 ---@alias SurfaceName string
 
@@ -17,21 +17,9 @@ local migrations = require("scripts.migrations")
 
 -- STORAGE
 
-local function init_storages()
-  storage.bot_items = {}
-  storage.bot_deliveries = {}
-  storage.bot_active_deliveries = {}
-  storage.delivery_history = {}
-  storage.players = {}
-  for i, player in pairs(game.players) do
-    player_data.init(i)
-    player_data.refresh(player, storage.players[i])
-  end
-end
-
 script.on_init(function()
   -- Called when the mod is first added to a save
-  init_storages()
+  player_data.init_storages()
   local player = player_data.get_singleplayer_player()
   if player then
     controller_gui.create_window(player)
@@ -41,6 +29,9 @@ end)
 
 script.on_load(function()
   -- Called when the mod is loaded from a save where it was already added
+
+  -- Reset cached references when game is loaded
+  player_data.reset_cache()
 
   -- Restore all TickCounter metatables when game is loaded
   player_data.restore_tick_counters()
@@ -58,6 +49,8 @@ end)
 
 script.on_event(defines.events.on_player_removed, function(e)
   storage.players[e.player_index] = nil
+  -- Reset cached references as player configuration has changed
+  player_data.reset_cache()
 end)
 
 script.on_event(
@@ -78,13 +71,11 @@ script.on_event(
 -- SETTINGS
 
 script.on_configuration_changed(function(e)
-  if migration.on_config_changed(e, migrations) then
-    init_storages()
-    for i, player in pairs(game.players) do
-      local player_table = storage.players[player.index]
-      player_data.refresh(player, storage.players[i])
-    end
-  end
+  -- Reset cached references when configuration changes
+  player_data.reset_cache()
+
+  -- Run migrations if the mod version has changed
+  flib_migration.on_config_changed(e, li_migrations)
 end)
 
 script.on_event(defines.events.on_runtime_mod_setting_changed, function(e)

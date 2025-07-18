@@ -26,6 +26,18 @@ function player_data.init(player_index)
   }
 end
 
+function player_data.init_storages()
+  storage.bot_items = {}
+  storage.bot_deliveries = {}
+  storage.bot_active_deliveries = {}
+  storage.delivery_history = {}
+  storage.players = {}
+  for i, player in pairs(game.players) do
+    player_data.init(i)
+    player_data.refresh(player, storage.players[i])
+  end
+end
+
 function player_data.update_settings(player, player_table)
   local mod_settings = player.mod_settings
   local settings = {
@@ -42,23 +54,40 @@ function player_data.update_settings(player, player_table)
   player_table.settings = settings
   player_table.player_index = player.index
   player_table.current_activity_size = 0
-  index = game.connected_players[1].index
-  ui = {}
+  player_table.ui = nil
 end
 
 function player_data.get_singleplayer_table()
   -- In singleplayer mode, there is only one player. Return the player_table.
   if not cached_player_table then
-    local player = game.connected_players[1]
-    cached_player_table = storage.players[player.index]
+    -- Make sure there are connected players before trying to access them
+    if #game.connected_players > 0 then
+      local player = game.connected_players[1]
+      if player and player.valid and storage and storage.players then
+        cached_player_table = storage.players[player.index]
+      else
+        -- Player or storage not valid, return nil
+        return nil
+      end
+    else
+      -- No players connected, return nil
+      return nil
+    end
   end
   return cached_player_table
 end
 
 function player_data.get_singleplayer_player()
   -- In singleplayer mode, there is only one player. Return the player.
-  if not cached_player then
-    cached_player = game.connected_players[1]
+  -- Check if cached player is nil or no longer valid
+  if not cached_player or not cached_player.valid then
+    -- Make sure there are connected players before trying to access them
+    if #game.connected_players > 0 then
+      cached_player = game.connected_players[1]
+    else
+      -- No players connected, return nil
+      return nil
+    end
   end
   return cached_player
 end
@@ -91,8 +120,13 @@ function player_data.toggle_history_collection(player_table)
 end
 
 function player_data.is_paused(player_table)
-  return player_table.history_timer:is_paused() or
-      (player_table.settings.pause_while_hidden and not player_table.bots_window_visible)
+  if player_table.history_timer then
+    return player_table.history_timer:is_paused() or
+        (player_table.settings.pause_while_hidden and not player_table.bots_window_visible)
+  else
+    -- History timer may not be initialized yet, so ignore it.
+    return (player_table.settings.pause_while_hidden and not player_table.bots_window_visible)
+  end
 end
 
 function player_data.is_included_robot(bot)
@@ -131,7 +165,11 @@ function player_data.register_ui(player_table, name)
 end
 
 function player_data.refresh(player, player_table)
-  paused_is_irrelevant = not player_table.settings.show_delivering and not player_table.settings.show_history
+  if not player_table or not player_table.settings then
+    return
+  end
+  
+  local paused_is_irrelevant = not player_table.settings.show_delivering and not player_table.settings.show_history
   player_data.update_settings(player, player_table)
   if paused_is_irrelevant and (player_table.settings.show_delivering or player_table.settings.show_history) then
     -- unpause if it was paused without any effect
@@ -165,6 +203,12 @@ function player_data.restore_tick_counters()
       restore_tick_counter(player_table.history_timer)
     end
   end
+end
+
+-- Reset cached references - should be called when game is loaded or configuration changes
+function player_data.reset_cache()
+  cached_player = nil
+  cached_player_table = nil
 end
 
 return player_data

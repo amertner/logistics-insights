@@ -359,7 +359,7 @@ local function create_bots_table(player, player_table)
     add_sorted_item_row(player_table, bots_table, "deliveries-row", "startstop", true)
   end
 
-  if player_table.settings.show_history and storage.delivery_history and not player_table.history_timer:is_paused() then
+  if player_table.settings.show_history and storage.delivery_history then
     add_sorted_item_row(player_table, bots_table, "totals-row", "clear", false)
     add_sorted_item_row(player_table, bots_table, "avgticks-row", nil, false)
   end
@@ -699,7 +699,11 @@ local function update_network_row(player_table)
         tickstr =  flib_format.time(player_table.history_timer:time_since_paused(), false)
         tip = {"", tip, "\n", {"network-row.network-id-history", {"network-row.paused-for", tickstr}}}
       else
-        tickstr = flib_format.time(player_table.history_timer:total_unpaused(), false)
+        if player_table.history_timer then
+          tickstr = flib_format.time(player_table.history_timer:total_unpaused(), false)
+        else
+          tickstr = "n/a"
+        end
         tip = {"", tip, "\n", {"network-row.network-id-history", {"network-row.network-id-history-collected-for", tickstr}}}
       end
     else
