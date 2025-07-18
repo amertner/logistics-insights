@@ -601,9 +601,15 @@ local function update_bot_activity_row(player_table)
   if player_table.network then
     for key, window in pairs(player_table.ui.activity.cells) do
       if window.cell.valid then
+        local no_data = false
         -- Even if paused, the Total and Available robot counts are available
         local is_active = not player_data.is_paused(player_table) or
                           key == "logistic-robot-total" or key == "logistic-robot-available"
+         -- If real time delivery is disabled, the Pickup/Delivery buttons should be inactive too
+        if is_active and (key == "picking" or key == "delivering") and not show_deliveries(player_table) then
+          is_active = false
+          no_data = true
+        end
         local num = storage.bot_items[key] or 0
         window.cell.number = num
         window.cell.enabled = true
@@ -616,7 +622,12 @@ local function update_bot_activity_row(player_table)
             window.cell.tooltip = {"", robotstr, window.tip, "\n", {"bots-gui.show-location-and-pause-tooltip"}}
           end
         else
-          window.cell.tooltip = {"", robotstr, window.tip}
+          if no_data then
+            window.cell.tooltip = ""
+            window.cell.number = nil
+          else
+            window.cell.tooltip = {"", robotstr, window.tip}
+          end
         end
         window.cell.enabled = is_active
       end

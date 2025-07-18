@@ -2,6 +2,8 @@ local controller_gui = {}
 
 local player_data = require("scripts.player-data")
 local bots_gui = require("scripts.bots-gui")
+-- Make sure we have access to storage
+_ENV.storage = _ENV.storage or {}
 
 -- Show the mini window (call this on player join or GUI update)
 function controller_gui.create_window(player)
@@ -25,11 +27,15 @@ function controller_gui.create_window(player)
   }
 end
 
-local function get_status(paused)
-  if paused then
-    return { "controller-gui.paused" }
+local function get_status(paused, enabled)
+  if not enabled then
+    return { "controller-gui.disabled" }
   else
-    return { "controller-gui.active" }
+    if paused then
+      return { "controller-gui.paused" }
+    else
+      return { "controller-gui.active" }
+    end
   end
 end
 
@@ -47,12 +53,10 @@ function controller_gui.update_window(player, player_table)
       total_count = storage.bot_items["logistic-robot-total"]
       gui.logistics_insights_toggle_main.number = idle_count
       tip = { "controller-gui.main_tooltip", idle_count, total_count, player_table.network.network_id }
-      status = get_status(player_data.is_paused(player_table))
-      if player_table.settings.show_delivering then
-        tip = { "", tip, { "controller-gui.main_tooltip_delivering", status } }
-      end
-      if player_table.settings.show_history then tip = { "", tip, { "controller-gui.main_tooltip_history", status } } end
-      if player_table.settings.show_activity then tip = { "", tip, { "controller-gui.main_tooltip_activity", status } } end
+      local paused = player_data.is_paused(player_table)
+      tip = { "", tip, { "controller-gui.main_tooltip_delivering", get_status(paused, player_table.settings.show_delivering) } }
+      tip = { "", tip, { "controller-gui.main_tooltip_history", get_status(paused, player_table.settings.show_history) } } 
+      tip = { "", tip, { "controller-gui.main_tooltip_activity", get_status(paused, player_table.settings.show_activity) } } 
     else
       gui.logistics_insights_toggle_main.number = nil
       tip = { "controller-gui.no-network" }
