@@ -71,10 +71,12 @@ function controller_gui.onclick(event)
     local player = game.get_player(event.player_index)
     if not player or not player.valid then return end
 
-    bots_gui.toggle_window_visible(player)
+    if event.button == defines.mouse_button_type.left then
+      bots_gui.toggle_window_visible(player)
 
-    player_table = player_data.get_singleplayer_table()
-    controller_gui.update_window(player, player_table)
+      player_table = player_data.get_singleplayer_table()
+      controller_gui.update_window(player, player_table)
+    end
   end
 end
 

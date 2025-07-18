@@ -686,8 +686,9 @@ local function update_network_row(player_table)
       local cell = network.cells[1]
       if cell and cell.valid and cell.owner and cell.owner.valid then
         local surface = cell.owner.surface
-        if surface and surface.valid then          
-          tip = {"", tip, "\n", {"network-row.network-id-surface-tooltip", surface.name}}
+        if surface and surface.valid then
+          local sprite = "[space-location="..surface.name.."]"
+          tip = {"", tip, "\n", {"network-row.network-id-surface-tooltip", sprite}}
         end
       end
     end
