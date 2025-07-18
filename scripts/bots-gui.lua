@@ -692,7 +692,7 @@ local function update_network_row(player_table)
       end
     end
 
-    -- History data: "Disabled in settings", "Paused", or "Collected for X ticks"
+    -- History data: "Disabled in settings", "Paused", or "Collected for <time>"
     if player_table.settings.show_history then
       local tickstr
       if player_data.is_paused(player_table) then
@@ -1011,7 +1011,9 @@ function bots_gui.onclick(event)
     elseif event.element.name == "logistics-insights-sorted-clear" then
       -- Clear the delivery history and clear the timer
       storage.delivery_history = {}
-      player_table.history_timer:clear()
+      if player_table and player_table.history_timer then
+        player_table.history_timer:reset()
+      end
       bots_gui.update(player, player_table, true)
     elseif event.element.name == "logistics-insights-sorted-startstop" then
       -- Start/stop collecting delivery history
