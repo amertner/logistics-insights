@@ -1,8 +1,10 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.8.9
-Date: 2025-07-17
+Date: 2025-07-18
   Features:
-    - More details about the network being monitored, including time active and location
+    - More details about the network being monitored, including time active, paused and location
+  Bugfixes:
+    - When paused, the relevant buttons in the Activity row are now disabled
 ---------------------------------------------------------------------------------------------------
 Version: 0.8.8
 Date: 2025-07-15
