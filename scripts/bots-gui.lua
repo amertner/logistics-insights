@@ -4,6 +4,7 @@ local utils = require("scripts.utils")
 local flib_format = require("__flib__.format")
 local player_data = require("scripts.player-data")
 local game_state = require("scripts.game-state")
+local tooltips_helper = require("scripts.tooltips-helper")
 local ResultLocation = require("scripts.result-location")
 local localization = require("scripts.localization")
 
@@ -674,42 +675,14 @@ local function update_network_row(player_table)
 
   local function create_networkid_information_tooltip(network, network_id, is_fixed, clicktip)
     -- Line 1: Network ID: xyz (Dynamic/Fixed)
-    local tip
-    if is_fixed then
-      tip = {"network-row.network-id-tooltip", network_id, {"network-row.network-id-fixed-tooltip"}}
-    else
-      tip = {"network-row.network-id-tooltip", network_id, {"network-row.network-id-dynamic-tooltip"}}
-    end
+    local tip = {}
+    tip = tooltips_helper.add_networkid_tip(tip, network_id, is_fixed)
 
     --- Located on: (Planet)
-    if network.cells and #network.cells > 0 then
-      local cell = network.cells[1]
-      if cell and cell.valid and cell.owner and cell.owner.valid then
-        local surface = cell.owner.surface
-        if surface and surface.valid then
-          local sprite = "[space-location="..surface.name.."]"
-          tip = {"", tip, "\n", {"network-row.network-id-surface-tooltip", sprite}}
-        end
-      end
-    end
+    tip = tooltips_helper.add_network_surface_tip(tip, network)
 
     -- History data: "Disabled in settings", "Paused", or "Collected for <time>"
-    if player_table.settings.show_history then
-      local tickstr
-      if player_data.is_paused(player_table) then
-        tickstr =  flib_format.time(player_table.history_timer:time_since_paused(), false)
-        tip = {"", tip, "\n", {"network-row.network-id-history", {"network-row.paused-for", tickstr}}}
-      else
-        if player_table.history_timer then
-          tickstr = flib_format.time(player_table.history_timer:total_unpaused(), false)
-        else
-          tickstr = "n/a"
-        end
-        tip = {"", tip, "\n", {"network-row.network-id-history", {"network-row.network-id-history-collected-for", tickstr}}}
-      end
-    else
-      tip = {"", tip, "\n", {"network-row.network-id-history", {"network-row.network-id-history-disabled"}}}
-    end
+    tip = tooltips_helper.add_network_history_tip(tip, player_table)
 
     return {"", tip, "\n\n", {clicktip}}
   end

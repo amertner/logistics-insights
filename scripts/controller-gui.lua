@@ -1,7 +1,9 @@
 local controller_gui = {}
 
 local player_data = require("scripts.player-data")
+local tooltips_helper = require("scripts.tooltips-helper")
 local bots_gui = require("scripts.bots-gui")
+
 -- Make sure we have access to storage
 _ENV.storage = _ENV.storage or {}
 
@@ -48,14 +50,20 @@ function controller_gui.update_window(player, player_table)
   end
 
   if gui.logistics_insights_toggle_main then
+    local tip = {}
     if player_table.network then
       idle_count = storage.bot_items["logistic-robot-available"]
       total_count = storage.bot_items["logistic-robot-total"]
       gui.logistics_insights_toggle_main.number = idle_count
-      tip = { "controller-gui.main_tooltip", idle_count, total_count, player_table.network.network_id }
+
+      tip = tooltips_helper.add_networkid_tip(tip,  player_table.network.network_id, player_table.fixed_network)
+      tip = tooltips_helper.add_network_surface_tip(tip, player_table.network)
+      tip = tooltips_helper.add_bots_idle_and_total_tip(tip, player_table.network, idle_count, total_count)
+      tip = tooltips_helper.add_empty_line(tip)
+
       local paused = player_data.is_paused(player_table)
       tip = { "", tip, { "controller-gui.main_tooltip_delivering", get_status(paused, player_table.settings.show_delivering) } }
-      tip = { "", tip, { "controller-gui.main_tooltip_history", get_status(paused, player_table.settings.show_history) } } 
+      tip = tooltips_helper.add_network_history_tip(tip, player_table)
       tip = { "", tip, { "controller-gui.main_tooltip_activity", get_status(paused, player_table.settings.show_activity) } } 
     else
       gui.logistics_insights_toggle_main.number = nil
