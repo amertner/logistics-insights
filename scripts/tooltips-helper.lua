@@ -37,7 +37,14 @@ function tooltips_helper.add_network_surface_tip(tip, network)
     local surface = cell.owner.surface
     if surface and surface.valid then
       local sprite = surface_cache:get(surface.name)
-      tip = {"", tip, "\n", {"network-row.network-id-surface-tooltip", sprite}}
+      local lname
+      if surface and surface.valid and surface.planet and surface.planet.prototype then
+        -- Use the planet's localised name for the tooltip
+        lname = surface.planet.prototype.localised_name
+      else
+        lname = surface.name
+      end
+      tip = {"", tip, "\n", {"network-row.network-id-surface-tooltip", sprite, lname}}
     end
   end
   return tip
