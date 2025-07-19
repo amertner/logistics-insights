@@ -48,6 +48,15 @@ function TickCounter:toggle()
   end
 end
 
+-- Set pause state directly
+function TickCounter:set_paused(paused)
+  if paused then
+    return self:pause()
+  else
+    return self:resume()
+  end
+end
+
 -- Reset the counter
 function TickCounter:reset()
   self.start_tick = game.tick

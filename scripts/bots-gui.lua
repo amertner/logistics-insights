@@ -23,6 +23,16 @@ function bots_gui.toggle_window_visible(player)
   end
   local player_table = storage.players[player.index]
   player_table.bots_window_visible = not player_table.bots_window_visible
+  if player_table.history_timer and player_table.settings.pause_while_hidden then
+    if not player_table.bots_window_visible then
+      -- History collection pauses when the window is minimized, but remember paused state
+      player_table.saved_paused_state = player_table.history_timer:is_paused()
+      player_table.history_timer:pause()
+    else
+      -- Restore prior paused state
+      player_table.history_timer:set_paused(player_table.saved_paused_state)
+    end
+  end
 
   local gui = player.gui.screen
   if not gui.logistics_insights_window then
