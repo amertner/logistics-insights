@@ -94,24 +94,20 @@ function localization.clear_caches()
 end
 
 -- Initialize when game is ready
-local function on_init()
+function localization.on_init()
   initialize_quality_name_cache()
 end
 
-local function on_configuration_changed()
+function localization.on_configuration_changed()
   -- Clear caches on mod or game configuration changes
   localization.clear_caches()
   initialize_quality_name_cache()
 end
 
 -- Also initialize on mods loaded, which ensures prototypes are available
-local function on_load()
+function localization.on_load()
   initialize_quality_name_cache()
 end
-
-script.on_init(on_init)
-script.on_load(on_load)
-script.on_configuration_changed(on_configuration_changed)
 
 -- Return the module
 return localization
