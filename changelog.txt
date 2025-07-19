@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.9.0
+Date: ????
+  Features:
+    - Added a standard Factorio shortcut to toggle the Logistics Insights window, made the mini window optional
+---------------------------------------------------------------------------------------------------
 Version: 0.8.9
 Date: 2025-07-19
   Features:

@@ -50,6 +50,7 @@ function player_data.update_settings(player, player_table)
     ui_update_interval = mod_settings["li-ui-update-interval"].value,
     pause_for_bots = mod_settings["li-pause-for-bots"].value,
     pause_while_hidden = mod_settings["li-pause-while-hidden"].value,
+    show_mini_window = mod_settings["li-show-mini-window"].value,
   }
   player_table.settings = settings
   player_table.player_index = player.index
@@ -175,6 +176,9 @@ function player_data.refresh(player, player_table)
     -- unpause if it was paused without any effect
     player_table.history_timer:resume()
   end
+  
+  -- Initialize shortcut toggle state based on window visibility
+  player.set_shortcut_toggled("logistics-insights-toggle", player_table.bots_window_visible)
 end
 
 -- Helper function to restore metatable connections for TickCounter objects

@@ -8,6 +8,9 @@ local bots_gui = require("scripts.bots-gui")
 local utils = require("scripts.utils")
 local li_migrations = require("scripts.migrations")
 
+-- Shortcut constants
+local SHORTCUT_TOGGLE = "logistics-insights-toggle"
+
 ---@alias SurfaceName string
 
 ---@class ResultLocationData
@@ -24,6 +27,12 @@ script.on_init(function()
   if player then
     controller_gui.create_window(player)
     bots_gui.create_window(player_data.get_singleplayer_player(), player_data.get_singleplayer_table())
+    
+    -- Initialize shortcut state
+    local player_table = player_data.get_singleplayer_table()
+    if player_table then
+      player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
+    end
   end
 end)
 
@@ -45,6 +54,13 @@ script.on_event({ defines.events.on_player_created }, function(e)
   controller_gui.create_window(player)
   player_data.init(e.player_index)
   player_data.refresh(player, storage.players[e.player_index])
+  
+  -- Initialize shortcut state
+  local player_table = storage.players[e.player_index]
+  if player_table then
+    player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
+    bots_gui.update_shortcut_tooltip(player, player_table)
+  end
 end)
 
 script.on_event(defines.events.on_player_removed, function(e)
@@ -82,10 +98,22 @@ script.on_event(defines.events.on_runtime_mod_setting_changed, function(e)
   if utils.starts_with(e.setting, "li-") then
     local player = player_data.get_singleplayer_player()
     local player_table = player_data.get_singleplayer_table()
-    bots_gui.destroy(player, player_table)
-    player_data.refresh(player, player_table)
-    bots_gui.update_chunk_size_cache()
-    bots_gui.create_window(player, player_table)
+
+    -- Special handling for mini window setting
+    if e.setting == "li-show-mini-window" then
+      controller_gui.update_window(player, player_table)
+    elseif e.setting == "li-chunk-processing-interval" or
+           e.setting == "li-ui-update-interval" or
+           e.setting == "li-pause-for-bots" or
+           e.setting == "li-highlight-duration" then
+      -- These settings will be adapted dynamically
+    else
+      -- For other settings, rebuild the main window
+      bots_gui.destroy(player, player_table)
+      player_data.refresh(player, player_table)
+      bots_gui.update_chunk_size_cache()
+      bots_gui.create_window(player, player_table)
+    end
   end
 end)
 
@@ -176,4 +204,36 @@ script.on_event(defines.events.on_player_changed_surface, function(e)
     -- If there is a space platform, ricity network, there can't be bots
     window.visible = player_table.bots_window_visible and not player.surface.platform
   end
+end)
+
+-- Handle shortcut button clicks
+script.on_event(defines.events.on_lua_shortcut, function(event)
+  if event.prototype_name ~= SHORTCUT_TOGGLE then return end
+  
+  local player = game.get_player(event.player_index)
+  if not player then return end
+  
+  local player_table = storage.players[player.index]
+  if not player_table then return end
+  
+  -- Toggle window visibility
+  bots_gui.toggle_window_visible(player)
+  
+  -- Update shortcut button state
+  player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
+end)
+
+-- Handle keyboard shortcut
+script.on_event("logistics-insights-toggle-gui", function(event)
+  local player = game.get_player(event.player_index)
+  if not player then return end
+  
+  local player_table = storage.players[player.index]
+  if not player_table then return end
+  
+  -- Toggle window visibility
+  bots_gui.toggle_window_visible(player)
+  
+  -- Update shortcut button state
+  player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
 end)

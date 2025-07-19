@@ -1,4 +1,6 @@
 require("prototypes.sprite")
+require("prototypes.shortcuts")
+require("prototypes.custom-inputs")
 local styles = data.raw["gui-style"].default
 
 styles.botsgui_frame_style = {

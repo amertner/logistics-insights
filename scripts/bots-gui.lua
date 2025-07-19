@@ -17,6 +17,7 @@ local math_floor = math.floor
 local defines_robot_order_type_deliver = defines.robot_order_type.deliver
 local defines_robot_order_type_pickup = defines.robot_order_type.pickup
 
+-- Toggle visibility of the main window
 function bots_gui.toggle_window_visible(player)
   if not player then
     return
@@ -43,6 +44,7 @@ function bots_gui.toggle_window_visible(player)
   end
 end
 
+-- Make sure all the relevant parts of the UI are available and initialised
 function bots_gui.ensure_ui_consistency(player, player_table)
   local gui = player.gui.screen
   if not gui.logistics_insights_window or not player_table.ui then
@@ -738,6 +740,8 @@ function bots_gui.update(player, player_table, clearing)
   if not player or not player.valid or not player_table then
     return -- no player table, can't do anything
   end
+  -- Update shortcut toggle state to match window visibility
+  player.set_shortcut_toggled("logistics-insights-toggle", player_table.bots_window_visible)
 
   if not player_table.ui or not player_table.bots_window_visible then
     return

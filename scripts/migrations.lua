@@ -45,6 +45,14 @@ local li_migrations = {
       player_table.paused = nil -- Remove old paused state
     end
   end,
+
+  ["0.9.0"] = function()
+    -- Set the new mini window toggle setting to its default
+    local player_table = player_data.get_singleplayer_table()
+    if player_table and player_table.settings then
+      player_table.settings.show_mini_window = true
+    end
+  end,
 }
 
 return li_migrations
