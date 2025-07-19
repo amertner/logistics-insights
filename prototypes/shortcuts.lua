@@ -7,7 +7,7 @@ data:extend({
     toggleable = true,
     order = "l[ogistics]-i[nsights]",
     icon = "__logistics-insights__/graphics/shortcut-icon.png",
-    icon_size = 32,
+    icon_size = 56,
     small_icon = "__logistics-insights__/graphics/shortcut-icon-small.png",
     small_icon_size = 24,
   }
