@@ -29,6 +29,12 @@ local li_migrations = {
   end,
 
   ["0.8.5"] = function()
+    -- Added bot chunk settings, set defaults
+    local player_table = player_data.get_singleplayer_table()
+    if player_table then
+      player_table.settings.bot_chunk_interval = 10
+    end
+
     -- Added tags to certain cells to control tooltips, so re-generate the UI
     reinitialise_ui()
   end,
