@@ -63,7 +63,6 @@ script.on_event({ defines.events.on_player_created }, function(e)
   local player_table = storage.players[e.player_index]
   if player_table then
     player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
-    bots_gui.update_shortcut_tooltip(player, player_table)
   end
 end)
 
