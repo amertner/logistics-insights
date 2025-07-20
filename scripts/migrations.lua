@@ -59,6 +59,11 @@ local li_migrations = {
       player_table.settings.show_mini_window = true
     end
   end,
+
+  ["0.9.2"] = function()
+    -- Added bot delivery estimate handling, so clear list of active deliveries
+    storage.bot_active_deliveries = {}
+  end,
 }
 
 return li_migrations

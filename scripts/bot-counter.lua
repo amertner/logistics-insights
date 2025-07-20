@@ -4,10 +4,14 @@ local player_data = require("scripts.player-data")
 local chunker = require("scripts.chunker")
 local utils = require("scripts.utils")
 
+-- Constants
+local INTERVAL_TICKS = 60
+
 -- Cache frequently used functions and values for performance
 local pairs = pairs
 local table_size = table_size
 local math_max = math.max
+local math_floor = math.floor
 local defines_robot_order_type_deliver = defines.robot_order_type.deliver
 local defines_robot_order_type_pickup = defines.robot_order_type.pickup
 
@@ -26,6 +30,11 @@ local function get_delivery_key(item_name, quality)
   return key
 end
 
+local function get_interval_key(tick)
+  -- Get the interval key for a given tick
+  return math_floor(tick / INTERVAL_TICKS) * INTERVAL_TICKS
+end
+
 local function manage_active_deliveries_history(tick_margin)
   -- This function is called to manage the history of active deliveries
   -- It will remove entries that are no longer active and update the history
@@ -38,11 +47,21 @@ local function manage_active_deliveries_history(tick_margin)
   -- Cache global access
   local delivery_history = storage.delivery_history
   local current_tick = game.tick
+
+  -- Process only the current interval
+  local current_interval = get_interval_key(current_tick)
+  local interval_deliveries = bot_active_deliveries[current_interval]
+
+  -- Skip if there are no deliveries in this interval
+  if not interval_deliveries then
+    return
+  end
+
   local expired_bots = {}
   local count_to_remove = 0
 
   -- First pass: collect keys to remove and process history updates
-  for unit_number, order in pairs(bot_active_deliveries) do
+  for unit_number, order in pairs(interval_deliveries) do
     if order.last_seen < current_tick - tick_margin then
       -- Use get_delivery_key for consistent string interning
       local key = get_delivery_key(order.item_name, order.quality_name)
@@ -75,7 +94,12 @@ local function manage_active_deliveries_history(tick_margin)
 
   -- Second pass: remove expired entries
   for i = 1, count_to_remove do
-    bot_active_deliveries[expired_bots[i]] = nil
+    interval_deliveries[expired_bots[i]] = nil
+  end
+
+  -- Clean up empty interval
+  if count_to_remove > 0 and next(interval_deliveries) == nil then
+    bot_active_deliveries[current_interval] = nil
   end
 end
 
@@ -114,25 +138,43 @@ local function add_item_to_bot_deliveries(item_name, quality, count, partial_dat
   end
 end
 
+-- This function adds to the list of things being delivered for the purpose of calculating history
 local function add_bot_to_active_deliveries(bot, order, item_name, quality, count)
-  if not bot.valid then
+  if not bot.valid or not order then
     return
   end
-  if storage.bot_active_deliveries[bot.unit_number] == nil then
+
+  -- Initialize storage structure if needed
+  if storage.bot_active_deliveries == nil then
+    storage.bot_active_deliveries = {}
+  end
+
+  local current_tick = game.tick
+  local estimate = estimated_delivery_ticks(bot, order) or 1
+  local estimated_delivery_tick = current_tick + estimate
+
+  -- Calculate the interval this delivery belongs to
+  local interval_key = get_interval_key(estimated_delivery_tick)
+
+  -- Ensure interval exists
+  if storage.bot_active_deliveries[interval_key] == nil then
+    storage.bot_active_deliveries[interval_key] = {}
+  end
+
+  -- Check if this bot is already being tracked in this interval
+  if storage.bot_active_deliveries[interval_key][bot.unit_number] == nil then
     -- Order not seen before
-    local current_tick = game.tick
-    local estimate = estimated_delivery_ticks(bot, order)
-    storage.bot_active_deliveries[bot.unit_number] = {
+    storage.bot_active_deliveries[interval_key][bot.unit_number] = {
       item_name = item_name,
       quality_name = quality,
       count = count,
       first_seen = current_tick,
       last_seen = current_tick,
       estimated_ticks = estimate,
-      estimated_delivery_tick = current_tick + estimate,
+      estimated_delivery_tick = estimated_delivery_tick,
     }
   else -- It's still under way
-    storage.bot_active_deliveries[bot.unit_number].last_seen = game.tick
+    storage.bot_active_deliveries[interval_key][bot.unit_number].last_seen = current_tick
   end
 end
 
