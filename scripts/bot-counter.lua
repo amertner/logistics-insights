@@ -2,6 +2,7 @@ local bot_counter = {}
 
 local player_data = require("scripts.player-data")
 local chunker = require("scripts.chunker")
+local utils = require("scripts.utils")
 
 -- Cache frequently used functions and values for performance
 local pairs = pairs
@@ -12,6 +13,8 @@ local defines_robot_order_type_pickup = defines.robot_order_type.pickup
 
 -- Create a table to store combined keys for reduced memory fragmentation
 local delivery_keys = {}
+-- Cache the current speed of logistics bots to avoid recalculating it every time
+local cached_logistic_bot_speed = nil
 
 local function get_delivery_key(item_name, quality)
   local cache_key = item_name .. quality
@@ -83,6 +86,19 @@ local function bot_initialise(partial_data)
   partial_data.item_deliveries = {} -- Reset deliveries for this chunk
 end
 
+local function estimated_delivery_ticks(bot, order)
+  if not bot or not bot.valid or not order or not order.target or not order.target.valid then
+    return nil
+  end
+
+  if cached_logistic_bot_speed == nil then
+    cached_logistic_bot_speed = bot.prototype.speed * (1 + bot.force.worker_robots_speed_modifier)
+  end
+
+  local distance = utils.distance(bot.position, order.target.position)
+  return math.ceil(distance / cached_logistic_bot_speed)
+end
+
 -- Keep track of how many items of each type is being delivered right now
 local function add_item_to_bot_deliveries(item_name, quality, count, partial_data)
   local key = get_delivery_key(item_name, quality)
@@ -98,18 +114,22 @@ local function add_item_to_bot_deliveries(item_name, quality, count, partial_dat
   end
 end
 
-local function add_bot_to_active_deliveries(bot, item_name, quality, count)
+local function add_bot_to_active_deliveries(bot, order, item_name, quality, count)
   if not bot.valid then
     return
   end
   if storage.bot_active_deliveries[bot.unit_number] == nil then
     -- Order not seen before
+    local current_tick = game.tick
+    local estimate = estimated_delivery_ticks(bot, order)
     storage.bot_active_deliveries[bot.unit_number] = {
       item_name = item_name,
       quality_name = quality,
       count = count,
-      first_seen = game.tick,
-      last_seen = game.tick,
+      first_seen = current_tick,
+      last_seen = current_tick,
+      estimated_ticks = estimate,
+      estimated_delivery_tick = current_tick + estimate,
     }
   else -- It's still under way
     storage.bot_active_deliveries[bot.unit_number].last_seen = game.tick
@@ -132,7 +152,7 @@ local function bot_processing(bot, partial_data, player_table)
     if order.type == defines_robot_order_type_deliver and item_name then
       add_item_to_bot_deliveries(item_name, quality, item_count, partial_data)
       if player_table.settings.show_history then
-        add_bot_to_active_deliveries(bot, item_name, quality, item_count)
+        add_bot_to_active_deliveries(bot, order, item_name, quality, item_count)
       end
     end
   end
@@ -180,6 +200,7 @@ function bot_counter.gather_bot_data(player, player_table)
   -- Update delivery history
   if show_history then
     local tick_margin = math_max(0, bot_chunker:num_chunks() * player_data.bot_chunk_interval(player_table) - 1)
+    cached_logistic_bot_speed = nil -- Reset cached speed to ensure it's recalculated
     manage_active_deliveries_history(tick_margin)
   end
 
