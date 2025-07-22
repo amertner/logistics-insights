@@ -70,7 +70,7 @@ function controller_gui.update_window(player, player_table)
 
   if gui.logistics_insights_toggle_main then
     local tip = {}
-    if player_table.network then
+    if player_table.network and player_table.network.valid then
       idle_count = storage.bot_items["logistic-robot-available"]
       total_count = storage.bot_items["logistic-robot-total"]
       gui.logistics_insights_toggle_main.number = idle_count
