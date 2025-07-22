@@ -63,6 +63,7 @@ local li_migrations = {
   ["0.9.2"] = function()
     -- Added bot delivery estimate handling, so clear list of active deliveries
     storage.bot_active_deliveries = {}
+    storage.bot_delivery_lookup = {}
   end,
 }
 
