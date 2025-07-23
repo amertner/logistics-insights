@@ -64,7 +64,7 @@ function tooltips_helper.add_bots_idle_and_total_tip(tip, network, idle_count, t
     return tip
   end
 
-  return {"", tip, "\n", {"controller-gui.idle-total-count", idle_count, total_count, sprite}}
+  return {"", tip, "\n", {"controller-gui.idle-total-count", idle_count, total_count}}
 end
 
 -- History data: Active for <time>, Paused, or Disabled in settings

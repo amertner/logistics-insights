@@ -57,7 +57,7 @@ script.on_event({ defines.events.on_player_created }, function(e)
   
   -- Initialize shortcut state
   local player_table = storage.players[e.player_index]
-  if player_table then
+  if player_table and player then
     player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
   end
 end)
@@ -172,7 +172,7 @@ script.on_event(
     local player = player_data.get_singleplayer_player()
     local player_table = player_data.get_singleplayer_table()
 
-    if player_table and player_table.bots_window_visible then
+    if player and player_table and player_table.bots_window_visible then
       player_table.bots_window_visible = player.controller_type ~= defines.controllers.cutscene
     end
   end
