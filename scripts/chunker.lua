@@ -29,9 +29,10 @@ function chunker:initialise_chunking(list, player_table)
 end
 
 function chunker:reset()
+  -- Do whatever needs doing when the list is done
+  self.on_completion(self.partial_data)
   -- Reset the counter and claim completion
   self:initialise_chunking(nil, self.player_table or player_data.get_singleplayer_table())
-  self.on_completion(self.partial_data)
 end
 
 function chunker:num_chunks()
@@ -68,9 +69,14 @@ function chunker:get_progress()
   end
 end
 
+function chunker:get_partial_data()
+  return self.partial_data
+end
+
 function chunker:process_chunk()
   local processing_list = self.processing_list
   if not processing_list or #processing_list == 0 then
+    self.on_completion(self.partial_data)
     return
   end
 
