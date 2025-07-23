@@ -1,6 +1,10 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.9.2
-Date: ????
+Date: 2025-07-23
+  Changes:
+    - Dramatically lower performance impact when analysing networks with many, many bots. This is a big optimisation.
+    - More accurate history tracking data, though it gets worse when many chunks are needed
+    - Now handle bot deletion better
   Bugfixes:
     - Fixed a crash when the network split or was deleted while watching it
 ---------------------------------------------------------------------------------------------------
