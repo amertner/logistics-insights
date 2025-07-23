@@ -47,7 +47,39 @@ local function clear_mystats()
     overdue_items_removed = 0,
     overdue_intervals = 0,
     overdue_intervals_removed = 0,
+
+    delivery_accuracy = {
+      early = {sum = 0, count = 0, avg = 0.0, biggest = 0},
+      ontime = {sum = 0, count = 0, avg = 0.0, biggest = 0},
+      late = {sum = 0, count = 0, avg = 0.0, biggest = 0},
+    },
   }
+end
+
+local function record_delivery_accuracy(order)
+  if not order or not order.estimated_delivery_tick or not order.last_seen then
+    return
+  end
+
+  local record
+  local estimate_error = game.tick - order.estimated_delivery_tick
+  if estimate_error < -10 then
+    -- Early delivery
+    record = mystats.delivery_accuracy.early
+  elseif estimate_error <= 10 then
+    -- On-time delivery
+    record = mystats.delivery_accuracy.ontime
+  else
+    -- Late delivery
+    record = mystats.delivery_accuracy.late
+  end
+
+  record.sum = record.sum + math.abs(estimate_error)
+  record.count = record.count + 1
+  record.avg = record.sum / record.count
+  if math.abs(estimate_error) > record.biggest then
+    record.biggest = math.abs(estimate_error)
+  end
 end
 
 local function get_delivery_key(item_name, quality)
@@ -88,6 +120,7 @@ local function add_delivered_order_to_history(delivery_history, order)
   -- Update history stats
   history_order.ticks = (history_order.ticks or 0) + ticks
   history_order.avg = history_order.ticks / history_order.count
+  record_delivery_accuracy(order)
 end
 
 -- Process all bots expected to arrive in this interval
@@ -216,6 +249,7 @@ end
 
 -- Estimate on which tick the delivery will happen
 -- Returns the estimated tick, and whether the bot is likely to need to charge on the way
+-- Returns {estimated_tick, needs_charging, extra_ticks }
 local function estimated_delivery_ticks(bot, order)
   if not bot or not bot.valid or not order or not order.target or not order.target.valid then
     return nil
@@ -225,7 +259,6 @@ local function estimated_delivery_ticks(bot, order)
     cached_logistic_bot_speed = bot.prototype.speed * (1 + bot.force.worker_robots_speed_modifier)
   end
 
-  local buffer = 0
   local distance = utils.distance(bot.position, order.target.position)
 
   -- Check if it's likely to run out of charge before getting there
@@ -238,22 +271,26 @@ local function estimated_delivery_ticks(bot, order)
   local end_charge = (bot.energy - energy_needed_for_distance) / max_energy
   local needs_charging = end_charge < bot.prototype.min_to_charge
   local ischarging = false
+  local t_needscharge = 0
+  local t_charging = 0
+  local t_waiting = 0
+  local t_additional = 0
 
-  cell = bot.logistic_network.find_cell_closest_to(bot.position)
-  if cell and cell.valid and (cell.charging_robot_count+cell.to_charge_robot_count > 0) then
+  local cell = bot.logistic_network.find_cell_closest_to(bot.position)
+  if cell and cell.valid and cell.charging_robot_count > 0 then
     for _, cell_bot in pairs(cell.charging_robots) do
       if cell_bot.unit_number == bot.unit_number then
         -- The bot is charging!
-        buffer = estimate_charge_ticks(cell, bot.energy, max_energy)
+        t_charging = estimate_charge_ticks(cell, bot.energy, max_energy)
         ischarging = true
         break
       end
     end
-    if not ischarging then
+    if not ischarging and cell.to_charge_robot_count > 0 then
       for _, cell_bot in pairs(cell.to_charge_robots) do
         if cell_bot.unit_number == bot.unit_number then
           -- The bot is waiting to charge!
-          buffer = 10 + estimate_charge_ticks(cell, bot.energy, max_energy)
+          t_waiting = 10 + estimate_charge_ticks(cell, bot.energy, max_energy)
           ischarging = true
           break
         end
@@ -262,18 +299,21 @@ local function estimated_delivery_ticks(bot, order)
   end
 
   if needs_charging then
+    -- The time it needs to charge on the way
+    t_needscharge = estimate_charge_ticks(cell, 0, max_energy)
     if ischarging then
       -- It's currently charging, to see if it still needs a recharge when it's full.
       end_charge = (max_energy - energy_needed_for_distance) / max_energy
       if end_charge < bot.prototype.min_to_charge then
         -- Add a full charge
-        buffer = buffer + estimate_charge_ticks(cell, 0, max_energy)
+        t_additional = estimate_charge_ticks(cell, 0, max_energy)
       end
 
     end
   end
 
-  return buffer + math_ceil(distance / cached_logistic_bot_speed), needs_charging
+  local estimated_delivery = math_ceil(distance / cached_logistic_bot_speed) + t_charging + t_waiting + t_needscharge + t_additional
+  return estimated_delivery, needs_charging, {t_charging = t_charging, t_waiting = t_waiting, t_need = t_needscharge, t_add = t_additional}
 end
 
 -- Keep track of how many items of each type is being delivered right now
@@ -307,49 +347,18 @@ local function add_bot_to_active_deliveries(bot, order, item_name, quality, coun
     if storage.bot_active_deliveries[existing_interval] then
       local botorder = storage.bot_active_deliveries[existing_interval][unit_number]
       if botorder then
-        if botorder.estimated_delivery_tick > current_tick then
-          return -- Don't do anything until it's meant to arrive
+        if botorder.targetpos.x ~= order.target.position.x or
+           botorder.targetpos.y ~= order.target.position.y then
+          -- New target position, so order has changed (!)
+          add_delivered_order_to_history(storage.delivery_history, botorder)
+          storage.bot_delivery_lookup[unit_number] = nil
+          storage.bot_active_deliveries[existing_interval][unit_number] = nil
+        else
+          botorder.last_seen = current_tick
+          if botorder.estimated_delivery_tick > current_tick then
+            return -- Don't do anything until it's meant to arrive
+          end
         end
-        -- if botorder.needs_charging then
-        --   -- It's late because it needs to charge. Estimate new arrival time
-        --   local estimate1, needs = estimated_delivery_ticks(bot, order)
-        --   estimated_delivery_tick = current_tick + estimate1
-
-        --   --botorder.needs_charging = needs
-        --   botorder.was_charged = not needs
-        --   if not needs then
-        --     mystats.was_charged = mystats.was_charged + 1
-        --   end
-        --   botorder.estimated_delivery_tick = current_tick + estimate1
-        --   local interval_key = get_interval_key(estimated_delivery_tick)
-
-        --   -- Remove it from the old interval, and add to the new one
-        --   storage.bot_active_deliveries[existing_interval][unit_number] = nil
-        --   storage.bot_delivery_lookup[unit_number] = interval_key
-        --   if storage.bot_active_deliveries[interval_key] == nil then
-        --     storage.bot_active_deliveries[interval_key] = {}
-        --   end
-        --   storage.bot_active_deliveries[interval_key][unit_number] = botorder
-        -- end
-        -- Debug: Test if delivery estimate drifts
-        -- local estimate1, needs = estimated_delivery_ticks(bot, order)
-        -- local estimated_delivery_tick1 = current_tick + estimate1
-        -- if math.abs(botorder.estimated_delivery_tick - estimated_delivery_tick1) > 60 then
-        --   if botorder.first_seen_at.x == bot.position.x and botorder.first_seen_at.y == bot.position.y then
-        --     mystats.stationary_mystery = mystats.stationary_mystery + 1
-        --   end
-        --   mystats.estimate_drifts = mystats.estimate_drifts + 1
-        -- end
-
-        -- if botorder.estimated_delivery_tick+60 < current_tick and not botorder.is_late then
-        --   -- Debug
-        --   local player_table = player_data.get_singleplayer_table()
-        --   local bots = player_table.network.logistic_robots
-        --   botorder.is_late = true
-        --   mystats.late_bots = mystats.late_bots + 1
-        -- end
-        botorder.last_seen = current_tick
-        return
       else
         -- The bot is not in that interval anymore, remove it from the lookup
         storage.bot_delivery_lookup[unit_number] = nil
@@ -362,7 +371,7 @@ local function add_bot_to_active_deliveries(bot, order, item_name, quality, coun
 
   -- If we got here, the bot isn't being tracked or has a stale lookup
   -- Calculate estimate and delivery interval
-  local estimate, needs_charging = estimated_delivery_ticks(bot, order)
+  local estimate, needs_charging, extras = estimated_delivery_ticks(bot, order)
   local estimated_delivery_tick = current_tick + estimate
 
   -- Calculate the interval this delivery belongs to
@@ -387,6 +396,7 @@ local function add_bot_to_active_deliveries(bot, order, item_name, quality, coun
     targetpos = order.target.position,
     order = order,
     needs_charging = needs_charging,
+    extras = extras,
     was_charged = false,
   }
 
@@ -506,7 +516,16 @@ function bot_counter.gather_bot_data(player, player_table)
   if show_history then
     local tick_margin = math_max(0, bot_chunker:num_chunks() * player_data.bot_chunk_interval(player_table) - 1)
     cached_logistic_bot_speed = nil -- Reset cached speed to ensure it's recalculated
-    manage_active_deliveries_history(tick_margin)
+    local intervals_to_remove = {}
+    for interval_key, interval_deliveries in pairs(storage.bot_active_deliveries) do
+      if table_size(interval_deliveries) == 0 then
+        table.insert(intervals_to_remove, interval_key)
+      end
+    end
+    -- Clean up empty intervals
+    for _, interval_key in ipairs(intervals_to_remove) do
+      storage.bot_active_deliveries[interval_key] = nil
+    end
   end
 
   return progress
