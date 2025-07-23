@@ -39,13 +39,6 @@ script.on_init(function()
   localization.on_init()
 end)
 
-script.on_load(function()
-  -- Called when the mod is loaded from a save where it was already added
- 
-  -- Restore all TickCounter metatables when game is loaded
-  player_data.restore_tick_counters()
-end)
-
 -- PLAYER
 
 script.on_event({ defines.events.on_player_created }, function(e)

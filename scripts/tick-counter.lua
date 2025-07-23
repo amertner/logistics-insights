@@ -7,6 +7,7 @@ local TickCounter = {}
 TickCounter.__index = TickCounter
 
 ---@class TickCounter
+script.register_metatable("logistics-insights-TickCounter", TickCounter)
 
 -- Create a new tick counter
 function TickCounter.new(initial_tick)

@@ -59,6 +59,24 @@ local li_migrations = {
       player_table.settings.show_mini_window = true
     end
   end,
+
+  ["0.9.3"] = function()
+    -- TickCounter now registers the metatable so this isn't needed on_load anymore
+
+      -- Go through all player data and restore any TickCounter objects
+      for _, player_table in pairs(storage.players) do
+        if player_table then
+          local counter = player_table.history_timer
+          if counter and type(counter) == "table" then
+          -- Check if this looks like a TickCounter object
+          if counter.start_tick and counter.paused ~= nil then
+            -- Reconnect the metatable
+            setmetatable(counter, TickCounter)
+          end
+        end
+      end
+    end
+  end,
 }
 
 return li_migrations

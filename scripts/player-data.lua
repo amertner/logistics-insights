@@ -179,34 +179,6 @@ function player_data.refresh(player, player_table)
   player.set_shortcut_toggled("logistics-insights-toggle", player_table.bots_window_visible)
 end
 
--- Helper function to restore metatable connections for TickCounter objects
-local function restore_tick_counter(counter)
-  if counter and type(counter) == "table" then
-    -- Check if this looks like a TickCounter object
-    if counter.start_tick and counter.paused ~= nil then
-      -- Reconnect the metatable
-      setmetatable(counter, TickCounter)
-      return true
-    end
-  end
-  return false
-end
-
--- Restore metatables for all tick counters
-function player_data.restore_tick_counters()
-  if not storage or not storage.players then
-    return
-  end
-  
-  -- Go through all player data and restore any TickCounter objects
-  for _, player_table in pairs(storage.players) do
-    if player_table then
-      -- Restore the history_timer
-      restore_tick_counter(player_table.history_timer)
-    end
-  end
-end
-
 -- Reset cached references - should be called when game is loaded or configuration changes
 function player_data.reset_cache()
   cached_player = nil

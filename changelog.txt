@@ -1,5 +1,5 @@
 ---------------------------------------------------------------------------------------------------
-Version: ???
+Version: 0.9.3
 Date: ????
   Bugfixes:
     - Tooltips work correctly when the quality mod is not installed

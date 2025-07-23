@@ -1,6 +1,6 @@
 # Logistics Insights
 
-Have you ever wondered what all of your logistics bots are up to? Whether you have too many, or too few? Particularly in the mid game where everything is scaling up, I've found that the answers sometimes are surprising.
+When playing Factorio, have you ever wondered what all of your logistics bots are up to? Whether you have too many, or too few? Particularly in the mid game where everything is scaling up, I've found that the answers sometimes are surprising.
 
 Logistics Insights can help:
 
