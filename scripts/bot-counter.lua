@@ -78,8 +78,8 @@ local function add_bot_to_active_deliveries(bot, order, item_name, quality, coun
 
   if botorder then
     -- We have an existing order for this bot
-    if botorder.targetpos.x ~= order.target.position.x or
-        botorder.targetpos.y ~= order.target.position.y then
+    if botorder.targetpos and (botorder.targetpos.x ~= order.target.position.x or
+        botorder.targetpos.y ~= order.target.position.y) then
       -- New target position, so order has changed since last time
       add_delivered_order_to_history(storage.delivery_history, botorder)
       storage.bot_active_deliveries[unit_number] = nil
