@@ -54,8 +54,6 @@ function player_data.update_settings(player, player_table)
   }
   player_table.settings = settings
   player_table.player_index = player.index
-  player_table.current_activity_size = 0
-  player_table.ui = nil
 end
 
 function player_data.get_singleplayer_table()

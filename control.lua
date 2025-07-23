@@ -41,11 +41,7 @@ end)
 
 script.on_load(function()
   -- Called when the mod is loaded from a save where it was already added
-  localization.on_load()
-
-  -- Reset cached references when game is loaded
-  player_data.reset_cache()
-
+ 
   -- Restore all TickCounter metatables when game is loaded
   player_data.restore_tick_counters()
 end)
@@ -108,11 +104,17 @@ script.on_event(defines.events.on_runtime_mod_setting_changed, function(e)
     -- Special handling for mini window setting
     if e.setting == "li-show-mini-window" then
       controller_gui.update_window(player, player_table)
+    elseif e.setting == "li-chunk-size" then
+      -- Tell counters that the chunk size has changed (but preserve history)
+      -- TBD
+      player_data.update_settings(player, player_table)
+      bots_gui.update_chunk_size_cache()
     elseif e.setting == "li-chunk-processing-interval" or
            e.setting == "li-ui-update-interval" or
            e.setting == "li-pause-for-bots" or
            e.setting == "li-highlight-duration" then
       -- These settings will be adapted dynamically
+      player_data.update_settings(player, player_table)
     else
       -- For other settings, rebuild the main window
       bots_gui.destroy(player, player_table)

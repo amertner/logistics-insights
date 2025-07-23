@@ -104,10 +104,5 @@ function localization.on_configuration_changed()
   initialize_quality_name_cache()
 end
 
--- Also initialize on mods loaded, which ensures prototypes are available
-function localization.on_load()
-  initialize_quality_name_cache()
-end
-
 -- Return the module
 return localization
