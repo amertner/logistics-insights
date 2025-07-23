@@ -11,6 +11,7 @@ local quality_item_cache = Cache.new(function(cache_key)
   -- in the get_quality_item function
   return {""}
 end)
+local use_quality = script.active_mods["quality"] or false
 
 -- Function to initialize the quality name cache with all available qualities
 local function initialize_quality_name_cache()
@@ -70,17 +71,27 @@ function localization.get_quality_item(quality_name, item_name)
   if not item_name then
     return {""}
   end
-
-  local cache_key = quality_name .. ":" .. item_name
   
   -- The cache generator won't work properly with our compound key
   -- So we handle it manually here
-  if not quality_item_cache:has(cache_key) then
-    quality_item_cache:set(cache_key, {
-      "quality-item-format.quality-item-format",
-      localization.get_quality_name(quality_name),
-      localization.get_item_name(item_name)
-    })
+  local cache_key
+  if use_quality then
+    cache_key = quality_name .. ":" .. item_name
+    if not quality_item_cache:has(cache_key) then
+      quality_item_cache:set(cache_key, {
+        "quality-item-format.quality-item-format",
+        localization.get_quality_name(quality_name),
+        localization.get_item_name(item_name)
+      })
+    end
+  else
+    cache_key = item_name
+    if not quality_item_cache:has(cache_key) then
+      quality_item_cache:set(cache_key, {
+        "quality-item-format.no-quality-item-format",
+        localization.get_item_name(item_name)
+      })
+    end
   end
 
   return quality_item_cache:get(cache_key)
@@ -100,6 +111,7 @@ end
 
 function localization.on_configuration_changed()
   -- Clear caches on mod or game configuration changes
+  use_quality = script.active_mods["quality"]
   localization.clear_caches()
   initialize_quality_name_cache()
 end
