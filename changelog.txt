@@ -1,8 +1,10 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.9.3
 Date: ????
+  Changes:
+    - Another modest performance improvement for large bot networks
   Bugfixes:
-    - Tooltips work correctly when the quality mod is not installed
+    - Tooltips now work correctly when the quality mod is not installed
 ---------------------------------------------------------------------------------------------------
 Version: 0.9.2
 Date: 2025-07-23

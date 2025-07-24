@@ -9,6 +9,8 @@ local table_size = table_size
 local math_max = math.max
 local defines_robot_order_type_deliver = defines.robot_order_type.deliver
 local defines_robot_order_type_pickup = defines.robot_order_type.pickup
+local seen_bot_this_pass = 2
+local seen_bot_last_pass = 1
 
 -- Key storage structures:
 --   bot_active_deliveries: Tracks orders currently being delivered, indexed by bot
@@ -119,7 +121,13 @@ end
 local function process_one_bot(bot, accumulator, player_table)
   if bot and bot.valid then
     local unit_number = bot.unit_number
-    accumulator.bots_seen[unit_number] = true
+    if accumulator.last_seen[unit_number] then
+      -- Mark bots seen in the last pass as seen again
+      accumulator.last_seen[unit_number] = seen_bot_last_pass
+    else
+      -- Mark this bot as seen for the first time
+      accumulator.just_seen[unit_number] = seen_bot_this_pass
+    end
 
     if table_size(bot.robot_order_queue) > 0 then
       local order = bot.robot_order_queue[1]
@@ -150,19 +158,37 @@ local function process_one_bot(bot, accumulator, player_table)
 end
 
 -- Reset counters to be able to process a list of data in chunks
-local function bot_initialise_chunking(accumulator)
+local function bot_initialise_chunking(accumulator, last_seen)
   accumulator.delivering_bots = 0
   accumulator.picking_bots = 0
   accumulator.item_deliveries = {} -- Reset deliveries
-  accumulator.bots_seen = {} -- Reset the list of bots seen
+  accumulator.last_seen = last_seen or {} -- The list of bots seen in the last pass
+  accumulator.just_seen = {} -- The list of bots first seen this pass
 end
 
 -- This function is called when all chunks are done processing, ready for a new chunk
-local function bot_chunks_done(accumulator)
+local function bot_chunks_done(player_table, accumulator)
   storage.bot_items["delivering"] = accumulator.delivering_bots or nil
   storage.bot_items["picking"] = accumulator.picking_bots or nil
   storage.bot_deliveries = accumulator.item_deliveries or {}
-  storage.last_pass_bots_seen = accumulator.bots_seen or {}
+
+  if player_table.settings.show_history and table_size(storage.bot_active_deliveries) > 0 then
+    -- Consider bots we saw last pass but not this chunk pass as delivered.
+    -- They are either destroyed or parked in a roboport, no longer part of the network
+    if accumulator.last_seen then
+      for unit_number, seen in pairs(accumulator.last_seen) do
+        if seen == seen_bot_this_pass then
+          -- We saw this bot in the last pass
+          accumulator.just_seen[unit_number] = seen_bot_last_pass
+        else
+          -- We did not see this bot in the last pass, so it probably finished its delivery
+          check_if_no_order_bot_finished_delivery(unit_number, true)
+        end
+      end
+    end
+  end
+  -- Save the last-seen list so it can be used in the next pass
+  storage.last_pass_bots_seen = accumulator.just_seen or {}
 end
 
 -- Use the generic chunker to process bots in chunks, to moderate CPU usage
@@ -191,26 +217,13 @@ function bot_counter.gather_bot_data(player, player_table)
 
   if show_delivering or show_history then
     if bot_chunker:is_done() then
-      bot_chunker:initialise_chunking(network.logistic_robots, player_table)
+      bot_chunker:initialise_chunking(network.logistic_robots, player_table, storage.last_pass_bots_seen)
     end
     bot_chunker:process_chunk()
     progress = bot_chunker:get_progress()
   else
     storage.bot_items["delivering"] = nil
     storage.bot_items["picking"] = nil
-  end
-
-  if show_history and bot_chunker:is_done() and table_size(storage.bot_active_deliveries) > 0 then
-    -- Consider bots we saw last pass but not this chunk pass as delivered.
-    -- They are either destroyed or parked in a roboport, no longer part of the network
-    local partial_data = bot_chunker:get_partial_data()
-    local bots_seen = partial_data and partial_data.bots_seen or {}
-    local last_pass_bots_seen = storage.last_pass_bots_seen or {}
-    for unit_number, _ in pairs(last_pass_bots_seen) do
-      if not bots_seen[unit_number] then
-        check_if_no_order_bot_finished_delivery(unit_number, true)
-      end
-    end
   end
 
   return progress

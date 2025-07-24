@@ -9,30 +9,30 @@ function chunker.new(call_on_init, call_on_processing, call_on_completion)
     current_index = 1,
     processing_list = nil,
     partial_data = {},
-    on_init = call_on_init or function(partial_data) end,
+    on_init = call_on_init or function(partial_data, initial_data) end,
     on_process_entity = call_on_processing or function(entity, partial_data, player_table) end,
-    on_completion = call_on_completion or function(data) end,
+    on_completion = call_on_completion or function(data, player_table) end,
     player_table = nil,
   }
   setmetatable(instance, { __index = chunker })
   return instance
 end
 
-function chunker:initialise_chunking(list, player_table)
+function chunker:initialise_chunking(list, player_table, initial_data)
   self.processing_list = list
   self.current_index = 1
   self.player_table = player_table
   if self.player_table.settings.chunk_size then
     self.CHUNK_SIZE = self.player_table.settings.chunk_size
   end
-  self.on_init(self.partial_data)
+  self.on_init(self.partial_data, initial_data)
 end
 
 function chunker:reset()
   -- Do whatever needs doing when the list is done
-  self.on_completion(self.partial_data)
+  self.on_completion(self.partial_data, self.player_table)
   -- Reset the counter and claim completion
-  self:initialise_chunking(nil, self.player_table or player_data.get_singleplayer_table())
+  self:initialise_chunking(nil, self.player_table or player_data.get_singleplayer_table(), nil)
 end
 
 function chunker:num_chunks()
@@ -76,7 +76,7 @@ end
 function chunker:process_chunk()
   local processing_list = self.processing_list
   if not processing_list or #processing_list == 0 then
-    self.on_completion(self.partial_data)
+    self.on_completion(self.player_table, self.partial_data)
     return
   end
 
@@ -95,7 +95,7 @@ function chunker:process_chunk()
   self.current_index = end_index + 1
 
   if end_index + 1 > list_size then
-    self.on_completion(self.partial_data)
+    self.on_completion(self.player_table, self.partial_data)
   end
 end
 

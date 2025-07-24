@@ -16,7 +16,7 @@ local function network_processing(entity, partial_data, player_table)
   partial_data.bots_waiting_for_charge = bots_waiting + entity.to_charge_robot_count
 end
 
-local function network_chunks_done(data)
+local function network_chunks_done(data, player_table)
   local bot_items = storage.bot_items
   bot_items["charging-robot"] = data.bots_charging
   bot_items["waiting-for-charge-robot"] = data.bots_waiting_for_charge
@@ -48,7 +48,7 @@ function activity_counter.gather_data(player, player_table)
 
   -- Process cell data
   if activity_chunker:is_done() then
-    activity_chunker:initialise_chunking(network.cells, player_table)
+    activity_chunker:initialise_chunking(network.cells, player_table, nil)
     player_data.set_activity_chunks(player_table, activity_chunker:num_chunks())
   end
   activity_chunker:process_chunk()
