@@ -76,7 +76,7 @@ end
 function chunker:process_chunk()
   local processing_list = self.processing_list
   if not processing_list or #processing_list == 0 then
-    self.on_completion(self.player_table, self.partial_data)
+    self.on_completion(self.partial_data, self.player_table)
     return
   end
 
@@ -95,7 +95,7 @@ function chunker:process_chunk()
   self.current_index = end_index + 1
 
   if end_index + 1 > list_size then
-    self.on_completion(self.player_table, self.partial_data)
+    self.on_completion(self.partial_data, self.player_table)
   end
 end
 

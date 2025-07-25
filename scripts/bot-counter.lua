@@ -37,6 +37,8 @@ local function add_delivered_order_to_history(delivery_history, order)
     delivery_history[key] = {
       item_name = order.item_name,
       quality_name = order.quality_name,
+      localised_name = order.localised_name,
+      localised_quality_name = order.localised_quality_name,
       count = 0,
       ticks = 0,
     }
@@ -55,13 +57,15 @@ local function add_delivered_order_to_history(delivery_history, order)
 end
 
 -- Keep track of how many items of each type is being delivered right now
-local function add_item_to_current_deliveries(item_name, quality, count, partial_data)
+local function add_item_to_current_deliveries(item_name, localised_name, quality, localised_quality_name, count, partial_data)
   local key = get_delivery_key(item_name, quality)
   if partial_data.item_deliveries[key] == nil then
     -- Order not seen before
     partial_data.item_deliveries[key] = {
       item_name = item_name,
       quality_name = quality,
+      localised_name = localised_name,
+      localised_quality_name = localised_quality_name,
       count = count,
     }
   else -- This item is already being delivered by another bot
@@ -70,7 +74,7 @@ local function add_item_to_current_deliveries(item_name, quality, count, partial
 end
 
 -- Add the bot and order to the list of things being delivered for the purpose of calculating history
-local function add_bot_to_active_deliveries(bot, order, item_name, quality, count)
+local function add_bot_to_active_deliveries(bot, order, item_name, localised_name, quality, localised_quality_name, count)
   if not bot.valid or not order then
     return
   end
@@ -93,7 +97,9 @@ local function add_bot_to_active_deliveries(bot, order, item_name, quality, coun
     -- No order for this bot, so add it
     storage.bot_active_deliveries[unit_number] = {
       item_name = item_name,
+      localised_name = localised_name,
       quality_name = quality,
+      localised_quality_name = localised_quality_name,
       count = count,
       first_seen = current_tick,
       last_seen = current_tick,
@@ -137,15 +143,19 @@ local function process_one_bot(bot, accumulator, player_table)
         accumulator.picking_bots = accumulator.picking_bots + 1
       end
 
-      local item_name = order.target_item.name.name
+      local targetname = order.target_item.name
+      local item_name = targetname.name
       -- For Deliveries, record the item
       if order.type == defines_robot_order_type_deliver and item_name then
         local item_count = order.target_count
         local quality = order.target_item.quality.name
+        local localised_name = targetname.localised_name
+        local localised_quality_name = order.target_item.quality.localised_name
+      
         -- Record current deliveries
-        add_item_to_current_deliveries(item_name, quality, item_count, accumulator)
+        add_item_to_current_deliveries(item_name, localised_name, quality, localised_quality_name, item_count, accumulator)
         -- Record delivery for history purposes
-        add_bot_to_active_deliveries(bot, order, item_name, quality, item_count)
+        add_bot_to_active_deliveries(bot, order, item_name, localised_name, quality, localised_quality_name, item_count)
       else
         -- Check if the bot was delivering last time we saw it, and record the delivery
         check_if_no_order_bot_finished_delivery(unit_number, player_table.settings.show_history)
@@ -167,7 +177,7 @@ local function bot_initialise_chunking(accumulator, last_seen)
 end
 
 -- This function is called when all chunks are done processing, ready for a new chunk
-local function bot_chunks_done(player_table, accumulator)
+local function bot_chunks_done(accumulator, player_table)
   storage.bot_items["delivering"] = accumulator.delivering_bots or nil
   storage.bot_items["picking"] = accumulator.picking_bots or nil
   storage.bot_deliveries = accumulator.item_deliveries or {}

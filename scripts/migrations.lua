@@ -62,20 +62,37 @@ local li_migrations = {
 
   ["0.9.3"] = function()
     -- TickCounter now registers the metatable so this isn't needed on_load anymore
-
-      -- Go through all player data and restore any TickCounter objects
-      for _, player_table in pairs(storage.players) do
-        if player_table then
-          local counter = player_table.history_timer
-          if counter and type(counter) == "table" then
-          -- Check if this looks like a TickCounter object
-          if counter.start_tick and counter.paused ~= nil then
-            -- Reconnect the metatable
-            setmetatable(counter, TickCounter)
+    -- Go through all player data and restore any TickCounter objects
+    for _, player_table in pairs(storage.players) do
+      if player_table then
+        local counter = player_table.history_timer
+        if counter and type(counter) == "table" then
+        -- Check if this looks like a TickCounter object
+        if counter.start_tick and counter.paused ~= nil then
+          -- Reconnect the metatable
+          setmetatable(counter, TickCounter)
           end
         end
       end
     end
+
+    local function add_localised_names_to(list)
+      for key, entry in pairs(list) do
+        if entry.item_name and entry.quality_name then
+          if prototypes.item[entry.item_name] then
+            entry.localised_name = prototypes.item[entry.item_name].localised_name
+          elseif prototypes.entity[entry.item_name] then
+            entry.localised_name = prototypes.entity[entry.item_name].localised_name
+          end
+          entry.localised_quality_name = prototypes.quality[entry.quality_name].localised_name
+        end
+      end
+    end
+
+    -- Stored state now needs to hold localised names too
+    add_localised_names_to(storage.delivery_history)
+    add_localised_names_to(storage.bot_active_deliveries)
+    add_localised_names_to(storage.bot_deliveries)
   end,
 }
 

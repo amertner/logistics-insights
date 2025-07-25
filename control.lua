@@ -1,5 +1,4 @@
 local flib_migration = require("__flib__.migration")
-local localization   = require("scripts.localization")
 
 local player_data = require("scripts.player-data")
 local bot_counter = require("scripts.bot-counter")
@@ -35,8 +34,6 @@ script.on_init(function()
       player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
     end
   end
-
-  localization.on_init()
 end)
 
 -- PLAYER
@@ -84,9 +81,6 @@ script.on_configuration_changed(function(e)
 
   -- Run migrations if the mod version has changed
   flib_migration.on_config_changed(e, li_migrations)
-
-  -- Reinitialize localization caches in case the locale changed
-  localization.on_configuration_changed()
 end)
 
 script.on_event(defines.events.on_runtime_mod_setting_changed, function(e)
