@@ -103,14 +103,19 @@ function player_data.check_network_changed(player, player_table)
   -- Get or update the network, return true if the network is changed
   local network = player.force.find_logistic_network_by_position(player.position, player.surface)
   local player_table_network = player_table.network
+  if network and network.valid then
+    new_network_id = network.network_id
+  else
+    new_network_id = nil
+  end
+  old_network_id = player_table_network and player_table_network.network_id
 
-  if not player_table_network or not player_table_network.valid or not network or
-      player_table_network.network_id ~= network.network_id then
+  if new_network_id == old_network_id then
+    return false
+  else
     player_table.network = network
     player_table.history_timer:reset() -- Reset the tick counter when network changes
     return true
-  else
-    return false
   end
 end
 

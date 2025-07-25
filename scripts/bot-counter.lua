@@ -182,7 +182,7 @@ local function bot_chunks_done(accumulator, player_table)
   storage.bot_items["picking"] = accumulator.picking_bots or nil
   storage.bot_deliveries = accumulator.item_deliveries or {}
 
-  if player_table.settings.show_history and table_size(storage.bot_active_deliveries) > 0 then
+  if player_table and player_table.settings.show_history and table_size(storage.bot_active_deliveries) > 0 then
     -- Consider bots we saw last pass but not this chunk pass as delivered.
     -- They are either destroyed or parked in a roboport, no longer part of the network
     if accumulator.last_seen then
