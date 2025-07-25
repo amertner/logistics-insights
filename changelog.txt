@@ -1,11 +1,11 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.9.3
-Date: ????
+Date: 2025-07-25
   Changes:
     - Another modest performance improvement for large bot networks
   Bugfixes:
     - Tooltips now work correctly when the quality mod is not installed
-    - Tooltips now show the correct localised name in all instances
+    - Tooltips now show the correct localised name in all instances (before, entities were not correct)
 ---------------------------------------------------------------------------------------------------
 Version: 0.9.2
 Date: 2025-07-23
