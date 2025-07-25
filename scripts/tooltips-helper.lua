@@ -12,9 +12,9 @@ local surface_cache = Cache.new(function(surface_name) return "[space-location="
 function tooltips_helper.add_networkid_tip(tip, network_id, is_fixed)
   local network_id_tip
   if is_fixed then
-    network_id_tip = {"network-row.network-id-tooltip", network_id, {"network-row.network-id-fixed-tooltip"}}
+    network_id_tip = {"network-row.network-id-tooltip-1ID-2Status", network_id, {"network-row.network-id-fixed-tooltip"}}
   else
-    network_id_tip = {"network-row.network-id-tooltip", network_id, {"network-row.network-id-dynamic-tooltip"}}
+    network_id_tip = {"network-row.network-id-tooltip-1ID-2Status", network_id, {"network-row.network-id-dynamic-tooltip"}}
   end
 
   -- Handle empty tip case
@@ -44,7 +44,7 @@ function tooltips_helper.add_network_surface_tip(tip, network)
       else
         lname = surface.name
       end
-      tip = {"", tip, "\n", {"network-row.network-id-surface-tooltip", sprite, lname}}
+      tip = {"", tip, "\n", {"network-row.network-id-surface-tooltip-1icon-2name", sprite, lname}}
     end
   end
   return tip
@@ -64,7 +64,7 @@ function tooltips_helper.add_bots_idle_and_total_tip(tip, network, idle_count, t
     return tip
   end
 
-  return {"", tip, "\n", {"controller-gui.idle-total-count", idle_count, total_count}}
+  return {"", tip, "\n", {"controller-gui.idle-total-count-1idle-2total", idle_count, total_count}}
 end
 
 -- History data: Active for <time>, Paused, or Disabled in settings

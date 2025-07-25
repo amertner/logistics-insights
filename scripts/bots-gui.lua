@@ -436,7 +436,7 @@ local function update_progressbar(progressbar, progress)
         if table_size(cached_tooltip_data) > 500 then
           cached_tooltip_data = {}
         end
-        cached_tooltip_data[cache_key] = {"bots-gui.chunk-processed-tooltip", cached_chunk_size, current_minus_one, progress.total, percentage}
+        cached_tooltip_data[cache_key] = {"bots-gui.chunk-processed-tooltip-1chunksize-2processed-3total-4percent", cached_chunk_size, current_minus_one, progress.total, percentage}
       end
       
       progressbar.tooltip = cached_tooltip_data[cache_key]
@@ -490,14 +490,14 @@ local function update_sorted_item_row(player_table, title, all_entries, sort_fn,
     local quality = entry.localised_quality_name or entry.quality_name
     local name = entry.localised_name or entry.item_name
     if number_field == "count" then
-      tip = {"", {"item-row.count-field-tooltip", entry.count, quality, name}}
+      tip = {"", {"item-row.count-field-tooltip-1count-2quality-3itemname", entry.count, quality, name}}
     elseif number_field == "ticks" then
-      tip = {"", {"item-row.ticks-field-tooltip", entry.ticks, entry.count,  quality, name}}
+      tip = {"", {"item-row.ticks-field-tooltip-1ticks-2count-3quality-4itemname", entry.ticks, entry.count, quality, name}}
     elseif number_field == "avg" then
       local int_part = math_floor(entry.avg)
       local decimal_part = math_floor((entry.avg - int_part) * 10 + 0.5)
       local ticks_formatted = int_part .. "." .. decimal_part
-      tip = {"", {"item-row.avg-field-tooltip", ticks_formatted, entry.count,  quality, name}}
+      tip = {"", {"item-row.avg-field-tooltip-1ticks-2count-3quality-4itemname", ticks_formatted, entry.count, quality, name}}
     end
     return tip
   end
@@ -946,7 +946,7 @@ local get_list_function = {
 }
 
 ---@param player LuaPlayer
----@param player_table PlayerData
+---@param player_table PlayerData|nil
 ---@param element LuaGuiElement sprite-button
 ---@param focus_on_element boolean
 function bots_gui.highlight_locations_on_map(player, player_table, element, focus_on_element)
@@ -955,7 +955,7 @@ function bots_gui.highlight_locations_on_map(player, player_table, element, focu
     return
   end
 
-  if player_table.network == nil then
+  if player_table == nil or player_table.network == nil then
     return -- Fix crash when outside of network
   end
 
