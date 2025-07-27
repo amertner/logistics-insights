@@ -105,9 +105,13 @@ local li_migrations = {
     -- Ensure new qualities storage exists
     storage.idle_bot_qualities = storage.idle_bot_qualities or {}
     storage.roboport_qualities = storage.roboport_qualities or {}
-    storage.active_bot_qualities = storage.active_bot_qualities or {}
+    storage.picking_bot_qualities = storage.picking_bot_qualities or {}
+    storage.delivering_bot_qualities = storage.delivering_bot_qualities or {}
     storage.charging_bot_qualities = storage.charging_bot_qualities or {}
     storage.waiting_bot_qualities = storage.waiting_bot_qualities or {}
+
+    -- Re-initialise the UI to make sure the new quality_table fields are set
+    reinitialise_ui()
   end,
 }
 

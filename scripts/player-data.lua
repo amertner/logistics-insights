@@ -35,7 +35,8 @@ function player_data.init_storages()
   storage.charging_bot_qualities = {}
   storage.waiting_bot_qualities = {}
   storage.roboport_qualities =  {}
-  storage.active_bot_qualities = {}
+  storage.picking_bot_qualities = {}
+  storage.delivering_bot_qualities = {}
   storage.players = {}
   for i, player in pairs(game.players) do
     player_data.init(i)

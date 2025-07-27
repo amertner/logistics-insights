@@ -140,30 +140,35 @@ local function add_bot_activity_row(bots_table, player_table)
     { sprite = "virtual-signal/signal-battery-full",
       key = "logistic-robot-available",
       tip = {"activity-row.robots-available-tooltip"},
+      qualitytable = "idle_bot_qualities",
       clicktip = false,
       onwithpause = false,
       include_construction = false },
     { sprite = "virtual-signal/signal-battery-mid-level",
       key = "charging-robot",
       tip = {"activity-row.robots-charging-tooltip"},
+      qualitytable = "charging_bot_qualities",
       clicktip = true,
       onwithpause = false,
       include_construction = true },
     { sprite = "virtual-signal/signal-battery-low",
       key = "waiting-for-charge-robot",
       tip = {"activity-row.robots-waiting-tooltip"},
+      qualitytable = "waiting_bot_qualities",
       clicktip = true,
       onwithpause = false,
       include_construction = true },
     { sprite = "virtual-signal/signal-input",
       key = "picking",
       tip = {"activity-row.robots-picking_up-tooltip"},
+      qualitytable = "picking_bot_qualities",
       clicktip = true,
       onwithpause = false,
       include_construction = false },
     { sprite = "virtual-signal/signal-output",
       key = "delivering",
       tip = {"activity-row.robots-delivering-tooltip"},
+      qualitytable = "delivering_bot_qualities",
       clicktip = true,
       onwithpause = false,
       include_construction = false },
@@ -195,6 +200,7 @@ local function add_bot_activity_row(bots_table, player_table)
       tip = icon.tip,
       onwithpause = icon.onwithpause,
       clicktip = icon.clicktip,
+      qualitytable = icon.qualitytable,
       include_construction = icon.include_construction,
       cell = bots_table.add {
         type = "sprite-button",
@@ -638,16 +644,13 @@ local function update_bot_activity_row(player_table)
         window.cell.enabled = true
         local robotstr = get_robotstr(window, num)
         local qualities_tooltip = {""}
-        -- Get quality tooltip, if available
-        if key == "logistic-robot-available" then
-          qualities_tooltip = tooltips_helper.get_quality_tooltip_line(nil, player_table, storage.idle_bot_qualities, false)
-        elseif key == "delivering" or key == "picking" then
-          qualities_tooltip = tooltips_helper.get_quality_tooltip_line(nil, player_table, storage.active_bot_qualities[key], true)
-        elseif key == "charging-robot" then
-          qualities_tooltip = tooltips_helper.get_quality_tooltip_line(nil, player_table, storage.charging_bot_qualities, true)
-        elseif key == "waiting-for-charge-robot" then
-          qualities_tooltip = tooltips_helper.get_quality_tooltip_line(nil, player_table, storage.waiting_bot_qualities, true)
+
+        local qualities_table = window.qualitytable
+        if qualities_table then
+          --  Augment the tooltip with a list of qualities found, if enabled in settings
+          qualities_tooltip = tooltips_helper.get_quality_tooltip_line(nil, player_table, storage[qualities_table], true)
         end
+        
         if window.clicktip and is_active then
           -- Only show the "what happens if you click" tooltip if the button is active
           if window.onwithpause or not player_table.settings.pause_for_bots then

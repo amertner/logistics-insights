@@ -148,10 +148,10 @@ local function process_one_bot(bot, accumulator, player_table)
       local order = bot.robot_order_queue[1]
       if order.type == defines_robot_order_type_deliver then
         accumulator.delivering_bots = accumulator.delivering_bots + 1
-        accumulate_quality(accumulator.bot_qualities["delivering"], quality)
+        accumulate_quality(accumulator.delivering_bot_qualities, quality)
       elseif order.type == defines_robot_order_type_pickup then
         accumulator.picking_bots = accumulator.picking_bots + 1
-        accumulate_quality(accumulator.bot_qualities["picking"], quality)
+        accumulate_quality(accumulator.picking_bot_qualities, quality)
       end
 
       local targetname = order.target_item.name
@@ -185,17 +185,17 @@ local function bot_initialise_chunking(accumulator, last_seen)
   accumulator.item_deliveries = {} -- Reset deliveries
   accumulator.last_seen = last_seen or {} -- The list of bots seen in the last pass
   accumulator.just_seen = {} -- The list of bots first seen this pass
-  accumulator.bot_qualities = {}
-  accumulator.bot_qualities["delivering"] = {}
-  accumulator.bot_qualities["picking"] = {}
+  accumulator.delivering_bot_qualities = {}
+  accumulator.picking_bot_qualities = {}
 end
 
 -- This function is called when all chunks are done processing, ready for a new chunk
 local function bot_chunks_done(accumulator, player_table)
   storage.bot_items["delivering"] = accumulator.delivering_bots or nil
   storage.bot_items["picking"] = accumulator.picking_bots or nil
-  storage.active_bot_qualities = accumulator.bot_qualities or {}
   storage.bot_deliveries = accumulator.item_deliveries or {}
+  storage.delivering_bot_qualities = accumulator.delivering_bot_qualities or {}
+  storage.picking_bot_qualities = accumulator.picking_bot_qualities or {}
 
   if player_table and player_table.settings.show_history and table_size(storage.bot_active_deliveries) > 0 then
     -- Consider bots we saw last pass but not this chunk pass as delivered.
@@ -227,7 +227,8 @@ function bot_counter.network_changed(player, player_table)
   storage.delivery_history = {}
   storage.bot_active_deliveries = {}
   storage.last_pass_bots_seen = {}
-  storage.active_bot_qualities = {}
+  storage.picking_bot_qualities = {}
+  storage.delivering_bot_qualities = {}
 end
 
 -- Gather bot delivery data for all bots, one chunk at a time
