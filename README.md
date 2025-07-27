@@ -9,6 +9,7 @@ Logistics Insights can help:
 - Shows a list showing the items that took the longest to deliver
 - Shows what your bots are doing: Idle, charging, waiting to charge, picking or delivering
 - Shows what entities you have in your bot network: roboports, requesters, providers, etc.
+- Shows the quality level of your bots and roboports.
 - With a click, can highlight all entities or bots doing a particular activity, making it easy to find them
 - When highlighting bots, the game temporarily freezes, allowing you to inspect the state of things
 - You can freeze and single-step the game manually as well
@@ -31,9 +32,13 @@ Before a base reaches megabase level, I keep the LI window open to keep an eye o
 
 **In the Activity row**
 
-- If too many bots are "waiting to charge", I need to build more roboports
+- If too many bots are "waiting to charge", I need to build more roboports, or use higher quality roboports
 - If too few bots are "available", I need to add more bots
 - If most of the bots are "available", I probably need to stop adding more bots
+
+**In the Network row**
+- If I'm trying to update my bots to a higher quality level, this makes it easy to see how many are still at the lower level
+- If I've upgraded my bots to a higher level, but my roboports are low quality, charging will take much longer. Upgrade them asap!
 
 ## Performance and chunking
 
