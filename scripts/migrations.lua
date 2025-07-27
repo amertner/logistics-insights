@@ -95,7 +95,7 @@ local li_migrations = {
     add_localised_names_to(storage.bot_deliveries)
   end,
 
-  ["0.9.4"] = function()
+  ["0.9.5"] = function()
     -- Add "gather quality" setting"
     local player_table = player_data.get_singleplayer_table()
     if player_table and player_table.settings then

@@ -186,8 +186,6 @@ local function bot_initialise_chunking(accumulator, last_seen)
   accumulator.last_seen = last_seen or {} -- The list of bots seen in the last pass
   accumulator.just_seen = {} -- The list of bots first seen this pass
   accumulator.bot_qualities = {}
-  accumulator.bot_qualities["charging"] = {}
-  accumulator.bot_qualities["waiting"] = {}
   accumulator.bot_qualities["delivering"] = {}
   accumulator.bot_qualities["picking"] = {}
 end
