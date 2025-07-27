@@ -136,10 +136,10 @@ local function process_one_bot(bot, accumulator, player_table)
     local unit_number = bot.unit_number
     if accumulator.last_seen[unit_number] then
       -- Mark bots seen in the last pass as seen again
-      accumulator.last_seen[unit_number] = seen_bot_last_pass
+      accumulator.last_seen[unit_number] = seen_bot_this_pass
     else
       -- Mark this bot as seen for the first time
-      accumulator.just_seen[unit_number] = seen_bot_this_pass
+      accumulator.just_seen[unit_number] = seen_bot_last_pass
     end
     -- Track the bot's quality
     local quality = bot.quality.name or "normal"
@@ -174,6 +174,7 @@ local function process_one_bot(bot, accumulator, player_table)
     else
       -- No orders, check if it's because the bot has finished its delivery
       check_if_no_order_bot_finished_delivery(unit_number, player_table.settings.show_history)
+      accumulate_quality(accumulator.other_bot_qualities, quality)
     end
   end
 end
@@ -187,6 +188,7 @@ local function bot_initialise_chunking(accumulator, last_seen)
   accumulator.just_seen = {} -- The list of bots first seen this pass
   accumulator.delivering_bot_qualities = {}
   accumulator.picking_bot_qualities = {}
+  accumulator.other_bot_qualities = {} -- Gather quality of bots doing anything else
 end
 
 -- This function is called when all chunks are done processing, ready for a new chunk
@@ -196,6 +198,7 @@ local function bot_chunks_done(accumulator, player_table)
   storage.bot_deliveries = accumulator.item_deliveries or {}
   storage.delivering_bot_qualities = accumulator.delivering_bot_qualities or {}
   storage.picking_bot_qualities = accumulator.picking_bot_qualities or {}
+  storage.other_bot_qualities = accumulator.other_bot_qualities or {}
 
   if player_table and player_table.settings.show_history and table_size(storage.bot_active_deliveries) > 0 then
     -- Consider bots we saw last pass but not this chunk pass as delivered.
@@ -229,6 +232,7 @@ function bot_counter.network_changed(player, player_table)
   storage.last_pass_bots_seen = {}
   storage.picking_bot_qualities = {}
   storage.delivering_bot_qualities = {}
+  storage.other_bot_qualities = {}
 end
 
 -- Gather bot delivery data for all bots, one chunk at a time

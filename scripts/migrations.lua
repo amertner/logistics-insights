@@ -109,6 +109,7 @@ local li_migrations = {
     storage.delivering_bot_qualities = storage.delivering_bot_qualities or {}
     storage.charging_bot_qualities = storage.charging_bot_qualities or {}
     storage.waiting_bot_qualities = storage.waiting_bot_qualities or {}
+    storage.other_bot_qualities = storage.other_bot_qualities or {}
 
     -- Re-initialise the UI to make sure the new quality_table fields are set
     reinitialise_ui()

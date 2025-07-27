@@ -650,7 +650,7 @@ local function update_bot_activity_row(player_table)
           --  Augment the tooltip with a list of qualities found, if enabled in settings
           qualities_tooltip = tooltips_helper.get_quality_tooltip_line(nil, player_table, storage[qualities_table], true)
         end
-        
+
         if window.clicktip and is_active then
           -- Only show the "what happens if you click" tooltip if the button is active
           if window.onwithpause or not player_table.settings.pause_for_bots then
@@ -741,8 +741,22 @@ local function update_network_row(player_table)
   local function create_logistic_bots_tooltip(network)
     -- Line 1: Show no of bots
     local tip = { "network-row.logistic-bots-tooltip", network.all_logistic_robots }
+
     -- Line 2: Show quality counts
-    tip = tooltips_helper.get_quality_tooltip_line(tip, player_table, storage.idle_bot_qualities, true)
+    -- Sum all of the qualities gathered by bot-counter, plus idle ones, to get the totals
+    local total_bot_qualities = {}
+    local quality = prototypes.quality.normal
+    while quality do
+      local qname = quality.name
+      local amount = (storage.idle_bot_qualities[qname] or 0)
+        + (storage.picking_bot_qualities[qname] or 0)
+        + (storage.delivering_bot_qualities[qname] or 0)
+        + (storage.other_bot_qualities[qname] or 0)
+      total_bot_qualities[qname] = amount
+      -- Go to the next higher quality
+      quality = quality.next
+    end
+    tip = tooltips_helper.get_quality_tooltip_line(tip, player_table, total_bot_qualities, true)
     return tip
   end
 
@@ -754,20 +768,26 @@ local function update_network_row(player_table)
   end
 
   if player_table.network and player_table.network.valid then
+    -- Network ID cell and tooltip
     local network_id = player_table.network.network_id
     local networkidtip = create_networkid_information_tooltip(player_table.network, network_id, player_table.fixed_network, networkidclicktip)
     update_key_element(player_table.ui.network.id, network_id, networkidtip)
 
+    -- Roboports cell and tooltip
+    update_complex_element(player_table.ui.network.roboports, table_size(player_table.network.cells), 
+      tooltips_helper.create_count_with_qualities_tip(player_table, "network-row.roboports-tooltip", table_size(player_table.network.cells), storage.roboport_qualities, true),
+      "bots-gui.show-location-tooltip")
+
+    --  All Logistic Bots cell and tooltip
     local bottip
     if player_table.settings.pause_for_bots then
       bottip = "bots-gui.show-location-and-pause-tooltip"
     else
       bottip = "bots-gui.show-location-tooltip"
     end
-    update_complex_element(player_table.ui.network.roboports, table_size(player_table.network.cells), 
-      tooltips_helper.create_count_with_qualities_tip(player_table, "network-row.roboports-tooltip", table_size(player_table.network.cells), storage.roboport_qualities, true),
-      "bots-gui.show-location-tooltip")
     update_complex_element(player_table.ui.network.logistics_bots, player_table.network.all_logistic_robots, create_logistic_bots_tooltip(player_table.network), bottip)
+
+    -- Requesters, Providers and Storages cells and tooltips
     update_element(player_table.ui.network.requesters, table_size(player_table.network.requesters), "network-row.requesters-tooltip", "bots-gui.show-location-tooltip")
     update_element(player_table.ui.network.providers, table_size(player_table.network.providers) - table_size(player_table.network.cells), "network-row.providers-tooltip", "bots-gui.show-location-tooltip")
     update_element(player_table.ui.network.storages, table_size(player_table.network.storages), "network-row.storages-tooltip", "bots-gui.show-location-tooltip")
@@ -835,12 +855,6 @@ function bots_gui.update(player, player_table, clearing)
   end
   update_bot_activity_row(player_table)
   update_network_row(player_table)
-
-  -- local in_train_gui = player.opened_gui_type == defines.gui_type.entity and player.opened.type == "locomotive"
-  -- window = player.gui.screen.logistics_insights_window
-  -- if window then
-  --   window.visible = not in_train_gui
-  -- end
 end -- update contents
 
 function bots_gui.update_activity_chunk_progress(player_table, progress)

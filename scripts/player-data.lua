@@ -27,16 +27,17 @@ function player_data.init(player_index)
 end
 
 function player_data.init_storages()
-  storage.bot_items = {}
-  storage.bot_deliveries = {}
-  storage.bot_active_deliveries = {}
-  storage.delivery_history = {}
-  storage.idle_bot_qualities = {}
-  storage.charging_bot_qualities = {}
-  storage.waiting_bot_qualities = {}
-  storage.roboport_qualities =  {}
-  storage.picking_bot_qualities = {}
-  storage.delivering_bot_qualities = {}
+  storage.bot_items = {} -- Number of bots delivering and picking right now. Super cheap.
+  storage.bot_deliveries = {} -- A list of items being delivered right now
+  storage.bot_active_deliveries = {} -- A list of bots currently delivering items
+  storage.delivery_history = {} -- A list of past delivered items
+  storage.idle_bot_qualities = {} -- Quality of idle bots in roboports
+  storage.charging_bot_qualities = {} -- Quality of bots currently charging
+  storage.waiting_bot_qualities = {} -- Quality of bots waiting to charge
+  storage.roboport_qualities =  {} -- Quality of roboports
+  storage.picking_bot_qualities = {} -- Quality of bots currently picking items
+  storage.delivering_bot_qualities = {} -- Quality of bots currently delivering items
+  storage.other_bot_qualities = {} -- Quality of bots doing anything else
   storage.players = {}
   for i, player in pairs(game.players) do
     player_data.init(i)
