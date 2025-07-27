@@ -2,8 +2,7 @@
 Version: 0.9.4
 Date: ????
   Features:
-    - Now counts robot qualities, making it easier to see if you have the right quality mix
-    - Increase min version to 2.0.53 to use sprite buttons with quality
+    - Now counts robot and roboport qualities, making it easier to see if you have the right quality mix. Qualities are shown in the tooltips everywhere it's relevant.
   Changes:
     - Added the ability to translate the mod into other languages using Crowdin
 ---------------------------------------------------------------------------------------------------
