@@ -626,7 +626,7 @@ local function update_bot_activity_row(player_table)
         window.cell.number = num
         window.cell.enabled = true
         local robotstr = get_robotstr(window, num)
-        local qualities_tooltip = {"\n"}
+        local qualities_tooltip = {""}
         -- Get quality tooltip, if available
         if key == "logistic-robot-available" then
           qualities_tooltip = tooltips_helper.get_quality_tooltip_line(nil, player_table, storage.idle_bot_qualities, false)
