@@ -109,12 +109,9 @@ function player_data.check_network_changed(player, player_table)
   -- Get or update the network, return true if the network is changed
   local network = player.force.find_logistic_network_by_position(player.position, player.surface)
   local player_table_network = player_table.network
-  if network and network.valid then
-    new_network_id = network.network_id
-  else
-    new_network_id = nil
-  end
-  old_network_id = player_table_network and player_table_network.network_id
+  -- Get the network IDs, making sure the network references are still valid
+  local new_network_id = network and network.valid and network.network_id
+  local old_network_id = player_table_network and player_table_network.valid and player_table_network.network_id
 
   if new_network_id == old_network_id then
     return false
@@ -178,14 +175,14 @@ function player_data.refresh(player, player_table)
   if not player_table or not player_table.settings then
     return
   end
-  
+
   local paused_is_irrelevant = not player_table.settings.show_delivering and not player_table.settings.show_history
   player_data.update_settings(player, player_table)
   if paused_is_irrelevant and (player_table.settings.show_delivering or player_table.settings.show_history) then
     -- unpause if it was paused without any effect
     player_table.history_timer:resume()
   end
-  
+
   -- Initialize shortcut toggle state based on window visibility
   player.set_shortcut_toggled("logistics-insights-toggle", player_table.bots_window_visible)
 end
