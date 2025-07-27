@@ -23,6 +23,13 @@ data:extend(
     },
     {
       type = "bool-setting",
+      name = "li-gather-quality-data",
+      setting_type = "runtime-per-user",
+      default_value = true,
+      order = "3.1"
+    },
+    {
+      type = "bool-setting",
       name = "li-pause-while-hidden",
       setting_type = "runtime-per-user",
       default_value = true,

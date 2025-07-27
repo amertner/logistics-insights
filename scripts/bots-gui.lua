@@ -619,26 +619,37 @@ local function update_bot_activity_row(player_table)
                           key == "logistic-robot-total" or key == "logistic-robot-available"
          -- If real time delivery is disabled, the Pickup/Delivery buttons should be inactive too
         if is_active and (key == "picking" or key == "delivering") and not show_deliveries(player_table) then
-          is_active = false
-          no_data = true
+          is_active = false -- Whether the cell is enabled or greyed out
+          no_data = true -- whether the tooltip needs to be empty and no number displayed
         end
         local num = storage.bot_items[key] or 0
         window.cell.number = num
         window.cell.enabled = true
         local robotstr = get_robotstr(window, num)
+        local qualities_tooltip = {"\n"}
+        -- Get quality tooltip, if available
+        if key == "logistic-robot-available" then
+          qualities_tooltip = tooltips_helper.get_quality_tooltip_line(nil, player_table, storage.idle_bot_qualities, false)
+        elseif key == "delivering" or key == "picking" then
+          qualities_tooltip = tooltips_helper.get_quality_tooltip_line(nil, player_table, storage.active_bot_qualities[key], true)
+        elseif key == "charging-robot" then
+          qualities_tooltip = tooltips_helper.get_quality_tooltip_line(nil, player_table, storage.charging_bot_qualities, true)
+        elseif key == "waiting-for-charge-robot" then
+          qualities_tooltip = tooltips_helper.get_quality_tooltip_line(nil, player_table, storage.waiting_bot_qualities, true)
+        end
         if window.clicktip and is_active then
           -- Only show the "what happens if you click" tooltip if the button is active
           if window.onwithpause or not player_table.settings.pause_for_bots then
-            window.cell.tooltip = {"", robotstr, window.tip, "\n", {"bots-gui.show-location-tooltip"}}
+            window.cell.tooltip = {"", robotstr, window.tip, qualities_tooltip, {"bots-gui.show-location-tooltip"}}
           else
-            window.cell.tooltip = {"", robotstr, window.tip, "\n", {"bots-gui.show-location-and-pause-tooltip"}}
+            window.cell.tooltip = {"", robotstr, window.tip, qualities_tooltip, {"bots-gui.show-location-and-pause-tooltip"}}
           end
         else
           if no_data then
             window.cell.tooltip = ""
             window.cell.number = nil
           else
-            window.cell.tooltip = {"", robotstr, window.tip}
+            window.cell.tooltip = {"", robotstr, window.tip, qualities_tooltip}
           end
         end
         window.cell.enabled = is_active
@@ -672,6 +683,21 @@ local function update_network_row(player_table)
     end
   end
 
+  local function update_complex_element(cell, value, localized_tooltip, clicktip)
+    if cell and cell.valid then
+      cell.number = value
+      if localized_tooltip then
+        if clicktip then
+          cell.tooltip = {"", localized_tooltip,  "\n", {clicktip}}
+        else
+          cell.tooltip = localized_tooltip
+        end
+      else
+        cell.tooltip = ""
+      end
+    end
+  end
+
   local reset_network_buttons = function(ui_table, sprite, number, tip, disable)
     -- Reset all cells in the ui_table to empty
     for _, cell in pairs(ui_table) do
@@ -698,6 +724,14 @@ local function update_network_row(player_table)
     return {"", tip, "\n\n", {clicktip}}
   end
 
+  local function create_logistic_bots_tooltip(network)
+    -- Line 1: Show no of bots
+    local tip = { "network-row.logistic-bots-tooltip", network.all_logistic_robots }
+    -- Line 2: Show quality counts
+    tip = tooltips_helper.get_quality_tooltip_line(tip, player_table, storage.idle_bot_qualities, true)
+    return tip
+  end
+
   local networkidclicktip
   if player_table.fixed_network then
     networkidclicktip = "network-row.follow-network-tooltip"
@@ -716,8 +750,10 @@ local function update_network_row(player_table)
     else
       bottip = "bots-gui.show-location-tooltip"
     end
-    update_element(player_table.ui.network.roboports, table_size(player_table.network.cells), "network-row.roboports-tooltip", "bots-gui.show-location-tooltip")
-    update_element(player_table.ui.network.logistics_bots, player_table.network.all_logistic_robots, "network-row.logistic-bots-tooltip", bottip)
+    update_complex_element(player_table.ui.network.roboports, table_size(player_table.network.cells), 
+      tooltips_helper.create_count_with_qualities_tip(player_table, "network-row.roboports-tooltip", table_size(player_table.network.cells), storage.roboport_qualities, true),
+      "bots-gui.show-location-tooltip")
+    update_complex_element(player_table.ui.network.logistics_bots, player_table.network.all_logistic_robots, create_logistic_bots_tooltip(player_table.network), bottip)
     update_element(player_table.ui.network.requesters, table_size(player_table.network.requesters), "network-row.requesters-tooltip", "bots-gui.show-location-tooltip")
     update_element(player_table.ui.network.providers, table_size(player_table.network.providers) - table_size(player_table.network.cells), "network-row.providers-tooltip", "bots-gui.show-location-tooltip")
     update_element(player_table.ui.network.storages, table_size(player_table.network.storages), "network-row.storages-tooltip", "bots-gui.show-location-tooltip")

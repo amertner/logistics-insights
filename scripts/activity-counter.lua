@@ -3,26 +3,81 @@ local activity_counter = {}
 local player_data = require("scripts.player-data")
 
 -- Counting network cells in chunks
-local function network_initialise(partial_data)
-  partial_data.bots_charging = 0
-  partial_data.bots_waiting_for_charge = 0
+local function network_initialise(accumulator)
+  accumulator.bots_charging = 0
+  accumulator.bots_waiting_for_charge = 0
+  accumulator.idle_bot_qualities = {} -- Gather quality of idle bots
+  accumulator.roboport_qualities = {} -- Gather quality of roboports
+  accumulator.charging_bot_qualities = {} -- Gather quality of charging bots
+  accumulator.waiting_bot_qualities = {} -- Gather quality of bots waiting to charge
 end
 
-local function network_processing(entity, partial_data, player_table)
-  local bots_charging = partial_data.bots_charging
-  local bots_waiting = partial_data.bots_waiting_for_charge
-
-  partial_data.bots_charging = bots_charging + entity.charging_robot_count
-  partial_data.bots_waiting_for_charge = bots_waiting + entity.to_charge_robot_count
+local function accumulate_quality(quality_table, quality, count)
+  if not quality_table[quality] then
+    quality_table[quality] = 0
+  end
+  quality_table[quality] = quality_table[quality] + count
 end
 
-local function network_chunks_done(data, player_table)
+local function process_one_cell(cell, accumulator, player_table)
+  local bots_charging = accumulator.bots_charging
+  local bots_waiting = accumulator.bots_waiting_for_charge
+
+  accumulator.bots_charging = bots_charging + cell.charging_robot_count
+  accumulator.bots_waiting_for_charge = bots_waiting + cell.to_charge_robot_count
+
+  -- Check the bots stationed at this roboport
+  if cell.owner and cell.owner.valid and player_table.settings.gather_quality_data then
+    -- Count roboport quality
+    local rp_quality = cell.owner.quality.name
+    accumulate_quality(accumulator.roboport_qualities, rp_quality, 1)
+
+    -- Count quality of charging bots
+    for _, bot in pairs(cell.charging_robots) do
+      if bot.valid and bot.quality then
+        local quality = bot.quality.name or "normal"
+        accumulate_quality(accumulator.charging_bot_qualities, quality, 1)
+      end
+    end
+
+    -- Count quality of bots waiting to charge
+    for _, bot in pairs(cell.to_charge_robots) do
+      if bot.valid and bot.quality then
+        local quality = bot.quality.name or "normal"
+        accumulate_quality(accumulator.waiting_bot_qualities, quality, 1)
+      end
+    end
+
+    -- Count quality of bots inside roboports (i.e. idle ones)
+    local bot_qualities = accumulator.idle_bot_qualities
+    local rp = cell.owner
+    if rp then
+      inventory = rp.get_inventory(defines.inventory.roboport_robot)
+      if not inventory.is_empty() then
+        stacks = inventory.get_contents()
+        for _, stack in pairs(stacks) do
+          if stack.name == "logistic-robot" then
+            local quality = stack.quality or "normal"
+            accumulate_quality(bot_qualities, quality, stack.count)
+          end
+        end
+      end
+    end
+  end
+end
+
+local function network_chunks_done(accumulator, player_table)
   local bot_items = storage.bot_items
-  bot_items["charging-robot"] = data.bots_charging
-  bot_items["waiting-for-charge-robot"] = data.bots_waiting_for_charge
+  bot_items["charging-robot"] = accumulator.bots_charging
+  bot_items["waiting-for-charge-robot"] = accumulator.bots_waiting_for_charge
+
+  storage.idle_bot_qualities = accumulator.idle_bot_qualities or {}
+  storage.roboport_qualities = accumulator.roboport_qualities or {}
+  storage.charging_bot_qualities = accumulator.charging_bot_qualities or {}
+  storage.waiting_bot_qualities = accumulator.waiting_bot_qualities or {}
 end
 
-local activity_chunker = require("scripts.chunker").new(network_initialise, network_processing, network_chunks_done)
+local activity_chunker = require("scripts.chunker").new(network_initialise, process_one_cell, network_chunks_done)
 
 function activity_counter.network_changed(player, player_table)
   activity_chunker:reset()

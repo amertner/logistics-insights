@@ -123,6 +123,13 @@ local function check_if_no_order_bot_finished_delivery(unit_number, show_history
   end
 end
 
+local function accumulate_quality(quality_table, quality)
+  if not quality_table[quality] then
+    quality_table[quality] = 0
+  end
+  quality_table[quality] = quality_table[quality] + 1
+end
+
 -- This function is called by the chunker once for every bot in the list
 local function process_one_bot(bot, accumulator, player_table)
   if bot and bot.valid then
@@ -134,13 +141,17 @@ local function process_one_bot(bot, accumulator, player_table)
       -- Mark this bot as seen for the first time
       accumulator.just_seen[unit_number] = seen_bot_this_pass
     end
+    -- Track the bot's quality
+    local quality = bot.quality.name or "normal"
 
     if table_size(bot.robot_order_queue) > 0 then
       local order = bot.robot_order_queue[1]
       if order.type == defines_robot_order_type_deliver then
         accumulator.delivering_bots = accumulator.delivering_bots + 1
+        accumulate_quality(accumulator.bot_qualities["delivering"], quality)
       elseif order.type == defines_robot_order_type_pickup then
         accumulator.picking_bots = accumulator.picking_bots + 1
+        accumulate_quality(accumulator.bot_qualities["picking"], quality)
       end
 
       local targetname = order.target_item.name
@@ -174,12 +185,18 @@ local function bot_initialise_chunking(accumulator, last_seen)
   accumulator.item_deliveries = {} -- Reset deliveries
   accumulator.last_seen = last_seen or {} -- The list of bots seen in the last pass
   accumulator.just_seen = {} -- The list of bots first seen this pass
+  accumulator.bot_qualities = {}
+  accumulator.bot_qualities["charging"] = {}
+  accumulator.bot_qualities["waiting"] = {}
+  accumulator.bot_qualities["delivering"] = {}
+  accumulator.bot_qualities["picking"] = {}
 end
 
 -- This function is called when all chunks are done processing, ready for a new chunk
 local function bot_chunks_done(accumulator, player_table)
   storage.bot_items["delivering"] = accumulator.delivering_bots or nil
   storage.bot_items["picking"] = accumulator.picking_bots or nil
+  storage.active_bot_qualities = accumulator.bot_qualities or {}
   storage.bot_deliveries = accumulator.item_deliveries or {}
 
   if player_table and player_table.settings.show_history and table_size(storage.bot_active_deliveries) > 0 then
@@ -212,6 +229,7 @@ function bot_counter.network_changed(player, player_table)
   storage.delivery_history = {}
   storage.bot_active_deliveries = {}
   storage.last_pass_bots_seen = {}
+  storage.active_bot_qualities = {}
 end
 
 -- Gather bot delivery data for all bots, one chunk at a time

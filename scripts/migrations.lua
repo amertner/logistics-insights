@@ -94,6 +94,21 @@ local li_migrations = {
     add_localised_names_to(storage.bot_active_deliveries)
     add_localised_names_to(storage.bot_deliveries)
   end,
+
+  ["0.9.4"] = function()
+    -- Add "gather quality" setting"
+    local player_table = player_data.get_singleplayer_table()
+    if player_table and player_table.settings then
+      player_table.settings.gather_quality_data = true
+    end
+
+    -- Ensure new qualities storage exists
+    storage.idle_bot_qualities = storage.idle_bot_qualities or {}
+    storage.roboport_qualities = storage.roboport_qualities or {}
+    storage.active_bot_qualities = storage.active_bot_qualities or {}
+    storage.charging_bot_qualities = storage.charging_bot_qualities or {}
+    storage.waiting_bot_qualities = storage.waiting_bot_qualities or {}
+  end,
 }
 
 return li_migrations

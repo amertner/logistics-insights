@@ -92,4 +92,51 @@ function tooltips_helper.add_network_history_tip(tip, player_table)
   return tip
 end
 
+function tooltips_helper.create_count_with_qualities_tip(player_table, formatstr, count, quality_table)
+  -- Line 1: Show count string
+  local tip = { formatstr, count }
+  -- Line 2: Show quality counts
+  tip = tooltips_helper.get_quality_tooltip_line(tip, player_table, quality_table)
+  return tip
+end
+
+-- Return a formatted tooltip based on the quality_counts, to be used in a tooltip
+-- formatname is the format string for the tooltip, e.g. "network-row.logistic-robot-quality-tooltip-1quality-2count"
+-- quality_counts is a table with quality names as keys and their counts as values
+-- separator is a string to separate different qualities in the tooltip
+-- if include_empty is true, the tip will include qualities with zero count
+local function getqualitytip(tip, formatname, quality_table, item_separator, include_empty)
+  if not formatname or not quality_table or not prototypes.quality then
+    return tip
+  end
+
+  -- Always start with a newline
+  local separator = "\n"
+  -- Iterate over all qualities
+  local quality = prototypes.quality.normal
+  while quality do
+    local amount = quality_table[quality.name] or 0
+    if include_empty or amount > 0 then
+      -- Use coloured quality names to show bot qualities
+      tip = {"", tip, separator, {formatname, quality.name, amount}}
+      separator = item_separator or ", "
+    end
+    -- Make sure we iterate over the qualities in quality order
+    quality = quality.next
+  end
+
+  return tip
+end
+
+-- Return a whole line for all qualities
+function tooltips_helper.get_quality_tooltip_line(tip, player_table, quality_table, newline)
+  if player_table.settings.gather_quality_data and prototypes.quality then
+    tip = getqualitytip(tip, "network-row.quality-tooltip-1quality-2count", quality_table, "  ", true)
+    if newline then
+      tip = {"", tip, "\n"}
+    end
+  end
+  return tip
+end
+
 return tooltips_helper

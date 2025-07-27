@@ -31,6 +31,11 @@ function player_data.init_storages()
   storage.bot_deliveries = {}
   storage.bot_active_deliveries = {}
   storage.delivery_history = {}
+  storage.idle_bot_qualities = {}
+  storage.charging_bot_qualities = {}
+  storage.waiting_bot_qualities = {}
+  storage.roboport_qualities =  {}
+  storage.active_bot_qualities = {}
   storage.players = {}
   for i, player in pairs(game.players) do
     player_data.init(i)
@@ -45,6 +50,7 @@ function player_data.update_settings(player, player_table)
     max_items = mod_settings["li-max-items"].value,
     show_history = mod_settings["li-show-history"].value,
     show_activity = mod_settings["li-show-activity"].value,
+    gather_quality_data = mod_settings["li-gather-quality-data"].value,
     chunk_size = mod_settings["li-chunk-size"].value,
     bot_chunk_interval = mod_settings["li-chunk-processing-interval"].value,
     ui_update_interval = mod_settings["li-ui-update-interval"].value,
