@@ -97,18 +97,23 @@ function player_data.check_network_changed(player, player_table)
   end
 
   if player_table and player_table.fixed_network then
-    return false
+    -- Check that the fixed network is still valid
+    if player_table.network and player_table.network.valid then
+      return false
+    else
+      -- The fixed network is no longer valid, so make sure to clear it
+      player_table.network = nil
+      player_table.fixed_network = false
+    end
   end
 
   -- Get or update the network, return true if the network is changed
   local network = player.force.find_logistic_network_by_position(player.position, player.surface)
   local player_table_network = player_table.network
-  if network and network.valid then
-    new_network_id = network.network_id
-  else
-    new_network_id = nil
-  end
-  old_network_id = player_table_network and player_table_network.network_id
+  -- Get the network IDs, making sure the network references are still valid
+  local new_network_id = network and network.valid and network.network_id
+  local old_network_id = player_table_network and player_table_network.valid and player_table_network.network_id
+
 
   if new_network_id == old_network_id then
     return false
