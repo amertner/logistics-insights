@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.9.5
-Date: ????
+Date: 2025-07-27
   Features:
     - Now counts robot and roboport qualities, making it easier to see if you have the right quality mix. 
     - Qualities are shown in the tooltips everywhere it's relevant.
