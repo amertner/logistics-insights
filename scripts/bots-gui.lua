@@ -50,13 +50,24 @@ function bots_gui.ensure_ui_consistency(player, player_table)
     bots_gui.create_window(player, player_table)
   end
 
+  local window = gui.logistics_insights_window
+
   if game_state.needs_buttons() then
-    local titlebar = player.gui.screen.logistics_insights_window.bots_insights_titlebar
+    local titlebar = window.bots_insights_titlebar
     if titlebar then
       local unfreeze = titlebar["logistics-insights-unfreeze"]
       local freeze = titlebar["logistics-insights-freeze"]
       game_state.init(unfreeze, freeze)
       game_state.force_update_ui()
+    end
+  end
+
+  -- Make sure the "Fixed network" toggle is set correctly. 
+  -- It cannot be un-set in player_data if the fixed network is deleted
+  if window and window.bots_table then
+    network_id_cell = window.bots_table["logistics-insights-network-id"]
+    if network_id_cell then
+      network_id_cell.toggled = player_table.fixed_network
     end
   end
 end

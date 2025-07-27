@@ -103,7 +103,14 @@ function player_data.check_network_changed(player, player_table)
   end
 
   if player_table and player_table.fixed_network then
-    return false
+    -- Check that the fixed network is still valid
+    if player_table.network and player_table.network.valid then
+      return false
+    else
+      -- The fixed network is no longer valid, so make sure to clear it
+      player_table.network = nil
+      player_table.fixed_network = false
+    end
   end
 
   -- Get or update the network, return true if the network is changed
