@@ -94,7 +94,7 @@ end
 
 function tooltips_helper.create_count_with_qualities_tip(player_table, formatstr, count, quality_table)
   -- Line 1: Show count string
-  local tip = { formatstr, count }
+  local tip = { "", {formatstr, count}, "\n" }
   -- Line 2: Show quality counts
   tip = tooltips_helper.get_quality_tooltip_line(tip, player_table, quality_table)
   return tip
@@ -105,13 +105,13 @@ end
 -- quality_counts is a table with quality names as keys and their counts as values
 -- separator is a string to separate different qualities in the tooltip
 -- if include_empty is true, the tip will include qualities with zero count
-local function getqualitytip(tip, formatname, quality_table, item_separator, include_empty)
+local function getqualitytip(formatname, quality_table, item_separator, include_empty)
   if not formatname or not quality_table or not prototypes.quality then
-    return tip
+    return nil
   end
 
-  -- Always start with a newline
-  local separator = "\n"
+  local tip = {""}
+  local separator = ""
   -- Iterate over all qualities
   local quality = prototypes.quality.normal
   while quality do
@@ -129,9 +129,15 @@ local function getqualitytip(tip, formatname, quality_table, item_separator, inc
 end
 
 -- Return a whole line for all qualities
-function tooltips_helper.get_quality_tooltip_line(tip, player_table, quality_table, newline)
+function tooltips_helper.get_quality_tooltip_line(tip, player_table, quality_table, newline, formatstr)
   if player_table.settings.gather_quality_data and prototypes.quality then
-    tip = getqualitytip(tip, "network-row.quality-tooltip-1quality-2count", quality_table, "  ", true)
+    local quality_tip = getqualitytip("network-row.quality-tooltip-1quality-2count", quality_table, "  ", true)
+    if formatstr then
+      tip = {"", tip, {formatstr, quality_tip}}
+    else
+      --tip = {"", tip, {"quality-item-format.no-quality-item-format", quality_tip}}
+      tip = {"", tip, quality_tip}
+    end
     if newline then
       tip = {"", tip, "\n"}
     end

@@ -38,6 +38,7 @@ function player_data.init_storages()
   storage.picking_bot_qualities = {} -- Quality of bots currently picking items
   storage.delivering_bot_qualities = {} -- Quality of bots currently delivering items
   storage.other_bot_qualities = {} -- Quality of bots doing anything else
+  storage.total_bot_qualities = {} -- Quality of all bots counted
   storage.players = {}
   for i, player in pairs(game.players) do
     player_data.init(i)

@@ -646,24 +646,28 @@ local function update_bot_activity_row(player_table)
         local qualities_tooltip = {""}
 
         local qualities_table = window.qualitytable
+        local extra_newline = ""
         if qualities_table then
           --  Augment the tooltip with a list of qualities found, if enabled in settings
-          qualities_tooltip = tooltips_helper.get_quality_tooltip_line(nil, player_table, storage[qualities_table], true)
+          qualities_tooltip = tooltips_helper.get_quality_tooltip_line(nil, player_table, storage[qualities_table])
         end
 
         if window.clicktip and is_active then
           -- Only show the "what happens if you click" tooltip if the button is active
+          if qualities_table then
+            extra_newline = "\n"
+          end
           if window.onwithpause or not player_table.settings.pause_for_bots then
-            window.cell.tooltip = {"", robotstr, window.tip, qualities_tooltip, {"bots-gui.show-location-tooltip"}}
+            window.cell.tooltip = {"", robotstr, window.tip, "\n", qualities_tooltip, extra_newline, {"bots-gui.show-location-tooltip"}}
           else
-            window.cell.tooltip = {"", robotstr, window.tip, qualities_tooltip, {"bots-gui.show-location-and-pause-tooltip"}}
+            window.cell.tooltip = {"", robotstr, window.tip, "\n", qualities_tooltip, extra_newline, {"bots-gui.show-location-and-pause-tooltip"}}
           end
         else
           if no_data then
             window.cell.tooltip = ""
             window.cell.number = nil
           else
-            window.cell.tooltip = {"", robotstr, window.tip, qualities_tooltip}
+            window.cell.tooltip = {"", robotstr, window.tip, "\n", qualities_tooltip}
           end
         end
         window.cell.enabled = is_active
@@ -702,9 +706,9 @@ local function update_network_row(player_table)
       cell.number = value
       if localized_tooltip then
         if clicktip then
-          cell.tooltip = {"", localized_tooltip,  "\n", {clicktip}}
+          cell.tooltip = {"", localized_tooltip, "\n", {clicktip}}
         else
-          cell.tooltip = localized_tooltip
+          cell.tooltip = {"", localized_tooltip, "\n"}
         end
       else
         cell.tooltip = ""
@@ -740,23 +744,10 @@ local function update_network_row(player_table)
 
   local function create_logistic_bots_tooltip(network)
     -- Line 1: Show no of bots
-    local tip = { "network-row.logistic-bots-tooltip", network.all_logistic_robots }
+    local tip = { "", {"network-row.logistic-bots-tooltip", network.all_logistic_robots}, "\n" }
 
     -- Line 2: Show quality counts
-    -- Sum all of the qualities gathered by bot-counter, plus idle ones, to get the totals
-    local total_bot_qualities = {}
-    local quality = prototypes.quality.normal
-    while quality do
-      local qname = quality.name
-      local amount = (storage.idle_bot_qualities[qname] or 0)
-        + (storage.picking_bot_qualities[qname] or 0)
-        + (storage.delivering_bot_qualities[qname] or 0)
-        + (storage.other_bot_qualities[qname] or 0)
-      total_bot_qualities[qname] = amount
-      -- Go to the next higher quality
-      quality = quality.next
-    end
-    tip = tooltips_helper.get_quality_tooltip_line(tip, player_table, total_bot_qualities, true)
+    tip = tooltips_helper.get_quality_tooltip_line(tip, player_table, storage.total_bot_qualities, false)
     return tip
   end
 
@@ -774,8 +765,8 @@ local function update_network_row(player_table)
     update_key_element(player_table.ui.network.id, network_id, networkidtip)
 
     -- Roboports cell and tooltip
-    update_complex_element(player_table.ui.network.roboports, table_size(player_table.network.cells), 
-      tooltips_helper.create_count_with_qualities_tip(player_table, "network-row.roboports-tooltip", table_size(player_table.network.cells), storage.roboport_qualities, true),
+    update_complex_element(player_table.ui.network.roboports, table_size(player_table.network.cells),
+      tooltips_helper.create_count_with_qualities_tip(player_table, "network-row.roboports-tooltip", table_size(player_table.network.cells), storage.roboport_qualities),
       "bots-gui.show-location-tooltip")
 
     --  All Logistic Bots cell and tooltip

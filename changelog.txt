@@ -2,9 +2,13 @@
 Version: 0.9.5
 Date: ????
   Features:
-    - Now counts robot and roboport qualities, making it easier to see if you have the right quality mix. Qualities are shown in the tooltips everywhere it's relevant.
+    - Now counts robot and roboport qualities, making it easier to see if you have the right quality mix. 
+    - Qualities are shown in the tooltips everywhere it's relevant.
   Changes:
     - Added the ability to translate the mod into other languages using Crowdin
+  Bugfixes:
+    - Delivery history would sometimes be significantly overcounted, now it's an "at-most" figure.
+    - This bug also affected the time taken to deliver an item, which was too low.
 ---------------------------------------------------------------------------------------------------
 Version: 0.9.4
 Date: 2025-07-27

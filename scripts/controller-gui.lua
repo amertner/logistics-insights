@@ -78,6 +78,7 @@ function controller_gui.update_window(player, player_table)
       tip = tooltips_helper.add_networkid_tip(tip,  player_table.network.network_id, player_table.fixed_network)
       tip = tooltips_helper.add_network_surface_tip(tip, player_table.network)
       tip = tooltips_helper.add_bots_idle_and_total_tip(tip, player_table.network, idle_count, total_count)
+      tip = tooltips_helper.get_quality_tooltip_line(tip, player_table, storage.total_bot_qualities, false, "controller-gui.main_tooltip_quality")
       tip = tooltips_helper.add_empty_line(tip)
 
       local paused = player_data.is_paused(player_table)

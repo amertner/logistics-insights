@@ -199,6 +199,20 @@ local function bot_chunks_done(accumulator, player_table)
   storage.delivering_bot_qualities = accumulator.delivering_bot_qualities or {}
   storage.picking_bot_qualities = accumulator.picking_bot_qualities or {}
   storage.other_bot_qualities = accumulator.other_bot_qualities or {}
+    -- Sum all of the qualities gathered by bot-counter, plus idle ones, to get the totals
+  local total_bot_qualities = {}
+  local quality = prototypes.quality.normal
+  while quality do
+    local qname = quality.name
+    local amount = (storage.idle_bot_qualities[qname] or 0)
+      + (storage.picking_bot_qualities[qname] or 0)
+      + (storage.delivering_bot_qualities[qname] or 0)
+      + (storage.other_bot_qualities[qname] or 0)
+    total_bot_qualities[qname] = amount
+    -- Go to the next higher quality
+    quality = quality.next
+  end
+  storage.total_bot_qualities = total_bot_qualities
 
   if player_table and player_table.settings.show_history and table_size(storage.bot_active_deliveries) > 0 then
     -- Consider bots we saw last pass but not this chunk pass as delivered.
@@ -233,6 +247,7 @@ function bot_counter.network_changed(player, player_table)
   storage.picking_bot_qualities = {}
   storage.delivering_bot_qualities = {}
   storage.other_bot_qualities = {}
+  storage.total_bot_qualities = {}
 end
 
 -- Gather bot delivery data for all bots, one chunk at a time
