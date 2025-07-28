@@ -26,19 +26,42 @@ function player_data.init(player_index)
   }
 end
 
-function player_data.init_storages()
-  storage.bot_items = {} -- Number of bots delivering and picking right now. Super cheap.
-  storage.bot_deliveries = {} -- A list of items being delivered right now
-  storage.bot_active_deliveries = {} -- A list of bots currently delivering items
-  storage.delivery_history = {} -- A list of past delivered items
+-- Initialize all of the storage elements managed by activity_counter
+function player_data.init_activity_counter_storage()
+  -- Bot qualities
   storage.idle_bot_qualities = {} -- Quality of idle bots in roboports
   storage.charging_bot_qualities = {} -- Quality of bots currently charging
   storage.waiting_bot_qualities = {} -- Quality of bots waiting to charge
+
+  -- Roboport qualities
   storage.roboport_qualities =  {} -- Quality of roboports
+end
+
+-- Initialize all of the storage elements managed by bot_counter
+function player_data.init_bot_counter_storage()
+  -- Real time data about deliveries
+  storage.bot_deliveries = {} -- A list of items being delivered right now
+  -- Real time data about bots 
+  storage.bot_items = storage.bot_items or {}
+
+  -- History data
+  storage.bot_active_deliveries = {} -- A list of bots currently delivering items
+  storage.delivery_history = {} -- A list of past delivered items
+
+  -- Bot counting: bots seen in the last full pass
+  storage.last_pass_bots_seen = {}
+
+  -- Bot qualitity tables
   storage.picking_bot_qualities = {} -- Quality of bots currently picking items
   storage.delivering_bot_qualities = {} -- Quality of bots currently delivering items
   storage.other_bot_qualities = {} -- Quality of bots doing anything else
   storage.total_bot_qualities = {} -- Quality of all bots counted
+end
+
+function player_data.init_storages()
+  storage.bot_items = {} -- Number of bots delivering and picking right now. Super cheap.
+  player_data.init_activity_counter_storage()
+  player_data.init_bot_counter_storage()
   storage.players = {}
   for i, player in pairs(game.players) do
     player_data.init(i)

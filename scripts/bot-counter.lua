@@ -240,14 +240,7 @@ local bot_chunker = chunker.new(bot_initialise_chunking, process_one_bot, bot_ch
 function bot_counter.network_changed(player, player_table)
   -- Clear all current state when we change networks
   bot_chunker:reset()
-  storage.bot_items = storage.bot_items or {}
-  storage.delivery_history = {}
-  storage.bot_active_deliveries = {}
-  storage.last_pass_bots_seen = {}
-  storage.picking_bot_qualities = {}
-  storage.delivering_bot_qualities = {}
-  storage.other_bot_qualities = {}
-  storage.total_bot_qualities = {}
+  player_data.init_bot_counter_storage()
 end
 
 -- Gather bot delivery data for all bots, one chunk at a time

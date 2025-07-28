@@ -81,6 +81,7 @@ local activity_chunker = require("scripts.chunker").new(network_initialise, proc
 
 function activity_counter.network_changed(player, player_table)
   activity_chunker:reset()
+  player_data.init_activity_counter_storage()
 end
 
 -- Gather activity data (cells, charging robots, etc.)
