@@ -494,7 +494,8 @@ function bots_gui.create_window(player, player_table)
   else
     window.location = { x = 200, y = 0 }
   end
-  bots_gui.update(player, player_table)
+  -- Do not update the window here, as we might not have all the state necessary to do so safely
+  -- bots_gui.update(player, player_table)
 end
 
 -- Updating the window with live data

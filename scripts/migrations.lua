@@ -116,6 +116,27 @@ local li_migrations = {
     -- Re-initialise the UI to make sure the new quality_table fields are set
     reinitialise_ui()
   end,
+  
+  ["0.9.6"] = function()
+    -- Rename the private fields in TickCounter references
+    for _, player_table in pairs(storage.players) do
+      if player_table and player_table.history_timer then
+        local counter = player_table.history_timer
+        if type(counter) == "table" then
+          -- Rename the fields to match the new TickCounter structure
+          counter._start_tick = counter.start_tick or game.tick
+          counter._paused = counter.paused or false
+          counter._pause_tick = counter.pause_tick or nil
+          counter._accumulated_time = counter.accumulated_time or 0
+          -- Remove the old fields
+          counter.start_tick = nil
+          counter.paused = nil
+          counter.pause_tick = nil
+          counter.accumulated_time = nil
+        end
+      end
+    end
+  end
 }
 
 return li_migrations
