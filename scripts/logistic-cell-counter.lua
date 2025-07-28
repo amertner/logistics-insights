@@ -1,9 +1,10 @@
-local activity_counter = {}
+-- Iterates over all logistic cells in a network, gathering stats
+local logistic_cell_counter = {}
 
 local player_data = require("scripts.player-data")
 
 -- Counting network cells in chunks
-local function network_initialise(accumulator)
+local function initialise_cell_network_list(accumulator)
   accumulator.bots_charging = 0
   accumulator.bots_waiting_for_charge = 0
   accumulator.idle_bot_qualities = {} -- Gather quality of idle bots
@@ -66,7 +67,7 @@ local function process_one_cell(cell, accumulator, player_table)
   end
 end
 
-local function network_chunks_done(accumulator, player_table)
+local function all_chunks_done(accumulator, player_table)
   local bot_items = storage.bot_items
   bot_items["charging-robot"] = accumulator.bots_charging
   bot_items["waiting-for-charge-robot"] = accumulator.bots_waiting_for_charge
@@ -77,15 +78,15 @@ local function network_chunks_done(accumulator, player_table)
   storage.waiting_bot_qualities = accumulator.waiting_bot_qualities or {}
 end
 
-local activity_chunker = require("scripts.chunker").new(network_initialise, process_one_cell, network_chunks_done)
+local cell_chunker = require("scripts.chunker").new(initialise_cell_network_list, process_one_cell, all_chunks_done)
 
-function activity_counter.network_changed(player, player_table)
-  activity_chunker:reset()
-  player_data.init_activity_counter_storage()
+function logistic_cell_counter.network_changed(player, player_table)
+  cell_chunker:reset()
+  player_data.init_logistic_cell_counter_storage()
 end
 
--- Gather activity data (cells, charging robots, etc.)
-function activity_counter.gather_data(player, player_table)
+-- Gather activity data from all cells in network
+function logistic_cell_counter.gather_data(player, player_table)
   -- First update and validate network
   local progress = { current = 0, total = 0 } -- Use local variable to avoid global access
   local network = player_table.network
@@ -103,13 +104,13 @@ function activity_counter.gather_data(player, player_table)
   end
 
   -- Process cell data
-  if activity_chunker:is_done() then
-    activity_chunker:initialise_chunking(network.cells, player_table, nil)
-    player_data.set_activity_chunks(player_table, activity_chunker:num_chunks())
+  if cell_chunker:is_done() then
+    cell_chunker:initialise_chunking(network.cells, player_table, nil)
+    player_data.set_logistic_cell_chunks(player_table, cell_chunker:num_chunks())
   end
-  activity_chunker:process_chunk()
+  cell_chunker:process_chunk()
 
-  return activity_chunker:get_progress()
+  return cell_chunker:get_progress()
 end
 
-return activity_counter
+return logistic_cell_counter

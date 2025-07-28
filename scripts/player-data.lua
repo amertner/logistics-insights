@@ -26,8 +26,8 @@ function player_data.init(player_index)
   }
 end
 
--- Initialize all of the storage elements managed by activity_counter
-function player_data.init_activity_counter_storage()
+-- Initialize all of the storage elements managed by logistic_cell_counter
+function player_data.init_logistic_cell_counter_storage()
   -- Bot qualities
   storage.idle_bot_qualities = {} -- Quality of idle bots in roboports
   storage.charging_bot_qualities = {} -- Quality of bots currently charging
@@ -60,7 +60,7 @@ end
 
 function player_data.init_storages()
   storage.bot_items = {} -- Number of bots delivering and picking right now. Super cheap.
-  player_data.init_activity_counter_storage()
+  player_data.init_logistic_cell_counter_storage()
   player_data.init_bot_counter_storage()
   storage.players = {}
   for i, player in pairs(game.players) do
@@ -178,19 +178,19 @@ function player_data.bot_chunk_interval(player_table)
   return player_table.settings.bot_chunk_interval or 10
 end
 
-function player_data.set_activity_chunks(player_table, chunks)
-  -- Scale the update interval based on how often the UI updates, but not too often
+-- Scale the update interval based on how often the UI updates, but not too often
+function player_data.set_logistic_cell_chunks(player_table, chunks)
   local interval = player_data.ui_update_interval(player_table) / math_max(1, chunks)
   local bot_interval = player_data.bot_chunk_interval(player_table)
   if interval < bot_interval then
     interval = bot_interval
   end
 
-  player_table.current_activity_interval = math_ceil(interval)
+  player_table.current_logistic_cell_interval = math_ceil(interval)
 end
 
-function player_data.activity_chunk_interval(player_table)
-  return player_table.current_activity_interval or 60
+function player_data.cells_chunk_interval(player_table)
+  return player_table.current_logistic_cell_interval or 60
 end
 
 function player_data.ui_update_interval(player_table)

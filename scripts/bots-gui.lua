@@ -848,7 +848,7 @@ function bots_gui.update(player, player_table, clearing)
   update_network_row(player_table)
 end -- update contents
 
-function bots_gui.update_activity_chunk_progress(player_table, progress)
+function bots_gui.update_cells_chunk_progress(player_table, progress)
   if player_table.ui == nil then return end
   if player_table.bots_window_visible then
     update_progressbar(player_table.ui.activity.progressbar, progress)

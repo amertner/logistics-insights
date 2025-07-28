@@ -1,8 +1,9 @@
+-- Main script for Logistics Insights mod
 local flib_migration = require("__flib__.migration")
 
 local player_data = require("scripts.player-data")
 local bot_counter = require("scripts.bot-counter")
-local activity_counter = require("scripts.activity-counter")
+local logistic_cell_counter = require("scripts.logistic-cell-counter")
 local controller_gui = require("scripts.controller-gui")
 local bots_gui = require("scripts.bots-gui")
 local utils = require("scripts.utils")
@@ -122,7 +123,7 @@ script.on_nth_tick(1, function()
   if game.tick % 30 == 0 then -- Update this twice a second only
     if player_data.check_network_changed(player, player_table) then
       bot_counter.network_changed(player, player_table)
-      activity_counter.network_changed(player, player_table)
+      logistic_cell_counter.network_changed(player, player_table)
     end
   end
 
@@ -131,9 +132,9 @@ script.on_nth_tick(1, function()
     bots_gui.update_bot_chunk_progress(player_table, bot_progress)
   end
 
-  if game.tick % player_data.activity_chunk_interval(player_table) == 0 then
-    local activity_progress = activity_counter.gather_data(player, player_table)
-    bots_gui.update_activity_chunk_progress(player_table, activity_progress)
+  if game.tick % player_data.cells_chunk_interval(player_table) == 0 then
+    local cells_progress = logistic_cell_counter.gather_data(player, player_table)
+    bots_gui.update_cells_chunk_progress(player_table, cells_progress)
   end
 
   if game.tick % player_data.ui_update_interval(player_table) == 0 then
