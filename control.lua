@@ -28,7 +28,7 @@ script.on_init(function()
   if player then
     controller_gui.create_window(player)
     bots_gui.create_window(player_data.get_singleplayer_player(), player_data.get_singleplayer_table())
-    
+
     -- Initialize shortcut state
     local player_table = player_data.get_singleplayer_table()
     if player_table then
@@ -39,13 +39,15 @@ end)
 
 -- PLAYER
 
-script.on_event({ defines.events.on_player_created }, function(e)
+script.on_event({ defines.events.on_player_created },
+  --- @param e EventData.on_player_created
+  function(e)
   -- Called when a game is created or a mod is added to an existing game
   local player = game.get_player(e.player_index)
   controller_gui.create_window(player)
   player_data.init(e.player_index)
   player_data.refresh(player, storage.players[e.player_index])
-  
+
   -- Initialize shortcut state
   local player_table = storage.players[e.player_index]
   if player_table and player then
@@ -53,7 +55,9 @@ script.on_event({ defines.events.on_player_created }, function(e)
   end
 end)
 
-script.on_event(defines.events.on_player_removed, function(e)
+script.on_event(defines.events.on_player_removed,
+  --- @param e EventData.on_player_removed
+  function(e)
   storage.players[e.player_index] = nil
   -- Reset cached references as player configuration has changed
   player_data.reset_cache()
@@ -84,7 +88,9 @@ script.on_configuration_changed(function(e)
   flib_migration.on_config_changed(e, li_migrations)
 end)
 
-script.on_event(defines.events.on_runtime_mod_setting_changed, function(e)
+script.on_event(defines.events.on_runtime_mod_setting_changed,
+  --- @param e EventData.on_runtime_mod_setting_changed
+  function(e)
   if utils.starts_with(e.setting, "li-") then
     local player = player_data.get_singleplayer_player()
     local player_table = player_data.get_singleplayer_table()
@@ -147,7 +153,9 @@ end)
 
 -- CONTROLLER
 
-script.on_event(defines.events.on_gui_click, function(event)
+script.on_event(defines.events.on_gui_click,
+  --- @param event EventData.on_gui_click
+  function(event)
   controller_gui.onclick(event)
   bots_gui.onclick(event)
 end)
@@ -166,7 +174,9 @@ script.on_event(
   end
 )
 
-script.on_event(defines.events.on_player_controller_changed, function(e)
+script.on_event(defines.events.on_player_controller_changed,
+  --- @param e EventData.on_player_controller_changed
+  function(e)
   local player = player_data.get_singleplayer_player()
   local player_table = player_data.get_singleplayer_table()
 
@@ -188,7 +198,9 @@ script.on_event(
   end
 )
 
-script.on_event(defines.events.on_player_changed_surface, function(e)
+script.on_event(defines.events.on_player_changed_surface,
+  --- @param e EventData.on_player_changed_surface
+  function(e)
   local player = game.get_player(e.player_index)
   if not player then return end
 
@@ -203,33 +215,37 @@ script.on_event(defines.events.on_player_changed_surface, function(e)
 end)
 
 -- Handle shortcut button clicks
-script.on_event(defines.events.on_lua_shortcut, function(event)
+script.on_event(defines.events.on_lua_shortcut,
+  --- @param event EventData.on_lua_shortcut
+  function(event)
   if event.prototype_name ~= SHORTCUT_TOGGLE then return end
-  
+
   local player = game.get_player(event.player_index)
   if not player then return end
-  
+
   local player_table = storage.players[player.index]
   if not player_table then return end
-  
+
   -- Toggle window visibility
   bots_gui.toggle_window_visible(player)
-  
+
   -- Update shortcut button state
   player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
 end)
 
 -- Handle keyboard shortcut
-script.on_event("logistics-insights-toggle-gui", function(event)
+script.on_event("logistics-insights-toggle-gui",
+  --- @param event EventData.on_lua_shortcut
+  function(event)
   local player = game.get_player(event.player_index)
   if not player then return end
-  
+
   local player_table = storage.players[player.index]
   if not player_table then return end
-  
+
   -- Toggle window visibility
   bots_gui.toggle_window_visible(player)
-  
+
   -- Update shortcut button state
   player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
 end)

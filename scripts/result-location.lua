@@ -14,10 +14,10 @@ local ARROW_ORIENTATED_OFFSET = { 0, -1 }
 
 local ResultLocation = {}
 
----@param player LuaPlayer
+---@param player LuaPlayer|nil
 function ResultLocation.clear_markers(player)
   -- Clear all old markers belonging to player
-  if #game.players == 1 then
+  if #game.players == 1 or not player then
     rendering.clear("logistics-insights")
   else
     local objects = rendering.get_all_objects("logistics-insights")
