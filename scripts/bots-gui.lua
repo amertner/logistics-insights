@@ -1078,7 +1078,9 @@ function bots_gui.destroy(player, player_table)
   end
 end
 
-script.on_event(defines.events.on_gui_location_changed, function(event)
+script.on_event(defines.events.on_gui_location_changed,
+  ---@param event EventData.on_gui_location_changed
+  function(event)
   if event.element and event.element.name == "logistics_insights_window" then
     local player_table = storage.players[event.player_index]
     if player_table then

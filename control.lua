@@ -21,7 +21,9 @@ local SHORTCUT_TOGGLE = "logistics-insights-toggle"
 
 -- STORAGE
 
-script.on_init(function()
+script.on_init(
+  --- @param e EventData
+  function(e)
   -- Called when the mod is first added to a save
   player_data.init_storages()
   local player = player_data.get_singleplayer_player()
@@ -80,7 +82,9 @@ script.on_event(
 
 -- SETTINGS
 
-script.on_configuration_changed(function(e)
+script.on_configuration_changed(
+  --- @param e ConfigurationChangedData
+  function(e)
   -- Reset cached references when configuration changes
   player_data.reset_cache()
 
@@ -122,7 +126,9 @@ end)
 -- TICK
 
 -- Count bots and update the UI
-script.on_nth_tick(1, function()
+script.on_nth_tick(1,
+  --- @param e NthTickEventData
+  function(e)
   local player = player_data.get_singleplayer_player()
   local player_table = player_data.get_singleplayer_table()
 
@@ -235,7 +241,7 @@ end)
 
 -- Handle keyboard shortcut
 script.on_event("logistics-insights-toggle-gui",
-  --- @param event EventData.on_lua_shortcut
+  --- @param event EventData.CustomInputEvent
   function(event)
   local player = game.get_player(event.player_index)
   if not player then return end
