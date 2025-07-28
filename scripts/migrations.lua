@@ -45,9 +45,11 @@ local li_migrations = {
     if player_table then
       player_table.history_timer = TickCounter.new()
       -- The paused state is now contained within the history timer
+      ---@diagnostic disable-next-line: undefined-field
       if player_table.paused then
-        player_table.history_timer:pause()
+      player_table.history_timer:pause()
       end
+      ---@diagnostic disable-next-line: inject-field
       player_table.paused = nil -- Remove old paused state
     end
   end,
