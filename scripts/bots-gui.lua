@@ -632,24 +632,28 @@ local function update_sorted_item_row(player_table, title, all_entries, sort_fn,
   local count = 0
   for _, entry in ipairs(sorted_entries) do
     if count >= player_table.settings.max_items then break end
-    if not player_table.ui[title] then break end
+    if not player_table.ui[title] or not player_table.ui[title].cells then break end
     local cell = player_table.ui[title].cells[count + 1]
-    cell.sprite = "item/" .. entry.item_name
-    cell.quality = entry.quality_name or "normal"
-    cell.number = entry[number_field]
-    cell.tooltip = getcelltooltip(entry)
-    cell.enabled = not player_data.is_paused(player_table)
+    if cell and cell.valid then
+      cell.sprite = "item/" .. entry.item_name
+      cell.quality = entry.quality_name or "normal"
+      cell.number = entry[number_field]
+      cell.tooltip = getcelltooltip(entry)
+      cell.enabled = not player_data.is_paused(player_table)
+    end
     count = count + 1
   end
 
   -- Pad with blank elements
   while count < player_table.settings.max_items do
-    if not player_table.ui[title] then break end
+    if not player_table.ui[title] or not player_table.ui[title].cells then break end
     local cell = player_table.ui[title].cells[count + 1]
-    cell.sprite = ""
-    cell.tooltip = ""
-    cell.number = nil
-    cell.enabled = false
+    if cell and cell.valid then
+      cell.sprite = ""
+      cell.tooltip = ""
+      cell.number = nil
+      cell.enabled = false
+    end
     count = count + 1
   end
 end -- update_sorted_item_row
@@ -722,7 +726,9 @@ local function update_bot_activity_row(player_table)
       end
     end
   else -- No network, reset all activity buttons
-    reset_activity_buttons(player_table.ui.activity.cells, false, true, true, false)
+    if player_table.ui.activity and player_table.ui.activity.cells then
+      reset_activity_buttons(player_table.ui.activity.cells, false, true, true, false)
+    end
   end
 end -- update_bot_activity_row
 
@@ -808,16 +814,20 @@ local function update_network_row(player_table)
     networkidclicktip = "network-row.fixed-network-tooltip"
   end
 
-  if player_table.network and player_table.network.valid then
+  if player_table.network and player_table.network.valid and player_table.ui.network then
     -- Network ID cell and tooltip
     local network_id = player_table.network.network_id
     local networkidtip = create_networkid_information_tooltip(player_table.network, network_id, player_table.fixed_network, networkidclicktip)
-    update_key_element(player_table.ui.network.id, network_id, networkidtip)
+    if player_table.ui.network.id then
+      update_key_element(player_table.ui.network.id, network_id, networkidtip)
+    end
 
     -- Roboports cell and tooltip
-    update_complex_element(player_table.ui.network.roboports, table_size(player_table.network.cells),
-      tooltips_helper.create_count_with_qualities_tip(player_table, "network-row.roboports-tooltip", table_size(player_table.network.cells), storage.roboport_qualities),
-      "bots-gui.show-location-tooltip")
+    if player_table.ui.network.roboports then
+      update_complex_element(player_table.ui.network.roboports, table_size(player_table.network.cells),
+        tooltips_helper.create_count_with_qualities_tip(player_table, "network-row.roboports-tooltip", table_size(player_table.network.cells), storage.roboport_qualities),
+        "bots-gui.show-location-tooltip")
+    end
 
     --  All Logistic Bots cell and tooltip
     local bottip
@@ -826,18 +836,30 @@ local function update_network_row(player_table)
     else
       bottip = "bots-gui.show-location-tooltip"
     end
-    update_complex_element(player_table.ui.network.logistics_bots, player_table.network.all_logistic_robots, create_logistic_bots_tooltip(player_table.network), bottip)
+    if player_table.ui.network.logistics_bots then
+      update_complex_element(player_table.ui.network.logistics_bots, player_table.network.all_logistic_robots, create_logistic_bots_tooltip(player_table.network), bottip)
+    end
 
     -- Requesters, Providers and Storages cells and tooltips
-    update_element(player_table.ui.network.requesters, table_size(player_table.network.requesters), "network-row.requesters-tooltip", "bots-gui.show-location-tooltip")
-    update_element(player_table.ui.network.providers, table_size(player_table.network.providers) - table_size(player_table.network.cells), "network-row.providers-tooltip", "bots-gui.show-location-tooltip")
-    update_element(player_table.ui.network.storages, table_size(player_table.network.storages), "network-row.storages-tooltip", "bots-gui.show-location-tooltip")
+    if player_table.ui.network.requesters then
+      update_element(player_table.ui.network.requesters, table_size(player_table.network.requesters), "network-row.requesters-tooltip", "bots-gui.show-location-tooltip")
+    end
+    if player_table.ui.network.providers then
+      update_element(player_table.ui.network.providers, table_size(player_table.network.providers) - table_size(player_table.network.cells), "network-row.providers-tooltip", "bots-gui.show-location-tooltip")
+    end
+    if player_table.ui.network.storages then
+      update_element(player_table.ui.network.storages, table_size(player_table.network.storages), "network-row.storages-tooltip", "bots-gui.show-location-tooltip")
+    end
   else
-    reset_network_buttons(player_table.ui.network, false, true, true, false)
+    if player_table.ui.network then
+      reset_network_buttons(player_table.ui.network, false, true, true, false)
+    end
     if not player_table.fixed_network then
       networkidclicktip = "network-row.no-network-clicktip"
     end
-    update_element(player_table.ui.network.id, nil, "network-row.no-network-tooltip", networkidclicktip)
+    if player_table.ui.network and player_table.ui.network.id then
+      update_element(player_table.ui.network.id, nil, "network-row.no-network-tooltip", networkidclicktip)
+    end
   end
 end -- update_network_row
 
@@ -907,7 +929,7 @@ end -- update contents
 --- @param progress Progress The progress data for cell processing
 function bots_gui.update_cells_chunk_progress(player_table, progress)
   if not player_table or player_table.ui == nil then return end
-  if player_table.bots_window_visible then
+  if player_table.bots_window_visible and player_table.ui.activity and player_table.ui.activity.progressbar then
     update_progressbar(player_table.ui.activity.progressbar, progress)
   end
 end
@@ -917,7 +939,7 @@ end
 --- @param progress Progress The progress data for bot processing
 function bots_gui.update_bot_chunk_progress(player_table, progress)
   if not player_table or player_table.ui == nil then return end
-  if player_table.bots_window_visible then
+  if player_table.bots_window_visible and player_table.ui["deliveries-row"] and player_table.ui["deliveries-row"].progressbar then
     update_progressbar(player_table.ui["deliveries-row"].progressbar, progress)
   end
 end
