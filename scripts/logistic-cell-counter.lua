@@ -3,7 +3,16 @@ local logistic_cell_counter = {}
 
 local player_data = require("scripts.player-data")
 
--- Counting network cells in chunks
+---@class CellAccumulator
+---@field bots_charging number Count of bots currently charging
+---@field bots_waiting_for_charge number Count of bots waiting to charge
+---@field idle_bot_qualities QualityTable Quality counts of idle bots in roboports
+---@field roboport_qualities QualityTable Quality counts of roboports
+---@field charging_bot_qualities QualityTable Quality counts of charging bots
+---@field waiting_bot_qualities QualityTable Quality counts of bots waiting to charge
+
+--- Initialize the cell network accumulator
+--- @param accumulator CellAccumulator The accumulator to initialize
 local function initialise_cell_network_list(accumulator)
   accumulator.bots_charging = 0
   accumulator.bots_waiting_for_charge = 0
@@ -13,6 +22,10 @@ local function initialise_cell_network_list(accumulator)
   accumulator.waiting_bot_qualities = {} -- Gather quality of bots waiting to charge
 end
 
+--- Accumulate quality counts in a quality table
+--- @param quality_table QualityTable The table to accumulate quality counts in
+--- @param quality string The quality name to increment
+--- @param count number The count to add for this quality
 local function accumulate_quality(quality_table, quality, count)
   if not quality_table[quality] then
     quality_table[quality] = 0
@@ -20,6 +33,10 @@ local function accumulate_quality(quality_table, quality, count)
   quality_table[quality] = quality_table[quality] + count
 end
 
+--- Process one logistic cell to gather statistics
+--- @param cell LuaLogisticCell The logistic cell to process
+--- @param accumulator CellAccumulator The accumulator for gathering statistics
+--- @param player_table PlayerData The player's data table containing settings
 local function process_one_cell(cell, accumulator, player_table)
   local bots_charging = accumulator.bots_charging
   local bots_waiting = accumulator.bots_waiting_for_charge
@@ -67,6 +84,9 @@ local function process_one_cell(cell, accumulator, player_table)
   end
 end
 
+--- Complete processing of all chunks and store results
+--- @param accumulator CellAccumulator The accumulator containing gathered statistics
+--- @param player_table PlayerData The player's data table
 local function all_chunks_done(accumulator, player_table)
   local bot_items = storage.bot_items
   bot_items["charging-robot"] = accumulator.bots_charging
@@ -80,15 +100,24 @@ end
 
 local cell_chunker = require("scripts.chunker").new(initialise_cell_network_list, process_one_cell, all_chunks_done)
 
+--- Reset logistic cell data when network changes
+--- @param player? LuaPlayer The player whose network changed
+--- @param player_table? PlayerData The player's data table
 function logistic_cell_counter.network_changed(player, player_table)
   cell_chunker:reset()
   player_data.init_logistic_cell_counter_storage()
 end
 
--- Gather activity data from all cells in network
+--- Gather activity data from all cells in network
+--- @param player? LuaPlayer The player to gather data for
+--- @param player_table? PlayerData The player's data table containing network and settings
+--- @return Progress A table with current and total progress values
 function logistic_cell_counter.gather_data(player, player_table)
   -- First update and validate network
   local progress = { current = 0, total = 0 } -- Use local variable to avoid global access
+  if not player_table then
+    return progress -- Ignore if no player_table is provided
+  end
   local network = player_table.network
   local bot_items = storage.bot_items       -- Cache the table lookup
   if not network or not network.valid then

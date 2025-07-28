@@ -31,6 +31,7 @@ local tick_counter = require("scripts.tick-counter")
 ---@field localised_quality_name? LocalisedString -- The localised name of the quality
 ---@field count number -- How many of this item it is delivering
 ---@field targetpos MapPosition -- The target position for the delivery
+---@field first_seen number -- The first tick this bot was seen delivering it
 ---@field last_seen number -- The last tick this bot was seen delivering it
 
 -- Cache frequently used functions for performance
