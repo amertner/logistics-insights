@@ -32,7 +32,7 @@ data:extend(
       type = "bool-setting",
       name = "li-pause-while-hidden",
       setting_type = "runtime-per-user",
-      default_value = true,
+      default_value = false,
       order = "3.5"
     },
     {

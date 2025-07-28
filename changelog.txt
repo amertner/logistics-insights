@@ -1,6 +1,8 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.9.6
 Date: ????
+  Changes:
+    - "Pause while hidden" is now False by default, because the perf impact is now low enough for most networks.
   Bugfixes:
     - Clear active delivery icons when there is no current network
 ---------------------------------------------------------------------------------------------------
