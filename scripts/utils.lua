@@ -1,4 +1,7 @@
+--- Miscellaneous utility functions for the Logistics Insights mod
 local utils = {}
+
+---@alias QualityTable table<string, number> -- Quality name to count mapping
 
 --- Check if a string starts with a given prefix
 --- @param str string The string to check
@@ -20,6 +23,17 @@ function utils.get_random(list)
   end
   local index = math.random(1, #list)
   return list[index]
+end
+
+--- Accumulate quality counts in a quality table
+--- @param quality_table QualityTable The table to accumulate quality counts in
+--- @param quality string The quality name to increment
+--- @param count number The count to add for this quality
+function utils.accumulate_quality(quality_table, quality, count)
+  if not quality_table[quality] then
+    quality_table[quality] = 0
+  end
+  quality_table[quality] = quality_table[quality] + count
 end
 
 return utils

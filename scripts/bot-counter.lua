@@ -2,6 +2,7 @@ local bot_counter = {}
 
 local player_data = require("scripts.player-data")
 local chunker = require("scripts.chunker")
+local utils = require("scripts.utils")
 
 -- Cache frequently used functions and values for performance
 local pairs = pairs
@@ -155,16 +156,6 @@ local function check_if_no_order_bot_finished_delivery(unit_number, show_history
   end
 end
 
---- Accumulate quality counts in a quality table
---- @param quality_table QualityTable The table to accumulate quality counts in
---- @param quality string The quality name to increment
-local function accumulate_quality(quality_table, quality)
-  if not quality_table[quality] then
-    quality_table[quality] = 0
-  end
-  quality_table[quality] = quality_table[quality] + 1
-end
-
 --- This function is called by the chunker once for every bot in the list
 --- @param bot LuaEntity The robot entity to process
 --- @param accumulator Accumulator The data accumulator containing counters and bot lists
@@ -190,10 +181,10 @@ local function process_one_bot(bot, accumulator, player_table)
       local order = bot.robot_order_queue[1]
       if order and order.type == defines_robot_order_type_deliver then
         accumulator.delivering_bots = accumulator.delivering_bots + 1
-        accumulate_quality(accumulator.delivering_bot_qualities, quality)
+        utils.accumulate_quality(accumulator.delivering_bot_qualities, quality, 1)
       elseif order and order.type == defines_robot_order_type_pickup then
         accumulator.picking_bots = accumulator.picking_bots + 1
-        accumulate_quality(accumulator.picking_bot_qualities, quality)
+        utils.accumulate_quality(accumulator.picking_bot_qualities, quality, 1)
       end
 
       if order and order.target_item and order.target_item.name then
@@ -221,7 +212,7 @@ local function process_one_bot(bot, accumulator, player_table)
     else
       -- No orders, check if it's because the bot has finished its delivery
       check_if_no_order_bot_finished_delivery(unit_number, player_table.settings.show_history)
-      accumulate_quality(accumulator.other_bot_qualities, quality)
+      utils.accumulate_quality(accumulator.other_bot_qualities, quality, 1)
     end
   end
 end

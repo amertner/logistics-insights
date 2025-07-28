@@ -2,6 +2,7 @@
 local logistic_cell_counter = {}
 
 local player_data = require("scripts.player-data")
+local utils = require("scripts.utils")
 
 ---@class CellAccumulator
 ---@field bots_charging number Count of bots currently charging
@@ -22,17 +23,6 @@ local function initialise_cell_network_list(accumulator)
   accumulator.waiting_bot_qualities = {} -- Gather quality of bots waiting to charge
 end
 
---- Accumulate quality counts in a quality table
---- @param quality_table QualityTable The table to accumulate quality counts in
---- @param quality string The quality name to increment
---- @param count number The count to add for this quality
-local function accumulate_quality(quality_table, quality, count)
-  if not quality_table[quality] then
-    quality_table[quality] = 0
-  end
-  quality_table[quality] = quality_table[quality] + count
-end
-
 --- Process one logistic cell to gather statistics
 --- @param cell LuaLogisticCell The logistic cell to process
 --- @param accumulator CellAccumulator The accumulator for gathering statistics
@@ -48,13 +38,13 @@ local function process_one_cell(cell, accumulator, player_table)
   if cell.owner and cell.owner.valid and player_table.settings.gather_quality_data then
     -- Count roboport quality
     local rp_quality = cell.owner.quality.name
-    accumulate_quality(accumulator.roboport_qualities, rp_quality, 1)
+    utils.accumulate_quality(accumulator.roboport_qualities, rp_quality, 1)
 
     -- Count quality of charging bots
     for _, bot in pairs(cell.charging_robots) do
       if bot.valid and bot.quality then
         local quality = bot.quality.name or "normal"
-        accumulate_quality(accumulator.charging_bot_qualities, quality, 1)
+        utils.accumulate_quality(accumulator.charging_bot_qualities, quality, 1)
       end
     end
 
@@ -62,7 +52,7 @@ local function process_one_cell(cell, accumulator, player_table)
     for _, bot in pairs(cell.to_charge_robots) do
       if bot.valid and bot.quality then
         local quality = bot.quality.name or "normal"
-        accumulate_quality(accumulator.waiting_bot_qualities, quality, 1)
+        utils.accumulate_quality(accumulator.waiting_bot_qualities, quality, 1)
       end
     end
 
@@ -76,7 +66,7 @@ local function process_one_cell(cell, accumulator, player_table)
         for _, stack in pairs(stacks) do
           if stack.name == "logistic-robot" then
             local quality = stack.quality or "normal"
-            accumulate_quality(bot_qualities, quality, stack.count)
+            utils.accumulate_quality(bot_qualities, quality, stack.count)
           end
         end
       end

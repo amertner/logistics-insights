@@ -1,9 +1,7 @@
 local player_data = {}
 
--- Import the TickCounter module from tick-counter.lua
+local utils = require("scripts.utils")
 local tick_counter = require("scripts.tick-counter")
-
----@alias QualityTable table<string, number> -- Quality name to count mapping
 
 -- Record used to show items being delivered right now
 ---@class DeliveryItem
