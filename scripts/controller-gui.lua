@@ -7,7 +7,8 @@ local bots_gui = require("scripts.bots-gui")
 -- Make sure we have access to storage
 _ENV.storage = _ENV.storage or {}
 
--- Show the mini window (call this on player join or GUI update)
+--- Show the mini window (call this on player join or GUI update)
+--- @param player LuaPlayer The player to create the window for
 function controller_gui.create_window(player)
   local gui = player.gui.top
   if gui.logistics_insights_mini then gui.logistics_insights_mini.destroy() end
@@ -34,6 +35,10 @@ function controller_gui.create_window(player)
   }
 end
 
+--- Get the status description based on paused and enabled states
+--- @param paused boolean Whether the functionality is paused
+--- @param enabled boolean Whether the functionality is enabled
+--- @return LocalisedString The localized status string
 local function get_status(paused, enabled)
   if not enabled then
     return { "controller-gui.disabled" }
@@ -46,13 +51,18 @@ local function get_status(paused, enabled)
   end
 end
 
--- Update the mini window's counter
+--- Update the mini window's counter and tooltip
+--- @param player? LuaPlayer The player whose window to update
+--- @param player_table? PlayerData The player's data table containing network and settings
 function controller_gui.update_window(player, player_table)
+  if not player then
+    return -- No player, nothing to update
+  end
   -- If the mini window should not be shown, return early
   if not player.mod_settings["li-show-mini-window"].value then
     -- Make sure to destroy any existing mini window
-    if player.gui.top.logistics_insights_mini then 
-      player.gui.top.logistics_insights_mini.destroy() 
+    if player.gui.top.logistics_insights_mini then
+      player.gui.top.logistics_insights_mini.destroy()
     end
     return
   end
@@ -62,13 +72,13 @@ function controller_gui.update_window(player, player_table)
     controller_gui.create_window(player)
     gui = player.gui.top.logistics_insights_mini
   end
-  
+
   -- If gui is still nil after trying to create it, return early
   if not gui then
     return
   end
 
-  if gui.logistics_insights_toggle_main then
+  if gui.logistics_insights_toggle_main and player_table then
     local tip = {}
     if player_table.network and player_table.network then
       idle_count = storage.bot_items["logistic-robot-available"]
@@ -94,6 +104,8 @@ function controller_gui.update_window(player, player_table)
   end
 end
 
+--- Handle click events on the controller GUI elements
+--- @param event EventData.on_gui_click The click event data containing element and player information
 function controller_gui.onclick(event)
   if event.element.name == "logistics_insights_toggle_main" then
     local player = game.get_player(event.player_index)

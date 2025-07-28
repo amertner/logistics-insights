@@ -46,14 +46,16 @@ script.on_event({ defines.events.on_player_created },
   function(e)
   -- Called when a game is created or a mod is added to an existing game
   local player = game.get_player(e.player_index)
-  controller_gui.create_window(player)
-  player_data.init(e.player_index)
-  player_data.refresh(player, storage.players[e.player_index])
+  if player then
+    controller_gui.create_window(player)
+    player_data.init(e.player_index)
+    player_data.refresh(player, storage.players[e.player_index])
 
-  -- Initialize shortcut state
-  local player_table = storage.players[e.player_index]
-  if player_table and player then
-    player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
+    -- Initialize shortcut state
+    local player_table = storage.players[e.player_index]
+    if player_table and player then
+      player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
+    end
   end
 end)
 
@@ -75,7 +77,7 @@ script.on_event(
     end
     if storage.players then
       local player_table = storage.players[e.player_index]
-      bots_gui.update(player, player_table)
+      bots_gui.update(player, player_table, false)
     end
   end
 )
@@ -152,7 +154,7 @@ script.on_nth_tick(1,
   if game.tick % player_data.ui_update_interval(player_table) == 0 then
     bots_gui.ensure_ui_consistency(player, player_table)
     controller_gui.update_window(player, player_table)
-    bots_gui.update(player, player_table)
+    bots_gui.update(player, player_table, false)
   end
 end)
 
@@ -186,7 +188,7 @@ script.on_event(defines.events.on_player_controller_changed,
   local player = player_data.get_singleplayer_player()
   local player_table = player_data.get_singleplayer_table()
 
-  bots_gui.update(player, player_table)
+  bots_gui.update(player, player_table, false)
 end)
 
 script.on_event(
@@ -200,7 +202,7 @@ script.on_event(
     local player = player_data.get_singleplayer_player()
     local player_table = player_data.get_singleplayer_table()
 
-    bots_gui.update(player, player_table)
+    bots_gui.update(player, player_table, false)
   end
 )
 

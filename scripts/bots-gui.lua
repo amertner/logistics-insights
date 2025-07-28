@@ -7,6 +7,11 @@ local game_state = require("scripts.game-state")
 local tooltips_helper = require("scripts.tooltips-helper")
 local ResultLocation = require("scripts.result-location")
 
+---@class ViewData
+---@field items LuaEntity[]|nil List of entities to highlight
+---@field item LuaEntity|nil Random selected entity to focus on
+---@field follow boolean Whether to follow/focus on the selected item
+
 -- Cache frequently used functions and constants
 local pairs = pairs
 local ipairs = ipairs
@@ -16,7 +21,8 @@ local math_floor = math.floor
 local defines_robot_order_type_deliver = defines.robot_order_type.deliver
 local defines_robot_order_type_pickup = defines.robot_order_type.pickup
 
--- Toggle visibility of the main window
+--- Toggle visibility of the main window
+--- @param player LuaPlayer|nil The player whose window to toggle
 function bots_gui.toggle_window_visible(player)
   if not player then
     return
@@ -43,8 +49,13 @@ function bots_gui.toggle_window_visible(player)
   end
 end
 
--- Make sure all the relevant parts of the UI are available and initialised
+--- Make sure all the relevant parts of the UI are available and initialised
+--- @param player? LuaPlayer The player whose UI to ensure consistency for
+--- @param player_table? PlayerData The player's data table
 function bots_gui.ensure_ui_consistency(player, player_table)
+  if not player or not player_table then
+    return
+  end
   local gui = player.gui.screen
   if not gui.logistics_insights_window or not player_table.ui then
     bots_gui.create_window(player, player_table)
@@ -67,18 +78,22 @@ function bots_gui.ensure_ui_consistency(player, player_table)
   if window and window.bots_table then
     network_id_cell = window.bots_table["logistics-insights-network-id"]
     if network_id_cell then
-      network_id_cell.toggled = player_table.fixed_network
+      network_id_cell.toggled = player_table and player_table.fixed_network
     end
   end
 end
 
+--- Check if deliveries should be shown based on settings
+--- @param player_table PlayerData The player's data table
+--- @return boolean True if deliveries should be shown
 local function show_deliveries(player_table)
   -- Show deliveries if the setting is enabled or if history is shown
   return player_table.settings.show_delivering or player_table.settings.show_history
 end
 
--- Create UI elements
-
+--- Add the titlebar to the window with game control buttons
+--- @param window LuaGuiElement The main window frame
+--- @param player_table PlayerData The player's data table
 local function add_titlebar(window, player_table)
   local titlebar = window.add {
     type = "flow",
@@ -128,6 +143,9 @@ local function add_titlebar(window, player_table)
   game_state.force_update_ui()
 end
 
+--- Add robot activity statistics row to the GUI
+--- @param bots_table LuaGuiElement The main bots table
+--- @param player_table PlayerData The player's data table
 local function add_bot_activity_row(bots_table, player_table)
   -- Add robot activity stats row
   local activity_icons = {
@@ -223,6 +241,9 @@ local function add_bot_activity_row(bots_table, player_table)
   end
 end -- add_bot_activity_row
 
+--- Add network information row to the GUI
+--- @param bots_table LuaGuiElement The main bots table
+--- @param player_table PlayerData The player's data table
 local function add_network_row(bots_table, player_table)
   player_data.register_ui(player_table, "network")
   bots_table.add {
@@ -274,9 +295,11 @@ local function add_network_row(bots_table, player_table)
   }
 end -- add_network_row
 
+--- Update the start/stop button appearance based on current state
+--- @param player_table? PlayerData The player's data table
 local function update_startstop_button(player_table)
   -- Update button appearance to reflect current state
-  if not player_data then
+  if not player_table then
     return
   end
   local element = player_table.ui["startstop"]
@@ -290,6 +313,12 @@ local function update_startstop_button(player_table)
   end
 end
 
+--- Add a sorted item row (deliveries, totals, or average ticks) to the GUI
+--- @param player_table PlayerData The player's data table
+--- @param gui_table LuaGuiElement The GUI table to add the row to
+--- @param title string The title/key for this row type
+--- @param button_title string|nil Optional button type ("startstop", "clear", or nil)
+--- @param need_progressbar boolean Whether this row needs a progress bar
 local function add_sorted_item_row(player_table, gui_table, title, button_title, need_progressbar)
   player_data.register_ui(player_table, title)
 
@@ -366,7 +395,9 @@ local function add_sorted_item_row(player_table, gui_table, title, button_title,
   end
 end -- add_sorted_item_row
 
--- Chreate the main table with all the rows needed
+--- Create the main table with all the rows needed
+--- @param player? LuaPlayer The player to create the table for
+--- @param player_table? PlayerData The player's data table
 local function create_bots_table(player, player_table)
   if not player or not player_table then
     return
@@ -404,7 +435,7 @@ local cached_chunk_size = 0
 local cached_tooltip_complete = nil
 local cached_tooltip_data = {}
 
--- Function to update cached values when settings change
+--- Update cached chunk size value when settings change
 function bots_gui.update_chunk_size_cache()
   local new_chunk_size = player_data.get_singleplayer_table().settings.chunk_size or 400
   
@@ -416,6 +447,9 @@ function bots_gui.update_chunk_size_cache()
   end
 end
 
+--- Update a progress bar with current progress information
+--- @param progressbar LuaGuiElement The progress bar GUI element
+--- @param progress Progress|nil The progress data with current and total values
 local function update_progressbar(progressbar, progress)
   if not progressbar or not progressbar.valid then
     return
@@ -465,7 +499,15 @@ end
 -------------------------------------------------------------------------------
 -- Create main window and all rows needed based on settings
 -------------------------------------------------------------------------------
+
+--- Create the main window and initialize all UI elements
+--- @param player? LuaPlayer The player to create the window for
+--- @param player_table? PlayerData The player's data table
 function bots_gui.create_window(player, player_table)
+  if not player or not player_table then
+    return
+  end
+
   if player.gui.screen.logistics_insights_window then
     player.gui.screen.logistics_insights_window.destroy()
   end
@@ -500,7 +542,13 @@ end
 
 -- Updating the window with live data
 
--- Display item sprites and numbers in sort order.
+--- Display item sprites and numbers in sort order
+--- @param player_table PlayerData The player's data table
+--- @param title string The title/key for this row type
+--- @param all_entries table<string, DeliveryItem|DeliveredItems> All entries to sort and display
+--- @param sort_fn function(a, b): boolean Sorting function to determine order
+--- @param number_field string The field name to display as number ("count", "ticks", "avg")
+--- @param clearing boolean Whether this update is due to clearing history
 local function update_sorted_item_row(player_table, title, all_entries, sort_fn, number_field, clearing)
 
   local function getcelltooltip(entry)
@@ -606,6 +654,8 @@ local function update_sorted_item_row(player_table, title, all_entries, sort_fn,
   end
 end -- update_sorted_item_row
 
+--- Update the bot activity row with current statistics
+--- @param player_table PlayerData The player's data table
 local function update_bot_activity_row(player_table)
   local reset_activity_buttons = function(ui_table, sprite, number, tip, disable)
     -- Reset all cells in the ui_table to empty
@@ -676,6 +726,8 @@ local function update_bot_activity_row(player_table)
   end
 end -- update_bot_activity_row
 
+--- Update the network information row with current statistics
+--- @param player_table PlayerData The player's data table
 local function update_network_row(player_table)
   local function update_element(cell, value, localized_tooltip, clicktip)
     if cell and cell.valid then
@@ -793,6 +845,10 @@ end -- update_network_row
 -- Main function to update the bots GUI, assumes all the elements exist
 -------------------------------------------------------------------------------
 
+--- Main function to update the bots GUI with current data
+--- @param player? LuaPlayer The player whose GUI to update
+--- @param player_table? PlayerData The player's data table
+--- @param clearing boolean Whether this update is due to clearing history
 function bots_gui.update(player, player_table, clearing)
   -- Update the bots table with current data, do not recreate it
   if not player or not player.valid or not player_table then
@@ -846,15 +902,21 @@ function bots_gui.update(player, player_table, clearing)
   update_network_row(player_table)
 end -- update contents
 
+--- Update the cells chunk progress bar
+--- @param player_table? PlayerData The player's data table
+--- @param progress Progress The progress data for cell processing
 function bots_gui.update_cells_chunk_progress(player_table, progress)
-  if player_table.ui == nil then return end
+  if not player_table or player_table.ui == nil then return end
   if player_table.bots_window_visible then
     update_progressbar(player_table.ui.activity.progressbar, progress)
   end
 end
 
+--- Update the bot chunk progress bar
+--- @param player_table? PlayerData The player's data table
+--- @param progress Progress The progress data for bot processing
 function bots_gui.update_bot_chunk_progress(player_table, progress)
-  if player_table.ui == nil then return end
+  if not player_table or player_table.ui == nil then return end
   if player_table.bots_window_visible then
     update_progressbar(player_table.ui["deliveries-row"].progressbar, progress)
   end
@@ -864,8 +926,10 @@ end
 -- Functions to find items to highlight on the map when clicked
 -------------------------------------------------------------------------------
 
----@param cell_list LuaLogisticCell[]
----@return LuaEntity[]|nil  -- Returns a list of bots
+--- Find charging robots in the given cell list
+--- @param player_table PlayerData The player's data table
+--- @param cell_list LuaLogisticCell[] List of logistic cells to search
+--- @return LuaEntity[]|nil List of charging robots or nil if none found
 local function find_charging_robots(player_table, cell_list)
   if not cell_list or #cell_list == 0 then
     return nil
@@ -883,8 +947,10 @@ local function find_charging_robots(player_table, cell_list)
   return bot_list
 end
 
----@param cell_list LuaLogisticCell[]
----@return LuaEntity[]|nil  -- Returns a list of bots
+--- Find robots waiting to charge in the given cell list
+--- @param player_table PlayerData The player's data table
+--- @param cell_list LuaLogisticCell[] List of logistic cells to search
+--- @return LuaEntity[]|nil List of waiting robots or nil if none found
 local function find_waiting_to_charge_robots(player_table, cell_list)
   if not cell_list or #cell_list == 0 then
     return nil
@@ -902,11 +968,17 @@ local function find_waiting_to_charge_robots(player_table, cell_list)
   return bot_list
 end
 
+--- Get item list and focus data for stationary items
+--- @param item_list LuaEntity[] List of entities
+--- @return ViewData View data with items and random selection
 local function get_item_list_and_focus(item_list)
   local rando = utils.get_random(item_list)
   return {items = item_list, item = rando, follow = false}
 end
 
+--- Get item list and focus data for mobile items (with following)
+--- @param item_list LuaEntity[] List of entities
+--- @return ViewData View data with items and random selection (with follow enabled)
 local function get_item_list_and_focus_mobile(item_list)
   local rando = utils.get_random(item_list)
   if rando then
@@ -916,6 +988,10 @@ local function get_item_list_and_focus_mobile(item_list)
   end
 end
 
+--- Get item list and focus data using a find function
+--- @param player_table PlayerData The player's data table
+--- @param find_fn function Function to find items in cells
+--- @return ViewData View data with found items
 local function get_item_list_and_focus_from_player_table(player_table, find_fn)
   if find_fn == nil or player_table == nil or player_table.network == nil or player_table.network.cells == nil then
     return {items = nil, item = nil, follow = false}
@@ -928,16 +1004,27 @@ local function get_item_list_and_focus_from_player_table(player_table, find_fn)
   end
 end
 
+--- Get owner entities from a list of items
+--- @param item_list LuaEntity[] List of (logistic cells)
+--- @return ViewData View data with owner entities
 local function get_item_list_and_focus_owner(item_list)
   local ownerlist = {}
   for _, item in pairs(item_list) do
-    if item and item.valid and item.owner then
-      table.insert(ownerlist, item.owner)
+    if item and item.valid and item.is_entity_with_owner() then
+      ---@diagnostic disable-next-line: undefined-field
+      local owner = item.owner
+      if owner then
+        table.insert(ownerlist, owner)
+      end
     end
   end
   return get_item_list_and_focus(ownerlist)
 end
 
+--- Filter bot list by order type (deliver/pickup)
+--- @param bot_list LuaEntity[] List of robot entities
+--- @param order_type defines.robot_order_type The order type to filter by
+--- @return ViewData View data with filtered bots
 local function get_item_list_and_focus_from_botlist(bot_list, order_type)
   if not bot_list or #bot_list == 0 then
     return {items = nil, item = nil, follow = false}
@@ -953,6 +1040,9 @@ local function get_item_list_and_focus_from_botlist(bot_list, order_type)
   return get_item_list_and_focus_mobile(filtered_list)
 end
 
+--- Exclude roboports from item list
+--- @param item_list LuaEntity[] List of entities
+--- @return ViewData View data with non-roboport entities
 local function get_item_list_and_focus_exclude_roboports(item_list)
   local list = {}
   for _, item in pairs(item_list) do
@@ -963,6 +1053,7 @@ local function get_item_list_and_focus_exclude_roboports(item_list)
   return get_item_list_and_focus(list)
 end
 
+---@type table<string, fun(pd: PlayerData): ViewData>
 local get_list_function = {
   -- Activity row buttons
   ["logistics-insights-logistic-robot-total"] = function(pd)
@@ -998,10 +1089,11 @@ local get_list_function = {
   end,
 }
 
----@param player LuaPlayer
----@param player_table PlayerData|nil
----@param element LuaGuiElement sprite-button
----@param focus_on_element boolean
+--- Highlight locations on the map when GUI elements are clicked
+--- @param player LuaPlayer The player viewing the map
+--- @param player_table PlayerData|nil The player's data table
+--- @param element LuaGuiElement The sprite-button that was clicked
+--- @param focus_on_element boolean Whether to focus on the selected element
 function bots_gui.highlight_locations_on_map(player, player_table, element, focus_on_element)
   local fn = get_list_function[element.name]
   if not fn then
@@ -1029,7 +1121,8 @@ function bots_gui.highlight_locations_on_map(player, player_table, element, focu
   ResultLocation.open(player, toview, focus_on_element)
 end
 
--- ONCLICK
+--- Handle click events on GUI elements
+--- @param event EventData.on_gui_click The click event data
 function bots_gui.onclick(event)
   if utils.starts_with(event.element.name, "logistics-insights") then
     local player = player_data.get_singleplayer_player()
@@ -1067,10 +1160,13 @@ function bots_gui.onclick(event)
   end
 end
 
+--- Destroy the bots GUI window
+--- @param player? LuaPlayer The player whose window to destroy
+--- @param player_table? PlayerData The player's data table
 function bots_gui.destroy(player, player_table)
-  if player.gui.screen.logistics_insights_window then
+  if player and player.gui.screen.logistics_insights_window then
     player.gui.screen.logistics_insights_window.destroy()
-    if player_table.bots_table then
+    if player_table and player_table.bots_table then
       player_table.bots_table = nil
     end
   end
