@@ -136,6 +136,9 @@ local li_migrations = {
         end
       end
     end
+
+    -- Re-initialise the UI to use the new Activity row tooltips
+    reinitialise_ui()
   end
 }
 

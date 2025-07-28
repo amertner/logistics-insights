@@ -133,41 +133,41 @@ local function add_bot_activity_row(bots_table, player_table)
   local activity_icons = {
     { sprite = "entity/logistic-robot",
       key = "logistic-robot-total",
-      tip = {"activity-row.robots-total-tooltip"},
+      tip = "activity-row.robots-total-tooltip",
       clicktip = true,
       onwithpause = true,
       include_construction = false},
     { sprite = "virtual-signal/signal-battery-full",
       key = "logistic-robot-available",
-      tip = {"activity-row.robots-available-tooltip"},
+      tip = "activity-row.robots-available-tooltip",
       qualitytable = "idle_bot_qualities",
       clicktip = false,
       onwithpause = false,
       include_construction = false },
     { sprite = "virtual-signal/signal-battery-mid-level",
       key = "charging-robot",
-      tip = {"activity-row.robots-charging-tooltip"},
+      tip = "activity-row.robots-charging-tooltip",
       qualitytable = "charging_bot_qualities",
       clicktip = true,
       onwithpause = false,
       include_construction = true },
     { sprite = "virtual-signal/signal-battery-low",
       key = "waiting-for-charge-robot",
-      tip = {"activity-row.robots-waiting-tooltip"},
+      tip = "activity-row.robots-waiting-tooltip",
       qualitytable = "waiting_bot_qualities",
       clicktip = true,
       onwithpause = false,
       include_construction = true },
     { sprite = "virtual-signal/signal-input",
       key = "picking",
-      tip = {"activity-row.robots-picking_up-tooltip"},
+      tip = "activity-row.robots-picking_up-tooltip",
       qualitytable = "picking_bot_qualities",
       clicktip = true,
       onwithpause = false,
       include_construction = false },
     { sprite = "virtual-signal/signal-output",
       key = "delivering",
-      tip = {"activity-row.robots-delivering-tooltip"},
+      tip = "activity-row.robots-delivering-tooltip",
       qualitytable = "delivering_bot_qualities",
       clicktip = true,
       onwithpause = false,
@@ -620,11 +620,11 @@ local function update_bot_activity_row(player_table)
     end
   end
 
-  local function get_robotstr(window, num)
+  local function get_robot_formatstr(window)
     if window.include_construction then
-      return {"bots-gui.format-all-robots", num}
+      return "bots-gui.format-all-robots"
     else
-      return {"bots-gui.format-logistics-robots", num}
+      return "bots-gui.format-logistics-robots"
     end
   end
 
@@ -643,32 +643,29 @@ local function update_bot_activity_row(player_table)
         local num = storage.bot_items[key] or 0
         window.cell.number = num
         window.cell.enabled = true
-        local robotstr = get_robotstr(window, num)
-        local qualities_tooltip = {""}
 
+        -- "N <robot-icons> in network doing <activity>"
+        local main_tip = {"", {window.tip, {get_robot_formatstr(window), num}}}
         local qualities_table = window.qualitytable
-        local extra_newline = ""
         if qualities_table then
           --  Augment the tooltip with a list of qualities found, if enabled in settings
-          qualities_tooltip = tooltips_helper.get_quality_tooltip_line(nil, player_table, storage[qualities_table])
+          local qualities_tooltip = tooltips_helper.get_quality_tooltip_line(nil, player_table, storage[qualities_table])
+          main_tip = {"", main_tip, "\n", qualities_tooltip}
         end
 
         if window.clicktip and is_active then
           -- Only show the "what happens if you click" tooltip if the button is active
-          if qualities_table then
-            extra_newline = "\n"
-          end
           if window.onwithpause or not player_table.settings.pause_for_bots then
-            window.cell.tooltip = {"", robotstr, window.tip, "\n", qualities_tooltip, extra_newline, {"bots-gui.show-location-tooltip"}}
+            window.cell.tooltip = {"", main_tip, "\n", {"bots-gui.show-location-tooltip"}}
           else
-            window.cell.tooltip = {"", robotstr, window.tip, "\n", qualities_tooltip, extra_newline, {"bots-gui.show-location-and-pause-tooltip"}}
+            window.cell.tooltip = {"", main_tip, "\n", {"bots-gui.show-location-and-pause-tooltip"}}
           end
         else
           if no_data then
             window.cell.tooltip = ""
             window.cell.number = nil
           else
-            window.cell.tooltip = {"", robotstr, window.tip, "\n", qualities_tooltip}
+            window.cell.tooltip = main_tip
           end
         end
         window.cell.enabled = is_active
