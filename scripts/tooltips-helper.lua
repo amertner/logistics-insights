@@ -9,6 +9,10 @@ local Cache = require("scripts.cache")
 local surface_cache = Cache.new(function(surface_name) return "[space-location=" .. surface_name .. "]" end)
 
 -- Network ID (Dynamic or Fixed)
+---@param tip table<LocalisedString> Existing tooltip content
+---@param network_id number The network ID to display
+---@param is_fixed boolean Whether the network is fixed or dynamic
+---@return table<LocalisedString> The formatted tooltip
 function tooltips_helper.add_networkid_tip(tip, network_id, is_fixed)
   local network_id_tip
   if is_fixed then
@@ -26,6 +30,9 @@ function tooltips_helper.add_networkid_tip(tip, network_id, is_fixed)
 end
 
 --- Located on: (Planet)
+---@param tip table<LocalisedString> Existing tooltip content
+---@param network LuaLogisticNetwork|nil The logistics network to get surface info from
+---@return table<LocalisedString> The formatted tooltip with surface information
 function tooltips_helper.add_network_surface_tip(tip, network)
   if not network or not network.cells or #network.cells == 0 then
     return tip
@@ -51,6 +58,8 @@ function tooltips_helper.add_network_surface_tip(tip, network)
 end
 
 -- Add an empty line to the tooltip
+---@param tip table<LocalisedString> Existing tooltip content
+---@return table<LocalisedString> The tooltip with an empty line added
 function tooltips_helper.add_empty_line(tip)
   if not tip or #tip == 0 then
     return {"\n"}
@@ -59,6 +68,11 @@ function tooltips_helper.add_empty_line(tip)
 end
 
 -- Idle: X of Y [item=logistic-robot]
+---@param tip table<LocalisedString> Existing tooltip content
+---@param network LuaLogisticNetwork|nil The logistics network
+---@param idle_count number Number of idle robots
+---@param total_count number Total number of robots
+---@return table<LocalisedString> The formatted tooltip
 function tooltips_helper.add_bots_idle_and_total_tip(tip, network, idle_count, total_count)
   if not network or not network.cells or #network.cells == 0 then
     return tip
@@ -68,6 +82,9 @@ function tooltips_helper.add_bots_idle_and_total_tip(tip, network, idle_count, t
 end
 
 -- History data: Active for <time>, Paused, or Disabled in settings
+---@param tip table<LocalisedString> Existing tooltip content
+---@param player_table PlayerData The player's data table
+---@return table<LocalisedString> The formatted tooltip with history information
 function tooltips_helper.add_network_history_tip(tip, player_table)
   if not player_table or not player_table.history_timer then
     return tip
@@ -92,6 +109,11 @@ function tooltips_helper.add_network_history_tip(tip, player_table)
   return tip
 end
 
+---@param player_table PlayerData The player's data table
+---@param formatstr string The format string for the tooltip
+---@param count number The count to display
+---@param quality_table table<string, number> Table of quality names to counts
+---@return table<LocalisedString> The formatted tooltip with count and quality information
 function tooltips_helper.create_count_with_qualities_tip(player_table, formatstr, count, quality_table)
   -- Line 1: Show count string
   local tip = { "", {formatstr, count}, "\n" }
@@ -105,12 +127,17 @@ end
 -- quality_counts is a table with quality names as keys and their counts as values
 -- separator is a string to separate different qualities in the tooltip
 -- if include_empty is true, the tip will include qualities with zero count
+---@param formatname string The format string for individual quality entries
+---@param quality_table table<string, number> Table of quality names to counts
+---@param item_separator? string Separator between quality entries (default: ", ")
+---@param include_empty? boolean Whether to include qualities with zero count
+---@return table<LocalisedString> The formatted quality tooltip or {""} if no data
 local function getqualitytip(formatname, quality_table, item_separator, include_empty)
+  local tip = {""}
   if not formatname or not quality_table or not prototypes.quality then
-    return nil
+    return tip
   end
 
-  local tip = {""}
   local separator = ""
   -- Iterate over all qualities
   local quality = prototypes.quality.normal
@@ -129,6 +156,12 @@ local function getqualitytip(formatname, quality_table, item_separator, include_
 end
 
 -- Return a whole line for all qualities
+---@param tip table<LocalisedString> Existing tooltip content
+---@param player_table PlayerData The player's data table
+---@param quality_table table<string, number> Table of quality names to counts
+---@param newline? boolean Whether to add a newline at the end
+---@param formatstr? string Optional format string to wrap the quality tip
+---@return table<LocalisedString> The tooltip with quality information added
 function tooltips_helper.get_quality_tooltip_line(tip, player_table, quality_table, newline, formatstr)
   if player_table.settings.gather_quality_data and prototypes.quality then
     local quality_tip = getqualitytip("network-row.quality-tooltip-1quality-2count", quality_table, "  ", true)

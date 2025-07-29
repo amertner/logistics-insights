@@ -1,3 +1,4 @@
+--- Central definition of player data and related functions for Logistics Insights mod
 local player_data = {}
 
 local utils = require("scripts.utils")

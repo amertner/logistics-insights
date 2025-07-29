@@ -1,3 +1,4 @@
+--- Defines the "controller GUI" in the top left corner of the screen
 local controller_gui = {}
 
 local player_data = require("scripts.player-data")
