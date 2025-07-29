@@ -1032,7 +1032,7 @@ end
 local function get_item_list_and_focus_owner(item_list)
   local ownerlist = {}
   for _, item in pairs(item_list) do
-    if item and item.valid and item.is_entity_with_owner() then
+    if item and item.valid then
       ---@diagnostic disable-next-line: undefined-field
       local owner = item.owner
       if owner then
