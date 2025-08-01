@@ -106,10 +106,12 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
       if e.setting == "li-show-mini-window" then
         controller_gui.update_window(player, player_table)
       elseif e.setting == "li-chunk-size" then
-        -- Tell counters that the chunk size has changed (but preserve history)
-        -- TBD
+        -- Adopt and cache the updated setting
         player_data.update_settings(player, player_table)
         progress_bars.update_chunk_size_cache()
+        -- Process (partial) data and start gathering with new chunk size
+        bot_counter.restart_counting()
+        logistic_cell_counter.restart_counting()
       elseif e.setting == "li-chunk-processing-interval" or
             e.setting == "li-ui-update-interval" or
             e.setting == "li-pause-for-bots" or

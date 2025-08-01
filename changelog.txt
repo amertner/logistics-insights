@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.9.7
+Date: ????
+  Changes:
+    - When changing the Chunk size setting, the mod immediately starts using the new value
+  Bugfixes:
+    - Clearing delivery history also unpaused delivery tracking, and left the UI in an inconsistent state.
+---------------------------------------------------------------------------------------------------
 Version: 0.9.6
 Date: 2025-07-29
   Changes:

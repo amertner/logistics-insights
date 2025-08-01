@@ -90,6 +90,11 @@ end
 
 local cell_chunker = require("scripts.chunker").new(initialise_cell_network_list, process_one_cell, all_chunks_done)
 
+--- Process data gathered so far and start over
+function logistic_cell_counter.restart_counting()
+  cell_chunker:reset()
+end
+
 --- Reset logistic cell data when network changes
 --- @param player? LuaPlayer The player whose network changed
 --- @param player_table? PlayerData The player's data table

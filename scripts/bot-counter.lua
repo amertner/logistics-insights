@@ -280,6 +280,11 @@ end
 -- Use the generic chunker to process bots in chunks, to moderate CPU usage
 local bot_chunker = chunker.new(bot_initialise_chunking, process_one_bot, bot_chunks_done)
 
+--- Process data gathered so far and start over
+function bot_counter.restart_counting()
+  bot_chunker:reset()
+end
+
 --- When the network changes, reset all bot data
 --- @param player LuaPlayer|nil The player whose network changed
 --- @param player_table PlayerData|nil The player's data table
