@@ -1,7 +1,6 @@
 --- Central definition of player data and related functions for Logistics Insights mod
 local player_data = {}
 
-local utils = require("scripts.utils")
 local tick_counter = require("scripts.tick-counter")
 
 -- Record used to show items being delivered right now
@@ -186,6 +185,7 @@ function player_data.get_singleplayer_player()
   -- In singleplayer mode, there is only one player. Return the player.
   -- Check if cached player is nil or no longer valid
   if not cached_player or not cached_player.valid then
+    cached_player = nil -- Clear invalid cache
     -- Make sure there are connected players before trying to access them
     if #game.connected_players > 0 then
       cached_player = game.connected_players[1]

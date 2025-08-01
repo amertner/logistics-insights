@@ -5,9 +5,10 @@ local player_data = require("scripts.player-data")
 local bot_counter = require("scripts.bot-counter")
 local logistic_cell_counter = require("scripts.logistic-cell-counter")
 local controller_gui = require("scripts.controller-gui")
-local bots_gui = require("scripts.bots-gui")
 local utils = require("scripts.utils")
 local li_migrations = require("scripts.migrations")
+local progress_bars = require("scripts.mainwin.progress_bars")
+local main_window = require("scripts.mainwin.main_window")
 
 -- Shortcut constants
 local SHORTCUT_TOGGLE = "logistics-insights-toggle"
@@ -29,11 +30,11 @@ script.on_init(
   local player = player_data.get_singleplayer_player()
   if player then
     controller_gui.create_window(player)
-    bots_gui.create_window(player_data.get_singleplayer_player(), player_data.get_singleplayer_table())
-
-    -- Initialize shortcut state
     local player_table = player_data.get_singleplayer_table()
     if player_table then
+      main_window.create(player, player_table)
+
+      -- Initialize shortcut state
       player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
     end
   end
@@ -77,7 +78,7 @@ script.on_event(
     end
     if storage.players then
       local player_table = storage.players[e.player_index]
-      bots_gui.update(player, player_table, false)
+      main_window.update(player, player_table, false)
     end
   end
 )
@@ -100,27 +101,28 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
   if utils.starts_with(e.setting, "li-") then
     local player = player_data.get_singleplayer_player()
     local player_table = player_data.get_singleplayer_table()
-
-    -- Special handling for mini window setting
-    if e.setting == "li-show-mini-window" then
-      controller_gui.update_window(player, player_table)
-    elseif e.setting == "li-chunk-size" then
-      -- Tell counters that the chunk size has changed (but preserve history)
-      -- TBD
-      player_data.update_settings(player, player_table)
-      bots_gui.update_chunk_size_cache()
-    elseif e.setting == "li-chunk-processing-interval" or
-           e.setting == "li-ui-update-interval" or
-           e.setting == "li-pause-for-bots" or
-           e.setting == "li-highlight-duration" then
-      -- These settings will be adapted dynamically
-      player_data.update_settings(player, player_table)
-    else
-      -- For other settings, rebuild the main window
-      bots_gui.destroy(player, player_table)
-      player_data.refresh(player, player_table)
-      bots_gui.update_chunk_size_cache()
-      bots_gui.create_window(player, player_table)
+    if player and player_table then
+      -- Special handling for mini window setting
+      if e.setting == "li-show-mini-window" then
+        controller_gui.update_window(player, player_table)
+      elseif e.setting == "li-chunk-size" then
+        -- Tell counters that the chunk size has changed (but preserve history)
+        -- TBD
+        player_data.update_settings(player, player_table)
+        progress_bars.update_chunk_size_cache()
+      elseif e.setting == "li-chunk-processing-interval" or
+            e.setting == "li-ui-update-interval" or
+            e.setting == "li-pause-for-bots" or
+            e.setting == "li-highlight-duration" then
+        -- These settings will be adapted dynamically
+        player_data.update_settings(player, player_table)
+      else
+        -- For other settings, rebuild the main window
+        main_window.destroy(player, player_table)
+        player_data.refresh(player, player_table)
+        progress_bars.update_chunk_size_cache()
+        main_window.create(player, player_table)
+      end
     end
   end
 end)
@@ -133,28 +135,29 @@ script.on_nth_tick(1,
   function(e)
   local player = player_data.get_singleplayer_player()
   local player_table = player_data.get_singleplayer_table()
-
-  if game.tick % 30 == 0 then -- Update this twice a second only
-    if player_data.check_network_changed(player, player_table) then
-      bot_counter.network_changed(player, player_table)
-      logistic_cell_counter.network_changed(player, player_table)
+  if player and player.valid and player_table then
+    if game.tick % 30 == 0 then -- Update this twice a second only
+      if player_data.check_network_changed(player, player_table) then
+        bot_counter.network_changed(player, player_table)
+        logistic_cell_counter.network_changed(player, player_table)
+      end
     end
-  end
 
-  if game.tick % player_data.bot_chunk_interval(player_table) == 0 then
-    local bot_progress = bot_counter.gather_bot_data(player, player_table)
-    bots_gui.update_bot_chunk_progress(player_table, bot_progress)
-  end
+    if game.tick % player_data.bot_chunk_interval(player_table) == 0 then
+      local bot_progress = bot_counter.gather_bot_data(player, player_table)
+      main_window.update_bot_progress(player_table, bot_progress)
+    end
 
-  if game.tick % player_data.cells_chunk_interval(player_table) == 0 then
-    local cells_progress = logistic_cell_counter.gather_data(player, player_table)
-    bots_gui.update_cells_chunk_progress(player_table, cells_progress)
-  end
+    if game.tick % player_data.cells_chunk_interval(player_table) == 0 then
+      local cells_progress = logistic_cell_counter.gather_data(player, player_table)
+      main_window.update_cells_progress(player_table, cells_progress)
+    end
 
-  if game.tick % player_data.ui_update_interval(player_table) == 0 then
-    bots_gui.ensure_ui_consistency(player, player_table)
-    controller_gui.update_window(player, player_table)
-    bots_gui.update(player, player_table, false)
+    if game.tick % player_data.ui_update_interval(player_table) == 0 then
+      main_window.ensure_ui_consistency(player, player_table)
+      controller_gui.update_window(player, player_table)
+      main_window.update(player, player_table, false)
+    end
   end
 end)
 
@@ -165,7 +168,7 @@ script.on_event(defines.events.on_gui_click,
   --- @param event EventData.on_gui_click
   function(event)
   controller_gui.onclick(event)
-  bots_gui.onclick(event)
+  main_window.onclick(event)
 end)
 
 script.on_event(
@@ -188,7 +191,9 @@ script.on_event(defines.events.on_player_controller_changed,
   local player = player_data.get_singleplayer_player()
   local player_table = player_data.get_singleplayer_table()
 
-  bots_gui.update(player, player_table, false)
+  if player and player.valid and player_table then
+    main_window.update(player, player_table, false)
+  end
 end)
 
 script.on_event(
@@ -202,7 +207,9 @@ script.on_event(
     local player = player_data.get_singleplayer_player()
     local player_table = player_data.get_singleplayer_table()
 
-    bots_gui.update(player, player_table, false)
+    if player and player.valid and player_table then
+      main_window.update(player, player_table, false)
+    end
   end
 )
 
@@ -235,7 +242,7 @@ script.on_event(defines.events.on_lua_shortcut,
   if not player_table then return end
 
   -- Toggle window visibility
-  bots_gui.toggle_window_visible(player)
+  main_window.toggle_window_visible(player)
 
   -- Update shortcut button state
   player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
@@ -252,7 +259,7 @@ script.on_event("logistics-insights-toggle-gui",
   if not player_table then return end
 
   -- Toggle window visibility
-  bots_gui.toggle_window_visible(player)
+  main_window.toggle_window_visible(player)
 
   -- Update shortcut button state
   player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)

@@ -76,6 +76,12 @@ function TickCounter:reset()
   self._accumulated_time = 0
 end
 
+-- Reset the counter, but keep the pause state and time
+function TickCounter:reset_keep_pause()
+  self._start_tick = game.tick
+  self._accumulated_time = 0
+end
+
 -- Get current elapsed time (including accumulated time from previous runs)
 ---@return number Total elapsed ticks
 function TickCounter:elapsed()

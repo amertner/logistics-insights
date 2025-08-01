@@ -3,10 +3,7 @@ local controller_gui = {}
 
 local player_data = require("scripts.player-data")
 local tooltips_helper = require("scripts.tooltips-helper")
-local bots_gui = require("scripts.bots-gui")
-
--- Make sure we have access to storage
-_ENV.storage = _ENV.storage or {}
+local main_window = require("scripts.mainwin.main_window")
 
 --- Show the mini window (call this on player join or GUI update)
 --- @param player LuaPlayer The player to create the window for
@@ -81,9 +78,9 @@ function controller_gui.update_window(player, player_table)
 
   if gui.logistics_insights_toggle_main and player_table then
     local tip = {}
-    if player_table.network and player_table.network then
-      idle_count = storage.bot_items["logistic-robot-available"]
-      total_count = storage.bot_items["logistic-robot-total"]
+    if player_table.network and player_table.network.valid then
+      local idle_count = storage.bot_items and storage.bot_items["logistic-robot-available"] or 0
+      local total_count = storage.bot_items and storage.bot_items["logistic-robot-total"] or 0
       gui.logistics_insights_toggle_main.number = idle_count
 
       tip = tooltips_helper.add_networkid_tip(tip,  player_table.network.network_id, player_table.fixed_network)
@@ -113,7 +110,7 @@ function controller_gui.onclick(event)
     if not player or not player.valid then return end
 
     if event.button == defines.mouse_button_type.left then
-      bots_gui.toggle_window_visible(player)
+      main_window.toggle_window_visible(player)
 
       player_table = player_data.get_singleplayer_table()
       controller_gui.update_window(player, player_table)
