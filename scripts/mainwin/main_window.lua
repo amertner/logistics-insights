@@ -12,6 +12,7 @@ local delivery_row = require("scripts.mainwin.delivery_row")
 local history_rows = require("scripts.mainwin.history_rows")
 local activity_row = require("scripts.mainwin.activity_row")
 local network_row = require("scripts.mainwin.network_row")
+local suggestions_row = require("scripts.mainwin.suggestions_row")
 
 -------------------------------------------------------------------------------
 -- Create main window and all rows needed based on settings
@@ -55,8 +56,6 @@ function main_window.create(player, player_table)
   else
     main_window.location = { x = 200, y = 0 }
   end
-  -- Remember the window for easy access
-  --player_table.ui = main_window
 end
 
 --- Make sure all the relevant parts of the UI are available and initialised
@@ -151,17 +150,12 @@ function main_window._add_all_rows(player_table, content_table)
   -- First clear all existing UI elements
   content_table.clear()
 
-  -- Add delivery row (real-time tracking)
+  -- Add all of possible rows: The routines check if they are enabled in settings
   delivery_row.add(player_table, content_table)
-
-  -- Add history rows (totals and averages)
   history_rows.add(player_table, content_table)
-
-  -- Add activity row (current logistics activity)
   activity_row.add(player_table, content_table)
-
-  -- Add network row (logistic network overview)
   network_row.add(player_table, content_table)
+  suggestions_row.add(player_table, content_table)
 end
 
 --- Update the start/stop button appearance based on current state
@@ -197,17 +191,12 @@ function main_window.update(player, player_table, clearing)
     return
   end
 
-  -- Update delivery row with current deliveries
+  -- Update all of the rows; each row will only update if enabled in settings.
   delivery_row.update(player_table, clearing)
-
-  -- Update history rows
   history_rows.update(player_table, clearing)
-
-  -- Update activity row
   activity_row.update(player_table)
-
-  -- Update network row
   network_row.update(player_table)
+  suggestions_row.update(player_table)
 end
 
 -- Update the Delivery progress bar

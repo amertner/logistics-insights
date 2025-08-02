@@ -2,6 +2,7 @@
 local player_data = {}
 
 local tick_counter = require("scripts.tick-counter")
+local suggestions = require("scripts.suggestions")
 
 -- Record used to show items being delivered right now
 ---@class DeliveryItem
@@ -45,6 +46,7 @@ local cached_player_table = nil
 ---@field bots_window_visible boolean -- Whether the logistics insights window is visible
 ---@field network LuaLogisticNetwork|nil -- The current logistics network being monitored
 ---@field fixed_network boolean -- Whether to keep watching the current network even if the player moves away
+---@field suggestions Suggestions -- Suggestions for improving logistics network
 ---@field history_timer TickCounter -- Tracks time for collecting delivery history
 ---@field player_index uint -- The player's index
 ---@field window_location {x: number, y: number} -- Saved window position
@@ -60,6 +62,7 @@ function player_data.init(player_index)
     bots_window_visible = false, -- Start invisible
     network = nil,
     history_timer = tick_counter.new(),
+    suggestions = suggestions.new(),
     fixed_network = false,
     player_index = player_index,
     window_location = {x = 200, y = 0},
@@ -229,6 +232,7 @@ function player_data.check_network_changed(player, player_table)
     else
       player_table.network = network
       player_table.history_timer:reset() -- Reset the tick counter when network changes
+      player_table.suggestions:reset() -- Reset suggestions list
       return true
     end
   else

@@ -2,6 +2,7 @@
 local player_data = require("scripts.player-data")
 local TickCounter = require("scripts.tick-counter")
 local main_window = require("scripts.mainwin.main_window")
+local suggestions_row = require("scripts.mainwin.suggestions_row")
 
 local function init_storage_and_settings()
   player_data.init_storages()
@@ -116,7 +117,7 @@ local li_migrations = {
     -- Re-initialise the UI to make sure the new quality_table fields are set
     reinitialise_ui()
   end,
-  
+ 
   ["0.9.6"] = function()
     -- Rename the private fields in TickCounter references
     for _, player_table in pairs(storage.players) do
@@ -139,6 +140,17 @@ local li_migrations = {
 
     -- Re-initialise the UI to use the new Activity row tooltips
     reinitialise_ui()
+  end,
+
+  ["0.9.7"] = function()
+    -- Add the new suggestions row
+    local player_table = player_data.get_singleplayer_table()
+    if player_table and player_table.ui and player_table.bots_table then
+      suggestions_row.add(player_table, player_table.bots_table)
+    else
+      -- We can't just add the new row, so re-initialise the UI
+      reinitialise_ui()
+    end
   end
 }
 

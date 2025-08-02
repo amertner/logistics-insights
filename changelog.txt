@@ -1,6 +1,8 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.9.7
 Date: ????
+  Features:
+    - Now flags potential issues in the logistics network and suggests actions to improve it. 
   Changes:
     - When changing the Chunk size setting, the mod immediately starts using the new value
   Bugfixes:

@@ -61,6 +61,15 @@ function network_row.add(player_table, gui_table)
     name = "logistics-insights-storages",
     tags = { follow = false }
   }
+
+  -- Pad with blank elements if needed
+  local count = 6 -- No of network row items
+  while count < player_table.settings.max_items do
+    gui_table.add {
+      type = "empty-widget",
+    }
+    count = count + 1
+  end
 end
 
 --- Update the network information row with current statistics
