@@ -148,6 +148,7 @@ local li_migrations = {
     local player_table = player_data.get_singleplayer_table()
     if player_table and player_table.ui and player_table.bots_table then
       player_table.suggestions = suggestions.new()
+      player_table.settings.show_suggestions = true -- Enable suggestions by default
       row_title = "suggestions-row"
       -- If the suggestions row was not already added by an earlier migration, add it now
       if not player_table.ui[row_title] then

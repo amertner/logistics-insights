@@ -145,6 +145,7 @@ function player_data.update_settings(player, player_table)
   if  player and player.valid and player_table then
     local mod_settings = player.mod_settings
     local settings = {
+      show_suggestions = mod_settings["li-show-suggestions"].value,
       show_delivering = mod_settings["li-show-bot-delivering"].value,
       max_items = mod_settings["li-max-items"].value,
       show_history = mod_settings["li-show-history"].value,
@@ -232,6 +233,9 @@ function player_data.check_network_changed(player, player_table)
     else
       player_table.network = network
       player_table.history_timer:reset() -- Reset the tick counter when network changes
+      if not player_table.suggestions then
+        return
+      end
       player_table.suggestions:reset() -- Reset suggestions list
       return true
     end

@@ -2,6 +2,13 @@ data:extend(
   {
     {
       type = "bool-setting",
+      name = "li-show-suggestions",
+      setting_type = "runtime-per-user",
+      default_value = true,
+      order = "0.5"
+    },
+    {
+      type = "bool-setting",
       name = "li-show-bot-delivering",
       setting_type = "runtime-per-user",
       default_value = true,
