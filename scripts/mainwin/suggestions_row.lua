@@ -6,9 +6,6 @@ local suggestions = require("scripts.suggestions")
 local suggestions_row = {}
 local ROW_TITLE = "suggestions-row"
 
--- Import status codes for easier reference
-local SuggestionsStatusCodes = suggestions.StatusCodes
-
 ---@param player_table PlayerData The player's data table
 ---@param gui_table LuaGuiElement The GUI table to add the row to
 function suggestions_row.add(player_table, gui_table)

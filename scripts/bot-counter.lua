@@ -177,8 +177,8 @@ local function process_one_bot(bot, accumulator, player_table)
     -- Track the bot's quality
     local quality = (bot.quality and bot.quality.name) or "normal"
 
-    if table_size(bot.robot_order_queue) > 0 then
-      local order = bot.robot_order_queue[1]
+    local order = bot.robot_order_queue[1] or nil
+    if order then
       if order and order.type == defines_robot_order_type_deliver then
         accumulator.delivering_bots = accumulator.delivering_bots + 1
         utils.accumulate_quality(accumulator.delivering_bot_qualities, quality, 1)
@@ -187,7 +187,7 @@ local function process_one_bot(bot, accumulator, player_table)
         utils.accumulate_quality(accumulator.picking_bot_qualities, quality, 1)
       end
 
-      if order and order.target_item and order.target_item.name then
+      if order.target_item and order.target_item.name then
         local targetname = order.target_item.name
         local item_name = targetname.name
         -- For Deliveries, record the item
