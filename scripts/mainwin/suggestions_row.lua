@@ -49,6 +49,7 @@ function suggestions_row.add(player_table, gui_table)
       sprite = "li_arrow",
       style = "slot_button",
       show_percent_for_small_numbers = true,
+      --style = "li_red_button",
       visible = false
     }  end
 end
@@ -72,13 +73,10 @@ function suggestions_row.set_suggestion_cell(items, index, suggestion)
       button.number = suggestion.count or nil
       button.visible = true
       if suggestion.urgency == "high" then
-        color = {r = 1, g = 0, b = 0} -- Red for high urgency
+        button.style = "red_slot_button"
       else
-        color = {r = 1, g = 0.5, b = 0} -- Orange
+        button.style = "yellow_slot_button"
       end
-      button.style.font_color = color
-      --button.style.hovered_font_color = color
-      --button.style.selected_font_color = color
     else
       button.visible = false
     end

@@ -121,7 +121,7 @@ function Suggestions:analyse_waiting_to_charge()
     self._suggestions["waiting-to-charge"] = {
       name = "Charging Robots",
       sprite = "entity/roboport",
-      urgency = "high",
+      urgency = "low",
       evidence = {},
       count = suggested_number,
       action = "Robots are waiting to charge. Consider adding at least " .. suggested_number .." charging stations or roboports to areas of high traffic."
