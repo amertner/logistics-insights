@@ -43,6 +43,7 @@ function main_window.create(player, player_table)
   local content_table = window.add {
     type = "table",
     name = "bots_table",
+    style = "li_mainwindow_content_style",
     column_count = player_table.settings.max_items + 1
   }
 

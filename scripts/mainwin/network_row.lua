@@ -14,7 +14,12 @@ local pairs = pairs
 --- @param gui_table LuaGuiElement The GUI table to add the row to
 function network_row.add(player_table, gui_table)
   player_data.register_ui(player_table, "network")
-  gui_table.add {
+  local flow = gui_table.add {
+    name = "bots_network_row",
+    type = "flow",
+    direction = "vertical"
+  }
+  flow.add {
     type = "label",
     caption = {"network-row.header"},
     style = "heading_2_label",

@@ -36,5 +36,11 @@ styles.botsgui_controller_style = {
   },
   -- Optional: adjust padding as needed
   padding = 4,
+}
 
+styles.li_mainwindow_content_style = {
+  type = "table_style",
+  parent = "slot_table",
+  horizontal_spacing = 2,
+  vertical_spacing = 4,
 }
