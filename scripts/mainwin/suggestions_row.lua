@@ -9,9 +9,10 @@ local ROW_TITLE = "suggestions-row"
 -- Import status codes for easier reference
 local SuggestionsStatusCodes = suggestions.StatusCodes
 
+---@param player_table PlayerData The player's data table
+---@param gui_table LuaGuiElement The GUI table to add the row to
 function suggestions_row.add(player_table, gui_table)
-  local title = ROW_TITLE
-  player_data.register_ui(player_table, title)
+  player_data.register_ui(player_table, ROW_TITLE)
 
   local cell = gui_table.add {
     type = "flow",
@@ -26,64 +27,94 @@ function suggestions_row.add(player_table, gui_table)
   -- Add left-aligned label
   local titlecell = hcell.add {
     type = "label",
+    name = ROW_TITLE .. "-title",
     caption = {ROW_TITLE .. ".header"},
     style = "heading_2_label",
     tooltip = {"", {ROW_TITLE .. ".header-tooltip"}}
   }
 
-  -- Add item cells
-  player_table.ui[title].titlecell = titlecell
-  player_table.ui[title].cells = {}
+  -- Remember the title cell so we can update the tooltip later
+  player_table.ui[ROW_TITLE].titlecell = titlecell
+  -- Add empty cells, will be replaced if there are suggestions
+  player_table.ui[ROW_TITLE].cells = {}
+  player_table.ui[ROW_TITLE].suggestion_buttons = {}
   for count = 1, player_table.settings.max_items do
-    player_table.ui[title].cells[count] = gui_table.add {
-      type = "sprite-button",
-      style = "slot_button",
-      enabled = false,
+    -- Add an empty widget for when there is no suggestion
+    player_table.ui[ROW_TITLE].cells[count] = gui_table.add {
+      type = "empty-widget",
     }
+    -- Add sprite button (hidden by default)
+    player_table.ui[ROW_TITLE].suggestion_buttons[count] = gui_table.add {
+      type = "sprite-button",
+      sprite = "li_arrow",
+      style = "slot_button",
+      show_percent_for_small_numbers = true,
+      visible = false
+    }  end
+end
+
+---@param items LuaGuiElement The parent of cells and suggestion_buttons
+---@index number The index of the cell to update
+---@param suggestion? Suggestion The suggestion object containing details, or nil to clear
+function suggestions_row.set_suggestion_cell(items, index, suggestion)
+  if items.cells == nil or items.suggestion_buttons == nil then
+    return -- No cells or buttons to update
+  end
+  local cell = items.cells[index]
+  if cell and cell.valid then
+    cell.visible = suggestion == nil
+  end
+  local button = items.suggestion_buttons[index]
+  if button and button.valid then
+    if suggestion then
+      button.sprite = suggestion.sprite or "li_arrow"
+      button.tooltip = suggestion.action or ""
+      button.number = suggestion.count or nil
+      button.visible = true
+      if suggestion.urgency == "high" then
+        color = {r = 1, g = 0, b = 0} -- Red for high urgency
+      else
+        color = {r = 1, g = 0.5, b = 0} -- Orange
+      end
+      button.style.font_color = color
+      --button.style.hovered_font_color = color
+      --button.style.selected_font_color = color
+    else
+      button.visible = false
+    end
   end
 end
 
-function suggestions_row.set_title_tooltip(player_table, status)
-  local title = ROW_TITLE
-  local tooltip = {"", {title .. ".header-tooltip"}}
+---@param player_table PlayerData The player's data table
+---@return number The number of suggestions shown
+function suggestions_row.show_suggestions(player_table)
+  local suggestions_table = player_table.suggestions:get_suggestions()
+  local items = player_table.ui[ROW_TITLE]
 
-  if status == SuggestionsStatusCodes.Analysing then
-    tooltip = {"", {title .. ".header-tooltip-analysing"}}
-  elseif status == SuggestionsStatusCodes.NoIssues then
-    tooltip = {"", {title .. ".header-tooltip-no-issues"}}
-  elseif status == SuggestionsStatusCodes.IssuesFound then
-    tooltip = {"", {title .. ".header-tooltip-issues-found"}}
-  elseif status == SuggestionsStatusCodes.Disabled then
-    tooltip = {"", {title .. ".header-tooltip-disabled"}}
+  index = 1
+  for name, suggestion in pairs(suggestions_table) do
+    suggestions_row.set_suggestion_cell(items, index, suggestion)
+    index = index + 1
   end
-
-  player_table.ui[title].titlecell.tooltip = tooltip
+  return index-1
 end
 
-function suggestions_row.update(player_table, all_bots)
+---@param player_table PlayerData The player's data table
+function suggestions_row.update(player_table)
   -- If the UI is not available, do nothing
   if not player_table.ui or not player_table.ui[ROW_TITLE] or not player_table.ui[ROW_TITLE].titlecell then
     return
   end
-  if not player_data.suggestions then
-    player_data.suggestions = suggestions.new()
+  if not player_table.suggestions or not player_table.suggestions._historydata then
+    player_table.suggestions = suggestions.new() -- TODO: Just return on release
   end
 
-  local status = player_data.suggestions:get_status(player_table)
-  suggestions_row.set_title_tooltip(player_table, status)
-  if status == SuggestionsStatusCodes.Undefined then
-    return -- No suggestions available yet
-  end
-
-  -- If paused, just disable all the fields
-  if player_data.is_paused(player_table) then
-    for i = 1, player_table.settings.max_items do
-      local cell = player_table.ui[ROW_TITLE].cells[i]
-      if cell and cell.valid then
-        cell.enabled = false
-      end
-    end
-    return
+  -- Show all suggestions
+  index = suggestions_row.show_suggestions(player_table)
+  -- Clear any remaining cells
+  local items = player_table.ui[ROW_TITLE]
+  for i = index+1, player_table.settings.max_items do
+    suggestions_row.set_suggestion_cell(items, i, nil)
   end
 end
 

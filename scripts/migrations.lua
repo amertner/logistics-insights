@@ -2,6 +2,7 @@
 local player_data = require("scripts.player-data")
 local TickCounter = require("scripts.tick-counter")
 local main_window = require("scripts.mainwin.main_window")
+local suggestions = require("scripts.suggestions")
 local suggestions_row = require("scripts.mainwin.suggestions_row")
 
 local function init_storage_and_settings()
@@ -146,7 +147,12 @@ local li_migrations = {
     -- Add the new suggestions row
     local player_table = player_data.get_singleplayer_table()
     if player_table and player_table.ui and player_table.bots_table then
-      suggestions_row.add(player_table, player_table.bots_table)
+      player_table.suggestions = suggestions.new()
+      row_title = "suggestions-row"
+      -- If the suggestions row was not already added by an earlier migration, add it now
+      if not player_table.ui[row_title] then
+        suggestions_row.add(player_table, player_table.bots_table)
+      end
     else
       -- We can't just add the new row, so re-initialise the UI
       reinitialise_ui()

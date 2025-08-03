@@ -86,6 +86,10 @@ local function all_chunks_done(accumulator, player_table)
   storage.roboport_qualities = accumulator.roboport_qualities or {}
   storage.charging_bot_qualities = accumulator.charging_bot_qualities or {}
   storage.waiting_bot_qualities = accumulator.waiting_bot_qualities or {}
+
+  if player_table and player_table.suggestions then
+    player_table.suggestions:cells_data_updated(player_table.network)
+  end
 end
 
 local cell_chunker = require("scripts.chunker").new(initialise_cell_network_list, process_one_cell, all_chunks_done)

@@ -70,7 +70,7 @@ function main_window.ensure_ui_consistency(player, player_table)
   local window = gui.logistics_insights_window
 
   if game_state.needs_buttons() then
-    local titlebar = window.bots_insights_titlebar
+    local titlebar = window["logistics-insights-title-bar"]
     if titlebar then
       local unfreeze = titlebar["logistics-insights-unfreeze"]
       local freeze = titlebar["logistics-insights-freeze"]
