@@ -105,6 +105,9 @@ end
 function logistic_cell_counter.network_changed(player, player_table)
   cell_chunker:reset()
   player_data.init_logistic_cell_counter_storage()
+  if player_table and player_table.suggestions then
+    player_table.suggestions:clear_suggestions()
+  end
 end
 
 --- Gather activity data from all cells in network

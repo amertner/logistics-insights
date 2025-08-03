@@ -12,15 +12,23 @@ local SuggestionsStatusCodes = suggestions.StatusCodes
 ---@param player_table PlayerData The player's data table
 ---@param gui_table LuaGuiElement The GUI table to add the row to
 function suggestions_row.add(player_table, gui_table)
+  if not player_table.settings.show_suggestions then
+    return
+  end
   player_data.register_ui(player_table, ROW_TITLE)
 
   local cell = gui_table.add {
     type = "flow",
-    direction = "vertical"
+    direction = "vertical",
+    vertically_squashable = false,
+    minimal_height = 80, -- Need to have room for a slot button
   }
+  cell.style.vertically_stretchable = false
   local hcell = cell.add {
     type = "flow",
-    direction = "horizontal"
+    direction = "horizontal",
+    vertically_squashable = false,
+    minimal_height = 80, -- Need to have room for a slot button
   }
   hcell.style.horizontally_stretchable = true
 
@@ -35,35 +43,26 @@ function suggestions_row.add(player_table, gui_table)
 
   -- Remember the title cell so we can update the tooltip later
   player_table.ui[ROW_TITLE].titlecell = titlecell
-  -- Add empty cells, will be replaced if there are suggestions
-  player_table.ui[ROW_TITLE].cells = {}
   player_table.ui[ROW_TITLE].suggestion_buttons = {}
   for count = 1, player_table.settings.max_items do
     -- Add an empty widget for when there is no suggestion
-    player_table.ui[ROW_TITLE].cells[count] = gui_table.add {
-      type = "empty-widget",
-    }
     -- Add sprite button (hidden by default)
     player_table.ui[ROW_TITLE].suggestion_buttons[count] = gui_table.add {
       type = "sprite-button",
       sprite = "li_arrow",
       style = "slot_button",
       show_percent_for_small_numbers = true,
-      --style = "li_red_button",
       visible = false
-    }  end
+    }  
+  end
 end
 
 ---@param items LuaGuiElement The parent of cells and suggestion_buttons
 ---@index number The index of the cell to update
 ---@param suggestion? Suggestion The suggestion object containing details, or nil to clear
 function suggestions_row.set_suggestion_cell(items, index, suggestion)
-  if items.cells == nil or items.suggestion_buttons == nil then
-    return -- No cells or buttons to update
-  end
-  local cell = items.cells[index]
-  if cell and cell.valid then
-    cell.visible = suggestion == nil
+  if items.suggestion_buttons == nil then
+    return -- No buttons to update
   end
   local button = items.suggestion_buttons[index]
   if button and button.valid then
@@ -99,6 +98,10 @@ end
 
 ---@param player_table PlayerData The player's data table
 function suggestions_row.update(player_table)
+  -- If suggestions are not enabled, do nothing
+  if not player_table or not player_table.settings.show_suggestions then
+    return
+  end
   -- If the UI is not available, do nothing
   if not player_table.ui or not player_table.ui[ROW_TITLE] or not player_table.ui[ROW_TITLE].titlecell then
     return

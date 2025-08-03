@@ -35,25 +35,7 @@ script.register_metatable("logistics-insights-Suggestions", Suggestions)
 function Suggestions.new()
   local self = setmetatable({}, Suggestions)
   self._current_tick = game.tick
-  -- Historical data needed to make better suggestions
-  self._historydata = {
-    ["waiting-to-charge"] = nil,
-    ["low-construction-bots"] = nil,
-    ["low-logistic-bots"] = nil,
-    ["network-congestion"] = nil,
-    ["insufficient-storage"] = nil,
-    -- Add other known suggestion types here
-  }
-
-  -- Pre-allocate suggestions table with known suggestion types
-  self._suggestions = {
-    ["waiting-to-charge"] = nil,
-    ["low-construction-bots"] = nil,
-    ["low-logistic-bots"] = nil,
-    ["network-congestion"] = nil,
-    ["insufficient-storage"] = nil,
-    -- Add other known suggestion types here
-  }
+  self:clear_suggestions()
 
   return self
 end
@@ -97,6 +79,28 @@ function Suggestions:max_from_history(name)
     end
   end
   return max_value
+end
+
+function Suggestions:clear_suggestions()
+  -- Historical data needed to make better suggestions
+  self._historydata = {
+    ["waiting-to-charge"] = nil,
+    ["low-construction-bots"] = nil,
+    ["low-logistic-bots"] = nil,
+    ["network-congestion"] = nil,
+    ["insufficient-storage"] = nil,
+    -- Add other known suggestion types here
+  }
+
+  -- Pre-allocate suggestions table with known suggestion types
+  self._suggestions = {
+    ["waiting-to-charge"] = nil,
+    ["low-construction-bots"] = nil,
+    ["low-logistic-bots"] = nil,
+    ["network-congestion"] = nil,
+    ["insufficient-storage"] = nil,
+    -- Add other known suggestion types here
+  }
 end
 
 function Suggestions:clear_suggestion(name)

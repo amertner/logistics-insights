@@ -52,10 +52,13 @@ function main_window.create(player, player_table)
   main_window._add_all_rows(player_table, content_table)
 
   -- Restore the previous location, if it exists
-  if player_table.window_location then
-    main_window.location = player_table.window_location
-  else
-    main_window.location = { x = 200, y = 0 }
+  local gui = player.gui.screen
+  if gui then
+    if player_table.window_location then
+      gui.logistics_insights_window.location = player_table.window_location
+    else
+      gui.logistics_insights_window.location = { x = 200, y = 0 }
+    end
   end
 end
 

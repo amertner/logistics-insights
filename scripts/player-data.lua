@@ -234,7 +234,7 @@ function player_data.check_network_changed(player, player_table)
       player_table.network = network
       player_table.history_timer:reset() -- Reset the tick counter when network changes
       if not player_table.suggestions then
-        return
+        player_table.suggestions = suggestions.new()
       end
       player_table.suggestions:reset() -- Reset suggestions list
       return true
