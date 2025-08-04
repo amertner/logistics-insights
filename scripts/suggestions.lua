@@ -73,6 +73,16 @@ function Suggestions:run_process(processname)
   return false
 end
 
+---@param value number The value to evaluate for urgency
+---@param red_threshold number The threshold above which urgency is considered high
+function Suggestions:get_urgency(value, red_threshold)
+  if value > red_threshold then
+    return "high"
+  else
+    return "low"
+  end
+end
+
 ---@param name string The name of the suggestion to store a data point for
 ---@param data number The data point to store
 function Suggestions:remember(name, data)
@@ -146,12 +156,7 @@ function Suggestions:analyse_waiting_to_charge()
   suggested_number = self:max_from_history("waiting-to-charge")
   if suggested_number > 0 then
     -- Bots are charging, and some are waiting
-    local urgency
-    if suggested_number > 100 then
-      urgency = "high"
-    else
-      urgency = "low"
-    end
+    local urgency = Suggestions:get_urgency(suggested_number, 100)
     self._suggestions["waiting-to-charge"] = {
       name = "Charging Robots",
       sprite = "entity/roboport",
@@ -181,31 +186,23 @@ function Suggestions:analyse_storage_fullness(network)
         end
       end
     end
-    local available = 0
+    local used_capacity = 0
     if total_capacity > 0 then
-      available = total_free / total_capacity
+      used_capacity = 1 - total_free / total_capacity
     else
-      available = 0
+      used_capacity = 0
     end
 
-    --self:remember("insufficient-storage", utilization)
-    --suggested_number = self:max_from_history("insufficient-storage")
-
-    if available < 0.7 then 
-      local urgency
-      if available < 0.1 then
-        urgency = "high"
-      else
-        urgency = "low"
-      end
-      available_rounded = math.floor(available * 1000)/10
+    if used_capacity >= 0.7 then 
+      local urgency = Suggestions:get_urgency(used_capacity, 0.9)
+      used_rounded = math.floor(used_capacity * 1000)/10
       self._suggestions["insufficient-storage"] = {
         name = "Insufficient Storage",
         sprite = "entity/storage-chest",
         urgency = urgency,
         evidence = {},
-        action = "Only " .. available_rounded .. "% of storage capacity is free.\n Consider adding more storage chests to your network.",
-        count = available
+        action = used_rounded .. "% of storage capacity is used.\n Consider adding more storage chests to your network.",
+        count = used_capacity
       }
     else
       self:clear_suggestion("insufficient-storage")
@@ -260,7 +257,7 @@ function Suggestions:analyse_demand_and_supply(network)
     -- Where are there shortages, where demand + under way << supply?
     --@type array<ItemWithQualityCount>
     local total_supply_array = network.get_contents() -- Get total supply
-    local total_demand = {}
+    local total_demand = {item = {}, entity = {}}
     
     -- Iterate through all requester entities in the network
     for _, requester in pairs(network.requesters) do
@@ -291,8 +288,8 @@ function Suggestions:analyse_demand_and_supply(network)
                     local actual_demand = math.max(0, requested_count - current_count)
                     
                     if actual_demand > 0 then
-                      local key = get_item_quality_key(item_name, quality)
-                      total_demand[key] = (total_demand[key] or 0) + actual_demand
+                      local key = get_item_quality_key(item_name, quality)                      
+                      total_demand[type][key] = (total_demand[type][key] or 0) + actual_demand
                     end
                   end
                 end
@@ -313,28 +310,31 @@ function Suggestions:analyse_demand_and_supply(network)
     -- Calculate net demand for each item - create as array for easy sorting
     -- Net demand = requested - supply - under way
     local net_demand = {}
-    for key, request in pairs(total_demand) do
-      local supply = total_supply[key] or 0
-      if request > supply then
-        local shortage = request - supply
-        local item_name, quality = key:match("([^:]+):(.+)")
+    for type, demands in pairs(total_demand) do
+      -- item and entity
+      for key, request in pairs(demands) do
+        local supply = total_supply[key] or 0
+        if request > supply then
+          local shortage = request - supply
+          local item_name, quality = key:match("([^:]+):(.+)")
 
-        -- The key is different, TODO: Change to be the same
-        local under_way = get_underway(item_name .. quality) or 0 -- Get the number of items already in transit
-        if under_way > 0 then
-          shortage = shortage - under_way
-        end
-        if shortage > 0 then
-
-          table.insert(net_demand, {
-            key = key,
-            shortage = shortage,
-            item_name = item_name,
-            quality = quality,
-            request = request,
-            supply = supply,
-            under_way = under_way
-          })
+          -- The key is different, TODO: Change to be the same
+          local under_way = get_underway(item_name .. quality) or 0 -- Get the number of items already in transit
+          if under_way > 0 then
+            shortage = shortage - under_way
+          end
+          if shortage > 0 then
+            table.insert(net_demand, {
+              key = key,
+              shortage = shortage,
+              type = type,
+              item_name = item_name,
+              quality = quality,
+              request = request,
+              supply = supply,
+              under_way = under_way
+            })
+          end
         end
       end
     end
@@ -349,7 +349,7 @@ function Suggestions:analyse_demand_and_supply(network)
       local shortage_str = ""
       for i = 1, math.min(5, #net_demand) do
         local shortage_data = net_demand[i]
-        shortage_str = shortage_str .. "\n" .. shortage_data.item_name .. " (" .. shortage_data.quality .. "): " .. shortage_data.shortage .. "(Demand: " .. shortage_data.request .. ", Supply: " .. shortage_data.supply .. ", Underway: " .. shortage_data.under_way .. ")"
+        shortage_str = shortage_str .. "\n" .. shortage_data.type .. "/" .. shortage_data.item_name .. " (" .. shortage_data.quality .. "): " .. shortage_data.shortage .. "(Demand: " .. shortage_data.request .. ", Supply: " .. shortage_data.supply .. ", Underway: " .. shortage_data.under_way .. ")"
       end
 
       self._suggestions["supply-shortage"] = {
