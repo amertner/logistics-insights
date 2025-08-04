@@ -126,6 +126,9 @@ function player_data.init_bot_counter_storage()
 
   ---@type QualityTable
   storage.total_bot_qualities = {} -- Quality of all bots counted
+
+  --@type table. TODO: Proper type
+  storage.undersupply = {}
 end
 
 ---@return nil
@@ -145,6 +148,7 @@ function player_data.update_settings(player, player_table)
   if  player and player.valid and player_table then
     local mod_settings = player.mod_settings
     local settings = {
+      show_undersupply = mod_settings["li-show-undersupply"].value,
       show_suggestions = mod_settings["li-show-suggestions"].value,
       show_delivering = mod_settings["li-show-bot-delivering"].value,
       max_items = mod_settings["li-max-items"].value,

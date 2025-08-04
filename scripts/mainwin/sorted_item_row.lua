@@ -115,6 +115,9 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
       local decimal_part = math_floor((entry.avg - int_part) * 10 + 0.5)
       local ticks_formatted = int_part .. "." .. decimal_part
       tip = {"", {"item-row.avg-field-tooltip-1ticks-2count-3quality-4itemname", ticks_formatted, entry.count, quality, name}}
+    elseif number_field == "shortage" then
+      tip = {"", {"undersupply-row.shortage-tooltip-1shortage_2item_3quality_4requested_5storage_5underway",
+        entry.shortage, name, quality, entry.request, entry.supply, entry.under_way}}
     end
     return tip
   end

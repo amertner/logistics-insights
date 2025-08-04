@@ -3,6 +3,7 @@ local player_data = require("scripts.player-data")
 local TickCounter = require("scripts.tick-counter")
 local main_window = require("scripts.mainwin.main_window")
 local suggestions = require("scripts.suggestions")
+local undersupply_row = require("scripts.mainwin.undersupply_row")
 local suggestions_row = require("scripts.mainwin.suggestions_row")
 
 local function init_storage_and_settings()
@@ -148,7 +149,14 @@ local li_migrations = {
     local player_table = player_data.get_singleplayer_table()
     if player_table and player_table.ui and player_table.bots_table then
       player_table.suggestions = suggestions.new()
+      player_table.settings.show_undersupply = true -- Enable undersupply by default
       player_table.settings.show_suggestions = true -- Enable suggestions by default
+      row_title = "undersupply-row"
+      -- If the undersupply row was not already added by an earlier migration, add it now
+      storage.undersupply = {}
+      if not player_table.ui[row_title] then
+        undersupply_row.add(player_table, player_table.bots_table)
+      end
       row_title = "suggestions-row"
       -- If the suggestions row was not already added by an earlier migration, add it now
       if not player_table.ui[row_title] then

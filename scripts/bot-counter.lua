@@ -3,6 +3,7 @@ local bot_counter = {}
 local player_data = require("scripts.player-data")
 local chunker = require("scripts.chunker")
 local utils = require("scripts.utils")
+local analysis = require("scripts.analysis")
 
 -- Cache frequently used functions and values for performance
 local pairs = pairs
@@ -279,6 +280,10 @@ local function bot_chunks_done(accumulator, player_table)
   -- See if there are new suggestions based on the data just gathered
   if player_table and player_table.suggestions then
     player_table.suggestions:bots_data_updated(player_table.network)
+  end
+  -- Analyse demand and supply based on the gathered data
+  if player_table then
+    analysis:analyse_demand_and_supply(player_table.network)
   end
 end
 

@@ -12,6 +12,7 @@ local delivery_row = require("scripts.mainwin.delivery_row")
 local history_rows = require("scripts.mainwin.history_rows")
 local activity_row = require("scripts.mainwin.activity_row")
 local network_row = require("scripts.mainwin.network_row")
+local undersupply_row = require("scripts.mainwin.undersupply_row")
 local suggestions_row = require("scripts.mainwin.suggestions_row")
 
 -------------------------------------------------------------------------------
@@ -159,6 +160,7 @@ function main_window._add_all_rows(player_table, content_table)
   history_rows.add(player_table, content_table)
   activity_row.add(player_table, content_table)
   network_row.add(player_table, content_table)
+  undersupply_row.add(player_table, content_table)
   suggestions_row.add(player_table, content_table)
 end
 
@@ -200,6 +202,7 @@ function main_window.update(player, player_table, clearing)
   history_rows.update(player_table, clearing)
   activity_row.update(player_table)
   network_row.update(player_table)
+  undersupply_row.update(player_table)
   suggestions_row.update(player_table)
 end
 
