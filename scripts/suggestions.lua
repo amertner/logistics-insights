@@ -25,6 +25,8 @@ local MAX_HISTORY_TICKS = 60*10 -- 10 seconds
 ---@alias SuggestionsTable table<string, Suggestion?>
 
 ---@class Suggestions
+---@field _current_cell_tick number The game tick when suggestions were last updated
+---@field _current_bot_tick number The game tick when suggestions were last updated
 ---@field _current_tick number The game tick when suggestions were last updated
 ---@field _historydata table<string, HistoryData> Historical data needed to make good suggestions
 ---@field _suggestions SuggestionsTable Table containing all suggestions
@@ -34,7 +36,9 @@ script.register_metatable("logistics-insights-Suggestions", Suggestions)
 
 function Suggestions.new()
   local self = setmetatable({}, Suggestions)
-  self._current_tick = game.tick
+  self._current_cell_tick = 0
+  self._current_bot_tick = 0
+  self._current_tick = 0
   self:clear_suggestions()
 
   return self
@@ -49,6 +53,24 @@ end
 --- @return SuggestionsTable The current suggestions
 function Suggestions:get_suggestions()
   return self._suggestions
+end
+
+function Suggestions:run_process(processname)
+  local tick = game.tick
+  if processname == "cell_data_updated" then
+    if tick + 60 > (self._current_cell_tick or 0) then
+      self._current_cell_tick = tick
+      self._current_tick = tick
+      return true
+    end
+  elseif processname == "bot_data_updated" then
+    if tick + 60 > (self._current_bot_tick or 0) then
+      self._current_bot_tick = tick
+      self._current_tick = tick
+      return true
+    end
+  end
+  return false
 end
 
 ---@param name string The name of the suggestion to store a data point for
@@ -124,10 +146,16 @@ function Suggestions:analyse_waiting_to_charge()
   suggested_number = self:max_from_history("waiting-to-charge")
   if suggested_number > 0 then
     -- Bots are charging, and some are waiting
+    local urgency
+    if suggested_number > 100 then
+      urgency = "high"
+    else
+      urgency = "low"
+    end
     self._suggestions["waiting-to-charge"] = {
       name = "Charging Robots",
       sprite = "entity/roboport",
-      urgency = "low",
+      urgency = urgency,
       evidence = {},
       count = suggested_number,
       action = "Robots are waiting to charge. Consider adding at least " .. suggested_number .." charging stations or roboports to areas of high traffic."
@@ -190,11 +218,8 @@ end
 --- Call when the data about logistics cells has been udpated
 --- @param network? LuaLogisticNetwork The network being analysed
 function Suggestions:cells_data_updated(network)
-  -- Save the current game tick
-  self._current_tick = game.tick
-  if self._current_tick % 60 ~= 0 then
-    -- Only update every 60 ticks to reduce overhead
-    return
+  if not self:run_process("cell_data_updated") then
+    return -- Not time to update yet
   end
 
   -- Do we have enough places to charge, or are too many waiting to charge?
@@ -224,6 +249,13 @@ local function get_item_quality_key(item_name, quality)
 end
 
 function Suggestions:analyse_demand_and_supply(network)
+  local function get_underway(itemkey)
+    if storage.bot_deliveries then
+      local delivery = storage.bot_deliveries[itemkey]
+      return (delivery and delivery.count) or 0
+    end
+  end
+
   if network and network.storages then
     -- Where are there shortages, where demand + under way << supply?
     --@type array<ItemWithQualityCount>
@@ -244,20 +276,24 @@ function Suggestions:analyse_demand_and_supply(network)
             for i = 1, requests.filters_count do
               local filter = requests.filters[i]
               if filter and filter.value then
-                local item_name = filter.value.name
-                local quality = filter.value.quality or "normal"
-                local requested_count = filter.min
-                
-                -- Calculate actual demand (requested - already in requester)
-                local inventory = requester.get_inventory(defines.inventory.linked_container_main)
-                if inventory then
-                  item_quality = {name = item_name, quality = quality}
-                  local current_count = inventory.get_item_count(item_quality)
-                  local actual_demand = math.max(0, requested_count - current_count)
+                local type = filter.value.type
+                -- Only track items/entities, not fluids, virtuals, etc
+                if type == "item" or type == "entity" then
+                  local item_name = filter.value.name
+                  local quality = filter.value.quality or "normal"
+                  local requested_count = filter.min
                   
-                  if actual_demand > 0 then
-                    local key = get_item_quality_key(item_name, quality)
-                    total_demand[key] = (total_demand[key] or 0) + actual_demand
+                  -- Calculate actual demand (requested - already in requester)
+                  local inventory = requester.get_inventory(defines.inventory.linked_container_main)
+                  if inventory then
+                    item_quality = {name = item_name, quality = quality}
+                    local current_count = inventory.get_item_count(item_quality)
+                    local actual_demand = math.max(0, requested_count - current_count)
+                    
+                    if actual_demand > 0 then
+                      local key = get_item_quality_key(item_name, quality)
+                      total_demand[key] = (total_demand[key] or 0) + actual_demand
+                    end
                   end
                 end
               end
@@ -275,6 +311,7 @@ function Suggestions:analyse_demand_and_supply(network)
     end
 
     -- Calculate net demand for each item - create as array for easy sorting
+    -- Net demand = requested - supply - under way
     local net_demand = {}
     for key, request in pairs(total_demand) do
       local supply = total_supply[key] or 0
@@ -282,14 +319,23 @@ function Suggestions:analyse_demand_and_supply(network)
         local shortage = request - supply
         local item_name, quality = key:match("([^:]+):(.+)")
 
-        table.insert(net_demand, {
-          key = key,
-          shortage = shortage,
-          item_name = item_name,
-          quality = quality,
-          request = request,
-          supply = supply
-        })
+        -- The key is different, TODO: Change to be the same
+        local under_way = get_underway(item_name .. quality) or 0 -- Get the number of items already in transit
+        if under_way > 0 then
+          shortage = shortage - under_way
+        end
+        if shortage > 0 then
+
+          table.insert(net_demand, {
+            key = key,
+            shortage = shortage,
+            item_name = item_name,
+            quality = quality,
+            request = request,
+            supply = supply,
+            under_way = under_way
+          })
+        end
       end
     end
 
@@ -303,7 +349,7 @@ function Suggestions:analyse_demand_and_supply(network)
       local shortage_str = ""
       for i = 1, math.min(5, #net_demand) do
         local shortage_data = net_demand[i]
-        shortage_str = shortage_str .. "\n" .. shortage_data.item_name .. " (" .. shortage_data.quality .. "): " .. shortage_data.shortage
+        shortage_str = shortage_str .. "\n" .. shortage_data.item_name .. " (" .. shortage_data.quality .. "): " .. shortage_data.shortage .. "(Demand: " .. shortage_data.request .. ", Supply: " .. shortage_data.supply .. ", Underway: " .. shortage_data.under_way .. ")"
       end
 
       self._suggestions["supply-shortage"] = {
@@ -325,11 +371,8 @@ end
 --- Call when the data about bots has been udpated
 --- @param network? LuaLogisticNetwork The network being analysed
 function Suggestions:bots_data_updated(network)
-  -- Save the current game tick
-  self._current_tick = game.tick
-  if self._current_tick % 60 ~= 0 then
-    -- Only update every 60 ticks to reduce overhead
-    return
+  if not self:run_process("bot_data_updated") then
+    return -- Not time to update yet
   end
 
   -- Where are there shortages, where demand + under way << supply?
