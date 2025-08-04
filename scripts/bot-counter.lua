@@ -275,6 +275,11 @@ local function bot_chunks_done(accumulator, player_table)
   end
   -- Save the last-seen list so it can be used in the next pass
   storage.last_pass_bots_seen = accumulator.just_seen or {}
+
+  -- See if there are new suggestions based on the data just gathered
+  if player_table and player_table.suggestions then
+    player_table.suggestions:bots_data_updated(player_table.network)
+  end
 end
 
 -- Use the generic chunker to process bots in chunks, to moderate CPU usage
