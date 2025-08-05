@@ -2,6 +2,7 @@
 -- Handles real-time delivery tracking and display
 
 local delivery_row = {}
+local pause_manager = require("scripts.pause-manager")
 
 local sorted_item_row = require("scripts.mainwin.sorted_item_row")
 
@@ -12,6 +13,10 @@ function delivery_row.add(player_table, gui_table)
   if player_table.settings.show_delivering then
     sorted_item_row.add(player_table, gui_table, "deliveries-row", "delivery", true)
   end
+end
+
+local function is_delivery_enabled(player_table)
+  return pause_manager.is_running(player_table.paused_items, "delivery")
 end
 
 --- Update the delivery row with current data
@@ -26,7 +31,7 @@ function delivery_row.update(player_table, clearing)
       function(a, b) return a.count > b.count end,
       "count",
       clearing,
-      function(pt) return true end
+      is_delivery_enabled
     )
   end
 end

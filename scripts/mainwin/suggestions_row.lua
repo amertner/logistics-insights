@@ -39,9 +39,8 @@ function suggestions_row.add(player_table, gui_table)
     style = "heading_2_label",
     tooltip = {"", {ROW_TITLE .. ".header-tooltip"}}
   }
-  local tip = {""}
-  local pause_button = mini_button.add(player_table, hcell, "suggestions", tip, "pause")
-  player_table.ui.suggestions_control = pause_button
+  local tip = {"suggestions-row.pause-tooltip"}
+  mini_button.add(player_table, hcell, "suggestions", tip, "pause")
 
   -- Remember the title cell so we can update the tooltip later
   player_table.ui[ROW_TITLE].titlecell = titlecell

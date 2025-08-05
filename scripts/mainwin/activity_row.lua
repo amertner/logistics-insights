@@ -5,6 +5,7 @@ local activity_row = {}
 
 local player_data = require("scripts.player-data")
 local tooltips_helper = require("scripts.tooltips-helper")
+local mini_button = require("scripts.mainwin.mini_button")
 local pause_manager = require("scripts.pause-manager")
 
 -- Cache frequently used functions
@@ -64,12 +65,20 @@ function activity_row.add(player_table, gui_table)
     type = "flow",
     direction = "vertical"
   }
-  cell.add {
+  local hcell = cell.add {
+    type = "flow",
+    direction = "horizontal"
+  }
+  hcell.style.horizontally_stretchable = true
+  hcell.add {
     type = "label",
     caption = {"activity-row.header"},
     style = "heading_2_label",
     tooltip = {"activity-row.header-tooltip"},
   }
+  local tip = {"activity-row.pause-tooltip"}
+  mini_button.add(player_table, hcell, "activity", tip, "pause")
+
   local progressbar = cell.add {
     type = "progressbar",
     name = "activity_progressbar",
@@ -153,7 +162,7 @@ function activity_row.update(player_table)
       if window.cell.valid then
         local no_data = false
         -- Even if paused, the Total and Available robot counts are available
-        local is_active = pause_manager.is_running(player_table.paused_items, "history") or
+        local is_active = pause_manager.is_running(player_table.paused_items, "activity") or
                           key == "logistic-robot-total" or key == "logistic-robot-available"
          -- If real time delivery is disabled, the Pickup/Delivery buttons should be inactive too
         if is_active and (key == "picking" or key == "delivering") and not activity_row.should_show_deliveries(player_table) then

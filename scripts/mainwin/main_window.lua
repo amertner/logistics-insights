@@ -270,6 +270,7 @@ function main_window.onclick(event)
     local player = player_data.get_singleplayer_player()
     local player_table = player_data.get_singleplayer_table()
     if player and player.valid and player_table then
+      local cleared = false
       if event.element.name == "logistics-insights-unfreeze" then
         -- Unfreeze the game after it's been frozen
         find_and_highlight.clear_markers(player)
@@ -290,26 +291,26 @@ function main_window.onclick(event)
         if player_table and player_table.history_timer then
           player_table.history_timer:reset_keep_pause()
         end
+        cleared = true
         main_window.update(player, player_table, true)
       elseif event.element.name == "logistics-insights-sorted-delivery" then
-        -- Start/stop collecting real time delivery data
         pause_manager.toggle_paused(player_table.paused_items, "delivery")
-        main_window.update(player, player_table, false)
       elseif event.element.name == "logistics-insights-sorted-history" then
-        -- Start/stop collecting delivery history
         pause_manager.toggle_paused(player_table.paused_items, "history")
-        main_window.update(player, player_table, false)
+      elseif event.element.name == "logistics-insights-sorted-activity" then
+        pause_manager.toggle_paused(player_table.paused_items, "activity")
       elseif event.element.name == "logistics-insights-sorted-undersupply" then
-        -- Toggle undersupply data gathering
         pause_manager.toggle_paused(player_table.paused_items, "undersupply")
-        main_window.update(player, player_table, false)
       elseif event.element.name == "logistics-insights-sorted-suggestions" then
-        -- Toggle suggestions data gathering
         pause_manager.toggle_paused(player_table.paused_items, "suggestions")
-        main_window.update(player, player_table, false)
       elseif event.element.tags and player then
         -- Highlight elements. If right-click, also focus on random element
         find_and_highlight.highlight_locations_on_map(player, player_table, event.element, event.button == defines.mouse_button_type.right)
+      end
+
+      if utils.starts_with(event.element.name, "logistics-insights-sorted") then
+        -- A mini button was clicked, update the UI
+        main_window.update(player, player_table, cleared) 
       end
     end
   end
