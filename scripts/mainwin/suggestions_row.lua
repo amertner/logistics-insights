@@ -2,6 +2,7 @@
 
 local player_data = require("scripts.player-data")
 local suggestions = require("scripts.suggestions")
+local mini_button = require("scripts.mainwin.mini_button")
 
 local suggestions_row = {}
 local ROW_TITLE = "suggestions-row"
@@ -37,6 +38,9 @@ function suggestions_row.add(player_table, gui_table)
     style = "heading_2_label",
     tooltip = {"", {ROW_TITLE .. ".header-tooltip"}}
   }
+  local tip = {""}
+  local pause_button = mini_button.add(hcell, "suggestions", tip, "pause")
+  player_table.ui.suggestions_control = pause_button
 
   -- Remember the title cell so we can update the tooltip later
   player_table.ui[ROW_TITLE].titlecell = titlecell
@@ -54,10 +58,22 @@ function suggestions_row.add(player_table, gui_table)
   end
 end
 
+--- Update the start/stop button appearance based on current state
+--- @param player_table PlayerData The player's data table
+function suggestions_row.update_pause_button(player_table)
+  -- Update button appearance to reflect current state
+  if player_table and player_table.ui then
+    local element = player_table.ui.suggestions_control
+    local is_paused = player_data.is_suggestions_paused(player_table)
+    mini_button.update_paused(element, is_paused)
+  end
+end
+
 ---@param items LuaGuiElement The parent of cells and suggestion_buttons
 ---@index number The index of the cell to update
 ---@param suggestion? Suggestion The suggestion object containing details, or nil to clear
-function suggestions_row.set_suggestion_cell(items, index, suggestion)
+---@param enabled boolean Whether the button should be enabled
+function suggestions_row.set_suggestion_cell(items, index, suggestion, enabled)
   if items.suggestion_buttons == nil then
     return -- No buttons to update
   end
@@ -68,6 +84,7 @@ function suggestions_row.set_suggestion_cell(items, index, suggestion)
       button.tooltip = suggestion.action or ""
       button.number = suggestion.count or nil
       button.visible = true
+      button.enabled = enabled
       if suggestion.urgency == "high" then
         button.style = "red_slot_button"
       else
@@ -80,14 +97,15 @@ function suggestions_row.set_suggestion_cell(items, index, suggestion)
 end
 
 ---@param player_table PlayerData The player's data table
+---@param enabled boolean Whether suggestions are enabled
 ---@return number The number of suggestions shown
-function suggestions_row.show_suggestions(player_table)
+function suggestions_row.show_suggestions(player_table, enabled)
   local suggestions_table = player_table.suggestions:get_suggestions()
   local items = player_table.ui[ROW_TITLE]
 
   index = 1
   for name, suggestion in pairs(suggestions_table) do
-    suggestions_row.set_suggestion_cell(items, index, suggestion)
+    suggestions_row.set_suggestion_cell(items, index, suggestion, enabled)
     index = index + 1
   end
   return index-1
@@ -107,12 +125,13 @@ function suggestions_row.update(player_table)
     player_table.suggestions = suggestions.new() -- TODO: Just return on release
   end
 
+  local enabled = not player_data.is_suggestions_paused(player_table)
   -- Show all suggestions
-  index = suggestions_row.show_suggestions(player_table)
+  index = suggestions_row.show_suggestions(player_table, enabled)
   -- Clear any remaining cells
   local items = player_table.ui[ROW_TITLE]
   for i = index+1, player_table.settings.max_items do
-    suggestions_row.set_suggestion_cell(items, i, nil)
+    suggestions_row.set_suggestion_cell(items, i, nil, enabled)
   end
 end
 

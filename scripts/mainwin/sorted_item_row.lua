@@ -2,6 +2,7 @@
 sorted_item_row = {}
 
 local player_data = require("scripts.player-data")
+local mini_button = require("scripts.mainwin.mini_button")
 
 local pairs = pairs
 local table_sort = table.sort
@@ -36,39 +37,18 @@ function sorted_item_row.add(player_table, gui_table, title, button_title, need_
   }
 
   if button_title then
-    -- Add flexible spacer that pushes button to the right
-    local space = hcell.add {
-      type = "empty-widget",
-      style = "draggable_space",
-      name = "spacer" .. title,
-    }
-    space.style.horizontally_stretchable = true
-
-    -- Determine the sprite based on button type and current state
-    local sprite, tip
+    local row_button
     if button_title == "startstop" then
-      sprite = "li_pause"
-      tip = {"item-row.toggle-gathering-tooltip"}
+      local tip = {"item-row.toggle-gathering-tooltip"}
+      row_button = mini_button.add(hcell, button_title, tip, "pause")
     elseif button_title == "clear" then
-      sprite = "utility/trash"
-      tip = {"item-row.clear-history-tooltip"}
+      local tip = {"item-row.clear-history-tooltip"}
+      row_button = mini_button.add(hcell, button_title, tip, "trash")
     elseif button_title == "undersupply" then
-      sprite = "li_pause"
-      tip = {"undersupply-row.toggle-tooltip"}
+      local tip = {"undersupply-row.toggle-tooltip"}
+      row_button = mini_button.add(hcell, button_title, tip, "pause")
     end
 
-    -- Add right-aligned button that's vertically centered with the label
-    local row_button = hcell.add {
-      type = "sprite-button",
-      style = "mini_button", -- Small button size
-      sprite = sprite,
-      name = "logistics-insights-sorted-" .. button_title,
-      tooltip = tip
-    }
-
-    -- Make button vertically centered with a small top margin for alignment
-    row_button.style.top_margin = 2
-    hcell.style.vertical_align = "center"
     if button_title == "startstop" then
       player_table.ui.startstop = row_button
     elseif button_title == "undersupply" then

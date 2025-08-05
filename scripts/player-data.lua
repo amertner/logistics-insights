@@ -48,6 +48,7 @@ local cached_player_table = nil
 ---@field fixed_network boolean -- Whether to keep watching the current network even if the player moves away
 ---@field suggestions Suggestions -- Suggestions for improving logistics network
 ---@field undersupply_paused boolean -- Whether undersupply data gathering is paused
+---@field suggestions_paused boolean -- Whether suggestions gathering is paused
 ---@field history_timer TickCounter -- Tracks time for collecting delivery history
 ---@field player_index uint -- The player's index
 ---@field window_location {x: number, y: number} -- Saved window position
@@ -65,6 +66,7 @@ function player_data.init(player_index)
     history_timer = tick_counter.new(),
     suggestions = suggestions.new(),
     undersupply_paused = false,
+    suggestions_paused = false,
     fixed_network = false,
     player_index = player_index,
     window_location = {x = 200, y = 0},
@@ -250,6 +252,8 @@ function player_data.check_network_changed(player, player_table)
   end
 end
 
+-- Pausing History data
+
 ---@param player_table PlayerData|nil
 function player_data.toggle_history_collection(player_table)
   if player_table then
@@ -269,6 +273,8 @@ function player_data.is_history_paused(player_table)
   end
 end
 
+--- Pausing undersupply
+
 ---@param player_table PlayerData|nil
 function player_data.toggle_undersupply(player_table)
   if player_table then
@@ -283,6 +289,25 @@ function player_data.is_undersupply_paused(player_table)
     return true -- Pause if the window is hidden
   else 
     return player_table.undersupply_paused or false
+  end
+end
+
+--- Pausing suggestions
+
+---@param player_table PlayerData|nil
+function player_data.toggle_suggestions(player_table)
+  if player_table then
+    player_table.suggestions_paused = not player_table.suggestions_paused
+  end
+end
+
+---@param player_table PlayerData
+---@return boolean
+function player_data.is_suggestions_paused(player_table)
+  if (player_table.settings.pause_while_hidden and not player_table.bots_window_visible) then
+    return true -- Pause if the window is hidden
+  else 
+    return player_table.suggestions_paused or false
   end
 end
 

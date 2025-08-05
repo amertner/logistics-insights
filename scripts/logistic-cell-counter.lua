@@ -87,7 +87,7 @@ local function all_chunks_done(accumulator, player_table)
   storage.charging_bot_qualities = accumulator.charging_bot_qualities or {}
   storage.waiting_bot_qualities = accumulator.waiting_bot_qualities or {}
 
-  if player_table and player_table.suggestions then
+  if player_table and player_table.suggestions and not player_data.is_suggestions_paused(player_table) then
     player_table.suggestions:cells_data_updated(player_table.network)
   end
 end

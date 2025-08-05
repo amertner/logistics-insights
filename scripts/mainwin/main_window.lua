@@ -6,6 +6,7 @@ local main_window = {}
 local player_data = require("scripts.player-data")
 local utils = require("scripts.utils")
 local game_state = require("scripts.game-state")
+local mini_button = require("scripts.mainwin.mini_button")
 local find_and_highlight = require("scripts.mainwin.find_and_highlight")
 local progress_bars = require("scripts.mainwin.progress_bars")
 local delivery_row = require("scripts.mainwin.delivery_row")
@@ -168,14 +169,10 @@ end
 --- @param player_table PlayerData The player's data table
 function main_window.update_history_pause_button(player_table)
   -- Update button appearance to reflect current state
-  local element = player_table.ui["startstop"]
-
-  if element then
-    if player_data.is_history_paused(player_table) then
-      element.sprite = "li_play"
-    else
-      element.sprite = "li_pause"
-    end
+  if player_table and player_table.ui then
+    local element = player_table.ui["startstop"]
+    local is_paused = player_data.is_history_paused(player_table)
+    mini_button.update_paused(element, is_paused)
   end
 end
 
@@ -313,6 +310,11 @@ function main_window.onclick(event)
         -- Toggle undersupply data gathering
         player_data.toggle_undersupply(player_table)
         undersupply_row.update_pause_button(player_table)
+        main_window.update(player, player_table, false)
+      elseif event.element.name == "logistics-insights-sorted-suggestions" then
+        -- Toggle suggestions data gathering
+        player_data.toggle_suggestions(player_table)
+        suggestions_row.update_pause_button(player_table)
         main_window.update(player, player_table, false)
       elseif event.element.tags and player then
         -- Highlight elements. If right-click, also focus on random element
