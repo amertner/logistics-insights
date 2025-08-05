@@ -309,6 +309,11 @@ function main_window.onclick(event)
         player_data.toggle_history_collection(player_table)
         main_window._update_startstop_button(player_table)
         main_window.update(player, player_table, false)
+      elseif event.element.name == "logistics-insights-sorted-undersupply" then
+        -- Toggle undersupply data gathering
+        player_data.toggle_undersupply(player_table)
+        undersupply_row.update_pause_button(player_table)
+        main_window.update(player, player_table, false)
       elseif event.element.tags and player then
         -- Highlight elements. If right-click, also focus on random element
         find_and_highlight.highlight_locations_on_map(player, player_table, event.element, event.button == defines.mouse_button_type.right)

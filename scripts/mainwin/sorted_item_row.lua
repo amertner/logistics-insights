@@ -52,6 +52,9 @@ function sorted_item_row.add(player_table, gui_table, title, button_title, need_
     elseif button_title == "clear" then
       sprite = "utility/trash"
       tip = {"item-row.clear-history-tooltip"}
+    elseif button_title == "undersupply" then
+      sprite = "li_pause"
+      tip = {"undersupply-row.toggle-tooltip"}
     end
 
     -- Add right-aligned button that's vertically centered with the label
@@ -68,6 +71,8 @@ function sorted_item_row.add(player_table, gui_table, title, button_title, need_
     hcell.style.vertical_align = "center"
     if button_title == "startstop" then
       player_table.ui.startstop = row_button
+    elseif button_title == "undersupply" then
+      player_table.ui.undersupply_control = row_button
     end
   end
 
@@ -97,7 +102,8 @@ end -- add
 --- @param sort_fn function(a, b): boolean Sorting function to determine order
 --- @param number_field string The field name to display as number ("count", "ticks", "avg")
 --- @param clearing boolean Whether this update is due to clearing history
-function sorted_item_row.update(player_table, title, all_entries, sort_fn, number_field, clearing)
+--- @param enabled_fn function(player_table) Function to determine if an entry should be enabled
+function sorted_item_row.update(player_table, title, all_entries, sort_fn, number_field, clearing, enabled_fn)
 
   --- Generate tooltip text for a cell based on the entry data and number field type
   --- @param entry DeliveryItem|DeliveredItems The entry containing item data
@@ -123,7 +129,7 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
   end
 
   -- If paused, just disable all the fields, unless we just cleared history
-  if player_data.is_paused(player_table) and not clearing then
+  if not enabled_fn(player_table) and not clearing then
     if not player_table.ui[title] or not player_table.ui[title].cells then
       return
     end
@@ -198,7 +204,11 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
       cell.quality = entry.quality_name or "normal"
       cell.number = entry[number_field]
       cell.tooltip = getcelltooltip(entry)
-      cell.enabled = not player_data.is_paused(player_table)
+      if enabled_fn then
+        cell.enabled = enabled_fn(player_table)
+      else
+        cell.enabled = true -- Default to enabled if no function provided
+      end
     end
     count = count + 1
   end

@@ -25,7 +25,8 @@ function delivery_row.update(player_table, clearing)
       storage.bot_deliveries,
       function(a, b) return a.count > b.count end,
       "count",
-      clearing
+      clearing,
+      function(pt) return true end
     )
   end
 end

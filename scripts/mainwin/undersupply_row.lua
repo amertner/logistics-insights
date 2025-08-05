@@ -10,7 +10,8 @@ local ROW_TITLE = "undersupply-row"
 ---@param gui_table LuaGuiElement The GUI table to add the row to
 function undersupply_row.add(player_table, gui_table)
   if player_table.settings.show_undersupply then
-    sorted_item_row.add(player_table, gui_table, ROW_TITLE, nil, false)
+    -- Add a standard sorted item row, with pause/start button
+    sorted_item_row.add(player_table, gui_table, ROW_TITLE, "undersupply", false)
   end
 end
 
@@ -26,8 +27,26 @@ function undersupply_row.update(player_table, clearing)
       storage.undersupply,
       function(a, b) return a.shortage > b.shortage end,
       "shortage",
-      clearing
+      clearing,
+      function(pt) return not player_data.is_undersupply_paused(pt) end
     )
+  end
+end
+
+--- Update the start/stop button appearance based on current state
+--- @param player_table PlayerData The player's data table
+function undersupply_row.update_pause_button(player_table)
+  -- Update button appearance to reflect current state
+  if player_table and player_table.ui then
+    local element = player_table.ui.undersupply_control
+
+    if element then
+      if player_data.is_undersupply_paused(player_table) then
+        element.sprite = "li_play"
+      else
+        element.sprite = "li_pause"
+      end
+    end
   end
 end
 

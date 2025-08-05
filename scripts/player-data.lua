@@ -47,6 +47,7 @@ local cached_player_table = nil
 ---@field network LuaLogisticNetwork|nil -- The current logistics network being monitored
 ---@field fixed_network boolean -- Whether to keep watching the current network even if the player moves away
 ---@field suggestions Suggestions -- Suggestions for improving logistics network
+---@field undersupply_paused boolean -- Whether undersupply data gathering is paused
 ---@field history_timer TickCounter -- Tracks time for collecting delivery history
 ---@field player_index uint -- The player's index
 ---@field window_location {x: number, y: number} -- Saved window position
@@ -63,6 +64,7 @@ function player_data.init(player_index)
     network = nil,
     history_timer = tick_counter.new(),
     suggestions = suggestions.new(),
+    undersupply_paused = false,
     fixed_network = false,
     player_index = player_index,
     window_location = {x = 200, y = 0},
@@ -264,6 +266,23 @@ function player_data.is_paused(player_table)
   else
     -- History timer may not be initialized yet, so ignore it.
     return (player_table.settings.pause_while_hidden and not player_table.bots_window_visible)
+  end
+end
+
+---@param player_table PlayerData|nil
+function player_data.toggle_undersupply(player_table)
+  if player_table then
+    player_table.undersupply_paused = not player_table.undersupply_paused
+  end
+end
+
+---@param player_table PlayerData
+---@return boolean
+function player_data.is_undersupply_paused(player_table)
+  if (player_table.settings.pause_while_hidden and not player_table.bots_window_visible) then
+    return true -- Pause if the window is hidden
+  else 
+    return player_table.undersupply_paused or false
   end
 end
 
