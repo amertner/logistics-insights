@@ -259,7 +259,7 @@ end
 
 ---@param player_table PlayerData
 ---@return boolean
-function player_data.is_paused(player_table)
+function player_data.is_history_paused(player_table)
   if player_table.history_timer then
     return player_table.history_timer:is_paused() or
         (player_table.settings.pause_while_hidden and not player_table.bots_window_visible)

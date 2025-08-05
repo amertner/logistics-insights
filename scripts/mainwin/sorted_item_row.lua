@@ -102,7 +102,7 @@ end -- add
 --- @param sort_fn function(a, b): boolean Sorting function to determine order
 --- @param number_field string The field name to display as number ("count", "ticks", "avg")
 --- @param clearing boolean Whether this update is due to clearing history
---- @param enabled_fn function(player_table) Function to determine if an entry should be enabled
+--- @param enabled_fn function(player_table) Function to determine if the cells are enabled
 function sorted_item_row.update(player_table, title, all_entries, sort_fn, number_field, clearing, enabled_fn)
 
   --- Generate tooltip text for a cell based on the entry data and number field type

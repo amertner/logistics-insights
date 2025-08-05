@@ -92,7 +92,7 @@ function tooltips_helper.add_network_history_tip(tip, player_table)
 
   if player_table.settings.show_history then
     local tickstr
-    if player_data.is_paused(player_table) then
+    if player_data.is_history_paused(player_table) then
       tickstr =  flib_format.time(player_table.history_timer:time_since_paused(), false)
       tip = {"", tip, "\n", {"network-row.network-id-history", {"network-row.paused-for", tickstr}}}
     else

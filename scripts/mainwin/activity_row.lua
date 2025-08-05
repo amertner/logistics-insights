@@ -90,7 +90,7 @@ function activity_row.add(player_table, gui_table)
         sprite = icon.sprite,
         style = "slot_button",
         name = cellname, -- "logistics-insights-activity-" .. i,
-        enabled = icon.onwithpause or not player_data.is_paused(player_table),
+        enabled = icon.onwithpause or not player_data.is_history_paused(player_table),
         tags = { follow = true }
       },
     }
@@ -152,7 +152,7 @@ function activity_row.update(player_table)
       if window.cell.valid then
         local no_data = false
         -- Even if paused, the Total and Available robot counts are available
-        local is_active = not player_data.is_paused(player_table) or
+        local is_active = not player_data.is_history_paused(player_table) or
                           key == "logistic-robot-total" or key == "logistic-robot-available"
          -- If real time delivery is disabled, the Pickup/Delivery buttons should be inactive too
         if is_active and (key == "picking" or key == "delivering") and not activity_row.should_show_deliveries(player_table) then

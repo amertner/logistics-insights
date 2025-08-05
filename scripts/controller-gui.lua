@@ -89,7 +89,7 @@ function controller_gui.update_window(player, player_table)
       tip = tooltips_helper.get_quality_tooltip_line(tip, player_table, storage.total_bot_qualities, false, "controller-gui.main_tooltip_quality")
       tip = tooltips_helper.add_empty_line(tip)
 
-      local paused = player_data.is_paused(player_table)
+      local paused = player_data.is_history_paused(player_table)
       tip = { "", tip, { "controller-gui.main_tooltip_delivering", get_status(paused, player_table.settings.show_delivering) } }
       tip = tooltips_helper.add_network_history_tip(tip, player_table)
       tip = { "", tip, { "controller-gui.main_tooltip_activity", get_status(paused, player_table.settings.show_activity) } }

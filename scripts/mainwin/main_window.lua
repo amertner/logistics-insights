@@ -166,12 +166,12 @@ end
 
 --- Update the start/stop button appearance based on current state
 --- @param player_table PlayerData The player's data table
-function main_window._update_startstop_button(player_table)
+function main_window.update_history_pause_button(player_table)
   -- Update button appearance to reflect current state
   local element = player_table.ui["startstop"]
 
   if element then
-    if player_data.is_paused(player_table) then
+    if player_data.is_history_paused(player_table) then
       element.sprite = "li_play"
     else
       element.sprite = "li_pause"
@@ -307,7 +307,7 @@ function main_window.onclick(event)
       elseif event.element.name == "logistics-insights-sorted-startstop" then
         -- Start/stop collecting delivery history
         player_data.toggle_history_collection(player_table)
-        main_window._update_startstop_button(player_table)
+        main_window.update_history_pause_button(player_table)
         main_window.update(player, player_table, false)
       elseif event.element.name == "logistics-insights-sorted-undersupply" then
         -- Toggle undersupply data gathering

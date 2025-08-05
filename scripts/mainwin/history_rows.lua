@@ -7,7 +7,7 @@ local player_data = require("scripts.player-data")
 local sorted_item_row = require("scripts.mainwin.sorted_item_row")
 
 local function is_history_enabled(player_table)
-  return not player_data.is_paused(player_table)
+  return not player_data.is_history_paused(player_table)
 end
 
 --- Add history rows to the GUI (totals and average ticks)

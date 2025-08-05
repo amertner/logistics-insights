@@ -315,7 +315,7 @@ function bot_counter.gather_bot_data(player, player_table)
   end
 
   local network = player_table.network
-  if not network or not network.valid or player_data.is_paused(player_table) then
+  if not network or not network.valid or player_data.is_history_paused(player_table) then
     return progress
   end
 
