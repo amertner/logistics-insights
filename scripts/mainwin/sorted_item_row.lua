@@ -13,8 +13,9 @@ local math_min = math.min
 --- @param player_table PlayerData The player's data table
 --- @param gui_table LuaGuiElement The GUI table to add the row to
 --- @param title string The title/key for this row type
---- @param button_title string|nil Optional button type ("startstop", "clear", or nil)
+--- @param button_title string|nil What the button refers to ("history", "delivery", or nil)
 --- @param need_progressbar boolean Whether this row needs a progress bar
+--- @return LuaGuiElement|unknown|nil The button element, if created
 function sorted_item_row.add(player_table, gui_table, title, button_title, need_progressbar)
   player_data.register_ui(player_table, title)
 
@@ -36,23 +37,20 @@ function sorted_item_row.add(player_table, gui_table, title, button_title, need_
     tooltip = {"", {"item-row." .. title .. "-tooltip"}}
   }
 
+  local row_button, tip
   if button_title then
-    local row_button
-    if button_title == "startstop" then
-      local tip = {"item-row.toggle-gathering-tooltip"}
-      row_button = mini_button.add(hcell, button_title, tip, "pause")
-    elseif button_title == "clear" then
-      local tip = {"item-row.clear-history-tooltip"}
-      row_button = mini_button.add(hcell, button_title, tip, "trash")
-    elseif button_title == "undersupply" then
-      local tip = {"undersupply-row.toggle-tooltip"}
-      row_button = mini_button.add(hcell, button_title, tip, "pause")
-    end
-
-    if button_title == "startstop" then
-      player_table.ui.startstop = row_button
-    elseif button_title == "undersupply" then
-      player_table.ui.undersupply_control = row_button
+    if button_title == "clear" then
+      tip = {"item-row.clear-history-tooltip"}
+      row_button = mini_button.add(player_table, hcell, button_title, tip, "trash")
+    else
+      if button_title == "delivery" then
+        tip = {"item-row.toggle-gathering-tooltip"}
+      elseif button_title == "history" then
+        tip = {"item-row.toggle-history-tooltip"}
+      elseif button_title == "undersupply" then
+        tip = {"undersupply-row.toggle-tooltip"}
+      end
+      row_button = mini_button.add(player_table, hcell, button_title, tip, "pause")
     end
   end
 
@@ -73,6 +71,7 @@ function sorted_item_row.add(player_table, gui_table, title, button_title, need_
       enabled = false,
     }
   end
+  return row_button
 end -- add
 
 --- Display item sprites and numbers in sort order

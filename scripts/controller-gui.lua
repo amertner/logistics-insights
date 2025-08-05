@@ -4,6 +4,7 @@ local controller_gui = {}
 local player_data = require("scripts.player-data")
 local tooltips_helper = require("scripts.tooltips-helper")
 local main_window = require("scripts.mainwin.main_window")
+local pause_manager = require("scripts.pause-manager")
 
 --- Show the mini window (call this on player join or GUI update)
 --- @param player LuaPlayer The player to create the window for
@@ -89,7 +90,7 @@ function controller_gui.update_window(player, player_table)
       tip = tooltips_helper.get_quality_tooltip_line(tip, player_table, storage.total_bot_qualities, false, "controller-gui.main_tooltip_quality")
       tip = tooltips_helper.add_empty_line(tip)
 
-      local paused = player_data.is_history_paused(player_table)
+      local paused = pause_manager.is_paused(player_table.paused_items, "history")
       tip = { "", tip, { "controller-gui.main_tooltip_delivering", get_status(paused, player_table.settings.show_delivering) } }
       tip = tooltips_helper.add_network_history_tip(tip, player_table)
       tip = { "", tip, { "controller-gui.main_tooltip_activity", get_status(paused, player_table.settings.show_activity) } }

@@ -5,17 +5,18 @@ local history_rows = {}
 
 local player_data = require("scripts.player-data")
 local sorted_item_row = require("scripts.mainwin.sorted_item_row")
+local pause_manager = require("scripts.pause-manager")
 
 local function is_history_enabled(player_table)
-  return not player_data.is_history_paused(player_table)
+  return pause_manager.is_running(player_table.paused_items, "history")
 end
 
 --- Add history rows to the GUI (totals and average ticks)
 --- @param player_table PlayerData The player's data table
 --- @param gui_table LuaGuiElement The GUI table to add the rows to
 function history_rows.add(player_table, gui_table)
- sorted_item_row.add(player_table, gui_table, "totals-row", "clear", false)
- sorted_item_row.add(player_table, gui_table, "avgticks-row", nil, false)
+ sorted_item_row.add(player_table, gui_table, "totals-row", "history", false)
+ sorted_item_row.add(player_table, gui_table, "avgticks-row", "clear", false)
 end
 
 function history_rows.update(player_table, clearing)

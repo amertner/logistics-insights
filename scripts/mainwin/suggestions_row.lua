@@ -3,6 +3,7 @@
 local player_data = require("scripts.player-data")
 local suggestions = require("scripts.suggestions")
 local mini_button = require("scripts.mainwin.mini_button")
+local pause_manager = require("scripts.pause-manager")
 
 local suggestions_row = {}
 local ROW_TITLE = "suggestions-row"
@@ -39,7 +40,7 @@ function suggestions_row.add(player_table, gui_table)
     tooltip = {"", {ROW_TITLE .. ".header-tooltip"}}
   }
   local tip = {""}
-  local pause_button = mini_button.add(hcell, "suggestions", tip, "pause")
+  local pause_button = mini_button.add(player_table, hcell, "suggestions", tip, "pause")
   player_table.ui.suggestions_control = pause_button
 
   -- Remember the title cell so we can update the tooltip later
@@ -55,17 +56,6 @@ function suggestions_row.add(player_table, gui_table)
       show_percent_for_small_numbers = true,
       visible = false
     }  
-  end
-end
-
---- Update the start/stop button appearance based on current state
---- @param player_table PlayerData The player's data table
-function suggestions_row.update_pause_button(player_table)
-  -- Update button appearance to reflect current state
-  if player_table and player_table.ui then
-    local element = player_table.ui.suggestions_control
-    local is_paused = player_data.is_suggestions_paused(player_table)
-    mini_button.update_paused(element, is_paused)
   end
 end
 
@@ -125,7 +115,7 @@ function suggestions_row.update(player_table)
     player_table.suggestions = suggestions.new() -- TODO: Just return on release
   end
 
-  local enabled = not player_data.is_suggestions_paused(player_table)
+  local enabled = pause_manager.is_running(player_table.paused_items, "suggestions")
   -- Show all suggestions
   index = suggestions_row.show_suggestions(player_table, enabled)
   -- Clear any remaining cells

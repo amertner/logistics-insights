@@ -4,6 +4,7 @@ local player_data = require("scripts.player-data")
 local chunker = require("scripts.chunker")
 local utils = require("scripts.utils")
 local analysis = require("scripts.analysis")
+local pause_manager = require("scripts.pause-manager")
 
 -- Cache frequently used functions and values for performance
 local pairs = pairs
@@ -278,11 +279,11 @@ local function bot_chunks_done(accumulator, player_table)
   storage.last_pass_bots_seen = accumulator.just_seen or {}
 
   -- See if there are new suggestions based on the data just gathered
-  if player_table and player_table.suggestions and not player_data.is_suggestions_paused(player_table) then
+  if player_table and player_table.suggestions and pause_manager.is_running(player_table.paused_items, "suggestions") then
     player_table.suggestions:bots_data_updated(player_table.network)
   end
   -- Analyse demand and supply based on the gathered data, unless paused
-  if player_table and not player_data.is_undersupply_paused(player_table) then
+  if player_table and pause_manager.is_running(player_table.paused_items, "undersupply") then
     analysis:analyse_demand_and_supply(player_table.network)
   end
 end
@@ -315,7 +316,7 @@ function bot_counter.gather_bot_data(player, player_table)
   end
 
   local network = player_table.network
-  if not network or not network.valid or player_data.is_history_paused(player_table) then
+  if not network or not network.valid or pause_manager.is_paused(player_table.paused_items, "history") then
     return progress
   end
 

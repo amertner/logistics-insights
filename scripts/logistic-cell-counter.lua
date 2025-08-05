@@ -3,6 +3,7 @@ local logistic_cell_counter = {}
 
 local player_data = require("scripts.player-data")
 local utils = require("scripts.utils")
+local pause_manager = require("scripts.pause-manager")
 
 ---@class CellAccumulator
 ---@field bots_charging number Count of bots currently charging
@@ -87,7 +88,7 @@ local function all_chunks_done(accumulator, player_table)
   storage.charging_bot_qualities = accumulator.charging_bot_qualities or {}
   storage.waiting_bot_qualities = accumulator.waiting_bot_qualities or {}
 
-  if player_table and player_table.suggestions and not player_data.is_suggestions_paused(player_table) then
+  if player_table and player_table.suggestions and pause_manager.is_running(player_table.paused_items, "suggestions") then
     player_table.suggestions:cells_data_updated(player_table.network)
   end
 end
@@ -130,7 +131,7 @@ function logistic_cell_counter.gather_data(player, player_table)
   bot_items["logistic-robot-total"] = network.all_logistic_robots
   bot_items["logistic-robot-available"] = network.available_logistic_robots
 
-  if player_data.is_history_paused(player_table) then
+  if pause_manager.is_paused(player_table.paused_items, "history") then
     return progress
   end
 

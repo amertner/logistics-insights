@@ -26,6 +26,25 @@ local function reinitialise_ui()
 end
 
 local li_migrations = {
+  ["0.9.7"] = function()
+    -- Add the new suggestions row
+    local player_table = player_data.get_singleplayer_table()
+    if player_table and player_table.ui and player_table.bots_table then
+      -- Initialise new paused_items table
+      player_table.paused_items = {}
+
+      -- Initialise the new suggestions table
+      player_table.suggestions = suggestions.new()
+      -- Set new settings
+      player_table.settings.show_undersupply = true -- Enable undersupply by default
+      player_table.settings.show_suggestions = true -- Enable suggestions by default
+      -- Add the list of items in short supply
+      storage.undersupply = {}
+    end
+    -- Re-initialise the UI as buttons have moved around since last version
+    reinitialise_ui()
+  end,
+
   ["0.8.3"] = function()
     -- Changed the UI layout, so re-initialise it
     reinitialise_ui()
@@ -143,30 +162,6 @@ local li_migrations = {
     -- Re-initialise the UI to use the new Activity row tooltips
     reinitialise_ui()
   end,
-
-  ["0.9.7"] = function()
-    -- Add the new suggestions row
-    local player_table = player_data.get_singleplayer_table()
-    if player_table and player_table.ui and player_table.bots_table then
-      player_table.suggestions = suggestions.new()
-      player_table.settings.show_undersupply = true -- Enable undersupply by default
-      player_table.settings.show_suggestions = true -- Enable suggestions by default
-      row_title = "undersupply-row"
-      -- If the undersupply row was not already added by an earlier migration, add it now
-      storage.undersupply = {}
-      if not player_table.ui[row_title] then
-        undersupply_row.add(player_table, player_table.bots_table)
-      end
-      row_title = "suggestions-row"
-      -- If the suggestions row was not already added by an earlier migration, add it now
-      if not player_table.ui[row_title] then
-        suggestions_row.add(player_table, player_table.bots_table)
-      end
-    else
-      -- We can't just add the new row, so re-initialise the UI
-      reinitialise_ui()
-    end
-  end
 }
 
 return li_migrations

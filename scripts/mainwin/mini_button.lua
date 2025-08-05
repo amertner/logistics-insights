@@ -1,7 +1,6 @@
 --- Manage the state of mini buttons that are added to individual rows in the main window
 
 local mini_button = {}
-
 local player_data = require("scripts.player-data")
 
 ---@alias ButtonType "pause" | "trash"
@@ -20,12 +19,43 @@ function mini_button.update_paused(element, is_paused)
   end
 end
 
+local function get_button(name)
+  local player_table = player_data.get_singleplayer_table()
+  if player_table and player_table.ui then
+    local button = player_table.ui[name .. "_control"]
+    if button and button.valid then
+      return button
+    end
+  end
+  return nil
+end
+
+--- Update the paused state of a mini button by name
+---@param name string The name of the button to update
+---@param is_paused boolean Whether the button should show as paused
+function mini_button.update_paused_state(name, is_paused)
+  local button = get_button(name)
+  if button then
+    mini_button.update_paused(button, is_paused)
+  end
+end
+
+--- Enable/disable a mini button by name
+---@param name string The name of the button to update
+function mini_button.set_enabled(name, enabled)
+  local button = get_button(name)
+  if button then
+    button.enabled = enabled
+  end
+end
+
 -- Add a button to control the pause state of the row
---- @param label_ui LuaGuiElement The parent UI element to add the button to
---- @param button_name string The button identifier (e.g., "startstop", "clear")
---- @param tooltip LocalisedString The tooltip identifier for the button
---- @param button_type ButtonType The type of button ("pause", "trash", etc.)
-function mini_button.add(label_ui, button_name, tooltip, button_type)
+---@param player_table PlayerData The player's data table
+---@param label_ui LuaGuiElement The parent UI element to add the button to
+---@param button_name string The button identifier ("history", "undersupply", etc.)
+---@param tooltip LocalisedString The tooltip identifier for the button
+---@param button_type ButtonType The type of button ("pause", "trash", etc.)
+function mini_button.add(player_table, label_ui, button_name, tooltip, button_type)
   -- Add flexible spacer that pushes button to the right
   local space = label_ui.add {
     type = "empty-widget",
@@ -53,6 +83,11 @@ function mini_button.add(label_ui, button_name, tooltip, button_type)
   -- Make button vertically centered with a small top margin for alignment
   row_button.style.top_margin = 2
   label_ui.style.vertical_align = "center"
+
+  -- Register pause buttons in the player's UI table
+  if player_table.ui and button_type == "pause" then
+    player_table.ui[button_name .. "_control"] = row_button
+  end
 
   return row_button
 end

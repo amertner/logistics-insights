@@ -6,6 +6,7 @@ local main_window = {}
 local player_data = require("scripts.player-data")
 local utils = require("scripts.utils")
 local game_state = require("scripts.game-state")
+local pause_manager = require("scripts.pause-manager")
 local mini_button = require("scripts.mainwin.mini_button")
 local find_and_highlight = require("scripts.mainwin.find_and_highlight")
 local progress_bars = require("scripts.mainwin.progress_bars")
@@ -165,17 +166,6 @@ function main_window._add_all_rows(player_table, content_table)
   suggestions_row.add(player_table, content_table)
 end
 
---- Update the start/stop button appearance based on current state
---- @param player_table PlayerData The player's data table
-function main_window.update_history_pause_button(player_table)
-  -- Update button appearance to reflect current state
-  if player_table and player_table.ui then
-    local element = player_table.ui["startstop"]
-    local is_paused = player_data.is_history_paused(player_table)
-    mini_button.update_paused(element, is_paused)
-  end
-end
-
 --- Update all rows with current data
 --- @param player LuaPlayer The player whose window to destroy
 --- @param player_table PlayerData The player's data table
@@ -301,20 +291,21 @@ function main_window.onclick(event)
           player_table.history_timer:reset_keep_pause()
         end
         main_window.update(player, player_table, true)
-      elseif event.element.name == "logistics-insights-sorted-startstop" then
+      elseif event.element.name == "logistics-insights-sorted-delivery" then
+        -- Start/stop collecting real time delivery data
+        pause_manager.toggle_paused(player_table.paused_items, "delivery")
+        main_window.update(player, player_table, false)
+      elseif event.element.name == "logistics-insights-sorted-history" then
         -- Start/stop collecting delivery history
-        player_data.toggle_history_collection(player_table)
-        main_window.update_history_pause_button(player_table)
+        pause_manager.toggle_paused(player_table.paused_items, "history")
         main_window.update(player, player_table, false)
       elseif event.element.name == "logistics-insights-sorted-undersupply" then
         -- Toggle undersupply data gathering
-        player_data.toggle_undersupply(player_table)
-        undersupply_row.update_pause_button(player_table)
+        pause_manager.toggle_paused(player_table.paused_items, "undersupply")
         main_window.update(player, player_table, false)
       elseif event.element.name == "logistics-insights-sorted-suggestions" then
         -- Toggle suggestions data gathering
-        player_data.toggle_suggestions(player_table)
-        suggestions_row.update_pause_button(player_table)
+        pause_manager.toggle_paused(player_table.paused_items, "suggestions")
         main_window.update(player, player_table, false)
       elseif event.element.tags and player then
         -- Highlight elements. If right-click, also focus on random element

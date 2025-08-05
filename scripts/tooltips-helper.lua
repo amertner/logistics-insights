@@ -4,6 +4,7 @@ local tooltips_helper = {}
 
 local flib_format = require("__flib__.format")
 local player_data = require("scripts.player-data")
+local pause_manager = require("scripts.pause-manager")
 local Cache = require("scripts.cache")
 -- Cache for surface names to avoid repeated string concatenation
 local surface_cache = Cache.new(function(surface_name) return "[space-location=" .. surface_name .. "]" end)
@@ -92,7 +93,7 @@ function tooltips_helper.add_network_history_tip(tip, player_table)
 
   if player_table.settings.show_history then
     local tickstr
-    if player_data.is_history_paused(player_table) then
+    if pause_manager.is_paused(player_table.paused_items, "history") then
       tickstr =  flib_format.time(player_table.history_timer:time_since_paused(), false)
       tip = {"", tip, "\n", {"network-row.network-id-history", {"network-row.paused-for", tickstr}}}
     else

@@ -47,8 +47,6 @@ local cached_player_table = nil
 ---@field network LuaLogisticNetwork|nil -- The current logistics network being monitored
 ---@field fixed_network boolean -- Whether to keep watching the current network even if the player moves away
 ---@field suggestions Suggestions -- Suggestions for improving logistics network
----@field undersupply_paused boolean -- Whether undersupply data gathering is paused
----@field suggestions_paused boolean -- Whether suggestions gathering is paused
 ---@field history_timer TickCounter -- Tracks time for collecting delivery history
 ---@field player_index uint -- The player's index
 ---@field window_location {x: number, y: number} -- Saved window position
@@ -56,6 +54,7 @@ local cached_player_table = nil
 ---@field ui table<string, table> -- UI elements for the mod's GUI
 ---@field bots_table LuaGuiElement|nil -- Reference to the main bots table UI element
 ---@field current_logistic_cell_interval number -- Dynamically calculated interval for logistic cell updates
+---@field paused_items string[] -- List of paused items by name
 ---@param player_index uint
 function player_data.init(player_index)
   ---@type PlayerData
@@ -65,15 +64,14 @@ function player_data.init(player_index)
     network = nil,
     history_timer = tick_counter.new(),
     suggestions = suggestions.new(),
-    undersupply_paused = false,
-    suggestions_paused = false,
     fixed_network = false,
     player_index = player_index,
     window_location = {x = 200, y = 0},
     saved_paused_state = false,
     ui = {},
     bots_table = nil,
-    current_logistic_cell_interval = 60
+    current_logistic_cell_interval = 60,
+    paused_items = {} -- Paused activities
   }
   storage.players[player_index] = player_data_entry
 end
@@ -180,6 +178,13 @@ function player_data.get_singleplayer_table()
       local player = game.connected_players[1]
       if player and player.valid and storage and storage.players then
         cached_player_table = storage.players[player.index]
+        if cached_player_table then
+          -- Ensure the player table has the necessary fields
+          if not cached_player_table.paused_items then
+            cached_player_table.paused_items = {} -- Initialize paused items if not present
+          end
+          return cached_player_table
+        end
       else
         -- Player or storage not valid, return nil
         return nil
@@ -252,64 +257,18 @@ function player_data.check_network_changed(player, player_table)
   end
 end
 
--- Pausing History data
 
----@param player_table PlayerData|nil
-function player_data.toggle_history_collection(player_table)
-  if player_table then
-    player_table.history_timer:toggle()
-  end
-end
-
----@param player_table PlayerData
----@return boolean
-function player_data.is_history_paused(player_table)
-  if player_table.history_timer then
-    return player_table.history_timer:is_paused() or
-        (player_table.settings.pause_while_hidden and not player_table.bots_window_visible)
-  else
-    -- History timer may not be initialized yet, so ignore it.
-    return (player_table.settings.pause_while_hidden and not player_table.bots_window_visible)
-  end
-end
-
---- Pausing undersupply
-
----@param player_table PlayerData|nil
-function player_data.toggle_undersupply(player_table)
-  if player_table then
-    player_table.undersupply_paused = not player_table.undersupply_paused
-  end
-end
-
----@param player_table PlayerData
----@return boolean
-function player_data.is_undersupply_paused(player_table)
-  if (player_table.settings.pause_while_hidden and not player_table.bots_window_visible) then
-    return true -- Pause if the window is hidden
-  else 
-    return player_table.undersupply_paused or false
-  end
-end
-
---- Pausing suggestions
-
----@param player_table PlayerData|nil
-function player_data.toggle_suggestions(player_table)
-  if player_table then
-    player_table.suggestions_paused = not player_table.suggestions_paused
-  end
-end
-
----@param player_table PlayerData
----@return boolean
-function player_data.is_suggestions_paused(player_table)
-  if (player_table.settings.pause_while_hidden and not player_table.bots_window_visible) then
-    return true -- Pause if the window is hidden
-  else 
-    return player_table.suggestions_paused or false
-  end
-end
+-- @param player_table PlayerData
+-- @return boolean
+-- function player_data.is_history_paused(player_table)
+--   if player_table.history_timer then
+--     return player_table.history_timer:is_paused() or
+--         (player_table.settings.pause_while_hidden and not player_table.bots_window_visible)
+--   else
+--     -- History timer may not be initialized yet, so ignore it.
+--     return (player_table.settings.pause_while_hidden and not player_table.bots_window_visible)
+--   end
+-- end
 
 function player_data.is_included_robot(bot)
   return true -- For now, include all bots.

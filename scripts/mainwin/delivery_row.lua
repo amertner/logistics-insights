@@ -10,7 +10,7 @@ local sorted_item_row = require("scripts.mainwin.sorted_item_row")
 --- @param gui_table LuaGuiElement The GUI table to add the row to
 function delivery_row.add(player_table, gui_table)
   if player_table.settings.show_delivering then
-    sorted_item_row.add(player_table, gui_table, "deliveries-row", "startstop", true)
+    sorted_item_row.add(player_table, gui_table, "deliveries-row", "delivery", true)
   end
 end
 

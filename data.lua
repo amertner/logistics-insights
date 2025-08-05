@@ -42,5 +42,5 @@ styles.li_mainwindow_content_style = {
   type = "table_style",
   parent = "slot_table",
   horizontal_spacing = 2,
-  vertical_spacing = 4,
+  vertical_spacing = 2,
 }
