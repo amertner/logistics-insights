@@ -26,7 +26,9 @@ local function get_underway(itemkey)
   end
 end
 
-function analysis:analyse_demand_and_supply(network)
+
+---@param network LuaLogisticNetwork The logistics network to analyse
+function analysis.analyse_demand_and_supply(network)
   if network and network.storages then
     -- Where are there shortages, where demand + under way << supply?
     --@type array<ItemWithQualityCount>
@@ -40,30 +42,33 @@ function analysis:analyse_demand_and_supply(network)
         local logistic_point = requester.get_logistic_point(defines.logistic_member_index.logistic_container)
         
         if logistic_point then
-          -- Get active requests from the logistic point
-          local requests = logistic_point.get_section(1) -- Section 1 contains the requests
-          
-          if requests then
-            for i = 1, requests.filters_count do
-              local filter = requests.filters[i]
-              if filter and filter.value then
-                local type = filter.value.type
-                -- Only track items/entities, not fluids, virtuals, etc
-                if type == "item" or type == "entity" then
-                  local item_name = filter.value.name
-                  local quality = filter.value.quality or "normal"
-                  local requested_count = filter.min
-                  
-                  -- Calculate actual demand (requested - already in requester)
-                  local inventory = requester.get_inventory(defines.inventory.linked_container_main)
-                  if inventory then
-                    item_quality = {name = item_name, quality = quality}
-                    local current_count = inventory.get_item_count(item_quality)
-                    local actual_demand = math.max(0, requested_count - current_count)
+          -- Iterate through all sections in the logistic point
+          local section_count = logistic_point.sections_count
+          for section_index = 1, section_count do
+            local requests = logistic_point.get_section(section_index)
+            
+            if requests and requests.active then
+              for i = 1, requests.filters_count do
+                local filter = requests.filters[i]
+                if filter and filter.value then
+                  local type = filter.value.type
+                  -- Only track items/entities, not fluids, virtuals, etc
+                  if type == "item" or type == "entity" then
+                    local item_name = filter.value.name
+                    local quality = filter.value.quality or "normal"
+                    local requested_count = filter.min
                     
-                    if actual_demand > 0 then
-                      local key = get_item_quality_key(item_name, quality)                      
-                      total_demand[type][key] = (total_demand[type][key] or 0) + actual_demand
+                    -- Calculate actual demand (requested - already in requester)
+                    local inventory = requester.get_inventory(defines.inventory.linked_container_main)
+                    if inventory then
+                      item_quality = {name = item_name, quality = quality}
+                      local current_count = inventory.get_item_count(item_quality)
+                      local actual_demand = math.max(0, requested_count - current_count)
+                      
+                      if actual_demand > 0 then
+                        local key = get_item_quality_key(item_name, quality)                      
+                        total_demand[type][key] = (total_demand[type][key] or 0) + actual_demand
+                      end
                     end
                   end
                 end

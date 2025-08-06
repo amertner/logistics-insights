@@ -279,12 +279,8 @@ local function bot_chunks_done(accumulator, player_table)
   storage.last_pass_bots_seen = accumulator.just_seen or {}
 
   -- See if there are new suggestions based on the data just gathered
-  if player_table and player_table.suggestions and pause_manager.is_running(player_table.paused_items, "suggestions") then
-    player_table.suggestions:bots_data_updated(player_table.network)
-  end
-  -- Analyse demand and supply based on the gathered data, unless paused
-  if player_table and pause_manager.is_running(player_table.paused_items, "undersupply") then
-    analysis:analyse_demand_and_supply(player_table.network)
+  if player_table and player_table.suggestions then
+    player_table.suggestions:bots_data_updated(player_table.network, pause_manager.is_running(player_table.paused_items, "undersupply"))
   end
 end
 
@@ -316,7 +312,7 @@ function bot_counter.gather_bot_data(player, player_table)
   end
 
   local network = player_table.network
-  if not network or not network.valid or pause_manager.is_paused(player_table.paused_items, "history") then
+  if not network or not network.valid or pause_manager.is_paused(player_table.paused_items, "activity") then
     return progress
   end
 

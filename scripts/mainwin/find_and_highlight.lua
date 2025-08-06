@@ -236,19 +236,22 @@ function find_and_highlight.is_requester_of_item(requester, item)
 
     if logistic_point then
       -- Get active requests from the logistic point
-      local requests = logistic_point.get_section(1) -- Section 1 contains the requests
+      local section_count = logistic_point.sections_count
+      for section_index = 1, section_count do
+        local requests = logistic_point.get_section(section_index)
 
-      if requests then
-        for i = 1, requests.filters_count do
-          local filter = requests.filters[i]
-          if filter and filter.value then
-            local type = filter.value.type
-            -- Only track items/entities, not fluids, virtuals, etc
-            if type == "item" or type == "entity" then
-              local item_name = filter.value.name
-              local quality = filter.value.quality or "normal"
-              if item_name == item.name and quality == item.quality then
-                return true -- Found a matching requester for the item
+        if requests and requests.active then
+          for i = 1, requests.filters_count do
+            local filter = requests.filters[i]
+            if filter and filter.value then
+              local type = filter.value.type
+              -- Only track items/entities, not fluids, virtuals, etc
+              if type == "item" or type == "entity" then
+                local item_name = filter.value.name
+                local quality = filter.value.quality or "normal"
+                if item_name == item.name and quality == item.quality then
+                  return true -- Found a matching requester for the item
+                end
               end
             end
           end

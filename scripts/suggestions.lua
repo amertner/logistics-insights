@@ -1,5 +1,7 @@
 --- Handles suggestions for improving logistics network
 
+local analysis = require("scripts.analysis")
+
 --- Urgency levels for suggestions
 ---@alias SuggestionUrgency "high"|"low"
 
@@ -58,13 +60,13 @@ end
 function Suggestions:run_process(processname)
   local tick = game.tick
   if processname == "cell_data_updated" then
-    if tick + 60 > (self._current_cell_tick or 0) then
+    if tick - 60 > (self._current_cell_tick or 0) then
       self._current_cell_tick = tick
       self._current_tick = tick
       return true
     end
   elseif processname == "bot_data_updated" then
-    if tick + 60 > (self._current_bot_tick or 0) then
+    if tick - 60 > (self._current_bot_tick or 0) then
       self._current_bot_tick = tick
       self._current_tick = tick
       return true
@@ -230,9 +232,14 @@ end
 
 --- Call when the data about bots has been udpated
 --- @param network? LuaLogisticNetwork The network being analysed
-function Suggestions:bots_data_updated(network)
+--- @param run_undersupply boolean Whether to run the undersupply analysis
+function Suggestions:bots_data_updated(network, run_undersupply)
   if not self:run_process("bot_data_updated") then
     return -- Not time to update yet
+  end
+
+  if network and run_undersupply then
+    analysis.analyse_demand_and_supply(network)
   end
 end
 

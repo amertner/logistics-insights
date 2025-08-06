@@ -135,7 +135,7 @@ function logistic_cell_counter.gather_data(player, player_table)
   bot_items["logistic-robot-total"] = network.all_logistic_robots
   bot_items["logistic-robot-available"] = network.available_logistic_robots
 
-  if pause_manager.is_paused(player_table.paused_items, "history") then
+  if pause_manager.is_paused(player_table.paused_items, "activity") then
     return progress
   end
 
