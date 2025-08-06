@@ -92,14 +92,13 @@ function analysis:analyse_demand_and_supply(network)
           local shortage = request - supply
           local item_name, quality = key:match("([^:]+):(.+)")
 
-          -- The key is different, TODO: Change to be the same
+          -- #TODO: The key is different, Change to be the same
           local under_way = get_underway(item_name .. quality) or 0 -- Get the number of items already in transit
           if under_way > 0 then
             shortage = shortage - under_way
           end
           if shortage > 0 then
             table.insert(net_demand, {
-              key = key,
               shortage = shortage,
               type = type,
               item_name = item_name,

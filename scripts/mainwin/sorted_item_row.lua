@@ -85,7 +85,7 @@ end -- add
 function sorted_item_row.update(player_table, title, all_entries, sort_fn, number_field, clearing, enabled_fn)
 
   --- Generate tooltip text for a cell based on the entry data and number field type
-  --- @param entry DeliveryItem|DeliveredItems The entry containing item data
+  --- @param entry DeliveryItem|DeliveredItems|UndersupplyItem The entry containing item data
   --- @return LocalisedString The formatted tooltip for the cell
   local function getcelltooltip(entry)
     local tip

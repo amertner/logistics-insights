@@ -159,7 +159,7 @@ function ResultLocation.open(player, results, change_position)
       position = position,
       surface = surface_name,
     }
-    player.zoom = zoom_level -- TODO zoom out when showing map tags
+    player.zoom = zoom_level -- #TODO zoom out when showing map tags
   end
 
   data = {

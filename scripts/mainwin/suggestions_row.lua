@@ -111,7 +111,7 @@ function suggestions_row.update(player_table)
     return
   end
   if not player_table.suggestions or not player_table.suggestions._historydata then
-    player_table.suggestions = suggestions.new() -- TODO: Just return on release
+    player_table.suggestions = suggestions.new() -- #FIXME: Just return on release
   end
 
   local enabled = pause_manager.is_running(player_table.paused_items, "suggestions")

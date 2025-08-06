@@ -222,9 +222,9 @@ function Suggestions:cells_data_updated(network)
   -- Do we have enough places to charge, or are too many waiting to charge?
   self:analyse_waiting_to_charge()
 
-  -- TODO: Should chunk this and do it somewhere else. Network chunker?
-  -- TODO: Need to get filter data in same pass to avoid overhead
-  -- TODO: Show the free/occupied percentage in the normal Storage tooltip too
+  -- #TODO: Should chunk this and do it somewhere else. Network chunker?
+  -- #TODO: Need to get filter data in same pass to avoid overhead
+  -- #TODO: Show the free/occupied percentage in the normal Storage tooltip too
   self:analyse_storage_fullness(network)
 end
 

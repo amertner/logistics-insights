@@ -99,8 +99,9 @@ function activity_row.add(player_table, gui_table)
         type = "sprite-button",
         sprite = icon.sprite,
         style = "slot_button",
-        name = cellname, -- "logistics-insights-activity-" .. i,
-        enabled = icon.onwithpause or pause_manager.is_running(player_table.paused_items, "history"),
+        name = cellname,
+        -- These Activity Row cells are only available when Delivery info is gathered
+        enabled = icon.onwithpause or pause_manager.is_running(player_table.paused_items, "delivery"),
         tags = { follow = true }
       },
     }

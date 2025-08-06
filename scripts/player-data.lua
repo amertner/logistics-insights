@@ -33,6 +33,16 @@ local suggestions = require("scripts.suggestions")
 ---@field first_seen number -- The first tick this bot was seen delivering it
 ---@field last_seen number -- The last tick this bot was seen delivering it
 
+-- Record used to store list of undersupplied items
+---@class UndersupplyItem
+---@field shortage number -- How many of this item is undersupplied
+---@field type string -- The type of the item, e.g. "item", "fluid", "entity"
+---@field item_name string -- The name of the item
+---@field quality_name string -- The quality of the item, if applicable
+---@field request number -- The requested amount of this item
+---@field supply number -- The available supply of this item
+---@field under_way number -- The amount of this item already in transit
+
 -- Cache frequently used functions for performance
 local math_max = math.max
 local math_ceil = math.ceil
@@ -127,7 +137,7 @@ function player_data.init_bot_counter_storage()
   ---@type QualityTable
   storage.total_bot_qualities = {} -- Quality of all bots counted
 
-  --@type table. TODO: Proper type
+  --@type table<UndersupplyItem>
   storage.undersupply = {}
 end
 
