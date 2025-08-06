@@ -12,7 +12,7 @@ local undersupply = require("scripts.undersupply")
 ---@field sprite string The sprite to represent the suggestion visually
 ---@field urgency SuggestionUrgency The urgency level of the suggestion
 ---@field action string The action to take based on the suggestion
----@field evidence table List of evidence supporting this suggestion
+---@field clickname? string Used to get the right action on click, or nil if no click
 
 --- Table containing a historical datapoint
 ---@class HistoryDataEntry
@@ -32,6 +32,7 @@ local MAX_HISTORY_TICKS = 60*5 -- 5 seconds
 ---@field _current_tick number The game tick when suggestions were last updated
 ---@field _historydata table<string, HistoryData> Historical data needed to make good suggestions
 ---@field _suggestions SuggestionsTable Table containing all suggestions
+---@field _cached_data table<string, table|nil> Cached data for suggestions to be used in the UI
 local Suggestions = {}
 Suggestions.__index = Suggestions
 script.register_metatable("logistics-insights-Suggestions", Suggestions)
@@ -55,6 +56,20 @@ end
 --- @return SuggestionsTable The current suggestions
 function Suggestions:get_suggestions()
   return self._suggestions
+end
+
+-- Get the list of objects for a specific suggestion so it can be used in the UI
+---@param suggestion_name AnyBasic The name of the suggestion to retrieve
+---@return table A list of items identified as important to the suggestion
+function Suggestions:get_cached_list(suggestion_name)
+  if not self._suggestions[suggestion_name] then
+    return {} -- No suggestions of this type
+  end
+  return self._cached_data[suggestion_name]
+end
+
+function Suggestions:set_cached_list(suggestion_name, list)
+  self._cached_data[suggestion_name] = list
 end
 
 function Suggestions:run_process(processname)
@@ -121,10 +136,7 @@ function Suggestions:clear_suggestions()
     ["waiting-to-charge"] = nil,
     ["insufficient-storage"] = nil,
     ["supply-shortage"] = nil,
-
-    ["low-logistic-bots"] = nil,
-    ["network-congestion"] = nil,
-    -- Add other known suggestion types here
+    ["mismatched-storage"] = nil,
   }
 
   -- Pre-allocate suggestions table with known suggestion types
@@ -132,16 +144,20 @@ function Suggestions:clear_suggestions()
     ["waiting-to-charge"] = nil,
     ["insufficient-storage"] = nil,
     ["supply-shortage"] = nil,
-
-    ["low-logistic-bots"] = nil,
-    ["network-congestion"] = nil,
-    -- Add other known suggestion types here
+    ["mismatched-storage"] = nil,
+  }
+  self._cached_data = {
+    ["waiting-to-charge"] = nil,
+    ["insufficient-storage"] = nil,
+    ["supply-shortage"] = nil,
+    ["mismatched-storage"] = nil,
   }
 end
 
 function Suggestions:clear_suggestion(name)
   self._suggestions[name] = nil
   self._historydata[name] = nil
+  self._cached_data[name] = nil
 end
 
 -- Potential issue: Too many bots waiting to charge means we need more RPs
@@ -163,7 +179,6 @@ function Suggestions:analyse_waiting_to_charge()
       name = "Charging Robots",
       sprite = "entity/roboport",
       urgency = urgency,
-      evidence = {},
       count = suggested_number,
       action = "Robots are waiting to charge. Consider adding at least " .. suggested_number .." charging stations or roboports to areas of high traffic."
     }
@@ -172,9 +187,64 @@ function Suggestions:analyse_waiting_to_charge()
   end
 end
 
+-- Potential issue: Storage chests contain items that do not match the filter
+--- @param network? LuaLogisticNetwork The network being analysed
+function Suggestions:analyse_filtered_storage(network)
+  local SUGGESTION = "mismatched-storage"
+  if network and network.storages then
+    -- Calculate # of stacks used vs capacity. Partially filled stacks count as full.
+    local mismatched = {}
+    for _, storage in pairs(network.storages) do
+      if storage.valid and storage.filter_slot_count then
+        for finx = 1, storage.filter_slot_count do
+          -- Check if the filter matches the contents
+          local filter = storage.get_filter(finx)
+          if filter then
+            local inventory = storage.get_inventory(defines.inventory.chest)
+            if inventory and not inventory.is_empty() then
+              local stacks = inventory.get_contents()
+              -- Check if any of the contents does not match the filter
+              local index = 1
+              while index <= #stacks do 
+                local stack = stacks[index]
+                if stack then
+                  if stack.name ~= filter.name.name or stack.quality ~= filter.quality.name then
+                    -- There are items that do not match the filter
+                    table.insert(mismatched, storage)
+                    -- Don't check the rest of the stacks
+                    break
+                  end
+                end
+                index = index + 1
+              end
+            end
+          end
+        end
+      end
+    end
+
+    if #mismatched > 0 then 
+      self._suggestions[SUGGESTION] = {
+        name = "Storage filter mismatch",
+        sprite = "entity/storage-chest",
+        urgency = "low",
+        clickname = SUGGESTION,
+        action = #mismatched .. " storages contain items that do not match the filter.\n Consider clearning those items out.",
+        count = #mismatched
+      }
+      self:set_cached_list(SUGGESTION, mismatched) -- Store the list of mismatched storages
+    else
+      self:clear_suggestion(SUGGESTION)
+    end
+  else
+    self:clear_suggestion(SUGGESTION)
+  end
+end
+
 -- Potential issue: Storage chests are full, or not enough storage
 --- @param network? LuaLogisticNetwork The network being analysed
 function Suggestions:analyse_storage_fullness(network)
+  local SUGGESTION = "insufficient-storage"
   if network and network.storages then
     -- Calculate # of stacks used vs capacity. Partially filled stacks count as full.
     local total_capacity = 0
@@ -183,6 +253,7 @@ function Suggestions:analyse_storage_fullness(network)
       if storage.valid then
         local inventory = storage.get_inventory(defines.inventory.chest)
         if inventory then
+          -- Count free and capacity in stacks
           total_free = total_free + inventory.count_empty_stacks()
           total_capacity = total_capacity + #inventory
         end
@@ -198,19 +269,18 @@ function Suggestions:analyse_storage_fullness(network)
     if used_capacity >= 0.7 then 
       local urgency = Suggestions:get_urgency(used_capacity, 0.9)
       used_rounded = math.floor(used_capacity * 1000)/10
-      self._suggestions["insufficient-storage"] = {
+      self._suggestions[SUGGESTION] = {
         name = "Insufficient Storage",
         sprite = "entity/storage-chest",
         urgency = urgency,
-        evidence = {},
         action = used_rounded .. "% of storage capacity is used.\n Consider adding more storage chests to your network.",
         count = used_capacity
       }
     else
-      self:clear_suggestion("insufficient-storage")
+      self:clear_suggestion(SUGGESTION)
     end
   else
-    self:clear_suggestion("insufficient-storage")
+    self:clear_suggestion(SUGGESTION)
   end
 end
 
@@ -224,8 +294,9 @@ function Suggestions:cells_data_updated(network)
   -- Do we have enough places to charge, or are too many waiting to charge?
   self:analyse_waiting_to_charge()
 
+  self:analyse_filtered_storage(network)
+
   -- #TODO: Should chunk this and do it somewhere else. Network chunker?
-  -- #TODO: Need to get filter data in same pass to avoid overhead
   -- #TODO: Show the free/occupied percentage in the normal Storage tooltip too
   self:analyse_storage_fullness(network)
 end

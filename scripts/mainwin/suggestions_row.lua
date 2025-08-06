@@ -52,6 +52,7 @@ function suggestions_row.add(player_table, gui_table)
       type = "sprite-button",
       sprite = "li_arrow",
       style = "slot_button",
+      name = "logistics-insights-suggestion/" .. count,
       show_percent_for_small_numbers = true,
       visible = false
     }  
@@ -74,6 +75,11 @@ function suggestions_row.set_suggestion_cell(items, index, suggestion, enabled)
       button.number = suggestion.count or nil
       button.visible = true
       button.enabled = enabled
+      if suggestion.clickname then
+        -- This is a clickable suggestion, so update the tooltip
+        button.tags = {clickname = suggestion.clickname}
+        button.tooltip = {"", button.tooltip, "\n", {"suggestions-row." .. suggestion.clickname .. "-tooltip"}  }
+      end
       if suggestion.urgency == "high" then
         button.style = "red_slot_button"
       else

@@ -333,6 +333,18 @@ function main_window.onclick(event)
           find_and_highlight.is_requester_of_item,
           item,
           event.button == defines.mouse_button_type.right)
+      elseif utils.starts_with(event.element.name, "logistics-insights-suggestion/") then
+        -- This is a suggestion button, find the suggestion index
+        if event.element.tags then
+          -- The suggestion has evidence, so show it
+          if event.element.tags.clickname then
+            local list_to_show = player_table.suggestions:get_cached_list(event.element.tags.clickname)
+            if list_to_show then
+              find_and_highlight.highlight_list_locations_on_map(
+                player, list_to_show, event.button == defines.mouse_button_type.right)
+            end
+          end
+        end
       elseif event.element.tags and player then
         -- Highlight elements. If right-click, also focus on random element
         find_and_highlight.highlight_locations_on_map(player, player_table, event.element, event.button == defines.mouse_button_type.right)

@@ -287,6 +287,21 @@ function find_and_highlight.highlight_locations_with_filter_on_map(player, playe
   open_viewdata(player, viewdata, focus_on_element)
 end
 
+--- Highlight locations on the map based on viewdata
+--- @param player LuaPlayer The player viewing the map
+--- @param item_list LuaEntity[] List of entities to highlight
+function find_and_highlight.highlight_list_locations_on_map(player, item_list, focus_on_element)
+  local viewdata = {
+    items = item_list,
+    item = utils.get_random(item_list),
+    follow = false,
+  }
+  if viewdata == nil or viewdata.items == nil or #viewdata.items == 0 then
+    return -- No items to highlight
+  end
+  open_viewdata(player, viewdata, focus_on_element)
+end
+
 --- Clear all markers and selected items from the map
 --- @param player LuaPlayer The player viewing the map
 function find_and_highlight.clear_markers(player)

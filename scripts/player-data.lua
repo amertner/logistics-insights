@@ -138,7 +138,7 @@ function player_data.init_bot_counter_storage()
   storage.total_bot_qualities = {} -- Quality of all bots counted
 
   --@type table<UndersupplyItem>
-  storage.undersupply = {}
+  storage.undersupply = {} -- List of items that are undersupplied
 end
 
 ---@return nil
