@@ -6,6 +6,7 @@ local mini_button = require("scripts.mainwin.mini_button")
 ---@alias PausedItems string[]
 
 pause_manager.names = {
+  window = "window", -- For pausing everything when the window is minimised
   delivery = "delivery",
   history = "history",
   activity = "activity",
@@ -16,11 +17,14 @@ pause_manager.names = {
 -- How different pause states depend. Don't make circular dependencies!
 pause_manager.dependencies = {
   -- History depends on Delivery being enabled
-  history = { "delivery" },
+  history = { "window", "delivery" },
   -- Suggestions depends on Activity, i.e. Cell scanning
-  suggestions = { "activity" },
+  suggestions = { "window", "activity" },
   -- Undersupply depends on Delivery being enabled
-  undersupply = { "delivery" },
+  undersupply = { "window", "delivery" },
+  -- Delivery and Activity are always active, except perhaps when the window is minimised
+  delivery = { "window" },
+  activity = { "window" },
 }
 
 local function enable_dependent_buttons(name, enabled)

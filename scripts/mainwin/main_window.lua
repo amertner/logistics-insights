@@ -22,6 +22,7 @@ local suggestions_row = require("scripts.mainwin.suggestions_row")
 -------------------------------------------------------------------------------
 
 local WINDOW_NAME = "logistics_insights_window"
+local SHORTCUT_TOGGLE = "logistics-insights-toggle"
 
 --- Create the main Logistics Insights window
 --- @param player LuaPlayer The player to create the window for
@@ -179,7 +180,7 @@ function main_window.update(player, player_table, clearing)
     end
   end
   -- Update shortcut toggle state to match window visibility
-  player.set_shortcut_toggled("logistics-insights-toggle", player_table.bots_window_visible)
+  player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
   if not player_table.ui or not player_table.bots_window_visible then
     return
   end
@@ -222,25 +223,28 @@ function main_window.destroy(player, player_table)
 end
 
 --- Toggle window visibility
---- @param player LuaPlayer|nil The player whose window to toggle
-function main_window.toggle_window_visible(player)
-  if not player or not player.valid then
-    return
-  end
-  local player_table = storage.players[player.index]
+--- @param player LuaPlayer The player whose window to toggle
+--- @param player_table PlayerData The player's data table
+--- @param visible boolean Whether the window should be visible
+function main_window.set_window_visible(player, player_table, visible)
+  player_table.bots_window_visible = visible
 
-  -- Toggle the desired state
-  player_table.bots_window_visible = not player_table.bots_window_visible
+  -- Update shortcut button state
+  player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
 
   -- Figure out if the paused state needs changing as a result
   if player_table.history_timer and player_table.settings.pause_while_hidden then
     if not player_table.bots_window_visible then
       -- History collection pauses when the window is minimized, but remember paused state
-      player_table.saved_paused_state = player_table.history_timer:is_paused()
+      pause_manager.set_paused(player_table.paused_items, "window", true)
       player_table.history_timer:pause()
     else
-      -- Restore prior paused state
-      player_table.history_timer:set_paused(player_table.saved_paused_state)
+      -- Restore prior paused states
+      pause_manager.set_paused(player_table.paused_items, "window", false)
+      -- Resume the history timer if it was paused only because the window was hidden
+      if pause_manager.is_running(player_table.paused_items, "history") then
+        player_table.history_timer:resume()
+      end
     end
   end
 
@@ -251,6 +255,18 @@ function main_window.toggle_window_visible(player)
   if gui.logistics_insights_window then
     gui.logistics_insights_window.visible = player_table.bots_window_visible
   end
+end
+
+--- Toggle main window visibility
+--- @param player LuaPlayer|nil The player whose window to toggle
+function main_window.toggle_window_visible(player)
+  if not player or not player.valid then
+    return
+  end
+  local player_table = storage.players[player.index]
+
+  -- Toggle the desired state
+  main_window.set_window_visible(player, player_table, not player_table.bots_window_visible)
 end
 
 --- Check if the window is currently open
@@ -296,7 +312,9 @@ function main_window.onclick(event)
       elseif event.element.name == "logistics-insights-sorted-delivery" then
         pause_manager.toggle_paused(player_table.paused_items, "delivery")
       elseif event.element.name == "logistics-insights-sorted-history" then
-        pause_manager.toggle_paused(player_table.paused_items, "history")
+        local paused = pause_manager.toggle_paused(player_table.paused_items, "history")
+        -- Also toggle the history timer
+        player_table.history_timer:set_paused(paused)
       elseif event.element.name == "logistics-insights-sorted-activity" then
         pause_manager.toggle_paused(player_table.paused_items, "activity")
       elseif event.element.name == "logistics-insights-sorted-undersupply" then
@@ -326,6 +344,36 @@ script.on_event(defines.events.on_gui_location_changed,
       player_table.window_location = event.element.location
     end
   end
+end)
+
+-- Handle shortcut button clicks
+script.on_event(defines.events.on_lua_shortcut,
+  --- @param event EventData.on_lua_shortcut
+  function(event)
+  if event.prototype_name ~= SHORTCUT_TOGGLE then return end
+
+  local player = game.get_player(event.player_index)
+  if not player then return end
+
+  local player_table = storage.players[player.index]
+  if not player_table then return end
+
+  -- Toggle window visibility
+  main_window.toggle_window_visible(player)
+end)
+
+-- Handle keyboard shortcut
+script.on_event("logistics-insights-toggle-gui",
+  --- @param event EventData.CustomInputEvent
+  function(event)
+  local player = game.get_player(event.player_index)
+  if not player then return end
+
+  local player_table = storage.players[player.index]
+  if not player_table then return end
+
+  -- Toggle window visibility
+  main_window.toggle_window_visible(player)
 end)
 
 return main_window

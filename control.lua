@@ -10,9 +10,6 @@ local li_migrations = require("scripts.migrations")
 local progress_bars = require("scripts.mainwin.progress_bars")
 local main_window = require("scripts.mainwin.main_window")
 
--- Shortcut constants
-local SHORTCUT_TOGGLE = "logistics-insights-toggle"
-
 ---@alias SurfaceName string
 
 ---@class ResultLocationData
@@ -30,12 +27,11 @@ script.on_init(
   local player = player_data.get_singleplayer_player()
   if player then
     controller_gui.create_window(player)
+    
     local player_table = player_data.get_singleplayer_table()
     if player_table then
-      main_window.create(player, player_table)
-
-      -- Initialize shortcut state
-      player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
+      -- Create the window and initialize shortcut state
+      main_window.set_window_visible(player, player_table, player_table.bots_window_visible)
     end
   end
 end)
@@ -50,12 +46,13 @@ script.on_event({ defines.events.on_player_created },
   if player then
     controller_gui.create_window(player)
     player_data.init(e.player_index)
-    player_data.refresh(player, storage.players[e.player_index])
+
+    local player_table = storage.players[e.player_index]
+    player_data.update_settings(player, player_table)
 
     -- Initialize shortcut state
-    local player_table = storage.players[e.player_index]
     if player_table and player then
-      player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
+      main_window.set_window_visible(player, player_table, player_table.bots_window_visible)
     end
   end
 end)
@@ -118,10 +115,29 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
             e.setting == "li-highlight-duration" then
         -- These settings will be adapted dynamically
         player_data.update_settings(player, player_table)
+      elseif e.setting == "li-show-history" then
+        -- Show History was enabled or disabled
+        player_data.update_settings(player, player_table)
+        if player_table.settings.show_history then
+          -- Show History was enabled, so resume the history timer if it was paused
+          player_table.history_timer:resume()
+        end
+      elseif e.setting == "li-pause-while-hidden" then
+        -- Pause while hidden setting was changed
+        local flicker_window = not player_table.bots_window_visible
+        if flicker_window then
+          -- Show the window, so related things can update. Very messy.
+          main_window.set_window_visible(player, player_table, true)
+        end
+        player_data.update_settings(player, player_table)
+        if flicker_window then
+          -- Re-hide the window
+          main_window.set_window_visible(player, player_table, false)
+        end
       else
         -- For other settings, rebuild the main window
+        player_data.update_settings(player, player_table)
         main_window.destroy(player, player_table)
-        player_data.refresh(player, player_table)
         progress_bars.update_chunk_size_cache()
         main_window.create(player, player_table)
       end
@@ -182,7 +198,7 @@ script.on_event(
     local player_table = player_data.get_singleplayer_table()
 
     if player and player_table and player_table.bots_window_visible then
-      player_table.bots_window_visible = player.controller_type ~= defines.controllers.cutscene
+      main_window.set_window_visible(player, player_table, player.controller_type ~= defines.controllers.cutscene)
     end
   end
 )
@@ -229,40 +245,4 @@ script.on_event(defines.events.on_player_changed_surface,
     -- If there is a space platform, ricity network, there can't be bots
     window.visible = player_table.bots_window_visible and not player.surface.platform
   end
-end)
-
--- Handle shortcut button clicks
-script.on_event(defines.events.on_lua_shortcut,
-  --- @param event EventData.on_lua_shortcut
-  function(event)
-  if event.prototype_name ~= SHORTCUT_TOGGLE then return end
-
-  local player = game.get_player(event.player_index)
-  if not player then return end
-
-  local player_table = storage.players[player.index]
-  if not player_table then return end
-
-  -- Toggle window visibility
-  main_window.toggle_window_visible(player)
-
-  -- Update shortcut button state
-  player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
-end)
-
--- Handle keyboard shortcut
-script.on_event("logistics-insights-toggle-gui",
-  --- @param event EventData.CustomInputEvent
-  function(event)
-  local player = game.get_player(event.player_index)
-  if not player then return end
-
-  local player_table = storage.players[player.index]
-  if not player_table then return end
-
-  -- Toggle window visibility
-  main_window.toggle_window_visible(player)
-
-  -- Update shortcut button state
-  player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
 end)

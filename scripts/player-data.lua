@@ -50,7 +50,6 @@ local cached_player_table = nil
 ---@field history_timer TickCounter -- Tracks time for collecting delivery history
 ---@field player_index uint -- The player's index
 ---@field window_location {x: number, y: number} -- Saved window position
----@field saved_paused_state boolean -- Remembered pause state when window is hidden
 ---@field ui table<string, table> -- UI elements for the mod's GUI
 ---@field bots_table LuaGuiElement|nil -- Reference to the main bots table UI element
 ---@field current_logistic_cell_interval number -- Dynamically calculated interval for logistic cell updates
@@ -67,7 +66,6 @@ function player_data.init(player_index)
     fixed_network = false,
     player_index = player_index,
     window_location = {x = 200, y = 0},
-    saved_paused_state = false,
     ui = {},
     bots_table = nil,
     current_logistic_cell_interval = 60,
@@ -140,7 +138,7 @@ function player_data.init_storages()
   storage.players = {}
   for _, player in pairs(game.players) do
     player_data.init(player.index)
-    player_data.refresh(player, storage.players[player.index])
+    player_data.update_settings(player, storage.players[player.index])
   end
 end
 
@@ -257,19 +255,6 @@ function player_data.check_network_changed(player, player_table)
   end
 end
 
-
--- @param player_table PlayerData
--- @return boolean
--- function player_data.is_history_paused(player_table)
---   if player_table.history_timer then
---     return player_table.history_timer:is_paused() or
---         (player_table.settings.pause_while_hidden and not player_table.bots_window_visible)
---   else
---     -- History timer may not be initialized yet, so ignore it.
---     return (player_table.settings.pause_while_hidden and not player_table.bots_window_visible)
---   end
--- end
-
 function player_data.is_included_robot(bot)
   return true -- For now, include all bots.
   -- return bot and bot.name == "logistics-robot" -- Option to expand in the future
@@ -306,25 +291,6 @@ function player_data.register_ui(player_table, name)
     player_table.ui = {}
   end
   player_table.ui[name] = {}
-end
-
----@param player LuaPlayer|nil
----@param player_table PlayerData|nil
----@return nil
-function player_data.refresh(player, player_table)
-  if not player or not player.valid or not player_table or not player_table.settings then
-    return
-  end
-
-  local paused_is_irrelevant = not player_table.settings.show_delivering and not player_table.settings.show_history
-  player_data.update_settings(player, player_table)
-  if paused_is_irrelevant and (player_table.settings.show_delivering or player_table.settings.show_history) then
-    -- unpause if it was paused without any effect
-    player_table.history_timer:resume()
-  end
-
-  -- Initialize shortcut toggle state based on window visibility
-  player.set_shortcut_toggled("logistics-insights-toggle", player_table.bots_window_visible)
 end
 
 -- Reset cached references - should be called when game is loaded or configuration changes

@@ -8,9 +8,6 @@ local suggestions_row = require("scripts.mainwin.suggestions_row")
 
 local function init_storage_and_settings()
   player_data.init_storages()
-  for i, player in pairs(game.players) do
-    player_data.refresh(player, storage.players[i])
-  end
 end
 
 local function reinitialise_ui()
@@ -32,7 +29,9 @@ local li_migrations = {
     if player_table and player_table.ui and player_table.bots_table then
       -- Initialise new paused_items table
       player_table.paused_items = {}
-
+      ---@diagnostic disable-next-line: inject-field
+      player_table.saved_paused_state = nil -- Remove old saved paused state
+      
       -- Initialise the new suggestions table
       player_table.suggestions = suggestions.new()
       -- Set new settings
