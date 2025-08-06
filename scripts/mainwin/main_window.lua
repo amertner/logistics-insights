@@ -321,6 +321,18 @@ function main_window.onclick(event)
         pause_manager.toggle_paused(player_table.paused_items, "undersupply")
       elseif event.element.name == "logistics-insights-sorted-suggestions" then
         pause_manager.toggle_paused(player_table.paused_items, "suggestions")
+      elseif utils.starts_with(event.element.name, "logistics-insights-undersupply") then
+        -- This is an undersupply row item button, find the item it's referring to
+        local item_name = event.element.sprite:match("^item/(.+)$")
+        item = {name = item_name, quality = event.element.quality.name or "normal"}
+        -- Find the row name without number
+        local rowname = event.element.name:match("^(.+)/")
+
+        find_and_highlight.highlight_locations_with_filter_on_map(
+          player, player_table, rowname,
+          find_and_highlight.is_requester_of_item,
+          item,
+          event.button == defines.mouse_button_type.right)
       elseif event.element.tags and player then
         -- Highlight elements. If right-click, also focus on random element
         find_and_highlight.highlight_locations_on_map(player, player_table, event.element, event.button == defines.mouse_button_type.right)

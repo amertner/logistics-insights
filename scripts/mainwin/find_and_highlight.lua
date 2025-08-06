@@ -11,6 +11,16 @@ local ResultLocation = require("scripts.result-location")
 ---@field item LuaEntity|nil Random selected entity to focus on
 ---@field follow boolean Whether to follow/focus on the selected item
 
+local function apply_filter(item_list, filter_fn, filter_value)
+  local filtered_list = {}
+  for _, item in pairs(item_list) do
+    if item and item.valid and filter_fn(item, filter_value) then
+      table.insert(filtered_list, item)
+    end
+  end
+  return filtered_list
+end
+
 --- Find charging robots in the given cell list
 --- @param player_table PlayerData The player's data table
 --- @param cell_list LuaLogisticCell[] List of logistic cells to search
@@ -51,8 +61,13 @@ end
 
 --- Get item list and focus data for stationary items
 --- @param item_list LuaEntity[] List of entities
+--- @param filter_fn function|nil Optional filter function to apply to the items
+--- @param filter_value any Optional value to filter by
 --- @return ViewData View data with items and random selection
-local function get_item_list_and_focus(item_list)
+local function get_item_list_and_focus(item_list, filter_fn, filter_value)
+  if filter_fn then
+    item_list = apply_filter(item_list, filter_fn, filter_value)
+  end
   local rando = utils.get_random(item_list)
   return {items = item_list, item = rando, follow = false}
 end
@@ -134,7 +149,7 @@ local function get_item_list_and_focus_exclude_roboports(item_list)
   return get_item_list_and_focus(list)
 end
 
----@type table<string, fun(pd: PlayerData): ViewData>
+---@type table<string, fun(pd: PlayerData, filter_fn?: function, filter_value: any): ViewData>
 local get_list_function = {
   -- Activity row buttons
   ["logistics-insights-logistic-robot-total"] = function(pd)
@@ -168,7 +183,27 @@ local get_list_function = {
   ["logistics-insights-storages"] = function(pd)
     return get_item_list_and_focus(pd.network.storages)
   end,
+  ["logistics-insights-undersupply"] = function(pd, filter_fn, filter_value)
+    return get_item_list_and_focus(pd.network.requesters, filter_fn, filter_value)
+  end,
 }
+
+--- Open viewdata in the result location viewer
+--- @param player LuaPlayer The player viewing the map
+--- @param viewdata ViewData The view data containing items and focus information
+--- @param focus_on_element boolean Whether to focus on the selected element
+local function open_viewdata(player, viewdata, focus_on_element)
+  if viewdata.follow and player.mod_settings["li-pause-for-bots"].value then
+    game_state.freeze_game()
+  end
+  local toview = {
+    position = viewdata.item.position,
+    surface = viewdata.item.surface.name,
+    zoom = 0.8,
+    items = viewdata.items,
+  }
+  ResultLocation.open(player, toview, focus_on_element)
+end
 
 --- Highlight locations on the map when GUI elements are clicked
 --- @param player LuaPlayer The player viewing the map
@@ -190,16 +225,63 @@ function find_and_highlight.highlight_locations_on_map(player, player_table, ele
     return
   end
 
-  if viewdata.follow and player.mod_settings["li-pause-for-bots"].value then
-    game_state.freeze_game()
+  open_viewdata(player, viewdata, focus_on_element)
+end
+
+-- Filter function to find requesters of a specific item
+function find_and_highlight.is_requester_of_item(requester, item)
+  if requester and requester.valid then
+    -- Get the logistic point (the actual requester interface)
+    local logistic_point = requester.get_logistic_point(defines.logistic_member_index.logistic_container)
+
+    if logistic_point then
+      -- Get active requests from the logistic point
+      local requests = logistic_point.get_section(1) -- Section 1 contains the requests
+
+      if requests then
+        for i = 1, requests.filters_count do
+          local filter = requests.filters[i]
+          if filter and filter.value then
+            local type = filter.value.type
+            -- Only track items/entities, not fluids, virtuals, etc
+            if type == "item" or type == "entity" then
+              local item_name = filter.value.name
+              local quality = filter.value.quality or "normal"
+              if item_name == item.name and quality == item.quality then
+                return true -- Found a matching requester for the item
+              end
+            end
+          end
+        end
+      end
+    end
   end
-  local toview = {
-    position = viewdata.item.position,
-    surface = viewdata.item.surface.name,
-    zoom = 0.8,
-    items = viewdata.items,
-  }
-  ResultLocation.open(player, toview, focus_on_element)
+  return false
+end
+
+--- Highlight filtered locations on the map when GUI elements are clicked
+--- @param player LuaPlayer The player viewing the map
+--- @param player_table PlayerData|nil The player's data table
+--- @param rowname string The name of the row we're calling from
+--- @param filter_fn function|nil Optional filter function to apply to the items
+--- @param filter_value any Optional value to filter by
+--- @param focus_on_element boolean Whether to focus on the selected element
+function find_and_highlight.highlight_locations_with_filter_on_map(player, player_table, rowname, filter_fn, filter_value, focus_on_element)
+  if player_table == nil or player_table.network == nil then
+    return
+  end
+
+  local fn = get_list_function[rowname]
+  if not fn then
+    return
+  end
+
+  local viewdata = fn(player_table, filter_fn, filter_value)
+  if viewdata == nil or viewdata.item == nil then
+    return
+  end
+
+  open_viewdata(player, viewdata, focus_on_element)
 end
 
 --- Clear all markers and selected items from the map
