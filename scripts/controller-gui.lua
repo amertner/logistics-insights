@@ -96,6 +96,12 @@ function controller_gui.update_window(player, player_table)
       tip = tooltips_helper.add_network_history_tip(tip, player_table)
       paused = pause_manager.is_paused(player_table.paused_items, "activity")
       tip = { "", tip, { "controller-gui.main_tooltip_activity", get_status(paused, player_table.settings.show_activity) } }
+
+      paused = pause_manager.is_paused(player_table.paused_items, "undersupply")
+      tip = { "", tip, { "controller-gui.main_tooltip_undersupply", get_status(paused, player_table.settings.show_undersupply) } }
+
+      paused = pause_manager.is_paused(player_table.paused_items, "suggestions")
+      tip = { "", tip, { "controller-gui.main_tooltip_suggestions", get_status(paused, player_table.settings.show_suggestions) } }
     else
       gui.logistics_insights_toggle_main.number = nil
       tip = { "controller-gui.no-network" }
