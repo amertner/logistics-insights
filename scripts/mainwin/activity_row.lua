@@ -59,6 +59,9 @@ function activity_row.add(player_table, gui_table)
       include_construction = false },
   }
 
+  if not player_table.settings.show_activity then
+    return
+  end
   player_data.register_ui(player_table, "activity")
   local cell = gui_table.add {
     name = "bots_activity_row",
@@ -156,6 +159,10 @@ function activity_row.update(player_table)
     else
       return "bots-gui.format-logistics-robots"
     end
+  end
+
+  if not player_table.settings.show_activity then
+    return
   end
 
   if player_table.network then

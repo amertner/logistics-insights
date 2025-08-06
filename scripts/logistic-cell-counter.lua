@@ -121,6 +121,10 @@ function logistic_cell_counter.gather_data(player, player_table)
   if not player_table then
     return progress -- Ignore if no player_table is provided
   end
+  if not player_table.settings.show_activity then
+    return progress -- Activity gathering is disabled in settings
+  end
+
   local network = player_table.network
   local bot_items = storage.bot_items       -- Cache the table lookup
   if not network or not network.valid then
