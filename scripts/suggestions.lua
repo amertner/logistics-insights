@@ -1,6 +1,6 @@
 --- Handles suggestions for improving logistics network
 
-local analysis = require("scripts.analysis")
+local undersupply = require("scripts.undersupply")
 
 --- Urgency levels for suggestions
 ---@alias SuggestionUrgency "high"|"low"
@@ -239,7 +239,7 @@ function Suggestions:bots_data_updated(network, run_undersupply)
   end
 
   if network and run_undersupply then
-    analysis.analyse_demand_and_supply(network)
+    undersupply.analyse_demand_and_supply(network)
   end
 end
 

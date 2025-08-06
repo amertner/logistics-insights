@@ -3,7 +3,6 @@ local bot_counter = {}
 local player_data = require("scripts.player-data")
 local chunker = require("scripts.chunker")
 local utils = require("scripts.utils")
-local analysis = require("scripts.analysis")
 local pause_manager = require("scripts.pause-manager")
 
 -- Cache frequently used functions and values for performance

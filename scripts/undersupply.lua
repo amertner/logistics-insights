@@ -1,6 +1,6 @@
 --- Analyse data to provider undersupply information
 
-local analysis = {}
+local undersupply = {}
 
 -- Create a table to store combined (name/quality) keys for reduced memory fragmentation
 local item_quality_keys = {}
@@ -28,7 +28,7 @@ end
 
 
 ---@param network LuaLogisticNetwork The logistics network to analyse
-function analysis.analyse_demand_and_supply(network)
+function undersupply.analyse_demand_and_supply(network)
   if network and network.storages then
     -- Where are there shortages, where demand + under way << supply?
     --@type array<ItemWithQualityCount>
@@ -121,4 +121,4 @@ function analysis.analyse_demand_and_supply(network)
   end
 end
 
-return analysis
+return undersupply
