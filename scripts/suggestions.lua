@@ -135,6 +135,7 @@ function Suggestions:clear_suggestions()
   self._historydata = {
     ["waiting-to-charge"] = nil,
     ["insufficient-storage"] = nil,
+    ["insufficient-unfiltered-storage"] = nil,
     ["supply-shortage"] = nil,
     ["mismatched-storage"] = nil,
   }
@@ -143,12 +144,14 @@ function Suggestions:clear_suggestions()
   self._suggestions = {
     ["waiting-to-charge"] = nil,
     ["insufficient-storage"] = nil,
+    ["insufficient-unfiltered-storage"] = nil,
     ["supply-shortage"] = nil,
     ["mismatched-storage"] = nil,
   }
   self._cached_data = {
     ["waiting-to-charge"] = nil,
     ["insufficient-storage"] = nil,
+    ["insufficient-unfiltered-storage"] = nil,
     ["supply-shortage"] = nil,
     ["mismatched-storage"] = nil,
   }
@@ -158,6 +161,28 @@ function Suggestions:clear_suggestion(name)
   self._suggestions[name] = nil
   self._historydata[name] = nil
   self._cached_data[name] = nil
+end
+
+--- Create a suggestion
+--- @param suggestion_name string The name of the suggestion to create
+function Suggestions:create_or_clear_suggestion(suggestion_name, count, sprite, urgency, clickable, action)
+  if count > 0 then
+    if clickable then
+      clickname = suggestion_name
+    else
+      clickname = nil
+    end
+    self._suggestions[suggestion_name] = {
+      name = suggestion_name,
+      sprite = sprite,
+      urgency = urgency,
+      action = action,
+      clickname = clickname,
+      count = count
+    }
+  else
+    self:clear_suggestion(suggestion_name)
+  end
 end
 
 -- Potential issue: Too many bots waiting to charge means we need more RPs
@@ -170,53 +195,88 @@ function Suggestions:analyse_waiting_to_charge()
   else
     need_rps = 0
   end
+  -- Record the last few numbers so the recommendation does not jump around randomly
   self:remember("waiting-to-charge", need_rps)
+
   suggested_number = self:max_from_history("waiting-to-charge")
-  if suggested_number > 0 then
-    -- Bots are charging, and some are waiting
-    local urgency = Suggestions:get_urgency(suggested_number, 100)
-    self._suggestions["waiting-to-charge"] = {
-      name = "Charging Robots",
-      sprite = "entity/roboport",
-      urgency = urgency,
-      count = suggested_number,
-      action = {"suggestions-row.waiting-to-charge-action", suggested_number},
-    }
+  self:create_or_clear_suggestion("waiting-to-charge", suggested_number, "entity/roboport", Suggestions:get_urgency(suggested_number, 100), false,
+    {"suggestions-row.waiting-to-charge-action", suggested_number})
+end
+
+--- Create a suggestion, if the numbers warrant it
+--- @param suggestion_name string The name of the suggestion to create
+--- @param total_stacks number The total number of stacks available
+--- @param free_stacks number The number of free stacks available
+function Suggestions:create_storage_capacity_suggestion(suggestion_name, total_stacks, free_stacks)
+  local used_capacity = 1 -- No stacks = no capacity
+  if total_stacks > 0 then
+    used_capacity = 1 - free_stacks / total_stacks
+  end
+  local urgency = Suggestions:get_urgency(used_capacity, 0.9)
+  used_rounded = math.floor(used_capacity * 1000)/10
+  if used_capacity > 0.7 then
+    self:create_or_clear_suggestion(suggestion_name, used_rounded, "entity/storage-chest", urgency, false,
+      {"suggestions-row." .. suggestion_name .. "-action", used_rounded})
   else
-    self:clear_suggestion("waiting-to-charge")
+    self:clear_suggestion(suggestion_name)
   end
 end
 
--- Potential issue: Storage chests contain items that do not match the filter
--- Potential issue: There is not enough free unfiltered storage space
+-- Potential issue #1: Storage chests contain items that do not match the filter
+-- Potential issue #2: There is not enough free unfiltered storage space
+-- Potential issue #3: Storage chests overall are full, or not enough storage
 --- @param network? LuaLogisticNetwork The network being analysed
-function Suggestions:analyse_filtered_storage(network)
-  local SUGGESTION = "mismatched-storage"
+function Suggestions:analyse_storage(network)
+  local SUGGESTION_mismatch = "mismatched-storage"
+  local SUGGESTION_unfiltered = "insufficient-unfiltered-storage"
+  local SUGGESTION_storage = "insufficient-storage"
   if network and network.storages then
-    -- Calculate # of stacks used vs capacity. Partially filled stacks count as full.
+    -- Maintain a list of mismatched storages
     local mismatched = {}
+    -- Maintain a count of total and free stacks
+    local all_stacks = 0
+    local free_stacks = 0
+    local unfiltered_stacks = 0
+    local unfiltered_free_stacks = 0
     for _, storage in pairs(network.storages) do
-      if storage.valid and storage.filter_slot_count then
-        for finx = 1, storage.filter_slot_count do
-          -- Check if the filter matches the contents
-          local filter = storage.get_filter(finx)
-          if filter then
-            local inventory = storage.get_inventory(defines.inventory.chest)
-            if inventory and not inventory.is_empty() then
-              local stacks = inventory.get_contents()
-              -- Check if any of the contents does not match the filter
-              local index = 1
-              while index <= #stacks do 
-                local stack = stacks[index]
-                if stack then
-                  if stack.name ~= filter.name.name or stack.quality ~= filter.quality.name then
-                    -- There are items that do not match the filter
-                    table.insert(mismatched, storage)
-                    -- Don't check the rest of the stacks
-                    break
+      if storage.valid then
+        local inventory = storage.get_inventory(defines.inventory.chest)
+        -- Count total and free stacks
+        if inventory then
+          local capacity = #inventory
+          local free = inventory.count_empty_stacks()
+          all_stacks = all_stacks + capacity
+          free_stacks = free_stacks + free
+
+          -- Iterate over filtered to find mismatches
+          if storage.filter_slot_count then
+            for finx = 1, storage.filter_slot_count do
+              -- Check if the filter matches the contents
+              local filter = storage.get_filter(finx)
+              if filter then
+                if inventory and not inventory.is_empty() then
+                  local stacks = inventory.get_contents()
+                  -- Check if any of the contents does not match the filter
+                  local index = 1
+                  while index <= #stacks do 
+                    local stack = stacks[index]
+                    if stack then
+                      if stack.name ~= filter.name.name or stack.quality ~= filter.quality.name then
+                        -- There are items that do not match the filter
+                        table.insert(mismatched, storage)
+                        -- Don't check the rest of the stacks
+                        break
+                      end
+                    end
+                    index = index + 1
                   end
                 end
-                index = index + 1
+              else
+                -- There is no filter, count unfiltered capacity
+                if finx == 1 then -- If there are multiple filters, only count capacity once
+                  unfiltered_stacks = unfiltered_stacks + capacity
+                  unfiltered_free_stacks = unfiltered_free_stacks + free
+                end
               end
             end
           end
@@ -224,65 +284,19 @@ function Suggestions:analyse_filtered_storage(network)
       end
     end
 
-    local count = #mismatched
-    if count > 0 then 
-      self._suggestions[SUGGESTION] = {
-        name = "Storage filter mismatch",
-        sprite = "entity/storage-chest",
-        urgency = "low",
-        clickname = SUGGESTION,
-        action = {"suggestions-row.mismatched-storage-action", count},
-        count = count
-      }
-      self:set_cached_list(SUGGESTION, mismatched) -- Store the list of mismatched storages
-    else
-      self:clear_suggestion(SUGGESTION)
-    end
-  else
-    self:clear_suggestion(SUGGESTION)
-  end
-end
+    -- Create storage capacity suggestions, if the numbers warrant it
+    self:create_storage_capacity_suggestion(SUGGESTION_storage, all_stacks, free_stacks)
+    self:create_storage_capacity_suggestion(SUGGESTION_unfiltered, unfiltered_stacks, unfiltered_free_stacks)
 
--- Potential issue: Storage chests are full, or not enough storage
---- @param network? LuaLogisticNetwork The network being analysed
-function Suggestions:analyse_storage_fullness(network)
-  local SUGGESTION = "insufficient-storage"
-  if network and network.storages then
-    -- Calculate # of stacks used vs capacity. Partially filled stacks count as full.
-    local total_capacity = 0
-    local total_free = 0
-    for _, storage in pairs(network.storages) do
-      if storage.valid then
-        local inventory = storage.get_inventory(defines.inventory.chest)
-        if inventory then
-          -- Count free and capacity in stacks
-          total_free = total_free + inventory.count_empty_stacks()
-          total_capacity = total_capacity + #inventory
-        end
-      end
-    end
-    local used_capacity = 0
-    if total_capacity > 0 then
-      used_capacity = 1 - total_free / total_capacity
-    else
-      used_capacity = 0
-    end
-
-    if used_capacity >= 0.7 then 
-      local urgency = Suggestions:get_urgency(used_capacity, 0.9)
-      used_rounded = math.floor(used_capacity * 1000)/10
-      self._suggestions[SUGGESTION] = {
-        name = "Insufficient Storage",
-        sprite = "entity/storage-chest",
-        urgency = urgency,
-        action = {"suggestions-row.insufficient-storage-action", used_rounded},
-        count = used_capacity
-      }
-    else
-      self:clear_suggestion(SUGGESTION)
-    end
+    -- Create Mismatched Storage suggestion
+    local mismatched_count = #mismatched
+    self:create_or_clear_suggestion(SUGGESTION_mismatch, mismatched_count, "entity/storage-chest", "low", true,
+      {"suggestions-row.mismatched-storage-action", mismatched_count})
+    self:set_cached_list(SUGGESTION_mismatch, mismatched) -- Store the list of mismatched storages
   else
-    self:clear_suggestion(SUGGESTION)
+    self:clear_suggestion(SUGGESTION_mismatch)
+    self:clear_suggestion(SUGGESTION_unfiltered)
+    self:clear_suggestion(SUGGESTION_storage)
   end
 end
 
@@ -296,11 +310,8 @@ function Suggestions:cells_data_updated(network)
   -- Do we have enough places to charge, or are too many waiting to charge?
   self:analyse_waiting_to_charge()
 
-  self:analyse_filtered_storage(network)
-
-  -- #TODO: Should chunk this and do it somewhere else. Network chunker?
-  -- #TODO: Show the free/occupied percentage in the normal Storage tooltip too
-  self:analyse_storage_fullness(network)
+  -- Three possible suggestions from analysing storage chests
+  self:analyse_storage(network)
 end
 
 --- Call when the data about bots has been udpated
