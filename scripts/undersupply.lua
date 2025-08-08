@@ -17,7 +17,7 @@ function undersupply.analyse_demand_and_supply(network)
     -- Where are there shortages, where demand + under way << supply?
     --@type array<ItemWithQualityCount>
     local total_supply_array = network.get_contents() -- Get total supply
-    local total_demand = {item = {}, entity = {}}
+    local total_demand = {}
     
     -- Iterate through all requester entities in the network
     for _, requester in pairs(network.requesters) do
@@ -35,9 +35,9 @@ function undersupply.analyse_demand_and_supply(network)
               for i = 1, requests.filters_count do
                 local filter = requests.filters[i]
                 if filter and filter.value then
-                  local type = filter.value.type
+                  local itemtype = filter.value.type
                   -- Only track items/entities, not fluids, virtuals, etc
-                  if type == "item" or type == "entity" then
+                  if itemtype == "item" then
                     local item_name = filter.value.name
                     local quality = filter.value.quality or "normal"
                     local requested_count = filter.min
@@ -51,7 +51,7 @@ function undersupply.analyse_demand_and_supply(network)
                       
                       if actual_demand > 0 then
                         local key = utils.get_item_quality_key(item_name, quality)
-                        total_demand[type][key] = (total_demand[type][key] or 0) + actual_demand
+                        total_demand[key] = (total_demand[key] or 0) + actual_demand
                       end
                     end
                   end
@@ -73,29 +73,26 @@ function undersupply.analyse_demand_and_supply(network)
     -- Calculate net demand for each item - create as array for easy sorting
     -- Net demand = requested - supply - under way
     local net_demand = {}
-    for type, demands in pairs(total_demand) do
-      -- item and entity
-      for key, request in pairs(demands) do
-        local supply = total_supply[key] or 0
-        if request > supply then
-          local shortage = request - supply
-          local item_name, quality = key:match("([^:]+):(.+)")
+    for key, request in pairs(total_demand) do
+      local supply = total_supply[key] or 0
+      if request > supply then
+        local shortage = request - supply
+        local item_name, quality = key:match("([^:]+):(.+)")
 
-          local under_way = get_underway(key) or 0 -- Get the number of items already in transit
-          if under_way > 0 then
-            shortage = shortage - under_way
-          end
-          if shortage > 0 then
-            table.insert(net_demand, {
-              shortage = shortage,
-              type = type,
-              item_name = item_name,
-              quality_name = quality,
-              request = request,
-              supply = supply,
-              under_way = under_way
-            })
-          end
+        local under_way = get_underway(key) or 0 -- Get the number of items already in transit
+        if under_way > 0 then
+          shortage = shortage - under_way
+        end
+        if shortage > 0 then
+          table.insert(net_demand, {
+            shortage = shortage,
+            type = type,
+            item_name = item_name,
+            quality_name = quality,
+            request = request,
+            supply = supply,
+            under_way = under_way
+          })
         end
       end
     end
