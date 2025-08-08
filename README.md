@@ -1,9 +1,10 @@
 # Logistics Insights
 
-When playing Factorio, have you ever wondered what all of your logistics bots are up to? Whether you have too many, or too few? Particularly in the mid game where everything is scaling up, I've found that the answers sometimes are surprising.
+When playing Factorio, have you ever wondered what all of your logistics bots are up to? Whether you have too many, or too few? Is your storage nearly full? Do you have enough roboports? Particularly in the mid game where everything is scaling up, I've found that the answers sometimes are surprising.
 
 Logistics Insights can help:
 
+- Shows suggestions for what to do to improve performance: Add roboports, add storage, review filtered storage, etc.
 - Shows a list of the top items being carried in real time
 - Shows a sorted list of items that have been delivered the most
 - Shows a list showing the items that took the longest to deliver
@@ -14,12 +15,29 @@ Logistics Insights can help:
 - When highlighting bots, the game temporarily freezes, allowing you to inspect the state of things
 - You can freeze and single-step the game manually as well
 - You can easily pause and restart gathering of what is being delivered to reduce impact on game speed
-- Hide and show the main window by clicking the "logistics bot icon window" that's always open
+- Hide and show the main window by clicking the "logistics bot icon window" that's always open, or use the shortcut icon
 - Either analyse the network you're looking at, or keep analysing a specific one
 
 Logistics Insights focuses on a single bot network at a time, whether it's the one where the player is located or one you're looking at via the map view. It does not gather info on all networks at the same time.
 
-## How I started using it
+## How to use Undersupply information
+
+In the Undersupply row, you can see items that have more demand than can be supplied in the network. This is useful to identify hard-to-spot bottlenecks.
+
+If you click on an item, LI will highlight every place that requests the item, and if you right-click, it will also zoom in and focus the map view on one of them. You can repeatedly right-click to get a sense for where the problems are.
+
+## How to use Suggestions
+
+There are several types of suggestions, depending on what is happening in your network:
+
+- **Build more roboports.** A common problem is that a lot of your bots are waiting to charge - and building more bots doesn't help. Instead, builid more roboports so the bots can quickly find a place to charge, without having to wait. LI will show this as a High priority suggestion if you need more than 100 additional roboports.
+- **Build more storage.** If your storage is close to full, your network will work less efficiently as bots need to go further to find available storage. This suggestion shows up when your storage is 70% full, and becomes High priority when it's 90% full.
+- **Build more unfiltered storage.** Filtered storage is great, but you may be running out of storage that isn't filtered. LI uses same thresholds as for total storage here.
+- **Filtered storage issue.** If your filtered storage has items that don't match the filter, LI suggests you fix it. You can click/right-click on the suggestion to see which chests show the problem.
+
+Note that "fullness" of storage is measured by stacks, so you may have more storage available than LI suggests as it only looks for empty stacks.
+
+## How else I started using the mod
 
 Before a base reaches megabase level, I keep the LI window open to keep an eye on whether I have the right number of bots and roboports. If it gets in the way, I'll close it and occasionally open it to see what's going on.
 
@@ -37,6 +55,7 @@ Before a base reaches megabase level, I keep the LI window open to keep an eye o
 - If most of the bots are "available", I probably need to stop adding more bots
 
 **In the Network row**
+
 - If I'm trying to update my bots to a higher quality level, this makes it easy to see how many are still at the lower level
 - If I've upgraded my bots to a higher level, but my roboports are low quality, charging will take much longer. Upgrade them asap!
 
