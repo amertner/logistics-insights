@@ -206,7 +206,7 @@ function Suggestions:analyse_waiting_to_charge()
     "entity/roboport",
     self:get_urgency(suggested_number, 100),
     false,
-    {"suggestions-row.waiting_to_charge_action", suggested_number}
+    {"suggestions-row.waiting-to-charge-action", suggested_number}
   )
 end
 
