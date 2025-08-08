@@ -88,6 +88,9 @@ script.on_configuration_changed(
   -- Reset cached references when configuration changes
   player_data.reset_cache()
 
+    -- Remove history information that may refer to modded items that are no longer available
+    player_data.init_bot_counter_storage()
+
   -- Run migrations if the mod version has changed
   flib_migration.on_config_changed(e, li_migrations)
 end)

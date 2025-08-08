@@ -10,6 +10,7 @@ Date: 2025-08-08
     - Substantial refactoring of the code to make it possible to add more features.
   Bugfixes:
     - Clearing delivery history also unpaused delivery tracking, and left the UI in an inconsistent state.
+    - Fix a crash when loading a game without a mod that defined an item that was previously delivered
 ---------------------------------------------------------------------------------------------------
 Version: 0.9.6
 Date: 2025-07-29
