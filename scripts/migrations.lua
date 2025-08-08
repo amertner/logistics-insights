@@ -24,7 +24,6 @@ end
 
 local li_migrations = {
   ["0.9.7"] = function()
-    -- Add the new suggestions row
     local player_table = player_data.get_singleplayer_table()
     if player_table and player_table.ui and player_table.bots_table then
       -- Initialise new paused_items table
@@ -37,8 +36,6 @@ local li_migrations = {
       -- Set new settings
       player_table.settings.show_undersupply = true -- Enable undersupply by default
       player_table.settings.show_suggestions = true -- Enable suggestions by default
-      -- Add the list of items in short supply
-      storage.undersupply = {}
     end
     -- Re-initialise the UI as buttons have moved around since last version
     reinitialise_ui()

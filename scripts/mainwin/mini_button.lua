@@ -55,7 +55,8 @@ end
 ---@param button_name string The button identifier ("history", "undersupply", etc.)
 ---@param tooltip LocalisedString The tooltip identifier for the button
 ---@param button_type ButtonType The type of button ("pause", "trash", etc.)
-function mini_button.add(player_table, label_ui, button_name, tooltip, button_type)
+---@param is_paused boolean Whether the button should start in a paused state
+function mini_button.add(player_table, label_ui, button_name, tooltip, button_type, is_paused)
   -- Add flexible spacer that pushes button to the right
   local space = label_ui.add {
     type = "empty-widget",
@@ -66,7 +67,11 @@ function mini_button.add(player_table, label_ui, button_name, tooltip, button_ty
   -- Determine the sprite based on button type
   local sprite
   if button_type == "pause" then
-    sprite = "li_pause"
+    if is_paused then
+      sprite = "li_play"
+    else
+      sprite = "li_pause"
+    end
   elseif button_type == "trash" then
     sprite = "utility/trash"
   end

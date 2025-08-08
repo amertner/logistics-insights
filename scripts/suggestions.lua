@@ -64,9 +64,6 @@ end
 ---@param suggestion_name AnyBasic The name of the suggestion to retrieve
 ---@return table|nil A list of items identified as important to the suggestion
 function Suggestions:get_cached_list(suggestion_name)
-  if not self._suggestions[suggestion_name] then
-    return {} -- No suggestions of this type
-  end
   return self._cached_data[suggestion_name]
 end
 
@@ -323,7 +320,9 @@ function Suggestions:bots_data_updated(network, run_undersupply)
   end
 
   if network and run_undersupply then
-    undersupply.analyse_demand_and_supply(network)
+    -- We're using the Suggestions cache mechanism for undersupply too
+    local excessivedemand = undersupply.analyse_demand_and_supply(network)
+    self:set_cached_list("undersupply", excessivedemand) -- Store the list of mismatched storages
   end
 end
 

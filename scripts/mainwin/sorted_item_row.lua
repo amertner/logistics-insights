@@ -3,6 +3,7 @@ local sorted_item_row = {}
 
 local player_data = require("scripts.player-data")
 local mini_button = require("scripts.mainwin.mini_button")
+local pause_manager = require("scripts.pause-manager")
 
 local pairs = pairs
 local table_sort = table.sort
@@ -41,7 +42,7 @@ function sorted_item_row.add(player_table, gui_table, title, button_title, need_
   if button_title then
     if button_title == "clear" then
       tip = {"item-row.clear-history-tooltip"}
-      row_button = mini_button.add(player_table, hcell, button_title, tip, "trash")
+      row_button = mini_button.add(player_table, hcell, button_title, tip, "trash", false)
     else
       if button_title == "delivery" then
         tip = {"item-row.toggle-gathering-tooltip"}
@@ -50,7 +51,8 @@ function sorted_item_row.add(player_table, gui_table, title, button_title, need_
       elseif button_title == "undersupply" then
         tip = {"undersupply-row.toggle-tooltip"}
       end
-      row_button = mini_button.add(player_table, hcell, button_title, tip, "pause")
+      local is_paused = pause_manager.is_paused(player_table.paused_items, button_title) or false
+      row_button = mini_button.add(player_table, hcell, button_title, tip, "pause", is_paused)
     end
   end
 

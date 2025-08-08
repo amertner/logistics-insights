@@ -80,7 +80,8 @@ function activity_row.add(player_table, gui_table)
     tooltip = {"activity-row.header-tooltip"},
   }
   local tip = {"activity-row.pause-tooltip"}
-  mini_button.add(player_table, hcell, "activity", tip, "pause")
+  local is_paused = pause_manager.is_paused(player_table.paused_items, "activity") or false
+  mini_button.add(player_table, hcell, "activity", tip, "pause", is_paused)
 
   local progressbar = cell.add {
     type = "progressbar",

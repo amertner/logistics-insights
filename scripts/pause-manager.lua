@@ -27,6 +27,14 @@ pause_manager.dependencies = {
   activity = { "window" },
 }
 
+--- Enable all pause items, i.e. set them to running state (on window create/recreate)
+function pause_manager.enable_all()
+  -- Update all mini buttons to reflect the new state
+  for name in pairs(pause_manager.names) do
+    mini_button.update_paused_state(name, true)
+  end
+end
+
 local function enable_dependent_buttons(name, enabled)
   for dep_name, deps in pairs(pause_manager.dependencies) do
     if deps and #deps > 0 then

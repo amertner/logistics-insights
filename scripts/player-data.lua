@@ -53,6 +53,7 @@ local cached_player_table = nil
 -- Global player data, stored for each player
 ---@class PlayerData
 ---@field settings table<string,any> -- Player mod settings cached for performance
+---@field window LuaGuiElement|nil -- The main window element
 ---@field bots_window_visible boolean -- Whether the logistics insights window is visible
 ---@field network LuaLogisticNetwork|nil -- The current logistics network being monitored
 ---@field fixed_network boolean -- Whether to keep watching the current network even if the player moves away
@@ -69,6 +70,7 @@ function player_data.init(player_index)
   ---@type PlayerData
   local player_data_entry = {
     settings = {},
+    window = nil, -- Will be created later
     bots_window_visible = false, -- Start invisible
     network = nil,
     history_timer = tick_counter.new(),
@@ -136,9 +138,6 @@ function player_data.init_bot_counter_storage()
 
   ---@type QualityTable
   storage.total_bot_qualities = {} -- Quality of all bots counted
-
-  --@type table<UndersupplyItem>
-  storage.undersupply = {} -- List of items that are undersupplied
 end
 
 ---@return nil

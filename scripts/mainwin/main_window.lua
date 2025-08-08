@@ -39,6 +39,9 @@ function main_window.create(player, player_table)
     style = "botsgui_frame_style",
     visible = player_table.bots_window_visible and player.controller_type ~= defines.controllers.cutscene,
   }
+  -- Store root window separately (do not overwrite ui table)
+  player_table.window = window
+  if not player_table.ui then player_table.ui = {} end
 
   -- Create title bar with control buttons
   main_window._add_titlebar(window, player_table)
@@ -51,6 +54,9 @@ function main_window.create(player, player_table)
     column_count = player_table.settings.max_items + 1
   }
 
+  -- Reset all Paused states
+  player_table.paused_items = {}
+  pause_manager.enable_all()
   player_table.bots_table = content_table
   -- Add all of the data rows
   main_window._add_all_rows(player_table, content_table)
@@ -172,16 +178,18 @@ end
 --- @param player_table PlayerData The player's data table
 --- @param clearing boolean Whether this update is due to clearing history
 function main_window.update(player, player_table, clearing)
-  if not player_table.ui then
+  -- Ensure window reference; do NOT assign window to player_table.ui
+  if not player_table.window or not player_table.window.valid then
     if player.gui.screen.logistics_insights_window then
-      player_table.ui = player.gui.screen.logistics_insights_window
+      player_table.window = player.gui.screen.logistics_insights_window
     else
-      return -- No UI to update
+      return -- No window to update
     end
   end
+  if not player_table.ui then player_table.ui = {} end
   -- Update shortcut toggle state to match window visibility
   player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
-  if not player_table.ui or not player_table.bots_window_visible then
+  if not player_table.bots_window_visible then
     return
   end
 
@@ -218,8 +226,8 @@ function main_window.destroy(player, player_table)
       player_table.bots_table = nil
     end
   end
-
-  player_table.ui = {}
+  player_table.window = nil
+  player_table.ui = {} -- Keep as table for future register_ui calls
 end
 
 --- Toggle window visibility
@@ -314,10 +322,10 @@ function main_window.onclick(event)
       elseif utils.starts_with(event.element.name, "logistics-insights-undersupply") then
         -- This is an undersupply row item button, find the item it's referring to
         local item_name = event.element.sprite:match("^item/(.+)$")
-        local item = {name = item_name, quality = event.element.quality.name or "normal"}
+        local quality_name = (event.element.quality and event.element.quality.name) or "normal"
+        local item = {name = item_name, quality = quality_name}
         -- Find the row name without number
         local rowname = event.element.name:match("^(.+)/")
-
         find_and_highlight.highlight_locations_with_filter_on_map(
           player, player_table, rowname,
           find_and_highlight.is_requester_of_item,

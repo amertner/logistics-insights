@@ -12,6 +12,7 @@ local function get_underway(itemkey)
 end
 
 ---@param network LuaLogisticNetwork The logistics network to analyse
+---@return ItemWithQualityCount[]|nil An array of items with shortages, sorted by shortage, or nil
 function undersupply.analyse_demand_and_supply(network)
   if network and network.storages then
     -- Where are there shortages, where demand + under way << supply?
@@ -96,8 +97,11 @@ function undersupply.analyse_demand_and_supply(network)
         end
       end
     end
-    -- Store the unsorted net demand in the storage for later display
-    storage.undersupply = net_demand
+    -- Return net demand in the storage for later display
+    return net_demand
+  else
+    -- No network: No shortages
+    return nil
   end
 end
 
