@@ -179,7 +179,6 @@ function activity_row.update(player_table)
         end
         local num = storage.bot_items[key] or 0
         window.cell.number = num
-        window.cell.enabled = true
 
         -- "N <robot-icons> in network doing <activity>"
         local main_tip = {"", {window.tip, {get_robot_formatstr(window), num}}}

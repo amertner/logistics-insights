@@ -90,7 +90,7 @@ function main_window.ensure_ui_consistency(player, player_table)
   -- Make sure the "Fixed network" toggle is set correctly. 
   -- It cannot be un-set in player_data if the fixed network is deleted
   if window and window.bots_table then
-    network_id_cell = window.bots_table["logistics-insights-network-id"]
+    local network_id_cell = window.bots_table["logistics-insights-network-id"]
     if network_id_cell then
       network_id_cell.toggled = player_table and player_table.fixed_network or false
     end
@@ -269,16 +269,6 @@ function main_window.toggle_window_visible(player)
   main_window.set_window_visible(player, player_table, not player_table.bots_window_visible)
 end
 
---- Check if the window is currently open
---- @param player_table PlayerData The player's data table
---- @return boolean true if the window is open and valid
-function main_window.is_open(player_table)
-  if not player_table or not player_table.ui or not player_table.ui.window then
-    return false
-  end
-  return player_table.ui.window and player_table.ui.window.valid
-end
-
 --- Handle click events on GUI elements
 --- @param event EventData.on_gui_click The click event data
 function main_window.onclick(event)
@@ -324,7 +314,7 @@ function main_window.onclick(event)
       elseif utils.starts_with(event.element.name, "logistics-insights-undersupply") then
         -- This is an undersupply row item button, find the item it's referring to
         local item_name = event.element.sprite:match("^item/(.+)$")
-        item = {name = item_name, quality = event.element.quality.name or "normal"}
+        local item = {name = item_name, quality = event.element.quality.name or "normal"}
         -- Find the row name without number
         local rowname = event.element.name:match("^(.+)/")
 

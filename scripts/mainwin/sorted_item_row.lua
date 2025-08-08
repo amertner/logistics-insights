@@ -1,5 +1,5 @@
 --- Manage a row of sorted items in the main window
-sorted_item_row = {}
+local sorted_item_row = {}
 
 local player_data = require("scripts.player-data")
 local mini_button = require("scripts.mainwin.mini_button")
@@ -90,8 +90,8 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
   --- @return LocalisedString The formatted tooltip for the cell
   local function getcelltooltip(entry)
     local tip
-    local quality = entry.localised_quality_name or entry.quality_name
-    local name = entry.localised_name or entry.item_name
+    local quality = entry.localised_quality_name or entry.quality_name or "?"
+    local name = entry.localised_name or entry.item_name or "?"
     if number_field == "count" then
       tip = {"", {"item-row.count-field-tooltip-1count-2quality-3itemname", entry.count, quality, name}}
     elseif number_field == "ticks" then
@@ -102,7 +102,7 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
       local ticks_formatted = int_part .. "." .. decimal_part
       tip = {"", {"item-row.avg-field-tooltip-1ticks-2count-3quality-4itemname", ticks_formatted, entry.count, quality, name}}
     elseif number_field == "shortage" then
-      tip = {"", {"undersupply-row.shortage-tooltip-1shortage_2item_3quality_4requested_5storage_5underway",
+      tip = {"", {"undersupply-row.shortage-tooltip-1shortage_2item_3quality_4requested_5storage_6underway",
         entry.shortage, name, quality, entry.request, entry.supply, entry.under_way},
         "\n",
         {"undersupply-row.show-location-tooltip"}}
