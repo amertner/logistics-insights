@@ -2,22 +2,7 @@
 
 local undersupply = {}
 
--- Create a table to store combined (name/quality) keys for reduced memory fragmentation
-local item_quality_keys = {}
-
---- Get a cached delivery key for item name and quality combination
---- @param item_name string The name of the item
---- @param quality string The quality name (e.g., "normal", "uncommon", etc.)
---- @return string The cached delivery key
-local function get_item_quality_key(item_name, quality)
-  local cache_key = item_name .. ":" .. quality
-  local key = item_quality_keys[cache_key]
-  if not key then
-    key = cache_key
-    item_quality_keys[cache_key] = key
-  end
-  return key
-end
+local utils = require("scripts.utils")
 
 local function get_underway(itemkey)
   if storage.bot_deliveries then
@@ -25,7 +10,6 @@ local function get_underway(itemkey)
     return (delivery and delivery.count) or 0
   end
 end
-
 
 ---@param network LuaLogisticNetwork The logistics network to analyse
 function undersupply.analyse_demand_and_supply(network)
@@ -55,7 +39,7 @@ function undersupply.analyse_demand_and_supply(network)
                   -- Only track items/entities, not fluids, virtuals, etc
                   if type == "item" or type == "entity" then
                     local item_name = filter.value.name
-                    local quality = filter.value.quality or "normal"
+                    local quality = filter.value.quality.name or "normal"
                     local requested_count = filter.min
                     
                     -- Calculate actual demand (requested - already in requester)
@@ -66,7 +50,7 @@ function undersupply.analyse_demand_and_supply(network)
                       local actual_demand = math.max(0, requested_count - current_count)
                       
                       if actual_demand > 0 then
-                        local key = get_item_quality_key(item_name, quality)             
+                        local key = utils.get_item_quality_key(item_name, quality)
                         total_demand[type][key] = (total_demand[type][key] or 0) + actual_demand
                       end
                     end
@@ -82,7 +66,7 @@ function undersupply.analyse_demand_and_supply(network)
     -- Convert supply array to hash table for O(1) lookups
     local total_supply = {}
     for _, item_with_quality in pairs(total_supply_array) do
-      local key = get_item_quality_key(item_with_quality.name, item_with_quality.quality or "normal")
+      local key = utils.get_item_quality_key(item_with_quality.name, item_with_quality.quality or "normal")
       total_supply[key] = item_with_quality.count
     end
 
@@ -97,8 +81,7 @@ function undersupply.analyse_demand_and_supply(network)
           local shortage = request - supply
           local item_name, quality = key:match("([^:]+):(.+)")
 
-          -- #TODO: The key is different, Change to be the same
-          local under_way = get_underway(item_name .. quality) or 0 -- Get the number of items already in transit
+          local under_way = get_underway(key) or 0 -- Get the number of items already in transit
           if under_way > 0 then
             shortage = shortage - under_way
           end

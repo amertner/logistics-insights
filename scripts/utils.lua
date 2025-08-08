@@ -36,4 +36,21 @@ function utils.accumulate_quality(quality_table, quality, count)
   quality_table[quality] = quality_table[quality] + count
 end
 
+-- Create a table to store combined (name/quality) keys for reduced memory fragmentation
+local item_quality_keys = {}
+
+--- Get a cached delivery key for item name and quality combination
+--- @param item_name string The name of the item
+--- @param quality string The quality name (e.g., "normal", "uncommon", etc.)
+--- @return string The cached delivery key
+function utils.get_item_quality_key(item_name, quality)
+  local cache_key = item_name .. ":" .. quality
+  local key = item_quality_keys[cache_key]
+  if not key then
+    key = cache_key
+    item_quality_keys[cache_key] = key
+  end
+  return key
+end
+
 return utils

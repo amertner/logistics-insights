@@ -23,28 +23,11 @@ local seen_bot_last_pass = 1
 --- @field picking_bot_qualities QualityTable
 --- @field other_bot_qualities QualityTable
 
--- Create a table to store combined (name/quality) keys for reduced memory fragmentation
-local delivery_keys = {}
-
---- Get a cached delivery key for item name and quality combination
---- @param item_name string The name of the item
---- @param quality string The quality name (e.g., "normal", "uncommon", etc.)
---- @return string The cached delivery key
-local function get_delivery_key(item_name, quality)
-  local cache_key = item_name .. quality
-  local key = delivery_keys[cache_key]
-  if not key then
-    key = cache_key
-    delivery_keys[cache_key] = key
-  end
-  return key
-end
-
 --- Add a completed delivery order to the history storage
 --- @param delivery_history table<string, DeliveredItems> The delivery history storage table
 --- @param order BotDeliveringInFlight The completed order
 local function add_delivered_order_to_history(delivery_history, order)
-  local key = get_delivery_key(order.item_name, order.quality_name)
+  local key = utils.get_item_quality_key(order.item_name, order.quality_name)
   if not delivery_history[key] then
     -- It's the first time this item has been delivered
     delivery_history[key] = {
@@ -78,7 +61,7 @@ end
 --- @param count number The number of items being delivered
 --- @param item_deliveries table<string, DeliveryItem> The list of current deliveries
 local function add_item_to_current_deliveries(item_name, localised_name, quality, localised_quality_name, count, item_deliveries)
-  local key = get_delivery_key(item_name, quality)
+  local key = utils.get_item_quality_key(item_name, quality)
   if item_deliveries[key] == nil then
     -- Order not seen before
     item_deliveries[key] = {
