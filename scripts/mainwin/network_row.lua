@@ -190,7 +190,14 @@ function network_row.update(player_table)
       update_element(player_table.ui.network.requesters, table_size(player_table.network.requesters), "network-row.requesters-tooltip", "bots-gui.show-location-tooltip")
     end
     if player_table.ui.network.providers then
-      update_element(player_table.ui.network.providers, table_size(player_table.network.providers) - table_size(player_table.network.cells), "network-row.providers-tooltip", "bots-gui.show-location-tooltip")
+      -- Count how many providers are not roboports
+      local providers_count = 0
+      for _, prov in pairs(player_table.network.providers) do
+        if prov and prov.valid and prov.type ~= "roboport" then
+          providers_count = providers_count + 1
+        end
+      end
+      update_element(player_table.ui.network.providers, providers_count, "network-row.providers-tooltip", "bots-gui.show-location-tooltip")
     end
     if player_table.ui.network.storages then
       update_element(player_table.ui.network.storages, table_size(player_table.network.storages), "network-row.storages-tooltip", "bots-gui.show-location-tooltip")
