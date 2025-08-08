@@ -1,12 +1,12 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.9.7
-Date: ????
+Date: 2025-08-08
   Features:
-    - Shows a list of top items that where demand is greater than supply.
-    - Flags a list of issues in the logistics network and suggests actions to improve it.
+    - Undersupply: Now shows a list of top items that where demand is greater than supply.
+    - Suggestions: Now identifies key issues in the logistics network and suggests actions to improve it.
     - Each row in the UI can now be paused and unpaused depending on need.
   Changes:
-    - When changing the Chunk size setting, immediately starts using the new value.
+    - When changing the Chunk size setting, immediately start using the new value.
     - Substantial refactoring of the code to make it possible to add more features.
   Bugfixes:
     - Clearing delivery history also unpaused delivery tracking, and left the UI in an inconsistent state.
