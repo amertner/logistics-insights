@@ -45,7 +45,7 @@ function undersupply.analyse_demand_and_supply(network)
                     -- Calculate actual demand (requested - already in requester)
                     local inventory = requester.get_inventory(defines.inventory.linked_container_main)
                     if inventory then
-                      item_quality = {name = item_name, quality = quality}
+                      local item_quality = {name = item_name, quality = quality}
                       local current_count = inventory.get_item_count(item_quality)
                       local actual_demand = math.max(0, requested_count - current_count)
                       
@@ -86,7 +86,6 @@ function undersupply.analyse_demand_and_supply(network)
         if shortage > 0 then
           table.insert(net_demand, {
             shortage = shortage,
-            type = type,
             item_name = item_name,
             quality_name = quality,
             request = request,

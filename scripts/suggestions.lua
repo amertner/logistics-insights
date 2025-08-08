@@ -166,6 +166,7 @@ end
 --- Create a suggestion
 --- @param suggestion_name string The name of the suggestion to create
 function Suggestions:create_or_clear_suggestion(suggestion_name, count, sprite, urgency, clickable, action)
+  local clickname
   if count > 0 then
     if clickable then
       clickname = suggestion_name
@@ -198,7 +199,7 @@ function Suggestions:analyse_waiting_to_charge()
   -- Record the last few numbers so the recommendation does not jump around randomly
   self:remember("waiting-to-charge", need_rps)
 
-  suggested_number = self:max_from_history("waiting-to-charge")
+  local suggested_number = self:max_from_history("waiting-to-charge")
   self:create_or_clear_suggestion("waiting-to-charge", suggested_number, "entity/roboport", Suggestions:get_urgency(suggested_number, 100), false,
     {"suggestions-row.waiting-to-charge-action", suggested_number})
 end
@@ -213,7 +214,7 @@ function Suggestions:create_storage_capacity_suggestion(suggestion_name, total_s
     used_capacity = 1 - free_stacks / total_stacks
   end
   local urgency = Suggestions:get_urgency(used_capacity, 0.9)
-  used_rounded = math.floor(used_capacity * 1000)/10
+  local used_rounded = math.floor(used_capacity * 1000)/10
   if used_capacity > 0.7 then
     self:create_or_clear_suggestion(suggestion_name, used_rounded, "entity/storage-chest", urgency, false,
       {"suggestions-row." .. suggestion_name .. "-action", used_rounded})
