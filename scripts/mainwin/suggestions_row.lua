@@ -20,14 +20,12 @@ function suggestions_row.add(player_table, gui_table)
     type = "flow",
     direction = "vertical",
     vertically_squashable = false,
-    minimal_height = 80, -- Need to have room for a slot button
   }
   cell.style.vertically_stretchable = false
   local hcell = cell.add {
     type = "flow",
     direction = "horizontal",
     vertically_squashable = false,
-    minimal_height = 80, -- Need to have room for a slot button
   }
   hcell.style.horizontally_stretchable = true
 
@@ -45,6 +43,18 @@ function suggestions_row.add(player_table, gui_table)
   -- Remember the title cell so we can update the tooltip later
   player_table.ui[ROW_TITLE].titlecell = titlecell
   player_table.ui[ROW_TITLE].suggestion_buttons = {}
+
+  -- Placeholder button (always reserves height). Hidden when real suggestions exist.
+  player_table.ui[ROW_TITLE].placeholder_button = gui_table.add {
+    type = "sprite-button",
+    name = "logistics-insights-suggestion/placeholder",
+    sprite = "virtual-signal/signal-hourglass",
+    style = "slot_button",
+    enabled = false,
+    tooltip = {"", {ROW_TITLE .. ".no-suggestions"}},
+    visible = true
+  }
+
   for count = 1, player_table.settings.max_items do
     -- Add an empty widget for when there is no suggestion
     -- Add sprite button (hidden by default)
@@ -55,7 +65,7 @@ function suggestions_row.add(player_table, gui_table)
       name = "logistics-insights-suggestion/" .. count,
       show_percent_for_small_numbers = true,
       visible = false
-    }  
+    }
   end
 end
 
@@ -78,7 +88,7 @@ function suggestions_row.set_suggestion_cell(items, index, suggestion, enabled)
       if suggestion.clickname then
         -- This is a clickable suggestion, so update the tooltip
         button.tags = {clickname = suggestion.clickname}
-        button.tooltip = {"", button.tooltip, "\n", {"suggestions-row." .. suggestion.clickname .. "-tooltip"}  }
+        button.tooltip = {"", button.tooltip, "\n", {"suggestions-row." .. suggestion.clickname .. "-tooltip"}}
       end
       if suggestion.urgency == "high" then
         button.style = "red_slot_button"
@@ -98,12 +108,23 @@ function suggestions_row.show_suggestions(player_table, enabled)
   local suggestions_table = player_table.suggestions:get_suggestions()
   local items = player_table.ui[ROW_TITLE]
 
-  index = 1
-  for name, suggestion in pairs(suggestions_table) do
+  local index = 1
+  for _, suggestion in pairs(suggestions_table) do
     suggestions_row.set_suggestion_cell(items, index, suggestion, enabled)
     index = index + 1
   end
-  return index-1
+  local shown = index - 1
+  -- Toggle placeholder visibility
+  local placeholder = items.placeholder_button
+  if placeholder and placeholder.valid then
+    placeholder.visible = (shown == 0)
+    if enabled then
+      placeholder.tooltip = {"", {ROW_TITLE .. ".no-suggestions"}}
+    else
+      placeholder.tooltip = {"", {ROW_TITLE .. ".suggestions-paused"}}
+    end
+  end
+  return shown
 end
 
 ---@param player_table PlayerData The player's data table
@@ -120,13 +141,13 @@ function suggestions_row.update(player_table)
     player_table.suggestions = suggestions.new() -- #FIXME: Just return on release
   end
 
-  local enabled = pause_manager.is_running(player_table.paused_items, "suggestions")
+  local running = pause_manager.is_running(player_table.paused_items, "suggestions")
   -- Show all suggestions
-  index = suggestions_row.show_suggestions(player_table, enabled)
+  local shown = suggestions_row.show_suggestions(player_table, running)
   -- Clear any remaining cells
   local items = player_table.ui[ROW_TITLE]
-  for i = index+1, player_table.settings.max_items do
-    suggestions_row.set_suggestion_cell(items, i, nil, enabled)
+  for i = shown + 1, player_table.settings.max_items do
+    suggestions_row.set_suggestion_cell(items, i, nil, running)
   end
 end
 

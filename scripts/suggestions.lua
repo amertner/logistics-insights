@@ -11,7 +11,7 @@ local undersupply = require("scripts.undersupply")
 ---@field count number? The number associated with the suggestion, if applicable
 ---@field sprite string The sprite to represent the suggestion visually
 ---@field urgency SuggestionUrgency The urgency level of the suggestion
----@field action string The action to take based on the suggestion
+---@field action LocalisedString The action to take based on the suggestion
 ---@field clickname? string Used to get the right action on click, or nil if no click
 
 --- Table containing a historical datapoint
@@ -166,7 +166,7 @@ function Suggestions:analyse_waiting_to_charge()
   local waiting = storage.bot_items["waiting-for-charge-robot"] or 0
   local need_rps
   if waiting > 9 then
-    need_rps = math.ceil(waiting / 3) -- Assume 3 bots will charge in one roboport
+    need_rps = math.ceil(waiting / 4) -- Assume 4 bots will charge in one roboport
   else
     need_rps = 0
   end
@@ -180,7 +180,7 @@ function Suggestions:analyse_waiting_to_charge()
       sprite = "entity/roboport",
       urgency = urgency,
       count = suggested_number,
-      action = "Robots are waiting to charge. Consider adding at least " .. suggested_number .." charging stations or roboports to areas of high traffic."
+      action = {"suggestions-row.waiting-to-charge-action", suggested_number},
     }
   else
     self:clear_suggestion("waiting-to-charge")
@@ -188,6 +188,7 @@ function Suggestions:analyse_waiting_to_charge()
 end
 
 -- Potential issue: Storage chests contain items that do not match the filter
+-- Potential issue: There is not enough free unfiltered storage space
 --- @param network? LuaLogisticNetwork The network being analysed
 function Suggestions:analyse_filtered_storage(network)
   local SUGGESTION = "mismatched-storage"
@@ -223,14 +224,15 @@ function Suggestions:analyse_filtered_storage(network)
       end
     end
 
-    if #mismatched > 0 then 
+    local count = #mismatched
+    if count > 0 then 
       self._suggestions[SUGGESTION] = {
         name = "Storage filter mismatch",
         sprite = "entity/storage-chest",
         urgency = "low",
         clickname = SUGGESTION,
-        action = #mismatched .. " storages contain items that do not match the filter.\n Consider clearning those items out.",
-        count = #mismatched
+        action = {"suggestions-row.mismatched-storage-action", count},
+        count = count
       }
       self:set_cached_list(SUGGESTION, mismatched) -- Store the list of mismatched storages
     else
@@ -273,7 +275,7 @@ function Suggestions:analyse_storage_fullness(network)
         name = "Insufficient Storage",
         sprite = "entity/storage-chest",
         urgency = urgency,
-        action = used_rounded .. "% of storage capacity is used.\n Consider adding more storage chests to your network.",
+        action = {"suggestions-row.insufficient-storage-action", used_rounded},
         count = used_capacity
       }
     else

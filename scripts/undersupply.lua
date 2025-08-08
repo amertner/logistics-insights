@@ -39,7 +39,7 @@ function undersupply.analyse_demand_and_supply(network)
                   -- Only track items/entities, not fluids, virtuals, etc
                   if type == "item" or type == "entity" then
                     local item_name = filter.value.name
-                    local quality = filter.value.quality.name or "normal"
+                    local quality = filter.value.quality or "normal"
                     local requested_count = filter.min
                     
                     -- Calculate actual demand (requested - already in requester)
