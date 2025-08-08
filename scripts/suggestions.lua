@@ -118,13 +118,16 @@ function Suggestions:max_from_history(name)
     return 0
   end
   local max_value = 0
-  for index, entry in ipairs(history) do
-    if entry.data > max_value then
-      max_value = entry.data
-    end
-    if entry.tick < self._current_tick - MAX_HISTORY_TICKS then
-      -- Remove old entries older than 1 hour
-      table.remove(history, index)
+  local cutoff = self._current_tick - MAX_HISTORY_TICKS
+  -- Iterate backwards so removals are safe
+  for i = #history, 1, -1 do
+    local entry = history[i]
+    if entry.tick < cutoff then
+      table.remove(history, i)
+    else
+      if entry.data > max_value then
+        max_value = entry.data
+      end
     end
   end
   return max_value
@@ -165,6 +168,11 @@ end
 
 --- Create a suggestion
 --- @param suggestion_name string The name of the suggestion to create
+--- @param count number The number associated with the suggestion, if applicable
+--- @param sprite string The sprite to represent the suggestion visually
+--- @param urgency SuggestionUrgency The urgency level of the suggestion
+--- @param clickable boolean Whether the suggestion is clickable by the user
+--- @param action LocalisedString The action to take based on the suggestion
 function Suggestions:create_or_clear_suggestion(suggestion_name, count, sprite, urgency, clickable, action)
   local clickname
   if count > 0 then
