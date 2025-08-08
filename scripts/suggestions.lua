@@ -37,12 +37,18 @@ local Suggestions = {}
 Suggestions.__index = Suggestions
 script.register_metatable("logistics-insights-Suggestions", Suggestions)
 
--- Public keys (refactored)
 Suggestions.awaiting_charge_key = "waiting-to-charge"
 Suggestions.storage_low_key = "insufficient-storage"
 Suggestions.unfiltered_storage_low_key = "insufficient-unfiltered-storage"
 Suggestions.mismatched_storage_key = "mismatched-storage"
 Suggestions.undersupply_key = "supply-shortage"
+-- Order of suggestions in the UI: First by priority, then by this order:
+Suggestions.order = { 
+  Suggestions.awaiting_charge_key,
+  Suggestions.storage_low_key,
+  Suggestions.unfiltered_storage_low_key,
+  Suggestions.mismatched_storage_key
+}
 
 function Suggestions.new()
   local self = setmetatable({}, Suggestions)

@@ -110,10 +110,28 @@ function suggestions_row.show_suggestions(player_table, enabled)
   local suggestions_table = player_table.suggestions:get_suggestions()
   local items = player_table.ui[ROW_TITLE]
 
+  local order = (player_table.suggestions and player_table.suggestions.order) or (suggestions.order) or {}
+  local max_items = player_table.settings.max_items
   local index = 1
-  for _, suggestion in pairs(suggestions_table) do
-    suggestions_row.set_suggestion_cell(items, index, suggestion, enabled)
-    index = index + 1
+  -- Pass 1: high urgency in order
+  for _, key in ipairs(order) do
+    if index > max_items then break end
+    local s = suggestions_table[key]
+    if s and s.urgency == "high" then
+      suggestions_row.set_suggestion_cell(items, index, s, enabled)
+      index = index + 1
+    end
+  end
+  -- Pass 2: remaining (low or not high) in order
+  if index <= max_items then
+    for _, key in ipairs(order) do
+      if index > max_items then break end
+      local s = suggestions_table[key]
+      if s and s.urgency ~= "high" then
+        suggestions_row.set_suggestion_cell(items, index, s, enabled)
+        index = index + 1
+      end
+    end
   end
   local shown = index - 1
   -- Toggle placeholder visibility
