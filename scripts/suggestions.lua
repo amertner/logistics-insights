@@ -37,6 +37,13 @@ local Suggestions = {}
 Suggestions.__index = Suggestions
 script.register_metatable("logistics-insights-Suggestions", Suggestions)
 
+-- Public keys (refactored)
+Suggestions.awaiting_charge_key = "waiting-to-charge"
+Suggestions.storage_low_key = "insufficient-storage"
+Suggestions.unfiltered_storage_low_key = "insufficient-unfiltered-storage"
+Suggestions.mismatched_storage_key = "mismatched-storage"
+Suggestions.undersupply_key = "supply-shortage"
+
 function Suggestions.new()
   local self = setmetatable({}, Suggestions)
   self._current_cell_tick = 0
@@ -47,11 +54,6 @@ function Suggestions.new()
   return self
 end
 
---- Reset the suggestions state, typically caused by change of network
-function Suggestions:reset()
-  self._suggestions = {}
-end
-
 --- Retrieve the list of current suggestions
 --- @return SuggestionsTable The current suggestions
 function Suggestions:get_suggestions()
@@ -60,7 +62,7 @@ end
 
 -- Get the list of objects for a specific suggestion so it can be used in the UI
 ---@param suggestion_name AnyBasic The name of the suggestion to retrieve
----@return table A list of items identified as important to the suggestion
+---@return table|nil A list of items identified as important to the suggestion
 function Suggestions:get_cached_list(suggestion_name)
   if not self._suggestions[suggestion_name] then
     return {} -- No suggestions of this type
@@ -114,20 +116,15 @@ end
 --- @return number The maximum value from the historical data
 function Suggestions:max_from_history(name)
   local history = self._historydata[name]
-  if not history or #history == 0 then
-    return 0
-  end
+  if not history or #history == 0 then return 0 end
   local max_value = 0
   local cutoff = self._current_tick - MAX_HISTORY_TICKS
-  -- Iterate backwards so removals are safe
   for i = #history, 1, -1 do
     local entry = history[i]
     if entry.tick < cutoff then
       table.remove(history, i)
-    else
-      if entry.data > max_value then
-        max_value = entry.data
-      end
+    elseif entry.data > max_value then
+      max_value = entry.data
     end
   end
   return max_value
@@ -136,30 +133,30 @@ end
 function Suggestions:clear_suggestions()
   -- Historical data needed to make better suggestions
   self._historydata = {
-    ["waiting-to-charge"] = nil,
-    ["insufficient-storage"] = nil,
-    ["insufficient-unfiltered-storage"] = nil,
-    ["supply-shortage"] = nil,
-    ["mismatched-storage"] = nil,
+    [Suggestions.awaiting_charge_key] = nil,
+    [Suggestions.storage_low_key] = nil,
+    [Suggestions.unfiltered_storage_low_key] = nil,
+    [Suggestions.undersupply_key] = nil,
+    [Suggestions.mismatched_storage_key] = nil,
   }
-
-  -- Pre-allocate suggestions table with known suggestion types
   self._suggestions = {
-    ["waiting-to-charge"] = nil,
-    ["insufficient-storage"] = nil,
-    ["insufficient-unfiltered-storage"] = nil,
-    ["supply-shortage"] = nil,
-    ["mismatched-storage"] = nil,
+    [Suggestions.awaiting_charge_key] = nil,
+    [Suggestions.storage_low_key] = nil,
+    [Suggestions.unfiltered_storage_low_key] = nil,
+    [Suggestions.undersupply_key] = nil,
+    [Suggestions.mismatched_storage_key] = nil,
   }
   self._cached_data = {
-    ["waiting-to-charge"] = nil,
-    ["insufficient-storage"] = nil,
-    ["insufficient-unfiltered-storage"] = nil,
-    ["supply-shortage"] = nil,
-    ["mismatched-storage"] = nil,
+    [Suggestions.awaiting_charge_key] = nil,
+    [Suggestions.storage_low_key] = nil,
+    [Suggestions.unfiltered_storage_low_key] = nil,
+    [Suggestions.undersupply_key] = nil,
+    [Suggestions.mismatched_storage_key] = nil,
   }
 end
 
+--- Clear a single suggestion
+--- @param name string The name of the suggestion to clear
 function Suggestions:clear_suggestion(name)
   self._suggestions[name] = nil
   self._historydata[name] = nil
@@ -198,18 +195,19 @@ end
 function Suggestions:analyse_waiting_to_charge()
   -- Do we have enough places to charge, or are too many waiting to charge?
   local waiting = storage.bot_items["waiting-for-charge-robot"] or 0
-  local need_rps
-  if waiting > 9 then
-    need_rps = math.ceil(waiting / 4) -- Assume 4 bots will charge in one roboport
-  else
-    need_rps = 0
-  end
+  local need_rps = (waiting > 9) and math.ceil(waiting / 4) or 0
   -- Record the last few numbers so the recommendation does not jump around randomly
-  self:remember("waiting-to-charge", need_rps)
+  self:remember(Suggestions.awaiting_charge_key, need_rps)
 
-  local suggested_number = self:max_from_history("waiting-to-charge")
-  self:create_or_clear_suggestion("waiting-to-charge", suggested_number, "entity/roboport", Suggestions:get_urgency(suggested_number, 100), false,
-    {"suggestions-row.waiting-to-charge-action", suggested_number})
+  local suggested_number = self:max_from_history(Suggestions.awaiting_charge_key)
+  self:create_or_clear_suggestion(
+    Suggestions.awaiting_charge_key,
+    suggested_number,
+    "entity/roboport",
+    self:get_urgency(suggested_number, 100),
+    false,
+    {"suggestions-row.waiting_to_charge_action", suggested_number}
+  )
 end
 
 --- Create a suggestion, if the numbers warrant it
@@ -218,10 +216,8 @@ end
 --- @param free_stacks number The number of free stacks available
 function Suggestions:create_storage_capacity_suggestion(suggestion_name, total_stacks, free_stacks)
   local used_capacity = 1 -- No stacks = no capacity
-  if total_stacks > 0 then
-    used_capacity = 1 - free_stacks / total_stacks
-  end
-  local urgency = Suggestions:get_urgency(used_capacity, 0.9)
+  if total_stacks > 0 then used_capacity = 1 - free_stacks / total_stacks end
+  local urgency = self:get_urgency(used_capacity, 0.9)
   local used_rounded = math.floor(used_capacity * 1000)/10
   if used_capacity > 0.7 then
     self:create_or_clear_suggestion(suggestion_name, used_rounded, "entity/storage-chest", urgency, false,
@@ -236,17 +232,12 @@ end
 -- Potential issue #3: Storage chests overall are full, or not enough storage
 --- @param network? LuaLogisticNetwork The network being analysed
 function Suggestions:analyse_storage(network)
-  local SUGGESTION_mismatch = "mismatched-storage"
-  local SUGGESTION_unfiltered = "insufficient-unfiltered-storage"
-  local SUGGESTION_storage = "insufficient-storage"
   if network and network.storages then
     -- Maintain a list of mismatched storages
     local mismatched = {}
     -- Maintain a count of total and free stacks
-    local all_stacks = 0
-    local free_stacks = 0
-    local unfiltered_stacks = 0
-    local unfiltered_free_stacks = 0
+    local all_stacks, free_stacks = 0, 0
+    local unfiltered_stacks, unfiltered_free_stacks = 0, 0
     for _, storage in pairs(network.storages) do
       if storage.valid then
         local inventory = storage.get_inventory(defines.inventory.chest)
@@ -262,12 +253,18 @@ function Suggestions:analyse_storage(network)
             for finx = 1, storage.filter_slot_count do
               -- Check if the filter matches the contents
               local filter = storage.get_filter(finx)
-              if filter then
+              if not filter then
+                -- There is no filter, count unfiltered capacity
+                if finx == 1 then -- If there are multiple filters, only count capacity once
+                  unfiltered_stacks = unfiltered_stacks + capacity
+                  unfiltered_free_stacks = unfiltered_free_stacks + free
+                end
+              else
                 if inventory and not inventory.is_empty() then
+                  -- Placeholder mismatch logic (unchanged)
                   local stacks = inventory.get_contents()
-                  -- Check if any of the contents does not match the filter
                   local index = 1
-                  while index <= #stacks do 
+                  while index <= #stacks do
                     local stack = stacks[index]
                     if stack then
                       if stack.name ~= filter.name.name or stack.quality ~= filter.quality.name then
@@ -280,12 +277,6 @@ function Suggestions:analyse_storage(network)
                     index = index + 1
                   end
                 end
-              else
-                -- There is no filter, count unfiltered capacity
-                if finx == 1 then -- If there are multiple filters, only count capacity once
-                  unfiltered_stacks = unfiltered_stacks + capacity
-                  unfiltered_free_stacks = unfiltered_free_stacks + free
-                end
               end
             end
           end
@@ -294,18 +285,18 @@ function Suggestions:analyse_storage(network)
     end
 
     -- Create storage capacity suggestions, if the numbers warrant it
-    self:create_storage_capacity_suggestion(SUGGESTION_storage, all_stacks, free_stacks)
-    self:create_storage_capacity_suggestion(SUGGESTION_unfiltered, unfiltered_stacks, unfiltered_free_stacks)
+    self:create_storage_capacity_suggestion(Suggestions.storage_low_key, all_stacks, free_stacks)
+    self:create_storage_capacity_suggestion(Suggestions.unfiltered_storage_low_key, unfiltered_stacks, unfiltered_free_stacks)
 
     -- Create Mismatched Storage suggestion
     local mismatched_count = #mismatched
-    self:create_or_clear_suggestion(SUGGESTION_mismatch, mismatched_count, "entity/storage-chest", "low", true,
+    self:create_or_clear_suggestion(Suggestions.mismatched_storage_key, mismatched_count, "entity/storage-chest", "low", true,
       {"suggestions-row.mismatched-storage-action", mismatched_count})
-    self:set_cached_list(SUGGESTION_mismatch, mismatched) -- Store the list of mismatched storages
+    self:set_cached_list(Suggestions.mismatched_storage_key, mismatched) -- Store the list of mismatched storages
   else
-    self:clear_suggestion(SUGGESTION_mismatch)
-    self:clear_suggestion(SUGGESTION_unfiltered)
-    self:clear_suggestion(SUGGESTION_storage)
+    self:clear_suggestion(Suggestions.mismatched_storage_key)
+    self:clear_suggestion(Suggestions.unfiltered_storage_low_key)
+    self:clear_suggestion(Suggestions.storage_low_key)
   end
 end
 

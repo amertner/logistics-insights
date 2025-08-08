@@ -257,7 +257,7 @@ function player_data.check_network_changed(player, player_table)
       if not player_table.suggestions then
         player_table.suggestions = suggestions.new()
       end
-      player_table.suggestions:reset() -- Reset suggestions list
+      player_table.suggestions:clear_suggestions()
       return true
     end
   else

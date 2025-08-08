@@ -39,19 +39,20 @@ function undersupply.analyse_demand_and_supply(network)
                   -- Only track items/entities, not fluids, virtuals, etc
                   if itemtype == "item" then
                     local item_name = filter.value.name
-                    local quality = filter.value.quality or "normal"
-                    local requested_count = filter.min
-                    
-                    -- Calculate actual demand (requested - already in requester)
-                    local inventory = requester.get_inventory(defines.inventory.linked_container_main)
-                    if inventory then
-                      local item_quality = {name = item_name, quality = quality}
-                      local current_count = inventory.get_item_count(item_quality)
-                      local actual_demand = math.max(0, requested_count - current_count)
-                      
-                      if actual_demand > 0 then
-                        local key = utils.get_item_quality_key(item_name, quality)
-                        total_demand[key] = (total_demand[key] or 0) + actual_demand
+                    ---@type string Filter.value.quality is a string, per https://lua-api.factorio.com/latest/concepts/ItemWithQualityCount.html
+                    ---@diagnostic disable-next-line: assign-type-mismatch
+                    local quality_name = filter.value.quality or "normal"
+                    local requested_count = filter.min or 0
+                    if requested_count > 0 then
+                      local inventory = requester.get_inventory(defines.inventory.chest)
+                      if inventory then
+                        local item_quality = {name = item_name, quality = quality_name}
+                        local current_count = inventory.get_item_count(item_quality)
+                        local actual_demand = math.max(0, requested_count - current_count)
+                        if actual_demand > 0 then
+                          local key = utils.get_item_quality_key(item_name, quality_name)
+                          total_demand[key] = (total_demand[key] or 0) + actual_demand
+                        end
                       end
                     end
                   end
@@ -66,20 +67,20 @@ function undersupply.analyse_demand_and_supply(network)
     -- Convert supply array to hash table for O(1) lookups
     local total_supply = {}
     for _, item_with_quality in pairs(total_supply_array) do
-      local key = utils.get_item_quality_key(item_with_quality.name, item_with_quality.quality or "normal")
+      local quality_name = item_with_quality.quality or "normal" -- ensure plain string
+      local key = utils.get_item_quality_key(item_with_quality.name, tostring(quality_name))
       total_supply[key] = item_with_quality.count
     end
 
     -- Calculate net demand for each item - create as array for easy sorting
-    -- Net demand = requested - supply - under way
+    -- Net demand = requested - (supply + under way)
     local net_demand = {}
     for key, request in pairs(total_demand) do
       local supply = total_supply[key] or 0
       if request > supply then
         local shortage = request - supply
-        local item_name, quality = key:match("([^:]+):(.+)")
-
-        local under_way = get_underway(key) or 0 -- Get the number of items already in transit
+        local item_name, quality_name = key:match("([^:]+):(.+)")
+        local under_way = get_underway(key) or 0
         if under_way > 0 then
           shortage = shortage - under_way
         end
@@ -87,7 +88,7 @@ function undersupply.analyse_demand_and_supply(network)
           table.insert(net_demand, {
             shortage = shortage,
             item_name = item_name,
-            quality_name = quality,
+            quality_name = quality_name,
             request = request,
             supply = supply,
             under_way = under_way
