@@ -32,7 +32,7 @@ function undersupply_row.update(player_table, clearing)
       function(a, b) return a.shortage > b.shortage end,
       "shortage",
       clearing or false,
-      function(pt) return pause_manager.is_running(player_table.paused_items, "undersupply") end
+      function(pt) return pause_manager.is_running(player_table, "undersupply") end
     )
   end
 end

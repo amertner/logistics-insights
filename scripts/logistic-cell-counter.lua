@@ -88,7 +88,7 @@ local function all_chunks_done(accumulator, player_table)
   storage.charging_bot_qualities = accumulator.charging_bot_qualities or {}
   storage.waiting_bot_qualities = accumulator.waiting_bot_qualities or {}
 
-  if player_table and player_table.suggestions and pause_manager.is_running(player_table.paused_items, "suggestions") then
+  if player_table and player_table.suggestions and pause_manager.is_running(player_table, "suggestions") then
     player_table.suggestions:cells_data_updated(player_table.network)
   end
 end
@@ -135,7 +135,7 @@ function logistic_cell_counter.gather_data(player, player_table)
   bot_items["logistic-robot-total"] = network.all_logistic_robots
   bot_items["logistic-robot-available"] = network.available_logistic_robots
 
-  if pause_manager.is_paused(player_table.paused_items, "activity") then
+  if pause_manager.is_paused(player_table, "activity") then
     return progress
   end
 

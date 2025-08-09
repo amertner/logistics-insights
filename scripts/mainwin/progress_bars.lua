@@ -13,8 +13,11 @@ local cached_tooltip_complete = nil
 local cached_tooltip_data = {}
 
 --- Update cached chunk size value when settings change
-function progress_bars.update_chunk_size_cache()
-  local new_chunk_size = player_data.get_singleplayer_table().settings.chunk_size or 400
+function progress_bars.update_chunk_size_cache(player_table)
+  if not player_table or not player_table.settings then
+    return
+  end
+  local new_chunk_size = player_table.settings.chunk_size or 400
 
   -- Only invalidate caches if the value actually changed
   if new_chunk_size ~= cached_chunk_size then
@@ -39,7 +42,7 @@ function progress_bars.update_progressbar(player_table, progressbar_name, progre
 
   -- Initialize the cache if it's not set yet
   if cached_chunk_size == 0 then
-    progress_bars.update_chunk_size_cache()
+    progress_bars.update_chunk_size_cache(player_table)
   end
 
   if not progress or progress.total == 0 then

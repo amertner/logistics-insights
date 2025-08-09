@@ -80,7 +80,7 @@ function activity_row.add(player_table, gui_table)
     tooltip = {"activity-row.header-tooltip"},
   }
   local tip = {"activity-row.pause-tooltip"}
-  local is_paused = pause_manager.is_paused(player_table.paused_items, "activity") or false
+  local is_paused = pause_manager.is_paused(player_table, "activity") or false
   mini_button.add(player_table, hcell, "activity", tip, "pause", is_paused)
 
   local progressbar = cell.add {
@@ -105,7 +105,7 @@ function activity_row.add(player_table, gui_table)
         style = "slot_button",
         name = cellname,
         -- These Activity Row cells are only available when Delivery info is gathered
-        enabled = icon.onwithpause or pause_manager.is_running(player_table.paused_items, "delivery"),
+        enabled = icon.onwithpause or pause_manager.is_running(player_table, "delivery"),
         tags = { follow = true }
       },
     }
@@ -171,7 +171,7 @@ function activity_row.update(player_table)
       if window.cell.valid then
         local no_data = false
         -- Even if paused, the Total and Available robot counts are available
-        local is_active = pause_manager.is_running(player_table.paused_items, "activity") or
+        local is_active = pause_manager.is_running(player_table, "activity") or
                           key == "logistic-robot-total" or key == "logistic-robot-available"
          -- If real time delivery is disabled, the Pickup/Delivery buttons should be inactive too
         if is_active and (key == "picking" or key == "delivering") and not activity_row.should_show_deliveries(player_table) then

@@ -51,7 +51,7 @@ function sorted_item_row.add(player_table, gui_table, title, button_title, need_
       elseif button_title == "undersupply" then
         tip = {"undersupply-row.toggle-tooltip"}
       end
-      local is_paused = pause_manager.is_paused(player_table.paused_items, button_title) or false
+      local is_paused = pause_manager.is_paused(player_table, button_title) or false
       row_button = mini_button.add(player_table, hcell, button_title, tip, "pause", is_paused)
     end
   end

@@ -39,7 +39,7 @@ function suggestions_row.add(player_table, gui_table)
   }
   -- Add pause button and set its state
   local tip = {"suggestions-row.pause-tooltip"}
-  local is_paused = pause_manager.is_paused(player_table.paused_items, "suggestions") or false
+  local is_paused = pause_manager.is_paused(player_table, "suggestions") or false
   mini_button.add(player_table, hcell, "suggestions", tip, "pause", is_paused)
 
   -- Remember the title cell so we can update the tooltip later
@@ -161,7 +161,7 @@ function suggestions_row.update(player_table)
     player_table.suggestions = suggestions.new() -- #FIXME: Just return on release
   end
 
-  local running = pause_manager.is_running(player_table.paused_items, "suggestions")
+  local running = pause_manager.is_running(player_table, "suggestions")
   -- Show all suggestions
   local shown = suggestions_row.show_suggestions(player_table, running)
   -- Clear any remaining cells

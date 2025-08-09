@@ -59,7 +59,7 @@ function Chunker:reset()
   -- Do whatever needs doing when the list is done
   self.on_completion(self.partial_data, self.player_table)
   -- Reset the counter and claim completion
-  self:initialise_chunking(nil, self.player_table or player_data.get_singleplayer_table(), nil)
+  self:initialise_chunking(nil, self.player_table, nil)
 end
 
 --- Get the total number of chunks needed to process the current list

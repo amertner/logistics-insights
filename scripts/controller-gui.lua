@@ -90,17 +90,17 @@ function controller_gui.update_window(player, player_table)
       tip = tooltips_helper.get_quality_tooltip_line(tip, player_table, storage.total_bot_qualities, false, "controller-gui.main_tooltip_quality")
       tip = tooltips_helper.add_empty_line(tip)
 
-      local paused = pause_manager.is_paused(player_table.paused_items, "delivery")
+      local paused = pause_manager.is_paused(player_table, "delivery")
       tip = { "", tip, { "controller-gui.main_tooltip_delivering", get_status(paused, player_table.settings.show_delivering) } }
 
       tip = tooltips_helper.add_network_history_tip(tip, player_table)
-      paused = pause_manager.is_paused(player_table.paused_items, "activity")
+      paused = pause_manager.is_paused(player_table, "activity")
       tip = { "", tip, { "controller-gui.main_tooltip_activity", get_status(paused, player_table.settings.show_activity) } }
 
-      paused = pause_manager.is_paused(player_table.paused_items, "undersupply")
+      paused = pause_manager.is_paused(player_table, "undersupply")
       tip = { "", tip, { "controller-gui.main_tooltip_undersupply", get_status(paused, player_table.settings.show_undersupply) } }
 
-      paused = pause_manager.is_paused(player_table.paused_items, "suggestions")
+      paused = pause_manager.is_paused(player_table, "suggestions")
       tip = { "", tip, { "controller-gui.main_tooltip_suggestions", get_status(paused, player_table.settings.show_suggestions) } }
     else
       gui.logistics_insights_toggle_main.number = nil
@@ -121,7 +121,7 @@ function controller_gui.onclick(event)
     if event.button == defines.mouse_button_type.left then
       main_window.toggle_window_visible(player)
 
-      player_table = player_data.get_singleplayer_table()
+      local player_table = player_data.get_player_table(event.player_index)
       controller_gui.update_window(player, player_table)
     end
   end

@@ -11,14 +11,15 @@ local function init_storage_and_settings()
 end
 
 local function reinitialise_ui()
-  local player = player_data.get_singleplayer_player()
-  local player_table = player_data.get_singleplayer_table()
-  if player and player_table then
-    player_table.ui = nil -- Reset UI to force recreation
-    main_window.ensure_ui_consistency(player, player_table)
-  else
-    -- If we can't get the player or table, just re-initialise storage and settings
-    init_storage_and_settings()
+  for player_index, player_table in pairs(storage.players) do
+    local player = game.get_player(player_index)
+    if player and player_table then
+      player_table.ui = nil -- Reset UI to force recreation
+      main_window.ensure_ui_consistency(player, player_table)
+    else
+      -- If we can't get the player or table, just re-initialise storage and settings
+      init_storage_and_settings()
+    end
   end
 end
 

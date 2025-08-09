@@ -47,9 +47,6 @@ local suggestions = require("scripts.suggestions")
 local math_max = math.max
 local math_ceil = math.ceil
 
-local cached_player = nil
-local cached_player_table = nil
-
 -- Global player data, stored for each player
 ---@class PlayerData
 ---@field settings table<string,any> -- Player mod settings cached for performance
@@ -177,48 +174,10 @@ function player_data.update_settings(player, player_table)
 end
 
 ---@return PlayerData|nil
-function player_data.get_singleplayer_table()
-  -- In singleplayer mode, there is only one player. Return the player_table.
-  if not cached_player_table then
-    -- Make sure there are connected players before trying to access them
-    if #game.connected_players > 0 then
-      local player = game.connected_players[1]
-      if player and player.valid and storage and storage.players then
-        cached_player_table = storage.players[player.index]
-        if cached_player_table then
-          -- Ensure the player table has the necessary fields
-          if not cached_player_table.paused_items then
-            cached_player_table.paused_items = {} -- Initialize paused items if not present
-          end
-          return cached_player_table
-        end
-      else
-        -- Player or storage not valid, return nil
-        return nil
-      end
-    else
-      -- No players connected, return nil
-      return nil
-    end
+function player_data.get_player_table(player_index)
+  if not player_index or not storage.players then
+    return nil -- No player index or storage available
   end
-  return cached_player_table
-end
-
----@return LuaPlayer|nil
-function player_data.get_singleplayer_player()
-  -- In singleplayer mode, there is only one player. Return the player.
-  -- Check if cached player is nil or no longer valid
-  if not cached_player or not cached_player.valid then
-    cached_player = nil -- Clear invalid cache
-    -- Make sure there are connected players before trying to access them
-    if #game.connected_players > 0 then
-      cached_player = game.connected_players[1]
-    else
-      -- No players connected, return nil
-      return nil
-    end
-  end
-  return cached_player
 end
 
 ---@param player LuaPlayer|nil
@@ -302,10 +261,5 @@ function player_data.register_ui(player_table, name)
   player_table.ui[name] = {}
 end
 
--- Reset cached references - should be called when game is loaded or configuration changes
-function player_data.reset_cache()
-  cached_player = nil
-  cached_player_table = nil
-end
 
 return player_data

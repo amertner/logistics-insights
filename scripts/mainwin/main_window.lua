@@ -56,7 +56,7 @@ function main_window.create(player, player_table)
 
   -- Reset all Paused states
   player_table.paused_items = {}
-  pause_manager.enable_all()
+  pause_manager.enable_all(player_table)
   player_table.bots_table = content_table
   -- Add all of the data rows
   main_window._add_all_rows(player_table, content_table)
@@ -244,13 +244,13 @@ function main_window.set_window_visible(player, player_table, visible)
   if player_table.history_timer and player_table.settings.pause_while_hidden then
     if not player_table.bots_window_visible then
       -- History collection pauses when the window is minimized, but remember paused state
-      pause_manager.set_paused(player_table.paused_items, "window", true)
+      pause_manager.set_paused(player_table, "window", true)
       player_table.history_timer:pause()
     else
       -- Restore prior paused states
-      pause_manager.set_paused(player_table.paused_items, "window", false)
+      pause_manager.set_paused(player_table, "window", false)
       -- Resume the history timer if it was paused only because the window was hidden
-      if pause_manager.is_running(player_table.paused_items, "history") then
+      if pause_manager.is_running(player_table, "history") then
         player_table.history_timer:resume()
       end
     end
@@ -281,8 +281,8 @@ end
 --- @param event EventData.on_gui_click The click event data
 function main_window.onclick(event)
   if utils.starts_with(event.element.name, "logistics-insights") then
-    local player = player_data.get_singleplayer_player()
-    local player_table = player_data.get_singleplayer_table()
+    local player = game.get_player(event.player_index)
+    local player_table = player_data.get_player_table(event.player_index)
     if player and player.valid and player_table then
       local cleared = false
       if event.element.name == "logistics-insights-unfreeze" then
@@ -308,17 +308,17 @@ function main_window.onclick(event)
         cleared = true
         main_window.update(player, player_table, true)
       elseif event.element.name == "logistics-insights-sorted-delivery" then
-        pause_manager.toggle_paused(player_table.paused_items, "delivery")
+        pause_manager.toggle_paused(player_table, "delivery")
       elseif event.element.name == "logistics-insights-sorted-history" then
-        local paused = pause_manager.toggle_paused(player_table.paused_items, "history")
+        local paused = pause_manager.toggle_paused(player_table,  "history")
         -- Also toggle the history timer
         player_table.history_timer:set_paused(paused)
       elseif event.element.name == "logistics-insights-sorted-activity" then
-        pause_manager.toggle_paused(player_table.paused_items, "activity")
+        pause_manager.toggle_paused(player_table, "activity")
       elseif event.element.name == "logistics-insights-sorted-undersupply" then
-        pause_manager.toggle_paused(player_table.paused_items, "undersupply")
+        pause_manager.toggle_paused(player_table, "undersupply")
       elseif event.element.name == "logistics-insights-sorted-suggestions" then
-        pause_manager.toggle_paused(player_table.paused_items, "suggestions")
+        pause_manager.toggle_paused(player_table, "suggestions")
       elseif utils.starts_with(event.element.name, "logistics-insights-undersupply") then
         -- This is an undersupply row item button, find the item it's referring to
         local item_name = event.element.sprite:match("^item/(.+)$")

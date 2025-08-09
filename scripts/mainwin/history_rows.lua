@@ -8,7 +8,7 @@ local sorted_item_row = require("scripts.mainwin.sorted_item_row")
 local pause_manager = require("scripts.pause-manager")
 
 local function is_history_enabled(player_table)
-  return pause_manager.is_running(player_table.paused_items, "history")
+  return pause_manager.is_running(player_table, "history")
 end
 
 --- Add history rows to the GUI (totals and average ticks)

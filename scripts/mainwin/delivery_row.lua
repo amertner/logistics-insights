@@ -16,7 +16,7 @@ function delivery_row.add(player_table, gui_table)
 end
 
 local function is_delivery_enabled(player_table)
-  return pause_manager.is_running(player_table.paused_items, "delivery")
+  return pause_manager.is_running(player_table, "delivery")
 end
 
 --- Update the delivery row with current data
