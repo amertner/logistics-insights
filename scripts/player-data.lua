@@ -59,7 +59,6 @@ local math_ceil = math.ceil
 ---@field player_index uint -- The player's index
 ---@field window_location {x: number, y: number} -- Saved window position
 ---@field ui table<string, table> -- UI elements for the mod's GUI
----@field bots_table LuaGuiElement|nil -- Reference to the main bots table UI element
 ---@field current_logistic_cell_interval number -- Dynamically calculated interval for logistic cell updates
 ---@field paused_items string[] -- List of paused items by name
 ---@param player_index uint
@@ -70,20 +69,20 @@ function player_data.init(player_index)
     window = nil, -- Will be created later
     bots_window_visible = false, -- Start invisible
     network = nil,
-    history_timer = tick_counter.new(),
-    suggestions = suggestions.new(),
-    fixed_network = false,
+    history_timer = tick_counter.new(), -- #TODO: This should be for the network
+    suggestions = suggestions.new(),   -- #TODO: This should be for the network
+    fixed_network = false, -- #TODO: Should be the network ID or nil
     player_index = player_index,
     window_location = {x = 200, y = 0},
     ui = {},
-    bots_table = nil,
     current_logistic_cell_interval = 60,
-    paused_items = {} -- Paused activities
+    paused_items = {} -- Paused activities #TODO: Only paused in UI? Only for this player?
   }
   storage.players[player_index] = player_data_entry
 end
 
 -- Initialize all of the storage elements managed by logistic_cell_counter
+-- #TODO: These should be per-network
 ---@return nil
 function player_data.init_logistic_cell_counter_storage()
   -- Bot qualities
@@ -102,6 +101,7 @@ function player_data.init_logistic_cell_counter_storage()
 end
 
 -- Initialize all of the storage elements managed by bot_counter
+-- #TODO: These should be per-network
 ---@return nil
 function player_data.init_bot_counter_storage()
   -- Real time data about deliveries
@@ -160,11 +160,11 @@ function player_data.update_settings(player, player_table)
       max_items = mod_settings["li-max-items"].value,
       show_history = mod_settings["li-show-history"].value,
       show_activity = mod_settings["li-show-activity"].value,
-      gather_quality_data = mod_settings["li-gather-quality-data"].value,
+      gather_quality_data = mod_settings["li-gather-quality-data"].value, -- #TODO: Per player?
       chunk_size = mod_settings["li-chunk-size"].value,
       bot_chunk_interval = mod_settings["li-chunk-processing-interval"].value,
       ui_update_interval = mod_settings["li-ui-update-interval"].value,
-      pause_for_bots = mod_settings["li-pause-for-bots"].value,
+      pause_for_bots = mod_settings["li-pause-for-bots"].value, -- #TODO: Disable when multiplayer?
       pause_while_hidden = mod_settings["li-pause-while-hidden"].value,
       show_mini_window = mod_settings["li-show-mini-window"].value,
     }

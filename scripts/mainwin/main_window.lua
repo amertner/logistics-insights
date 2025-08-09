@@ -59,7 +59,6 @@ function main_window.create(player, player_table)
   -- Reset all Paused states
   player_table.paused_items = {}
   pause_manager.enable_all(player_table)
-  player_table.bots_table = content_table
   -- Add all of the data rows
   main_window._add_all_rows(player_table, content_table)
 
@@ -78,12 +77,15 @@ end
 --- @param player LuaPlayer The player whose UI to ensure consistency for
 --- @param player_table PlayerData The player's data table
 function main_window.ensure_ui_consistency(player, player_table)
+  if not player or not player.valid or not player_table then
+    return -- No player, nothing to ensure
+  end
   local gui = player.gui.screen
   if not gui.logistics_insights_window or not player_table.ui then
     main_window.create(player, player_table)
   end
 
-  local window = gui.logistics_insights_window
+  window = player_table.window
 
   if game_state.needs_buttons() then
     local titlebar = window["logistics-insights-title-bar"]
@@ -226,9 +228,6 @@ end
 function main_window.destroy(player, player_table)
   if player.valid and player.gui.screen.logistics_insights_window then
     player.gui.screen.logistics_insights_window.destroy()
-    if player_table and player_table.bots_table then
-      player_table.bots_table = nil
-    end
   end
   player_table.window = nil
   player_table.ui = {} -- Keep as table for future register_ui calls

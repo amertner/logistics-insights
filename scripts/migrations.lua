@@ -21,10 +21,18 @@ local function reinitialise_ui(player, player_table)
 end
 
 local li_migrations = {
+  ["0.9.8"] = function()
+    -- Move all of the things that used to be global to per-player
+    for player_index, player_table in pairs(storage.players) do
+      -- local player = game.get_player(player_index)
+      player_table.bots_table = nil -- Field removed
+    end
+  end,
+
   ["0.9.7"] = function()
     for player_index, player_table in pairs(storage.players) do
       local player = game.get_player(player_index)
-      if player_table and player_table.ui and player_table.bots_table then
+      if player_table and player_table.ui then
         -- Initialise new paused_items table
         player_table.paused_items = {}
         ---@diagnostic disable-next-line: inject-field
