@@ -366,7 +366,8 @@ script.on_event(defines.events.on_gui_location_changed,
   if event.element and event.element.name == WINDOW_NAME then
     local player_table = storage.players[event.player_index]
     if player_table then
-      player_table.window_location = event.element.location
+      player_table.window_location.x = event.element.location.x
+      player_table.window_location.y = event.element.location.y
     end
   end
 end)

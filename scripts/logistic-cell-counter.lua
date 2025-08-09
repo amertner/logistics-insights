@@ -2,6 +2,7 @@
 local logistic_cell_counter = {}
 
 local player_data = require("scripts.player-data")
+local network_data = require("scripts.network-data")
 local utils = require("scripts.utils")
 local pause_manager = require("scripts.pause-manager")
 
@@ -105,9 +106,11 @@ end
 --- @param player_table? PlayerData The player's data table
 function logistic_cell_counter.network_changed(player, player_table)
   cell_chunker:reset()
-  player_data.init_logistic_cell_counter_storage()
-  if player_table and player_table.suggestions then
-    player_table.suggestions:clear_suggestions()
+  if player_table then
+    network_data.init_logistic_cell_counter_storage(player_table.network)
+    if player_table.suggestions then
+      player_table.suggestions:clear_suggestions()
+    end
   end
 end
 

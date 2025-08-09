@@ -1,6 +1,7 @@
 local bot_counter = {}
 
 local player_data = require("scripts.player-data")
+local network_data = require("scripts.network-data")
 local chunker = require("scripts.chunker")
 local utils = require("scripts.utils")
 local pause_manager = require("scripts.pause-manager")
@@ -280,7 +281,9 @@ end
 function bot_counter.network_changed(player, player_table)
   -- Clear all current state when we change networks
   bot_chunker:reset()
-  player_data.init_bot_counter_storage()
+  if player_table then
+    network_data.init_bot_counter_storage(player_table.network)
+  end
 end
 
 --- Gather bot delivery data for all bots, one chunk at a time

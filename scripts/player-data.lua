@@ -3,45 +3,7 @@ local player_data = {}
 
 local tick_counter = require("scripts.tick-counter")
 local suggestions = require("scripts.suggestions")
-
--- Record used to show items being delivered right now
----@class DeliveryItem
----@field item_name string -- The name of the item being delivered
----@field quality_name? string -- The quality of the item, if applicable
----@field localised_name? LocalisedString -- The localised name of the item
----@field localised_quality_name? LocalisedString -- The localised name of the quality
----@field count number -- How many are being delivered
-
--- Record used to show historically delivered items
----@class DeliveredItems
----@field item_name string -- The name of the item being delivered
----@field quality_name? string -- The quality of the item, if applicable
----@field localised_name? LocalisedString -- The localised name of the item
----@field localised_quality_name? LocalisedString -- The localised name of the quality
----@field count number -- How many of this item have been delivered
----@field ticks number -- Total ticks for all deliveries of this item
----@field avg number -- Average ticks per delivery, equal to ticks/count
-
--- Record used to record items being delivered, before they are added to history
----@class BotDeliveringInFlight
----@field item_name string -- The name of the item being delivered
----@field quality_name? string -- The quality of the item, if applicable
----@field localised_name? LocalisedString -- The localised name of the item
----@field localised_quality_name? LocalisedString -- The localised name of the quality
----@field count number -- How many of this item it is delivering
----@field targetpos MapPosition -- The target position for the delivery
----@field first_seen number -- The first tick this bot was seen delivering it
----@field last_seen number -- The last tick this bot was seen delivering it
-
--- Record used to store list of undersupplied items
----@class UndersupplyItem
----@field shortage number -- How many of this item is undersupplied
----@field type string -- The type of the item, e.g. "item", "fluid", "entity"
----@field item_name string -- The name of the item
----@field quality_name string -- The quality of the item, if applicable
----@field request number -- The requested amount of this item
----@field supply number -- The available supply of this item
----@field under_way number -- The amount of this item already in transit
+local network_data = require("scripts.network-data")
 
 -- Cache frequently used functions for performance
 local math_max = math.max
@@ -82,71 +44,17 @@ function player_data.init(player_index)
   storage.players[player_index] = player_data_entry
 end
 
--- Initialize all of the storage elements managed by logistic_cell_counter
--- #TODO: These should be per-network
----@return nil
-function player_data.init_logistic_cell_counter_storage()
-  -- Bot qualities
-  ---@type QualityTable
-  storage.idle_bot_qualities = {} -- Quality of idle bots in roboports
-
-  ---@type QualityTable
-  storage.charging_bot_qualities = {} -- Quality of bots currently charging
-
-  ---@type QualityTable
-  storage.waiting_bot_qualities = {} -- Quality of bots waiting to charge
-
-  -- Roboport qualities
-  ---@type QualityTable
-  storage.roboport_qualities = {} -- Quality of roboports
-end
-
--- Initialize all of the storage elements managed by bot_counter
--- #TODO: These should be per-network
----@return nil
-function player_data.init_bot_counter_storage()
-  -- Real time data about deliveries
-  ---@type table<string, DeliveryItem>
-  storage.bot_deliveries = {} -- A list of items being delivered right now
-
-  -- Real time data about bots: Very cheap to keep track of
-  ---@type table<string, number>
-  storage.bot_items = storage.bot_items or {}
-
-  -- History data
-  ---@type table<number, BotDeliveringInFlight>
-  storage.bot_active_deliveries = {} -- A list of bots currently delivering items
-
-  ---@type table<string, DeliveredItems>
-  storage.delivery_history = {} -- A list of past delivered items
-
-  -- Bot counting: bots seen in the last full pass
-  ---@type table<number, boolean>
-  storage.last_pass_bots_seen = {}
-
-  -- Bot qualitity tables
-  ---@type QualityTable
-  storage.picking_bot_qualities = {} -- Quality of bots currently picking items
-
-  ---@type QualityTable
-  storage.delivering_bot_qualities = {} -- Quality of bots currently delivering items
-
-  ---@type QualityTable
-  storage.other_bot_qualities = {} -- Quality of bots doing anything else
-
-  ---@type QualityTable
-  storage.total_bot_qualities = {} -- Quality of all bots counted
-end
-
+--- Initialise all storages
 ---@return nil
 function player_data.init_storages()
-  player_data.init_logistic_cell_counter_storage()
-  player_data.init_bot_counter_storage()
+  ---@type table<uint, PlayerData>
   storage.players = {}
   for _, player in pairs(game.players) do
     player_data.init(player.index)
     player_data.update_settings(player, storage.players[player.index])
   end
+
+  network_data.init() -- Initialise network data storage
 end
 
 ---@param player LuaPlayer|nil

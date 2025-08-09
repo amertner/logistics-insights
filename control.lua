@@ -1,7 +1,8 @@
 -- Main script for Logistics Insights mod
 local flib_migration = require("__flib__.migration")
 
-local player_data = require("scripts.player-data")
+local player_data = require("scripts.player-data")  
+local network_data = require("scripts.network-data")
 local bot_counter = require("scripts.bot-counter")
 local logistic_cell_counter = require("scripts.logistic-cell-counter")
 local controller_gui = require("scripts.controller-gui")
@@ -76,8 +77,8 @@ script.on_configuration_changed(
   --- @param e ConfigurationChangedData
   function(e)
 
-  -- Remove history information that may refer to modded items that are no longer available
-  player_data.init_bot_counter_storage()
+  -- Remove all prior information since it may refer to modded items that are no longer available
+  network_data.init()
 
   -- Run migrations if the mod version has changed
   flib_migration.on_config_changed(e, li_migrations)
