@@ -178,6 +178,7 @@ function player_data.get_player_table(player_index)
   if not player_index or not storage.players then
     return nil -- No player index or storage available
   end
+  return storage.players[player_index] or nil -- Return the player table if it exists
 end
 
 ---@param player LuaPlayer|nil

@@ -41,7 +41,9 @@ function main_window.create(player, player_table)
   }
   -- Store root window separately (do not overwrite ui table)
   player_table.window = window
-  if not player_table.ui then player_table.ui = {} end
+  if not player_table.ui then 
+    player_table.ui = {}
+  end
 
   -- Create title bar with control buttons
   main_window._add_titlebar(window, player_table)
@@ -186,7 +188,9 @@ function main_window.update(player, player_table, clearing)
       return -- No window to update
     end
   end
-  if not player_table.ui then player_table.ui = {} end
+  if not player_table.ui then 
+    player_table.ui = {} 
+  end
   -- Update shortcut toggle state to match window visibility
   player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
   if not player_table.bots_window_visible then
