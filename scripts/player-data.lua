@@ -62,6 +62,7 @@ local math_ceil = math.ceil
 ---@field current_logistic_cell_interval number -- Dynamically calculated interval for logistic cell updates
 ---@field paused_items string[] -- List of paused items by name
 ---@param player_index uint
+---@return nil
 function player_data.init(player_index)
   ---@type PlayerData
   local player_data_entry = {
@@ -150,6 +151,7 @@ end
 
 ---@param player LuaPlayer|nil
 ---@param player_table PlayerData|nil
+---@return nil
 function player_data.update_settings(player, player_table)
   if  player and player.valid and player_table then
     local mod_settings = player.mod_settings
@@ -173,6 +175,7 @@ function player_data.update_settings(player, player_table)
   end
 end
 
+---@param player_index uint
 ---@return PlayerData|nil
 function player_data.get_player_table(player_index)
   if not player_index or not storage.players then
@@ -224,16 +227,16 @@ function player_data.check_network_changed(player, player_table)
   end
 end
 
-function player_data.is_included_robot(bot)
-  return true -- For now, include all bots.
-  -- return bot and bot.name == "logistics-robot" -- Option to expand in the future
-end
-
+---@param player_table PlayerData
+---@return integer
 function player_data.bot_chunk_interval(player_table)
-  return player_table.settings.bot_chunk_interval or 10
+  return player_table.settings.bot_chunk_interval or 400
 end
 
 -- Scale the update interval based on how often the UI updates, but not too often
+---@param player_table PlayerData
+---@param chunks number
+---@return nil
 function player_data.set_logistic_cell_chunks(player_table, chunks)
   local interval = player_data.ui_update_interval(player_table) / math_max(1, chunks)
   local bot_interval = player_data.bot_chunk_interval(player_table)
@@ -244,10 +247,14 @@ function player_data.set_logistic_cell_chunks(player_table, chunks)
   player_table.current_logistic_cell_interval = math_ceil(interval)
 end
 
+---@param player_table PlayerData
+---@return integer
 function player_data.cells_chunk_interval(player_table)
   return player_table.current_logistic_cell_interval or 60
 end
 
+---@param player_table PlayerData
+---@return integer
 function player_data.ui_update_interval(player_table)
   return player_table.settings.ui_update_interval or 60
 end

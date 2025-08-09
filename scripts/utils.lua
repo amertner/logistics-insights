@@ -1,19 +1,22 @@
 --- Miscellaneous utility functions for the Logistics Insights mod
+--- @alias StringArray string[]
+--- @alias AnyArray any[]
 local utils = {}
 
 ---@alias QualityTable table<string, number> -- Quality name to count mapping
 
---- Check if a string starts with a given prefix
---- @param str string The string to check
---- @param prefix string The prefix to look for
---- @return boolean True if the string starts with the prefix
+--- Test whether a string starts with the given prefix.
+--- @param str string
+--- @param prefix string
+--- @return boolean starts_with True if the string starts with prefix
 function utils.starts_with(str, prefix)
   return string.sub(str, 1, string.len(prefix)) == prefix
 end
 
---- Get a random element from a list
---- @param list table|nil The list to select from (must be array-like with numeric indices)
---- @return any|nil The randomly selected element, or nil if list is empty or nil
+--- Get a random element from an array-like list (uses math.random).
+--- @generic T
+--- @param list T[]|nil list Array-like table (sequential integer keys) or nil
+--- @return T|nil value Randomly selected element, or nil if list empty/nil
 function utils.get_random(list)
   if list and #list ~= table_size(list) then
     assert(false, "Need to use table_size!")
@@ -25,10 +28,10 @@ function utils.get_random(list)
   return list[index]
 end
 
---- Accumulate quality counts in a quality table
---- @param quality_table QualityTable The table to accumulate quality counts in
---- @param quality string The quality name to increment
---- @param count number The count to add for this quality
+--- Increment a quality count; initializes entry to 0 if absent.
+--- @param quality_table QualityTable
+--- @param quality string
+--- @param count number
 function utils.accumulate_quality(quality_table, quality, count)
   if not quality_table[quality] then
     quality_table[quality] = 0
@@ -37,12 +40,14 @@ function utils.accumulate_quality(quality_table, quality, count)
 end
 
 -- Create a table to store combined (name/quality) keys for reduced memory fragmentation
+--- Cache of combined item+quality keys to reduce temporary allocations.
+--- @type table<string, string> cache_key -> interned key (same string value)
 local item_quality_keys = {}
 
---- Get a cached delivery key for item name and quality combination
---- @param item_name string The name of the item
---- @param quality string The quality name (e.g., "normal", "uncommon", etc.)
---- @return string The cached delivery key
+--- Return (and cache) a stable key for an item/quality pair ("item:quality").
+--- @param item_name string
+--- @param quality string
+--- @return string key Interned combined key
 function utils.get_item_quality_key(item_name, quality)
   local cache_key = item_name .. ":" .. quality
   local key = item_quality_keys[cache_key]
