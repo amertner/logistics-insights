@@ -3,7 +3,7 @@
 
 local history_rows = {}
 
-local player_data = require("scripts.player-data")
+local network_data = require("scripts.network-data")
 local sorted_item_row = require("scripts.mainwin.sorted_item_row")
 local pause_manager = require("scripts.pause-manager")
 
@@ -21,25 +21,28 @@ end
 
 function history_rows.update(player_table, clearing)
   if player_table.settings.show_history and storage.delivery_history then
-    sorted_item_row.update(
-      player_table,
-      "totals-row",
-      storage.delivery_history,
-      function(a, b) return a.count > b.count end,
-      "count",
-      clearing,
-      is_history_enabled
-    )
+    local networkdata = network_data.get_networkdata(player_table.network)
+      if networkdata then
+      sorted_item_row.update(
+        player_table,
+        "totals-row",
+        networkdata.delivery_history,
+        function(a, b) return a.count > b.count end,
+        "count",
+        clearing,
+        is_history_enabled
+      )
 
-    sorted_item_row.update(
-      player_table,
-      "avgticks-row",
-      storage.delivery_history,
-      function(a, b) return a.avg > b.avg end,
-      "avg",
-      clearing,
-      is_history_enabled
-    )
+      sorted_item_row.update(
+        player_table,
+        "avgticks-row",
+        networkdata.delivery_history,
+        function(a, b) return a.avg > b.avg end,
+        "avg",
+        clearing,
+        is_history_enabled
+      )
+    end
   end
 end
 

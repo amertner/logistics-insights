@@ -8,7 +8,7 @@ local network_data = {}
 ---@ -- Data capture fields
 ---@field last_updated_cell_tick number -- The last tick this network's cell data was updated
 ---@field last_updated_bot_tick number --  The last tick this network's bot data was updated
----@field last_pass_bots_seen table<number, boolean> -- A list of bots seen in the last full pass
+---@field last_pass_bots_seen table<number, number> -- A list of bots seen in the last full pass
 ---@ -- Fields populated by analysing cells
 ---@field idle_bot_qualities QualityTable Quality of idle bots in roboports
 ---@field charging_bot_qualities QualityTable Quality of bots currently charging
@@ -132,13 +132,22 @@ function network_data.init_bot_counter_storage(network)
   else
     nw.bot_deliveries = {}
     nw.last_pass_bots_seen = {}
-    nw.bot_items = storage.bot_items or {}
+    nw.bot_items = {}
     nw.bot_active_deliveries = {} -- A list of bots currently delivering items
     nw.delivery_history = {} -- A list of past delivered items
     nw.picking_bot_qualities = {} -- Quality of bots currently picking items
     nw.delivering_bot_qualities = {} -- Quality of bots currently delivering items
     nw.other_bot_qualities = {} -- Quality of bots doing anything else
     nw.total_bot_qualities = {} -- Quality of all bots counted
+  end
+end
+
+--- Clear delivery history for a network, in response to user clicking the "Clear" button
+--- @param network LuaLogisticNetwork The network to clear delivery history for
+function network_data.clear_delivery_history(network)
+  local nw = network_data.get_networkdata(network)
+  if nw then
+    nw.delivery_history = {} -- Clear the delivery history
   end
 end
 

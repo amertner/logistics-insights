@@ -2,6 +2,7 @@
 local controller_gui = {}
 
 local player_data = require("scripts.player-data")
+local network_data = require("scripts.network-data")
 local tooltips_helper = require("scripts.tooltips-helper")
 local main_window = require("scripts.mainwin.main_window")
 local pause_manager = require("scripts.pause-manager")
@@ -78,16 +79,17 @@ function controller_gui.update_window(player, player_table)
   end
 
   if gui.logistics_insights_toggle_main and player_table then
+    local networkdata = network_data.get_networkdata(player_table.network)
     local tip = {}
-    if player_table.network and player_table.network.valid then
-      local idle_count = storage.bot_items and storage.bot_items["logistic-robot-available"] or 0
-      local total_count = storage.bot_items and storage.bot_items["logistic-robot-total"] or 0
+    if player_table.network and player_table.network.valid and networkdata then
+      local idle_count = networkdata.bot_items and networkdata.bot_items["logistic-robot-available"] or 0
+      local total_count = networkdata.bot_items and networkdata.bot_items["logistic-robot-total"] or 0
       gui.logistics_insights_toggle_main.number = idle_count
 
       tip = tooltips_helper.add_networkid_tip(tip,  player_table.network.network_id, player_table.fixed_network)
       tip = tooltips_helper.add_network_surface_tip(tip, player_table.network)
       tip = tooltips_helper.add_bots_idle_and_total_tip(tip, player_table.network, idle_count, total_count)
-      tip = tooltips_helper.get_quality_tooltip_line(tip, player_table, storage.total_bot_qualities, false, "controller-gui.main_tooltip_quality")
+      tip = tooltips_helper.get_quality_tooltip_line(tip, player_table, networkdata.total_bot_qualities, false, "controller-gui.main_tooltip_quality")
       tip = tooltips_helper.add_empty_line(tip)
 
       local paused = pause_manager.is_paused(player_table, "delivery")

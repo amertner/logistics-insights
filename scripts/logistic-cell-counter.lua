@@ -80,17 +80,20 @@ end
 --- @param accumulator CellAccumulator The accumulator containing gathered statistics
 --- @param player_table PlayerData The player's data table
 local function all_chunks_done(accumulator, player_table)
-  local bot_items = storage.bot_items
-  bot_items["charging-robot"] = accumulator.bots_charging
-  bot_items["waiting-for-charge-robot"] = accumulator.bots_waiting_for_charge
+  local networkdata = network_data.get_networkdata(player_table.network)
+  if networkdata then
+    local bot_items = networkdata.bot_items
+    bot_items["charging-robot"] = accumulator.bots_charging
+    bot_items["waiting-for-charge-robot"] = accumulator.bots_waiting_for_charge
 
-  storage.idle_bot_qualities = accumulator.idle_bot_qualities or {}
-  storage.roboport_qualities = accumulator.roboport_qualities or {}
-  storage.charging_bot_qualities = accumulator.charging_bot_qualities or {}
-  storage.waiting_bot_qualities = accumulator.waiting_bot_qualities or {}
+    networkdata.idle_bot_qualities = accumulator.idle_bot_qualities or {}
+    networkdata.roboport_qualities = accumulator.roboport_qualities or {}
+    networkdata.charging_bot_qualities = accumulator.charging_bot_qualities or {}
+    networkdata.waiting_bot_qualities = accumulator.waiting_bot_qualities or {}
 
-  if player_table and player_table.suggestions and pause_manager.is_running(player_table, "suggestions") then
-    player_table.suggestions:cells_data_updated(player_table.network)
+    if player_table and player_table.suggestions and pause_manager.is_running(player_table, "suggestions") then
+      player_table.suggestions:cells_data_updated(player_table.network)
+    end
   end
 end
 
@@ -129,10 +132,14 @@ function logistic_cell_counter.gather_data(player, player_table)
   end
 
   local network = player_table.network
-  local bot_items = storage.bot_items       -- Cache the table lookup
   if not network or not network.valid then
     return progress
   end
+  local networkdata = network_data.get_networkdata(network)
+  if not networkdata then
+    return progress -- No valid network data available
+  end
+  local bot_items = networkdata.bot_items       -- Cache the table lookup
 
   -- Store basic network stats
   bot_items["logistic-robot-total"] = network.all_logistic_robots

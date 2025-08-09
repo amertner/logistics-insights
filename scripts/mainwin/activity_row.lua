@@ -4,6 +4,7 @@
 local activity_row = {}
 
 local player_data = require("scripts.player-data")
+local network_data = require("scripts.network-data")
 local tooltips_helper = require("scripts.tooltips-helper")
 local mini_button = require("scripts.mainwin.mini_button")
 local pause_manager = require("scripts.pause-manager")
@@ -166,7 +167,8 @@ function activity_row.update(player_table)
     return
   end
 
-  if player_table.network then
+  local networkdata = network_data.get_networkdata(player_table.network)
+  if player_table.network and networkdata then
     for key, window in pairs(player_table.ui.activity.cells) do
       if window.cell.valid then
         local no_data = false
@@ -178,7 +180,7 @@ function activity_row.update(player_table)
           is_active = false -- Whether the cell is enabled or greyed out
           no_data = true -- whether the tooltip needs to be empty and no number displayed
         end
-        local num = storage.bot_items[key] or 0
+        local num = networkdata.bot_items[key] or 0
         window.cell.number = num
 
         -- "N <robot-icons> in network doing <activity>"
@@ -186,7 +188,7 @@ function activity_row.update(player_table)
         local qualities_table = window.qualitytable
         if qualities_table then
           --  Augment the tooltip with a list of qualities found, if enabled in settings
-          local qualities_tooltip = tooltips_helper.get_quality_tooltip_line({""}, player_table, storage[qualities_table])
+          local qualities_tooltip = tooltips_helper.get_quality_tooltip_line({""}, player_table, networkdata[qualities_table])
           main_tip = {"", main_tip, "\n", qualities_tooltip}
         end
 

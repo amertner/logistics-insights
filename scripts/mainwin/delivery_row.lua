@@ -3,6 +3,7 @@
 
 local delivery_row = {}
 local pause_manager = require("scripts.pause-manager")
+local network_data = require("scripts.network-data")
 
 local sorted_item_row = require("scripts.mainwin.sorted_item_row")
 
@@ -23,11 +24,12 @@ end
 --- @param player_table PlayerData The player's data table
 --- @param clearing boolean Whether this update is due to clearing history
 function delivery_row.update(player_table, clearing)
-  if player_table.settings.show_delivering then
+  local networkdata = network_data.get_networkdata(player_table.network)
+  if player_table.settings.show_delivering and networkdata then
     sorted_item_row.update(
       player_table,
       "deliveries-row",
-      storage.bot_deliveries,
+      networkdata.bot_deliveries,
       function(a, b) return a.count > b.count end,
       "count",
       clearing,

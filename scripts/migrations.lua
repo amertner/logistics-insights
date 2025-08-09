@@ -1,5 +1,6 @@
 -- Handle changes in configuration and migrations for Logistics Insights mod
 local player_data = require("scripts.player-data")
+local network_data = require("scripts.network-data")
 local TickCounter = require("scripts.tick-counter")
 local main_window = require("scripts.mainwin.main_window")
 local suggestions = require("scripts.suggestions")
@@ -26,6 +27,16 @@ local li_migrations = {
     for player_index, player_table in pairs(storage.players) do
       -- local player = game.get_player(player_index)
       player_table.bots_table = nil -- Field removed
+      -- Remove all of the old global storages
+      storage.idle_bot_qualities = nil
+      storage.roboport_qualities = nil
+      storage.picking_bot_qualities = nil
+      storage.delivering_bot_qualities = nil
+      storage.charging_bot_qualities = nil
+      storage.waiting_bot_qualities = nil
+      storage.other_bot_qualities = nil
+      
+      network_data.create_networkdata(player_table.network) -- Ensure network data exists
     end
   end,
 
@@ -48,51 +59,51 @@ local li_migrations = {
       reinitialise_ui(player, player_table)
     end
   end,
-
-  ["0.8.3"] = function()
+ 
+  ["0.9.6"] = function()
+    -- Rename the private fields in TickCounter references
     for player_index, player_table in pairs(storage.players) do
-      local player = game.get_player(player_index)
-      -- Changed the UI layout, so re-initialise it
-      reinitialise_ui(player, player_table)
-    end
-  end,
-
-  ["0.8.5"] = function()
-    -- Added bot chunk settings, set defaults
-    for player_index, player_table in pairs(storage.players) do
-      local player = game.get_player(player_index)
-      if player_table then
-        player_table.settings.bot_chunk_interval = 10
-      end
-
-      -- Added tags to certain cells to control tooltips, so re-generate the UI
-      reinitialise_ui(player, player_table)
-    end
-  end,
-
-  ["0.8.9"] = function()
-    for player_index, player_table in pairs(storage.players) do
-      local player = game.get_player(player_index)
-      -- Initialize the new History Timer object
-      if player_table then
-        player_table.history_timer = TickCounter.new()
-        -- The paused state is now contained within the history timer
-        ---@diagnostic disable-next-line: undefined-field
-        if player_table.paused then
-        player_table.history_timer:pause()
+      if player_table and player_table.history_timer then
+        local counter = player_table.history_timer
+        if type(counter) == "table" then
+          -- Rename the fields to match the new TickCounter structure
+          counter._start_tick = counter.start_tick or game.tick
+          counter._paused = counter.paused or false
+          counter._pause_tick = counter.pause_tick or nil
+          counter._accumulated_time = counter.accumulated_time or 0
+          -- Remove the old fields
+          counter.start_tick = nil
+          counter.paused = nil
+          counter.pause_tick = nil
+          counter.accumulated_time = nil
         end
-        ---@diagnostic disable-next-line: inject-field
-        player_table.paused = nil -- Remove old paused state
       end
+
+      -- Re-initialise the UI to use the new Activity row tooltips
+      local player = game.get_player(player_index)
+      reinitialise_ui(player, player_table)
     end
   end,
 
-  ["0.9.0"] = function()
-    -- Set the new mini window toggle setting to its default
-    for _, player_table in pairs(storage.players) do
+  ["0.9.5"] = function()
+    -- Add "gather quality" setting"
+    for player_index, player_table in pairs(storage.players) do
+      local player = game.get_player(player_index)
       if player_table and player_table.settings then
-        player_table.settings.show_mini_window = true
+        player_table.settings.gather_quality_data = true
       end
+
+      -- Ensure new qualities storage exists
+      storage.idle_bot_qualities = storage.idle_bot_qualities or {}
+      storage.roboport_qualities = storage.roboport_qualities or {}
+      storage.picking_bot_qualities = storage.picking_bot_qualities or {}
+      storage.delivering_bot_qualities = storage.delivering_bot_qualities or {}
+      storage.charging_bot_qualities = storage.charging_bot_qualities or {}
+      storage.waiting_bot_qualities = storage.waiting_bot_qualities or {}
+      storage.other_bot_qualities = storage.other_bot_qualities or {}
+
+      -- Re-initialise the UI to make sure the new quality_table fields are set
+      reinitialise_ui(player, player_table)
     end
   end,
 
@@ -131,52 +142,53 @@ local li_migrations = {
     add_localised_names_to(storage.bot_deliveries)
   end,
 
-  ["0.9.5"] = function()
-    -- Add "gather quality" setting"
-    for player_index, player_table in pairs(storage.players) do
-      local player = game.get_player(player_index)
+  ["0.9.0"] = function()
+    -- Set the new mini window toggle setting to its default
+    for _, player_table in pairs(storage.players) do
       if player_table and player_table.settings then
-        player_table.settings.gather_quality_data = true
+        player_table.settings.show_mini_window = true
       end
-
-      -- Ensure new qualities storage exists
-      storage.idle_bot_qualities = storage.idle_bot_qualities or {}
-      storage.roboport_qualities = storage.roboport_qualities or {}
-      storage.picking_bot_qualities = storage.picking_bot_qualities or {}
-      storage.delivering_bot_qualities = storage.delivering_bot_qualities or {}
-      storage.charging_bot_qualities = storage.charging_bot_qualities or {}
-      storage.waiting_bot_qualities = storage.waiting_bot_qualities or {}
-      storage.other_bot_qualities = storage.other_bot_qualities or {}
-
-      -- Re-initialise the UI to make sure the new quality_table fields are set
-      reinitialise_ui(player, player_table)
     end
   end,
- 
-  ["0.9.6"] = function()
-    -- Rename the private fields in TickCounter references
+
+  ["0.8.9"] = function()
     for player_index, player_table in pairs(storage.players) do
-      if player_table and player_table.history_timer then
-        local counter = player_table.history_timer
-        if type(counter) == "table" then
-          -- Rename the fields to match the new TickCounter structure
-          counter._start_tick = counter.start_tick or game.tick
-          counter._paused = counter.paused or false
-          counter._pause_tick = counter.pause_tick or nil
-          counter._accumulated_time = counter.accumulated_time or 0
-          -- Remove the old fields
-          counter.start_tick = nil
-          counter.paused = nil
-          counter.pause_tick = nil
-          counter.accumulated_time = nil
+      local player = game.get_player(player_index)
+      -- Initialize the new History Timer object
+      if player_table then
+        player_table.history_timer = TickCounter.new()
+        -- The paused state is now contained within the history timer
+        ---@diagnostic disable-next-line: undefined-field
+        if player_table.paused then
+        player_table.history_timer:pause()
         end
+        ---@diagnostic disable-next-line: inject-field
+        player_table.paused = nil -- Remove old paused state
+      end
+    end
+  end,
+
+  ["0.8.5"] = function()
+    -- Added bot chunk settings, set defaults
+    for player_index, player_table in pairs(storage.players) do
+      local player = game.get_player(player_index)
+      if player_table then
+        player_table.settings.bot_chunk_interval = 10
       end
 
-      -- Re-initialise the UI to use the new Activity row tooltips
-      local player = game.get_player(player_index)
+      -- Added tags to certain cells to control tooltips, so re-generate the UI
       reinitialise_ui(player, player_table)
     end
   end,
+
+  ["0.8.3"] = function()
+    for player_index, player_table in pairs(storage.players) do
+      local player = game.get_player(player_index)
+      -- Changed the UI layout, so re-initialise it
+      reinitialise_ui(player, player_table)
+    end
+  end,
+
 }
 
 return li_migrations

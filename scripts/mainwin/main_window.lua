@@ -4,6 +4,7 @@
 local main_window = {}
 
 local player_data = require("scripts.player-data")
+local network_data = require("scripts.network-data")
 local utils = require("scripts.utils")
 local game_state = require("scripts.game-state")
 local pause_manager = require("scripts.pause-manager")
@@ -304,7 +305,7 @@ function main_window.onclick(event)
         player_table.fixed_network = event.element.toggled
       elseif event.element.name == "logistics-insights-sorted-clear" then
         -- Clear the delivery history and clear the timer
-        storage.delivery_history = {}
+        network_data.clear_delivery_history(player_table.network)
         if player_table and player_table.history_timer then
           player_table.history_timer:reset_keep_pause()
         end

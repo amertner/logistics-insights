@@ -4,6 +4,7 @@
 local network_row = {}
 
 local player_data = require("scripts.player-data")
+local network_data = require("scripts.network-data")
 local tooltips_helper = require("scripts.tooltips-helper")
 
 -- Cache frequently used functions
@@ -143,12 +144,12 @@ function network_row.update(player_table)
     return {"", tip, "\n\n", {clicktip}}
   end
 
-  local function create_logistic_bots_tooltip(network)
+  local function create_logistic_bots_tooltip(network, networkdata)
     -- Line 1: Show no of bots
     local tip = { "", {"network-row.logistic-bots-tooltip", network.all_logistic_robots}, "\n" }
 
     -- Line 2: Show quality counts
-    tip = tooltips_helper.get_quality_tooltip_line(tip, player_table, storage.total_bot_qualities, false)
+    tip = tooltips_helper.get_quality_tooltip_line(tip, player_table, networkdata.total_bot_qualities, false)
     return tip
   end
 
@@ -159,7 +160,8 @@ function network_row.update(player_table)
     networkidclicktip = "network-row.fixed-network-tooltip"
   end
 
-  if player_table.network and player_table.network.valid and player_table.ui.network then
+  local networkdata = network_data.get_networkdata(player_table.network)
+  if player_table.network and player_table.network.valid and player_table.ui.network and networkdata then
     -- Network ID cell and tooltip
     local network_id = player_table.network.network_id
     local networkidtip = create_networkid_information_tooltip(player_table.network, network_id, player_table.fixed_network, networkidclicktip)
@@ -170,7 +172,7 @@ function network_row.update(player_table)
     -- Roboports cell and tooltip
     if player_table.ui.network.roboports then
       update_complex_element(player_table.ui.network.roboports, table_size(player_table.network.cells),
-        tooltips_helper.create_count_with_qualities_tip(player_table, "network-row.roboports-tooltip", table_size(player_table.network.cells), storage.roboport_qualities),
+        tooltips_helper.create_count_with_qualities_tip(player_table, "network-row.roboports-tooltip", table_size(player_table.network.cells), networkdata.roboport_qualities),
         "bots-gui.show-location-tooltip")
     end
 
@@ -182,7 +184,7 @@ function network_row.update(player_table)
       bottip = "bots-gui.show-location-tooltip"
     end
     if player_table.ui.network.logistics_bots then
-      update_complex_element(player_table.ui.network.logistics_bots, player_table.network.all_logistic_robots, create_logistic_bots_tooltip(player_table.network), bottip)
+      update_complex_element(player_table.ui.network.logistics_bots, player_table.network.all_logistic_robots, create_logistic_bots_tooltip(player_table.network, networkdata), bottip)
     end
 
     -- Requesters, Providers and Storages cells and tooltips
