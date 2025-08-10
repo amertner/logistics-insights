@@ -1,7 +1,6 @@
 -- Process lists of entities in chunks to avoid performance issues
 
-chunker = {}
-local player_data = require("scripts.player-data")
+local chunker = {}
 
 ---@class Progress
 ---@field current number The current progress index
@@ -16,9 +15,6 @@ local player_data = require("scripts.player-data")
 ---@field on_process_entity function Function called for each entity (entity, partial_data, player_table)
 ---@field on_completion function Function called when all chunks are processed (data, player_table)
 ---@field player_table PlayerData|nil The player's data table containing settings
-
----@class Chunker
-local Chunker = {}
 
 --- Create a new chunker instance for processing entities in chunks
 --- @param call_on_init function|nil Function called when chunking is initialized (partial_data, initial_data)
@@ -36,7 +32,7 @@ function chunker.new(call_on_init, call_on_processing, call_on_completion)
     on_completion = call_on_completion or function(data, player_table) end,
     player_table = nil,
   }
-  setmetatable(instance, { __index = Chunker })
+  setmetatable(instance, { __index = chunker })
   return instance
 end
 
@@ -44,7 +40,7 @@ end
 --- @param list table|nil The list of entities to process in chunks
 --- @param player_table PlayerData|nil The player's data table containing settings
 --- @param initial_data any|nil Initial data to pass to the initialization function
-function Chunker:initialise_chunking(list, player_table, initial_data)
+function chunker:initialise_chunking(list, player_table, initial_data)
   self.processing_list = list
   self.current_index = 1
   self.player_table = player_table
@@ -55,7 +51,7 @@ function Chunker:initialise_chunking(list, player_table, initial_data)
 end
 
 --- Reset the chunker and complete current processing
-function Chunker:reset()
+function chunker:reset()
   -- Do whatever needs doing when the list is done
   self.on_completion(self.partial_data, self.player_table)
   -- Reset the counter and claim completion
@@ -64,7 +60,7 @@ end
 
 --- Get the total number of chunks needed to process the current list
 --- @return number The number of chunks
-function Chunker:num_chunks()
+function chunker:num_chunks()
   if not self.processing_list or #self.processing_list == 0 then
     return 0
   else
@@ -74,13 +70,13 @@ end
 
 --- Check if all chunks have been processed
 --- @return boolean True if processing is complete
-function Chunker:is_done()
+function chunker:is_done()
   return not self.processing_list or #self.processing_list == 0 or self.current_index > #self.processing_list
 end
 
 --- Get the number of chunks remaining to be processed
 --- @return number The number of chunks remaining
-function Chunker:get_chunks_remaining()
+function chunker:get_chunks_remaining()
   if self:is_done() then
     return 0
   else
@@ -90,7 +86,7 @@ end
 
 --- Get the current processing progress
 --- @return Progress A table with current and total progress values
-function Chunker:get_progress()
+function chunker:get_progress()
   if not self.processing_list then
     return {
       current = 0,
@@ -106,12 +102,12 @@ end
 
 --- Get the partial data accumulator
 --- @return table The partial data being accumulated during processing
-function Chunker:get_partial_data()
+function chunker:get_partial_data()
   return self.partial_data
 end
 
 --- Process one chunk of entities from the current list
-function Chunker:process_chunk()
+function chunker:process_chunk()
   local processing_list = self.processing_list
   if not processing_list or #processing_list == 0 then
     self.on_completion(self.partial_data, self.player_table)
@@ -136,15 +132,5 @@ function Chunker:process_chunk()
     self.on_completion(self.partial_data, self.player_table)
   end
 end
-
--- Copy the chunker methods to the main table for compatibility
-chunker.initialise_chunking = Chunker.initialise_chunking
-chunker.reset = Chunker.reset
-chunker.num_chunks = Chunker.num_chunks
-chunker.is_done = Chunker.is_done
-chunker.get_chunks_remaining = Chunker.get_chunks_remaining
-chunker.get_progress = Chunker.get_progress
-chunker.get_partial_data = Chunker.get_partial_data
-chunker.process_chunk = Chunker.process_chunk
 
 return chunker

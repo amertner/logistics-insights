@@ -98,7 +98,6 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
       elseif e.setting == "li-chunk-size" then
         -- Adopt and cache the updated setting
         player_data.update_settings(player, player_table)
-        progress_bars.update_chunk_size_cache(player_table)
         -- Process (partial) data and start gathering with new chunk size
         bot_counter.restart_counting()
         logistic_cell_counter.restart_counting()
@@ -131,7 +130,6 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
         -- For other settings, rebuild the main window
         player_data.update_settings(player, player_table)
         main_window.destroy(player, player_table)
-        progress_bars.update_chunk_size_cache(player_table)
         main_window.create(player, player_table)
       end
     end
