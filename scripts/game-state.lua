@@ -30,12 +30,13 @@ end
 function game_state.step_game(player_table)
   game.tick_paused = true
   game.ticks_to_run = 1
-  game_state.force_update_ui(player_table)
+  game_state.force_update_ui(player_table, true)
 end
 
 --- Update the UI button states to reflect current game state
 ---@param player_table PlayerData|nil The player's data table
-function game_state.force_update_ui(player_table)
+---@param stepping boolean|nil Whether the game is being stepped
+function game_state.force_update_ui(player_table, stepping)
   if game_state.unfreeze_button and game_state.freeze_button then
     local is_paused = game_state.is_paused()
     if player_table then
@@ -43,7 +44,11 @@ function game_state.force_update_ui(player_table)
       if player and player.valid then
         local alertstr
         if is_paused then
-          alertstr = "game-state.game-frozen-1li-2player_3color"
+          if stepping then
+            alertstr = "game-state.game-stepped-1li-2player_3color"
+          else
+            alertstr = "game-state.game-frozen-1li-2player_3color"
+          end
         else
           alertstr = "game-state.game-unfrozen-1li-2player_3color"
         end
