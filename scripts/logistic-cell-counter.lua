@@ -62,9 +62,9 @@ local function process_one_cell(cell, accumulator, player_table)
     local bot_qualities = accumulator.idle_bot_qualities
     local rp = cell.owner
     if rp then
-      inventory = rp.get_inventory(defines.inventory.roboport_robot)
-      if not inventory.is_empty() then
-        stacks = inventory.get_contents()
+      local inventory = rp.get_inventory(defines.inventory.roboport_robot)
+      if inventory and not inventory.is_empty() then
+        local stacks = inventory.get_contents()
         for _, stack in pairs(stacks) do
           if stack.name == "logistic-robot" then
             local quality = stack.quality or "normal"

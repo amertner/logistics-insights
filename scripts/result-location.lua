@@ -104,26 +104,34 @@ function ResultLocation.draw_arrows(player, surface, items)
     end
 
     if item.robot_order_queue and #item.robot_order_queue > 0 then
-        target = item.robot_order_queue[1].target or nil
+        local target = item.robot_order_queue[1].target or nil
         if target then
-            targetpos = target.position or nil
+            local targetpos = target.position or nil
+            rendering.draw_sprite{
+              sprite = "li_arrow",
+              x_scale = 1,
+              y_scale = 1,
+              target = {entity=item, offset=ARROW_TARGET_OFFSET},
+              orientation_target = targetpos,
+              oriented_offset = ARROW_ORIENTATED_OFFSET,
+              surface = surface,
+              time_to_live = player.mod_settings["fs-highlight-duration"].value * 60,
+              players = {player},
+            }
         end
     else
-        targetpos = nil
+        -- No target queue or empty: still draw a sprite without orientation_target
+        rendering.draw_sprite{
+          sprite = "li_arrow",
+          x_scale = 1,
+          y_scale = 1,
+          target = {entity=item, offset=ARROW_TARGET_OFFSET},
+          oriented_offset = ARROW_ORIENTATED_OFFSET,
+          surface = surface,
+          time_to_live = player.mod_settings["fs-highlight-duration"].value * 60,
+          players = {player},
+        }
     end
-
-    rendering.draw_sprite{
-      sprite = "li_arrow",
-      x_scale = 1,
-      y_scale = 1,
-      target = {entity=item, offset=ARROW_TARGET_OFFSET},
-      --use_target_orientation = true,
-      orientation_target = targetpos,
-      oriented_offset = ARROW_ORIENTATED_OFFSET,
-      surface = surface,
-      time_to_live = player.mod_settings["fs-highlight-duration"].value * 60,
-      players = {player},
-    }
   end
 end
 
@@ -161,7 +169,7 @@ function ResultLocation.open(player, results, change_position)
     player.zoom = zoom_level -- #TODO zoom out when showing map tags
   end
 
-  data = {
+  local data = {
     surface = surface_name,
     position = position,
     items = results.items or {}
