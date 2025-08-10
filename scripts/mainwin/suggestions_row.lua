@@ -91,6 +91,8 @@ function suggestions_row.set_suggestion_cell(items, index, suggestion, enabled)
         -- This is a clickable suggestion, so update the tooltip
         button.tags = {clickname = suggestion.clickname}
         button.tooltip = {"", button.tooltip, "\n", {"suggestions-row." .. suggestion.clickname .. "-tooltip"}}
+      else
+        button.tags = {} -- Clear tags if not clickable
       end
       if suggestion.urgency == "high" then
         button.style = "red_slot_button"
