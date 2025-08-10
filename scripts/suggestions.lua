@@ -196,7 +196,7 @@ function Suggestions:create_or_clear_suggestion(suggestion_name, count, sprite, 
 end
 
 -- Potential issue: Too many bots waiting to charge means we need more RPs
----@param network LuaLogisticNetwork The network being analysed
+---@param network? LuaLogisticNetwork The network being analysed
 function Suggestions:analyse_waiting_to_charge(network)
   local networkdata = network_data.get_networkdata(network)
   if networkdata then

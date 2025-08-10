@@ -94,7 +94,7 @@ function main_window.ensure_ui_consistency(player, player_table)
       local unfreeze = titlebar["logistics-insights-unfreeze"]
       local freeze = titlebar["logistics-insights-freeze"]
       game_state.init(unfreeze, freeze)
-      game_state.force_update_ui()
+      game_state.force_update_ui(nil)
     end
   end
 
@@ -159,7 +159,7 @@ function main_window._add_titlebar(window, player_table)
     tooltip = {"bots-gui.step-game-tooltip"},
   }
   game_state.init(unfreeze, freeze)
-  game_state.force_update_ui()
+  game_state.force_update_ui(nil)
 end
 
 --- Add all row types to the content table
@@ -292,13 +292,13 @@ function main_window.onclick(event)
       if event.element.name == "logistics-insights-unfreeze" then
         -- Unfreeze the game after it's been frozen
         find_and_highlight.clear_markers(player)
-        game_state.unfreeze_game()
+        game_state.unfreeze_game(player_table)
       elseif event.element.name == "logistics-insights-freeze" then
         -- Freeze the game so player can inspect the state
-        game_state.freeze_game()
+        game_state.freeze_game(player_table)
       elseif event.element.name == "logistics-insights-step" then
         -- Single-step the game to see what happens
-        game_state.step_game()
+        game_state.step_game(player_table)
       elseif event.element.name == "logistics-insights-network-id" then
         -- Clicking the network ID button toggles between fixed and dynamic network
         event.element.toggled = not event.element.toggled

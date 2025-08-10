@@ -1,7 +1,6 @@
 -- This code is originally from FactorySearch v1.13.3
 -- In Logistics Insights, it's a reduced function used to highlight bots and entities on the map
 local math2d = require("math2d")
-local game_state = require("scripts.game-state")
 
 local add_vector = math2d.position.add
 local subtract_vector = math2d.position.subtract
