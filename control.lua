@@ -78,7 +78,8 @@ script.on_configuration_changed(
   function(e)
 
   -- Remove all prior information since it may refer to modded items that are no longer available
-  network_data.init()
+  -- #TODO Figure out how to do this in a good way. If mods were removed or upgraded, we may have dud info, but just clearing network data means that the storage.network isn't initialised for the players' current networks either, which is bad.
+  --network_data.init()
 
   -- Run migrations if the mod version has changed
   flib_migration.on_config_changed(e, li_migrations)

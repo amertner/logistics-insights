@@ -1,6 +1,7 @@
 --- Handles suggestions for improving logistics network
 
 local undersupply = require("scripts.undersupply")
+local network_data = require("scripts.network-data")
 
 --- Urgency levels for suggestions
 ---@alias SuggestionUrgency "high"|"low"
@@ -195,22 +196,26 @@ function Suggestions:create_or_clear_suggestion(suggestion_name, count, sprite, 
 end
 
 -- Potential issue: Too many bots waiting to charge means we need more RPs
-function Suggestions:analyse_waiting_to_charge()
-  -- Do we have enough places to charge, or are too many waiting to charge?
-  local waiting = storage.bot_items["waiting-for-charge-robot"] or 0
-  local need_rps = (waiting > 9) and math.ceil(waiting / 4) or 0
-  -- Record the last few numbers so the recommendation does not jump around randomly
-  self:remember(Suggestions.awaiting_charge_key, need_rps)
+---@param network LuaLogisticNetwork The network being analysed
+function Suggestions:analyse_waiting_to_charge(network)
+  local networkdata = network_data.get_networkdata(network)
+  if networkdata then
+    -- Do we have enough places to charge, or are too many waiting to charge?
+    local waiting = networkdata.bot_items["waiting-for-charge-robot"] or 0
+    local need_rps = (waiting > 9) and math.ceil(waiting / 4) or 0
+    -- Record the last few numbers so the recommendation does not jump around randomly
+    self:remember(Suggestions.awaiting_charge_key, need_rps)
 
-  local suggested_number = self:max_from_history(Suggestions.awaiting_charge_key)
-  self:create_or_clear_suggestion(
-    Suggestions.awaiting_charge_key,
-    suggested_number,
-    "entity/roboport",
-    self:get_urgency(suggested_number, 100),
-    false,
-    {"suggestions-row.waiting-to-charge-action", suggested_number}
-  )
+    local suggested_number = self:max_from_history(Suggestions.awaiting_charge_key)
+    self:create_or_clear_suggestion(
+      Suggestions.awaiting_charge_key,
+      suggested_number,
+      "entity/roboport",
+      self:get_urgency(suggested_number, 100),
+      false,
+      {"suggestions-row.waiting-to-charge-action", suggested_number}
+    )
+  end
 end
 
 --- Create a suggestion, if the numbers warrant it
@@ -241,9 +246,9 @@ function Suggestions:analyse_storage(network)
     -- Maintain a count of total and free stacks
     local all_stacks, free_stacks = 0, 0
     local unfiltered_stacks, unfiltered_free_stacks = 0, 0
-    for _, storage in pairs(network.storages) do
-      if storage.valid then
-        local inventory = storage.get_inventory(defines.inventory.chest)
+    for _, nstorage in pairs(network.storages) do
+      if nstorage.valid then
+        local inventory = nstorage.get_inventory(defines.inventory.chest)
         -- Count total and free stacks
         if inventory then
           local capacity = #inventory
@@ -252,10 +257,10 @@ function Suggestions:analyse_storage(network)
           free_stacks = free_stacks + free
 
           -- Iterate over filtered to find mismatches
-          if storage.filter_slot_count then
-            for finx = 1, storage.filter_slot_count do
+          if nstorage.filter_slot_count then
+            for finx = 1, nstorage.filter_slot_count do
               -- Check if the filter matches the contents
-              local filter = storage.get_filter(finx)
+              local filter = nstorage.get_filter(finx)
               if not filter then
                 -- There is no filter, count unfiltered capacity
                 if finx == 1 then -- If there are multiple filters, only count capacity once
@@ -272,7 +277,7 @@ function Suggestions:analyse_storage(network)
                     if stack then
                       if stack.name ~= filter.name.name or stack.quality ~= filter.quality.name then
                         -- There are items that do not match the filter
-                        table.insert(mismatched, storage)
+                        table.insert(mismatched, nstorage)
                         -- Don't check the rest of the stacks
                         break
                       end
@@ -311,7 +316,7 @@ function Suggestions:cells_data_updated(network)
   end
 
   -- Do we have enough places to charge, or are too many waiting to charge?
-  self:analyse_waiting_to_charge()
+  self:analyse_waiting_to_charge(network)
 
   -- Three possible suggestions from analysing storage chests
   self:analyse_storage(network)

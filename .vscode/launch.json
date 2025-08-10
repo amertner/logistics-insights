@@ -4,10 +4,28 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        
         {
             "type": "factoriomod",
             "request": "launch",
             "name": "Factorio Mod Debug"
+        },
+        {
+            "type": "factoriomod",
+            "request": "launch",
+            "name": "Factorio Heavy mode",
+            "factorioArgs": [
+                "--heavy"
+            ],
+        },
+        {
+            "type": "factoriomod",
+            "request": "launch",
+            "name": "Factorio Additional Instance",
+            "factorioArgs": [
+                "--config /Volumes/ExtData/Temp/Factorio/config.ini",
+                "--mod-directory /Volumes/ExtData/SynologyDrive/Games/Factorio/mods",
+            ],
         },
         {
             "type": "factoriomod",
