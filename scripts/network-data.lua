@@ -6,8 +6,7 @@ local network_data = {}
 ---@field id number -- The unique ID of the network
 ---@field surface string -- The surface name where the network is located
 ---@ -- Data capture fields
----@field last_updated_cell_tick number -- The last tick this network's cell data was updated
----@field last_updated_bot_tick number --  The last tick this network's bot data was updated
+---@field last_accessed_tick number -- The last tick this network's data was accessed
 ---@field last_pass_bots_seen table<number, number> -- A list of bots seen in the last full pass
 ---@ -- Fields populated by analysing cells
 ---@field idle_bot_qualities QualityTable Quality of idle bots in roboports
@@ -73,7 +72,14 @@ function network_data.get_networkdata(network)
   if not network or not network.network_id or not storage.networks then
     return nil -- No network ID or storage available
   end
-  return storage.networks[network.network_id] or nil -- Return the network data if it exists
+  local networkdata = storage.networks[network.network_id]
+  if not networkdata then
+    return nil -- No data for this network
+  else
+    -- Update last-accessed
+    networkdata.last_accessed_tick = game.tick
+    return networkdata
+  end
 end
 
 ---@param network LuaLogisticNetwork|nil The network to create storage for
@@ -87,8 +93,7 @@ function network_data.create_networkdata(network)
     storage.networks[network.network_id] = {
       id = network.network_id,
       surface = "",
-      last_updated_cell_tick = 0,
-      last_updated_bot_tick = 0,
+      last_accessed_tick = game.tick,
       last_pass_bots_seen = {},
       idle_bot_qualities = {},
       charging_bot_qualities = {},
@@ -114,7 +119,6 @@ function network_data.init_logistic_cell_counter_storage(network)
   if not nw then
     network_data.create_networkdata(network)
   else
-    nw.last_updated_cell_tick = 0
     nw.idle_bot_qualities = {}
     nw.charging_bot_qualities = {}
     nw.waiting_bot_qualities = {}
@@ -148,6 +152,30 @@ function network_data.clear_delivery_history(network)
   local nw = network_data.get_networkdata(network)
   if nw then
     nw.delivery_history = {} -- Clear the delivery history
+  end
+end
+
+--- Clear all bot deliveries for a network, to avoid filling up memory
+--- @param max_age_ticks number If a network hasn't been accessed for this many ticks, its data will be cleared
+function network_data.clear_old_network_data(max_age_ticks)
+  -- Clear old network data that is no longer needed
+  local tick_limit = game.tick - max_age_ticks
+  for network_id, networkdata in pairs(storage.networks) do
+    if networkdata.last_accessed_tick < tick_limit then
+      -- Remove the network data if it hasn't been accessed for a long time
+      storage.networks[network_id] = nil
+    end
+  end
+end
+
+---@param player_table PlayerData The player data table to update
+---@param old_network_id number|nil|boolean The previous network ID
+---@param new_network_id number|nil|boolean The new network ID
+function network_data.network_changed(player_table, old_network_id, new_network_id)
+  -- If the network has changed, reset the network data
+  if old_network_id and old_network_id > 0 then
+    -- Clear the old network data. One day, we may want to keep this data, but not needed atm
+    storage.networks[old_network_id] = nil
   end
 end
 

@@ -176,8 +176,11 @@ local li_migrations = {
     network_data.init()
     -- Move all of the things that used to be global to per-player
     for player_index, player_table in pairs(storage.players) do
-      -- local player = game.get_player(player_index)
-      player_table.bots_table = nil -- Field removed
+      -- Removed fields
+      player_table.bots_table = nil
+      player_table.current_activity_interval = nil
+      player_table.current_activity_size = nil
+      player_table.undersupply_paused = nil
       network_data.create_networkdata(player_table.network) -- Ensure network data exists
     end
     -- Remove all of the old global storages

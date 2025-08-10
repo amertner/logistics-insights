@@ -20,7 +20,7 @@ function game_state.freeze_game(player_table)
 end
 
 --- Unfreeze the game by resuming ticks
----@param p any Unused parameter for compatibility
+---@param player_table any Unused parameter for compatibility
 function game_state.unfreeze_game(player_table)
   game.tick_paused = false
   game_state.force_update_ui(player_table)

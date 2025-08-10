@@ -34,7 +34,7 @@ function player_data.init(player_index)
     network = nil,
     history_timer = tick_counter.new(), -- #TODO: This should be for the network
     suggestions = suggestions.new(),   -- #TODO: This should be for the network
-    fixed_network = false, -- #TODO: Should be the network ID or nil
+    fixed_network = false,
     player_index = player_index,
     window_location = {x = 200, y = 0},
     ui = {},
@@ -74,7 +74,7 @@ function player_data.update_settings(player, player_table)
       chunk_size = mod_settings["li-chunk-size"].value,
       bot_chunk_interval = mod_settings["li-chunk-processing-interval"].value,
       ui_update_interval = mod_settings["li-ui-update-interval"].value,
-      pause_for_bots = mod_settings["li-pause-for-bots"].value, -- #TODO: Disable when multiplayer?
+      pause_for_bots = mod_settings["li-pause-for-bots"].value,
       pause_while_hidden = mod_settings["li-pause-while-hidden"].value,
       show_mini_window = mod_settings["li-show-mini-window"].value,
     }
@@ -124,6 +124,7 @@ function player_data.check_network_changed(player, player_table)
     else
       player_table.network = network
       player_table.history_timer:reset() -- Reset the tick counter when network changes
+      network_data.network_changed(player_table, old_network_id, new_network_id)
       if not player_table.suggestions then
         player_table.suggestions = suggestions.new()
       end

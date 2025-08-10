@@ -171,6 +171,17 @@ script.on_nth_tick(1,
           main_window.update(player, player_table, false)
         end
       end
+      -- Debug: Dump player_table
+      if game.tick % 60 == 0 and storage.debugdump then
+        local tickfile = "li-" .. player_table.player_index .. "-" .. game.tick .. ".txt"
+        local save_ui = player_table.ui
+        player_table.ui = nil -- Don't dump UI table
+        helpers.write_file(tickfile, "\nPlayer data:\n", false)
+        helpers.write_file(tickfile, serpent.block(player_table), true)
+        helpers.write_file(tickfile, "\nNetwork data:\n", true)
+        helpers.write_file(tickfile, serpent.block(storage.networks), true)
+        player_table.ui = save_ui
+      end
     end
   end
 end)
