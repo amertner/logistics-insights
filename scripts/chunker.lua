@@ -34,7 +34,7 @@ function chunker.new(player_table, call_on_init, call_on_processing, call_on_com
     on_init = call_on_init or function(partial_data, initial_data) end,
     on_process_entity = call_on_processing or function(entity, partial_data, player_table) end,
     on_completion = call_on_completion or function(data, player_table) end,
-    player_table = nil,
+    player_table = player_table,
   }
   setmetatable(instance, { __index = chunker })
   return instance

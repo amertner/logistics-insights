@@ -277,12 +277,12 @@ local function bot_chunks_done(accumulator, player_table)
   end
 end
 
--- Use the generic chunker to process bots in chunks, to moderate CPU usage
-local bot_chunker = chunker.new(bot_initialise_chunking, process_one_bot, bot_chunks_done)
-
 --- Process data gathered so far and start over
-function bot_counter.restart_counting()
-  bot_chunker:reset()
+--- @param player_table PlayerData|nil The player's data table
+function bot_counter.restart_counting(player_table)
+  if player_table and player_table.bot_chunker then
+    player_table.bot_chunker:reset()
+  end
 end
 
 --- When the network changes, reset all bot data
@@ -290,7 +290,7 @@ end
 --- @param player_table PlayerData|nil The player's data table
 function bot_counter.network_changed(player, player_table)
   -- Clear all current state when we change networks
-  bot_chunker:reset()
+  bot_counter.restart_counting(player_table)
   if player_table then
     network_data.init_bot_counter_storage(player_table.network)
   end
@@ -321,6 +321,8 @@ function bot_counter.gather_bot_data(player, player_table)
   local show_history = player_table.settings.show_history
 
   if show_delivering or show_history then
+    local bot_chunker = bot_counter.get_or_create_chunker(player_table)
+
     if bot_chunker:is_done() then
       bot_chunker:initialise_chunking(network.logistic_robots, player_table, networkdata.last_pass_bots_seen)
     end
@@ -332,6 +334,21 @@ function bot_counter.gather_bot_data(player, player_table)
   end
 
   return progress
+end
+
+--- Create or get the player's existing chunker for processing bots
+---@param player_table PlayerData The player's data table
+---@return Chunker The created chunker instance
+function bot_counter.get_or_create_chunker(player_table)
+  if not player_table.bot_chunker then
+    player_table.bot_chunker = chunker.new(
+      player_table,
+      bot_initialise_chunking,
+      process_one_bot,
+      bot_chunks_done
+    )
+  end
+  return player_table.bot_chunker
 end
 
 return bot_counter
