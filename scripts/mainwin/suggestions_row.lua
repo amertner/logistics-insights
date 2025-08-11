@@ -160,7 +160,7 @@ function suggestions_row.update(player_table)
     return
   end
   if not player_table.suggestions or not player_table.suggestions._historydata then
-    player_table.suggestions = suggestions.new() -- #FIXME: Just return on release
+    return
   end
 
   local running = pause_manager.is_running(player_table, "suggestions")

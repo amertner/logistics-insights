@@ -88,13 +88,13 @@ function main_window.ensure_ui_consistency(player, player_table)
 
   window = player_table.window
 
-  if game_state.needs_buttons() then
+  if game_state.needs_buttons(player_table) then
     local titlebar = window["logistics-insights-title-bar"]
     if titlebar then
       local unfreeze = titlebar["logistics-insights-unfreeze"]
       local freeze = titlebar["logistics-insights-freeze"]
-      game_state.init(unfreeze, freeze)
-      game_state.force_update_ui(nil)
+      game_state.init(player_table, unfreeze, freeze)
+      game_state.force_update_ui(player_table, false, false)
     end
   end
 
@@ -158,8 +158,8 @@ function main_window._add_titlebar(window, player_table)
    name = "logistics-insights-step",
     tooltip = {"bots-gui.step-game-tooltip"},
   }
-  game_state.init(unfreeze, freeze)
-  game_state.force_update_ui(nil)
+  game_state.init(player_table, unfreeze, freeze)
+  game_state.force_update_ui(player_table, false, false)
 end
 
 --- Add all row types to the content table
@@ -191,8 +191,8 @@ function main_window.update(player, player_table, clearing)
       return -- No window to update
     end
   end
-  if not player_table.ui then 
-    player_table.ui = {} 
+  if not player_table.ui then
+    player_table.ui = {}
   end
   -- Update shortcut toggle state to match window visibility
   player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
