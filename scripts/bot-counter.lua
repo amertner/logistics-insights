@@ -281,7 +281,7 @@ end
 --- @param player_table PlayerData|nil The player's data table
 function bot_counter.restart_counting(player_table)
   if player_table and player_table.bot_chunker then
-    player_table.bot_chunker:reset()
+    player_table.bot_chunker:reset(bot_initialise_chunking, bot_chunks_done)
   end
 end
 
@@ -324,9 +324,9 @@ function bot_counter.gather_bot_data(player, player_table)
     local bot_chunker = bot_counter.get_or_create_chunker(player_table)
 
     if bot_chunker:is_done() then
-      bot_chunker:initialise_chunking(network.logistic_robots, player_table, networkdata.last_pass_bots_seen)
+      bot_chunker:initialise_chunking(network.logistic_robots, player_table, networkdata.last_pass_bots_seen, bot_initialise_chunking)
     end
-    bot_chunker:process_chunk()
+    bot_chunker:process_chunk(process_one_bot, bot_chunks_done)
     progress = bot_chunker:get_progress()
   else
     networkdata.bot_items["delivering"] = nil
@@ -341,12 +341,7 @@ end
 ---@return Chunker The created chunker instance
 function bot_counter.get_or_create_chunker(player_table)
   if not player_table.bot_chunker then
-    player_table.bot_chunker = chunker.new(
-      player_table,
-      bot_initialise_chunking,
-      process_one_bot,
-      bot_chunks_done
-    )
+    player_table.bot_chunker = chunker.new(player_table)
   end
   return player_table.bot_chunker
 end

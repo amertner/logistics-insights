@@ -102,7 +102,7 @@ end
 --- @param player_table PlayerData The player's data table
 function logistic_cell_counter.restart_counting(player_table)
   if player_table.cell_chunker then
-    player_table.cell_chunker:reset()
+    player_table.cell_chunker:reset(initialise_cell_network_list, all_chunks_done)
   end
 end
 
@@ -112,7 +112,8 @@ end
 function logistic_cell_counter.network_changed(player, player_table)
   if player_table then
     if player_table.cell_chunker then
-      player_table.cell_chunker:reset() -- Reset the chunker for new network
+      -- Reset the chunker for new network
+      player_table.cell_chunker:reset(initialise_cell_network_list, all_chunks_done)
     end
     network_data.init_logistic_cell_counter_storage(player_table.network)
     if player_table.suggestions then
@@ -157,10 +158,10 @@ function logistic_cell_counter.gather_data(player, player_table)
 
   -- Process cell data
   if cell_chunker:is_done() then
-    cell_chunker:initialise_chunking(network.cells, player_table, nil)
+    cell_chunker:initialise_chunking(network.cells, player_table, nil, initialise_cell_network_list)
     player_data.set_logistic_cell_chunks(player_table, cell_chunker:num_chunks())
   end
-  cell_chunker:process_chunk()
+  cell_chunker:process_chunk(process_one_cell, all_chunks_done)
 
   return cell_chunker:get_progress()
 end
@@ -170,12 +171,7 @@ end
 ---@return Chunker The created chunker instance
 function logistic_cell_counter.get_or_create_chunker(player_table)
   if not player_table.cell_chunker then
-    player_table.cell_chunker = chunker.new(
-      player_table,
-      initialise_cell_network_list,
-      process_one_cell,
-      all_chunks_done
-    )
+    player_table.cell_chunker = chunker.new(player_table)
   end
   return player_table.cell_chunker
 end

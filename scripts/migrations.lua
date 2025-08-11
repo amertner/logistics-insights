@@ -6,6 +6,7 @@ local main_window = require("scripts.mainwin.main_window")
 local suggestions = require("scripts.suggestions")
 local undersupply_row = require("scripts.mainwin.undersupply_row")
 local suggestions_row = require("scripts.mainwin.suggestions_row")
+local chunker = require("scripts.chunker")
 
 local function init_storage_and_settings()
   player_data.init_storages()
@@ -52,7 +53,7 @@ local li_migrations = {
         -- The paused state is now contained within the history timer
         ---@diagnostic disable-next-line: undefined-field
         if player_table.paused then
-        player_table.history_timer:pause()
+          player_table.history_timer:pause()
         end
         ---@diagnostic disable-next-line: inject-field
         player_table.paused = nil -- Remove old paused state
@@ -181,7 +182,11 @@ local li_migrations = {
       player_table.current_activity_interval = nil
       player_table.current_activity_size = nil
       player_table.undersupply_paused = nil
-      network_data.create_networkdata(player_table.network) -- Ensure network data exists
+      -- Ensure network data exists
+      network_data.create_networkdata(player_table.network)
+      -- Create persistent chunkers
+      player_table.bot_chunker = chunker.new(player_table)
+      player_table.cell_chunker = chunker.new(player_table)
     end
     -- Remove all of the old global storages
     storage.bot_items = nil
