@@ -4,6 +4,7 @@
 local activity_row = {}
 
 local player_data = require("scripts.player-data")
+local network_data = require("scripts.network-data")
 local tooltips_helper = require("scripts.tooltips-helper")
 local mini_button = require("scripts.mainwin.mini_button")
 local pause_manager = require("scripts.pause-manager")
@@ -80,7 +81,7 @@ function activity_row.add(player_table, gui_table)
     tooltip = {"activity-row.header-tooltip"},
   }
   local tip = {"activity-row.pause-tooltip"}
-  local is_paused = pause_manager.is_paused(player_table.paused_items, "activity") or false
+  local is_paused = pause_manager.is_paused(player_table, "activity") or false
   mini_button.add(player_table, hcell, "activity", tip, "pause", is_paused)
 
   local progressbar = cell.add {
@@ -105,7 +106,7 @@ function activity_row.add(player_table, gui_table)
         style = "slot_button",
         name = cellname,
         -- These Activity Row cells are only available when Delivery info is gathered
-        enabled = icon.onwithpause or pause_manager.is_running(player_table.paused_items, "delivery"),
+        enabled = icon.onwithpause or pause_manager.is_running(player_table, "delivery"),
         tags = { follow = true }
       },
     }
@@ -166,19 +167,20 @@ function activity_row.update(player_table)
     return
   end
 
-  if player_table.network then
+  local networkdata = network_data.get_networkdata(player_table.network)
+  if player_table.network and networkdata then
     for key, window in pairs(player_table.ui.activity.cells) do
       if window.cell.valid then
         local no_data = false
         -- Even if paused, the Total and Available robot counts are available
-        local is_active = pause_manager.is_running(player_table.paused_items, "activity") or
+        local is_active = pause_manager.is_running(player_table, "activity") or
                           key == "logistic-robot-total" or key == "logistic-robot-available"
          -- If real time delivery is disabled, the Pickup/Delivery buttons should be inactive too
         if is_active and (key == "picking" or key == "delivering") and not activity_row.should_show_deliveries(player_table) then
           is_active = false -- Whether the cell is enabled or greyed out
           no_data = true -- whether the tooltip needs to be empty and no number displayed
         end
-        local num = storage.bot_items[key] or 0
+        local num = networkdata.bot_items[key] or 0
         window.cell.number = num
 
         -- "N <robot-icons> in network doing <activity>"
@@ -186,7 +188,7 @@ function activity_row.update(player_table)
         local qualities_table = window.qualitytable
         if qualities_table then
           --  Augment the tooltip with a list of qualities found, if enabled in settings
-          local qualities_tooltip = tooltips_helper.get_quality_tooltip_line({""}, player_table, storage[qualities_table])
+          local qualities_tooltip = tooltips_helper.get_quality_tooltip_line({""}, player_table, networkdata[qualities_table])
           main_tip = {"", main_tip, "\n", qualities_tooltip}
         end
 

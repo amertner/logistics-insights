@@ -23,7 +23,7 @@ end
 ---@param clearing? boolean Whether we are updating because history was just cleared
 function undersupply_row.update(player_table, clearing)
   if not player_table then return end
-  in_demand = player_table.suggestions:get_cached_list("undersupply")
+  local in_demand = player_table.suggestions:get_cached_list("undersupply")
   if in_demand and player_table.settings.show_undersupply then
     sorted_item_row.update(
       player_table,
@@ -32,7 +32,7 @@ function undersupply_row.update(player_table, clearing)
       function(a, b) return a.shortage > b.shortage end,
       "shortage",
       clearing or false,
-      function(pt) return pause_manager.is_running(player_table.paused_items, "undersupply") end
+      function(pt) return pause_manager.is_running(player_table, "undersupply") end
     )
   end
 end

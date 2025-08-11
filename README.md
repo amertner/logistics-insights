@@ -1,10 +1,11 @@
 # Logistics Insights
 
-When playing Factorio, have you ever wondered what all of your logistics bots are up to? Whether you have too many, or too few? Is your storage nearly full? Do you have enough roboports? Particularly in the mid game where everything is scaling up, I've found that the answers sometimes are surprising.
+When playing Factorio, have you ever wondered what all of your logistics bots are up to? Whether you have too many, or too few? Is your storage nearly full? Do you have enough roboports? Particularly in the mid game where everything is scaling up, I've found that the answers sometimes are quite surprising.
 
 Logistics Insights can help:
 
-- Shows suggestions for what to do to improve performance: Add roboports, add storage, review filtered storage, etc.
+- Shows suggestions for what to do to improve performance: Add roboports, add storage, review filtered storage, etc
+- Shows Undersupply: A list of the top things where demand outstrips supply
 - Shows a list of the top items being carried in real time
 - Shows a sorted list of items that have been delivered the most
 - Shows a list showing the items that took the longest to deliver
@@ -14,11 +15,11 @@ Logistics Insights can help:
 - With a click, can highlight all entities or bots doing a particular activity, making it easy to find them
 - When highlighting bots, the game temporarily freezes, allowing you to inspect the state of things
 - You can freeze and single-step the game manually as well
-- You can easily pause and restart gathering of what is being delivered to reduce impact on game speed
+- You can easily pause parts of the monitoring to reduce impact on game speed
 - Hide and show the main window by clicking the "logistics bot icon window" that's always open, or use the shortcut icon
 - Either analyse the network you're looking at, or keep analysing a specific one
 
-Logistics Insights focuses on a single bot network at a time, whether it's the one where the player is located or one you're looking at via the map view. It does not gather info on all networks at the same time.
+Logistics Insights focuses on a single bot network at a time, whether it's the one where the player is located or one you're looking at via the map view. To keep the performance impact low, it does not gather info on all networks at the same time.
 
 ## How to use Undersupply information
 
@@ -39,20 +40,20 @@ Note that "fullness" of storage is measured by stacks, so you may have more stor
 
 ## How else I started using the mod
 
-Before a base reaches megabase level, I keep the LI window open to keep an eye on whether I have the right number of bots and roboports. If it gets in the way, I'll close it and occasionally open it to see what's going on.
+Before a base reaches megabase level, keep the LI window open to keep an eye on whether you have the right number of bots and roboports. If it gets in the way, just close it and occasionally open it to see what's going on.
 
 **In the Delivering/Total/Ticks rows**
 
-- If some items take a disproportionate amount of time to deliver (i.e. they show up early in the Ticks/item list), I'll consider transporting those using belts instead, or creating a source of items closer to where it's needed
-- If there is some item that's being transported unnecessarily (i.e. it shows up early in the Totals list), I'll see if I could belt that item instead. For example, in one case I found that my bots were transporting iron ore 90% of the time, filling up my storage chests, all because I accidentally put ore in an active provider chest.
+- If some items take a disproportionate amount of time to deliver (i.e. they show up early in the Ticks/item list), consider transporting those using belts instead, or creating a source of items closer to where it's needed
+- If there is some item that's being transported unnecessarily (i.e. it shows up early in the Totals list), perhaps could belt that item instead. For example, in one case I found that my bots were transporting iron ore 90% of the time, filling up my storage chests, all because I accidentally put ore in an active provider chest.
 - Sometimes, a small number of items are delivered a long way, cluttering up the Ticks/item statistics. Right-click on one of the buttons to clear the history and start again.
-- If I don't need this display right now, click the pause button to temporarily pause it. Or change the setting to remove the rows entirely, which also makes the window smaller.
+- If you don't need part of the display right now, click the pause button to temporarily pause collecting it. Or change the setting to remove the rows entirely, which also makes the window smaller.
 
 **In the Activity row**
 
-- If too many bots are "waiting to charge", I need to build more roboports, or use higher quality roboports
-- If too few bots are "available", I need to add more bots
-- If most of the bots are "available", I probably need to stop adding more bots
+- If too many bots are "waiting to charge", you'll get a "Build more Roboports" suggestion
+- If too few bots are "available", you'll need to add more bots
+- If most of the bots are "available", you can probably stop adding more bots
 
 **In the Network row**
 
@@ -73,10 +74,6 @@ A progress indicator shows the chunk processing in action, and the chunks apply 
 If you have fewer bots or roboports than the chunk size, the data will be updated on every pass, keeping the data more accurate.
 
 On a powerful machine, you can easily have a chunk size of 1,000 or more, and process data every 5 ticks. On a less powerful machine, you may want to process fewer items at a time, less often.
-
-## Limitations
-
-Logistics Insights only works in single-player games. This is to avoid adding a large performance overhead on everyone from monitoring multiple logistics networks, as well as to keep the code simpler.
 
 ## What's next?
 
@@ -107,8 +104,7 @@ There are many ways in which this mod could become more useful, and I'll be look
 
 ## Known issues
 
-- If you load a game that was saved while frozen, all entities will show a yellow blinking icon for some reason. Unfreeze or single-step the game to clear this condition.
-- If you freeze the game, the mod does not pick up a new network (even if you move or change map position) until you unfreeze it.
+- If you freeze the game, the mod does not pick up a new network (even if you change map position) until you unfreeze it.
 
 ## Want to contribute?
 

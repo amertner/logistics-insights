@@ -4,6 +4,7 @@
 local main_window = {}
 
 local player_data = require("scripts.player-data")
+local network_data = require("scripts.network-data")
 local utils = require("scripts.utils")
 local game_state = require("scripts.game-state")
 local pause_manager = require("scripts.pause-manager")
@@ -41,7 +42,9 @@ function main_window.create(player, player_table)
   }
   -- Store root window separately (do not overwrite ui table)
   player_table.window = window
-  if not player_table.ui then player_table.ui = {} end
+  if not player_table.ui then 
+    player_table.ui = {}
+  end
 
   -- Create title bar with control buttons
   main_window._add_titlebar(window, player_table)
@@ -56,8 +59,7 @@ function main_window.create(player, player_table)
 
   -- Reset all Paused states
   player_table.paused_items = {}
-  pause_manager.enable_all()
-  player_table.bots_table = content_table
+  pause_manager.enable_all(player_table)
   -- Add all of the data rows
   main_window._add_all_rows(player_table, content_table)
 
@@ -76,20 +78,23 @@ end
 --- @param player LuaPlayer The player whose UI to ensure consistency for
 --- @param player_table PlayerData The player's data table
 function main_window.ensure_ui_consistency(player, player_table)
+  if not player or not player.valid or not player_table then
+    return -- No player, nothing to ensure
+  end
   local gui = player.gui.screen
   if not gui.logistics_insights_window or not player_table.ui then
     main_window.create(player, player_table)
   end
 
-  local window = gui.logistics_insights_window
+  window = player_table.window
 
-  if game_state.needs_buttons() then
+  if game_state.needs_buttons(player_table) then
     local titlebar = window["logistics-insights-title-bar"]
     if titlebar then
       local unfreeze = titlebar["logistics-insights-unfreeze"]
       local freeze = titlebar["logistics-insights-freeze"]
-      game_state.init(unfreeze, freeze)
-      game_state.force_update_ui()
+      game_state.init(player_table, unfreeze, freeze)
+      game_state.force_update_ui(player_table, false, false)
     end
   end
 
@@ -153,8 +158,8 @@ function main_window._add_titlebar(window, player_table)
    name = "logistics-insights-step",
     tooltip = {"bots-gui.step-game-tooltip"},
   }
-  game_state.init(unfreeze, freeze)
-  game_state.force_update_ui()
+  game_state.init(player_table, unfreeze, freeze)
+  game_state.force_update_ui(player_table, false, false)
 end
 
 --- Add all row types to the content table
@@ -186,7 +191,9 @@ function main_window.update(player, player_table, clearing)
       return -- No window to update
     end
   end
-  if not player_table.ui then player_table.ui = {} end
+  if not player_table.ui then
+    player_table.ui = {}
+  end
   -- Update shortcut toggle state to match window visibility
   player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
   if not player_table.bots_window_visible then
@@ -222,9 +229,6 @@ end
 function main_window.destroy(player, player_table)
   if player.valid and player.gui.screen.logistics_insights_window then
     player.gui.screen.logistics_insights_window.destroy()
-    if player_table and player_table.bots_table then
-      player_table.bots_table = nil
-    end
   end
   player_table.window = nil
   player_table.ui = {} -- Keep as table for future register_ui calls
@@ -244,13 +248,13 @@ function main_window.set_window_visible(player, player_table, visible)
   if player_table.history_timer and player_table.settings.pause_while_hidden then
     if not player_table.bots_window_visible then
       -- History collection pauses when the window is minimized, but remember paused state
-      pause_manager.set_paused(player_table.paused_items, "window", true)
+      pause_manager.set_paused(player_table, "window", true)
       player_table.history_timer:pause()
     else
       -- Restore prior paused states
-      pause_manager.set_paused(player_table.paused_items, "window", false)
+      pause_manager.set_paused(player_table, "window", false)
       -- Resume the history timer if it was paused only because the window was hidden
-      if pause_manager.is_running(player_table.paused_items, "history") then
+      if pause_manager.is_running(player_table, "history") then
         player_table.history_timer:resume()
       end
     end
@@ -281,44 +285,44 @@ end
 --- @param event EventData.on_gui_click The click event data
 function main_window.onclick(event)
   if utils.starts_with(event.element.name, "logistics-insights") then
-    local player = player_data.get_singleplayer_player()
-    local player_table = player_data.get_singleplayer_table()
+    local player = game.get_player(event.player_index)
+    local player_table = player_data.get_player_table(event.player_index)
     if player and player.valid and player_table then
       local cleared = false
       if event.element.name == "logistics-insights-unfreeze" then
         -- Unfreeze the game after it's been frozen
         find_and_highlight.clear_markers(player)
-        game_state.unfreeze_game()
+        game_state.unfreeze_game(player_table)
       elseif event.element.name == "logistics-insights-freeze" then
         -- Freeze the game so player can inspect the state
-        game_state.freeze_game()
+        game_state.freeze_game(player_table)
       elseif event.element.name == "logistics-insights-step" then
         -- Single-step the game to see what happens
-        game_state.step_game()
+        game_state.step_game(player_table)
       elseif event.element.name == "logistics-insights-network-id" then
         -- Clicking the network ID button toggles between fixed and dynamic network
         event.element.toggled = not event.element.toggled
         player_table.fixed_network = event.element.toggled
       elseif event.element.name == "logistics-insights-sorted-clear" then
         -- Clear the delivery history and clear the timer
-        storage.delivery_history = {}
+        network_data.clear_delivery_history(player_table.network)
         if player_table and player_table.history_timer then
           player_table.history_timer:reset_keep_pause()
         end
         cleared = true
         main_window.update(player, player_table, true)
       elseif event.element.name == "logistics-insights-sorted-delivery" then
-        pause_manager.toggle_paused(player_table.paused_items, "delivery")
+        pause_manager.toggle_paused(player_table, "delivery")
       elseif event.element.name == "logistics-insights-sorted-history" then
-        local paused = pause_manager.toggle_paused(player_table.paused_items, "history")
+        local paused = pause_manager.toggle_paused(player_table,  "history")
         -- Also toggle the history timer
         player_table.history_timer:set_paused(paused)
       elseif event.element.name == "logistics-insights-sorted-activity" then
-        pause_manager.toggle_paused(player_table.paused_items, "activity")
+        pause_manager.toggle_paused(player_table, "activity")
       elseif event.element.name == "logistics-insights-sorted-undersupply" then
-        pause_manager.toggle_paused(player_table.paused_items, "undersupply")
+        pause_manager.toggle_paused(player_table, "undersupply")
       elseif event.element.name == "logistics-insights-sorted-suggestions" then
-        pause_manager.toggle_paused(player_table.paused_items, "suggestions")
+        pause_manager.toggle_paused(player_table, "suggestions")
       elseif utils.starts_with(event.element.name, "logistics-insights-undersupply") then
         -- This is an undersupply row item button, find the item it's referring to
         local item_name = event.element.sprite:match("^item/(.+)$")
@@ -363,7 +367,8 @@ script.on_event(defines.events.on_gui_location_changed,
   if event.element and event.element.name == WINDOW_NAME then
     local player_table = storage.players[event.player_index]
     if player_table then
-      player_table.window_location = event.element.location
+      player_table.window_location.x = event.element.location.x
+      player_table.window_location.y = event.element.location.y
     end
   end
 end)

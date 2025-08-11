@@ -1,7 +1,8 @@
 -- Main script for Logistics Insights mod
 local flib_migration = require("__flib__.migration")
 
-local player_data = require("scripts.player-data")
+local player_data = require("scripts.player-data")  
+local network_data = require("scripts.network-data")
 local bot_counter = require("scripts.bot-counter")
 local logistic_cell_counter = require("scripts.logistic-cell-counter")
 local controller_gui = require("scripts.controller-gui")
@@ -24,16 +25,6 @@ script.on_init(
   function(e)
   -- Called when the mod is first added to a save
   player_data.init_storages()
-  local player = player_data.get_singleplayer_player()
-  if player then
-    controller_gui.create_window(player)
-    
-    local player_table = player_data.get_singleplayer_table()
-    if player_table then
-      -- Create the window and initialize shortcut state
-      main_window.set_window_visible(player, player_table, player_table.bots_window_visible)
-    end
-  end
 end)
 
 -- PLAYER
@@ -85,11 +76,10 @@ script.on_event(
 script.on_configuration_changed(
   --- @param e ConfigurationChangedData
   function(e)
-  -- Reset cached references when configuration changes
-  player_data.reset_cache()
 
-    -- Remove history information that may refer to modded items that are no longer available
-    player_data.init_bot_counter_storage()
+  -- Remove all prior information since it may refer to modded items that are no longer available
+  -- #TODO Figure out how to do this in a good way. If mods were removed or upgraded, we may have dud info, but just clearing network data means that the storage.network isn't initialised for the players' current networks either, which is bad.
+  --network_data.init()
 
   -- Run migrations if the mod version has changed
   flib_migration.on_config_changed(e, li_migrations)
@@ -99,8 +89,8 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
   --- @param e EventData.on_runtime_mod_setting_changed
   function(e)
   if utils.starts_with(e.setting, "li-") then
-    local player = player_data.get_singleplayer_player()
-    local player_table = player_data.get_singleplayer_table()
+    local player = game.get_player(e.player_index)
+    local player_table = player_data.get_player_table(e.player_index)
     if player and player_table then
       -- Special handling for mini window setting
       if e.setting == "li-show-mini-window" then
@@ -108,10 +98,9 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
       elseif e.setting == "li-chunk-size" then
         -- Adopt and cache the updated setting
         player_data.update_settings(player, player_table)
-        progress_bars.update_chunk_size_cache()
         -- Process (partial) data and start gathering with new chunk size
-        bot_counter.restart_counting()
-        logistic_cell_counter.restart_counting()
+        bot_counter.restart_counting(player_table)
+        logistic_cell_counter.restart_counting(player_table)
       elseif e.setting == "li-chunk-processing-interval" or
             e.setting == "li-ui-update-interval" or
             e.setting == "li-pause-for-bots" or
@@ -141,7 +130,6 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
         -- For other settings, rebuild the main window
         player_data.update_settings(player, player_table)
         main_window.destroy(player, player_table)
-        progress_bars.update_chunk_size_cache()
         main_window.create(player, player_table)
       end
     end
@@ -154,30 +142,44 @@ end)
 script.on_nth_tick(1,
   --- @param e NthTickEventData
   function(e)
-  local player = player_data.get_singleplayer_player()
-  local player_table = player_data.get_singleplayer_table()
-  if player and player.valid and player_table then
-    if game.tick % 30 == 0 then -- Update this twice a second only
-      if player_data.check_network_changed(player, player_table) then
-        bot_counter.network_changed(player, player_table)
-        logistic_cell_counter.network_changed(player, player_table)
+  for player_index, player_table in pairs(storage.players) do
+    local player = game.get_player(player_index)
+    if player and player.valid and player_table then
+      if  player_table then
+        if game.tick % 30 == 0 then -- Update this twice a second only
+          if player_data.check_network_changed(player, player_table) then
+            bot_counter.network_changed(player, player_table)
+            logistic_cell_counter.network_changed(player, player_table)
+          end
+        end
+
+        if game.tick % player_data.bot_chunk_interval(player_table) == 0 then
+          local bot_progress = bot_counter.gather_bot_data(player, player_table)
+          main_window.update_bot_progress(player_table, bot_progress)
+        end
+
+        if game.tick % player_data.cells_chunk_interval(player_table) == 0 then
+          local cells_progress = logistic_cell_counter.gather_data(player, player_table)
+          main_window.update_cells_progress(player_table, cells_progress)
+        end
+
+        if game.tick % player_data.ui_update_interval(player_table) == 0 then
+          main_window.ensure_ui_consistency(player, player_table)
+          controller_gui.update_window(player, player_table)
+          main_window.update(player, player_table, false)
+        end
       end
-    end
-
-    if game.tick % player_data.bot_chunk_interval(player_table) == 0 then
-      local bot_progress = bot_counter.gather_bot_data(player, player_table)
-      main_window.update_bot_progress(player_table, bot_progress)
-    end
-
-    if game.tick % player_data.cells_chunk_interval(player_table) == 0 then
-      local cells_progress = logistic_cell_counter.gather_data(player, player_table)
-      main_window.update_cells_progress(player_table, cells_progress)
-    end
-
-    if game.tick % player_data.ui_update_interval(player_table) == 0 then
-      main_window.ensure_ui_consistency(player, player_table)
-      controller_gui.update_window(player, player_table)
-      main_window.update(player, player_table, false)
+      -- Debug: Dump player_table
+      if game.tick % 60 == 0 and storage.debugdump then
+        local tickfile = "li-" .. player_table.player_index .. "-" .. game.tick .. ".txt"
+        local save_ui = player_table.ui
+        player_table.ui = nil -- Don't dump UI table
+        helpers.write_file(tickfile, "\nPlayer data:\n", false)
+        helpers.write_file(tickfile, serpent.block(player_table), true)
+        helpers.write_file(tickfile, "\nNetwork data:\n", true)
+        helpers.write_file(tickfile, serpent.block(storage.networks), true)
+        player_table.ui = save_ui
+      end
     end
   end
 end)
@@ -197,8 +199,8 @@ script.on_event(
   --- @param e EventData.on_cutscene_started|EventData.on_cutscene_finished|EventData.on_cutscene_cancelled
   function(e)
     -- Hide the bots window when a cutscene starts, show it again when it ends
-    local player = player_data.get_singleplayer_player()
-    local player_table = player_data.get_singleplayer_table()
+    local player = game.get_player(e.player_index)
+    local player_table = player_data.get_player_table(e.player_index)
 
     if player and player_table and player_table.bots_window_visible then
       main_window.set_window_visible(player, player_table, player.controller_type ~= defines.controllers.cutscene)
@@ -209,8 +211,8 @@ script.on_event(
 script.on_event(defines.events.on_player_controller_changed,
   --- @param e EventData.on_player_controller_changed
   function(e)
-  local player = player_data.get_singleplayer_player()
-  local player_table = player_data.get_singleplayer_table()
+  local player = game.get_player(e.player_index)
+    local player_table = player_data.get_player_table(e.player_index)
 
   if player and player.valid and player_table then
     main_window.update(player, player_table, false)
@@ -225,8 +227,8 @@ script.on_event(
     if e.gui_type ~= defines.gui_type.entity or e.entity.type ~= "locomotive" then
       return
     end
-    local player = player_data.get_singleplayer_player()
-    local player_table = player_data.get_singleplayer_table()
+    local player = game.get_player(e.player_index)
+    local player_table = player_data.get_player_table(e.player_index)
 
     if player and player.valid and player_table then
       main_window.update(player, player_table, false)

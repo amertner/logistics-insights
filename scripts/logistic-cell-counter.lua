@@ -2,8 +2,10 @@
 local logistic_cell_counter = {}
 
 local player_data = require("scripts.player-data")
+local network_data = require("scripts.network-data")
 local utils = require("scripts.utils")
 local pause_manager = require("scripts.pause-manager")
+local chunker = require("scripts.chunker")
 
 ---@class CellAccumulator
 ---@field bots_charging number Count of bots currently charging
@@ -61,9 +63,9 @@ local function process_one_cell(cell, accumulator, player_table)
     local bot_qualities = accumulator.idle_bot_qualities
     local rp = cell.owner
     if rp then
-      inventory = rp.get_inventory(defines.inventory.roboport_robot)
-      if not inventory.is_empty() then
-        stacks = inventory.get_contents()
+      local inventory = rp.get_inventory(defines.inventory.roboport_robot)
+      if inventory and not inventory.is_empty() then
+        local stacks = inventory.get_contents()
         for _, stack in pairs(stacks) do
           if stack.name == "logistic-robot" then
             local quality = stack.quality or "normal"
@@ -79,35 +81,44 @@ end
 --- @param accumulator CellAccumulator The accumulator containing gathered statistics
 --- @param player_table PlayerData The player's data table
 local function all_chunks_done(accumulator, player_table)
-  local bot_items = storage.bot_items
-  bot_items["charging-robot"] = accumulator.bots_charging
-  bot_items["waiting-for-charge-robot"] = accumulator.bots_waiting_for_charge
+  local networkdata = network_data.get_networkdata(player_table.network)
+  if networkdata then
+    local bot_items = networkdata.bot_items
+    bot_items["charging-robot"] = accumulator.bots_charging
+    bot_items["waiting-for-charge-robot"] = accumulator.bots_waiting_for_charge
 
-  storage.idle_bot_qualities = accumulator.idle_bot_qualities or {}
-  storage.roboport_qualities = accumulator.roboport_qualities or {}
-  storage.charging_bot_qualities = accumulator.charging_bot_qualities or {}
-  storage.waiting_bot_qualities = accumulator.waiting_bot_qualities or {}
+    networkdata.idle_bot_qualities = accumulator.idle_bot_qualities or {}
+    networkdata.roboport_qualities = accumulator.roboport_qualities or {}
+    networkdata.charging_bot_qualities = accumulator.charging_bot_qualities or {}
+    networkdata.waiting_bot_qualities = accumulator.waiting_bot_qualities or {}
 
-  if player_table and player_table.suggestions and pause_manager.is_running(player_table.paused_items, "suggestions") then
-    player_table.suggestions:cells_data_updated(player_table.network)
+    if player_table and player_table.suggestions and pause_manager.is_running(player_table, "suggestions") then
+      player_table.suggestions:cells_data_updated(player_table.network)
+    end
   end
 end
 
-local cell_chunker = require("scripts.chunker").new(initialise_cell_network_list, process_one_cell, all_chunks_done)
-
 --- Process data gathered so far and start over
-function logistic_cell_counter.restart_counting()
-  cell_chunker:reset()
+--- @param player_table PlayerData The player's data table
+function logistic_cell_counter.restart_counting(player_table)
+  if player_table.cell_chunker then
+    player_table.cell_chunker:reset(initialise_cell_network_list, all_chunks_done)
+  end
 end
 
 --- Reset logistic cell data when network changes
 --- @param player? LuaPlayer The player whose network changed
 --- @param player_table? PlayerData The player's data table
 function logistic_cell_counter.network_changed(player, player_table)
-  cell_chunker:reset()
-  player_data.init_logistic_cell_counter_storage()
-  if player_table and player_table.suggestions then
-    player_table.suggestions:clear_suggestions()
+  if player_table then
+    if player_table.cell_chunker then
+      -- Reset the chunker for new network
+      player_table.cell_chunker:reset(initialise_cell_network_list, all_chunks_done)
+    end
+    network_data.init_logistic_cell_counter_storage(player_table.network)
+    if player_table.suggestions then
+      player_table.suggestions:clear_suggestions()
+    end
   end
 end
 
@@ -126,27 +137,43 @@ function logistic_cell_counter.gather_data(player, player_table)
   end
 
   local network = player_table.network
-  local bot_items = storage.bot_items       -- Cache the table lookup
   if not network or not network.valid then
     return progress
   end
+  local networkdata = network_data.get_networkdata(network)
+  if not networkdata then
+    return progress -- No valid network data available
+  end
+  local bot_items = networkdata.bot_items       -- Cache the table lookup
 
   -- Store basic network stats
   bot_items["logistic-robot-total"] = network.all_logistic_robots
   bot_items["logistic-robot-available"] = network.available_logistic_robots
 
-  if pause_manager.is_paused(player_table.paused_items, "activity") then
+  if pause_manager.is_paused(player_table, "activity") then
     return progress
   end
 
+  local cell_chunker = logistic_cell_counter.get_or_create_chunker(player_table)
+
   -- Process cell data
   if cell_chunker:is_done() then
-    cell_chunker:initialise_chunking(network.cells, player_table, nil)
+    cell_chunker:initialise_chunking(network.cells, player_table, nil, initialise_cell_network_list)
     player_data.set_logistic_cell_chunks(player_table, cell_chunker:num_chunks())
   end
-  cell_chunker:process_chunk()
+  cell_chunker:process_chunk(process_one_cell, all_chunks_done)
 
   return cell_chunker:get_progress()
+end
+
+--- Create or get the player's existing chunker for processing logistic cells
+---@param player_table PlayerData The player's data table
+---@return Chunker The created chunker instance
+function logistic_cell_counter.get_or_create_chunker(player_table)
+  if not player_table.cell_chunker then
+    player_table.cell_chunker = chunker.new(player_table)
+  end
+  return player_table.cell_chunker
 end
 
 return logistic_cell_counter

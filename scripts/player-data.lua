@@ -3,52 +3,11 @@ local player_data = {}
 
 local tick_counter = require("scripts.tick-counter")
 local suggestions = require("scripts.suggestions")
-
--- Record used to show items being delivered right now
----@class DeliveryItem
----@field item_name string -- The name of the item being delivered
----@field quality_name? string -- The quality of the item, if applicable
----@field localised_name? LocalisedString -- The localised name of the item
----@field localised_quality_name? LocalisedString -- The localised name of the quality
----@field count number -- How many are being delivered
-
--- Record used to show historically delivered items
----@class DeliveredItems
----@field item_name string -- The name of the item being delivered
----@field quality_name? string -- The quality of the item, if applicable
----@field localised_name? LocalisedString -- The localised name of the item
----@field localised_quality_name? LocalisedString -- The localised name of the quality
----@field count number -- How many of this item have been delivered
----@field ticks number -- Total ticks for all deliveries of this item
----@field avg number -- Average ticks per delivery, equal to ticks/count
-
--- Record used to record items being delivered, before they are added to history
----@class BotDeliveringInFlight
----@field item_name string -- The name of the item being delivered
----@field quality_name? string -- The quality of the item, if applicable
----@field localised_name? LocalisedString -- The localised name of the item
----@field localised_quality_name? LocalisedString -- The localised name of the quality
----@field count number -- How many of this item it is delivering
----@field targetpos MapPosition -- The target position for the delivery
----@field first_seen number -- The first tick this bot was seen delivering it
----@field last_seen number -- The last tick this bot was seen delivering it
-
--- Record used to store list of undersupplied items
----@class UndersupplyItem
----@field shortage number -- How many of this item is undersupplied
----@field type string -- The type of the item, e.g. "item", "fluid", "entity"
----@field item_name string -- The name of the item
----@field quality_name string -- The quality of the item, if applicable
----@field request number -- The requested amount of this item
----@field supply number -- The available supply of this item
----@field under_way number -- The amount of this item already in transit
+local network_data = require("scripts.network-data")
 
 -- Cache frequently used functions for performance
 local math_max = math.max
 local math_ceil = math.ceil
-
-local cached_player = nil
-local cached_player_table = nil
 
 -- Global player data, stored for each player
 ---@class PlayerData
@@ -62,10 +21,12 @@ local cached_player_table = nil
 ---@field player_index uint -- The player's index
 ---@field window_location {x: number, y: number} -- Saved window position
 ---@field ui table<string, table> -- UI elements for the mod's GUI
----@field bots_table LuaGuiElement|nil -- Reference to the main bots table UI element
 ---@field current_logistic_cell_interval number -- Dynamically calculated interval for logistic cell updates
 ---@field paused_items string[] -- List of paused items by name
+---@field bot_chunker Chunker|nil -- Chunker for processing logistic bots
+---@field cell_chunker Chunker|nil -- Chunker for processing logistic cells
 ---@param player_index uint
+---@return nil
 function player_data.init(player_index)
   ---@type PlayerData
   local player_data_entry = {
@@ -79,80 +40,30 @@ function player_data.init(player_index)
     player_index = player_index,
     window_location = {x = 200, y = 0},
     ui = {},
-    bots_table = nil,
     current_logistic_cell_interval = 60,
-    paused_items = {} -- Paused activities
+    paused_items = {}, -- Paused activities
+    bot_chunker = nil, -- Chunker for processing logistic bots
+    cell_chunker = nil, -- Chunker for processing logistic cells
   }
   storage.players[player_index] = player_data_entry
 end
 
--- Initialize all of the storage elements managed by logistic_cell_counter
----@return nil
-function player_data.init_logistic_cell_counter_storage()
-  -- Bot qualities
-  ---@type QualityTable
-  storage.idle_bot_qualities = {} -- Quality of idle bots in roboports
-
-  ---@type QualityTable
-  storage.charging_bot_qualities = {} -- Quality of bots currently charging
-
-  ---@type QualityTable
-  storage.waiting_bot_qualities = {} -- Quality of bots waiting to charge
-
-  -- Roboport qualities
-  ---@type QualityTable
-  storage.roboport_qualities = {} -- Quality of roboports
-end
-
--- Initialize all of the storage elements managed by bot_counter
----@return nil
-function player_data.init_bot_counter_storage()
-  -- Real time data about deliveries
-  ---@type table<string, DeliveryItem>
-  storage.bot_deliveries = {} -- A list of items being delivered right now
-
-  -- Real time data about bots: Very cheap to keep track of
-  ---@type table<string, number>
-  storage.bot_items = storage.bot_items or {}
-
-  -- History data
-  ---@type table<number, BotDeliveringInFlight>
-  storage.bot_active_deliveries = {} -- A list of bots currently delivering items
-
-  ---@type table<string, DeliveredItems>
-  storage.delivery_history = {} -- A list of past delivered items
-
-  -- Bot counting: bots seen in the last full pass
-  ---@type table<number, boolean>
-  storage.last_pass_bots_seen = {}
-
-  -- Bot qualitity tables
-  ---@type QualityTable
-  storage.picking_bot_qualities = {} -- Quality of bots currently picking items
-
-  ---@type QualityTable
-  storage.delivering_bot_qualities = {} -- Quality of bots currently delivering items
-
-  ---@type QualityTable
-  storage.other_bot_qualities = {} -- Quality of bots doing anything else
-
-  ---@type QualityTable
-  storage.total_bot_qualities = {} -- Quality of all bots counted
-end
-
+--- Initialise all storages
 ---@return nil
 function player_data.init_storages()
-  player_data.init_logistic_cell_counter_storage()
-  player_data.init_bot_counter_storage()
+  ---@type table<uint, PlayerData>
   storage.players = {}
   for _, player in pairs(game.players) do
     player_data.init(player.index)
     player_data.update_settings(player, storage.players[player.index])
   end
+
+  network_data.init() -- Initialise network data storage
 end
 
 ---@param player LuaPlayer|nil
 ---@param player_table PlayerData|nil
+---@return nil
 function player_data.update_settings(player, player_table)
   if  player and player.valid and player_table then
     local mod_settings = player.mod_settings
@@ -176,49 +87,13 @@ function player_data.update_settings(player, player_table)
   end
 end
 
+---@param player_index uint
 ---@return PlayerData|nil
-function player_data.get_singleplayer_table()
-  -- In singleplayer mode, there is only one player. Return the player_table.
-  if not cached_player_table then
-    -- Make sure there are connected players before trying to access them
-    if #game.connected_players > 0 then
-      local player = game.connected_players[1]
-      if player and player.valid and storage and storage.players then
-        cached_player_table = storage.players[player.index]
-        if cached_player_table then
-          -- Ensure the player table has the necessary fields
-          if not cached_player_table.paused_items then
-            cached_player_table.paused_items = {} -- Initialize paused items if not present
-          end
-          return cached_player_table
-        end
-      else
-        -- Player or storage not valid, return nil
-        return nil
-      end
-    else
-      -- No players connected, return nil
-      return nil
-    end
+function player_data.get_player_table(player_index)
+  if not player_index or not storage.players then
+    return nil -- No player index or storage available
   end
-  return cached_player_table
-end
-
----@return LuaPlayer|nil
-function player_data.get_singleplayer_player()
-  -- In singleplayer mode, there is only one player. Return the player.
-  -- Check if cached player is nil or no longer valid
-  if not cached_player or not cached_player.valid then
-    cached_player = nil -- Clear invalid cache
-    -- Make sure there are connected players before trying to access them
-    if #game.connected_players > 0 then
-      cached_player = game.connected_players[1]
-    else
-      -- No players connected, return nil
-      return nil
-    end
-  end
-  return cached_player
+  return storage.players[player_index] or nil -- Return the player table if it exists
 end
 
 ---@param player LuaPlayer|nil
@@ -253,6 +128,7 @@ function player_data.check_network_changed(player, player_table)
     else
       player_table.network = network
       player_table.history_timer:reset() -- Reset the tick counter when network changes
+      network_data.network_changed(player_table, old_network_id, new_network_id)
       if not player_table.suggestions then
         player_table.suggestions = suggestions.new()
       end
@@ -264,16 +140,16 @@ function player_data.check_network_changed(player, player_table)
   end
 end
 
-function player_data.is_included_robot(bot)
-  return true -- For now, include all bots.
-  -- return bot and bot.name == "logistics-robot" -- Option to expand in the future
-end
-
+---@param player_table PlayerData
+---@return integer
 function player_data.bot_chunk_interval(player_table)
-  return player_table.settings.bot_chunk_interval or 10
+  return player_table.settings.bot_chunk_interval or 400
 end
 
 -- Scale the update interval based on how often the UI updates, but not too often
+---@param player_table PlayerData
+---@param chunks number
+---@return nil
 function player_data.set_logistic_cell_chunks(player_table, chunks)
   local interval = player_data.ui_update_interval(player_table) / math_max(1, chunks)
   local bot_interval = player_data.bot_chunk_interval(player_table)
@@ -284,10 +160,14 @@ function player_data.set_logistic_cell_chunks(player_table, chunks)
   player_table.current_logistic_cell_interval = math_ceil(interval)
 end
 
+---@param player_table PlayerData
+---@return integer
 function player_data.cells_chunk_interval(player_table)
   return player_table.current_logistic_cell_interval or 60
 end
 
+---@param player_table PlayerData
+---@return integer
 function player_data.ui_update_interval(player_table)
   return player_table.settings.ui_update_interval or 60
 end
@@ -302,10 +182,5 @@ function player_data.register_ui(player_table, name)
   player_table.ui[name] = {}
 end
 
--- Reset cached references - should be called when game is loaded or configuration changes
-function player_data.reset_cache()
-  cached_player = nil
-  cached_player_table = nil
-end
 
 return player_data

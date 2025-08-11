@@ -3,12 +3,12 @@
 
 local history_rows = {}
 
-local player_data = require("scripts.player-data")
+local network_data = require("scripts.network-data")
 local sorted_item_row = require("scripts.mainwin.sorted_item_row")
 local pause_manager = require("scripts.pause-manager")
 
 local function is_history_enabled(player_table)
-  return pause_manager.is_running(player_table.paused_items, "history")
+  return pause_manager.is_running(player_table, "history")
 end
 
 --- Add history rows to the GUI (totals and average ticks)
@@ -20,11 +20,12 @@ function history_rows.add(player_table, gui_table)
 end
 
 function history_rows.update(player_table, clearing)
-  if player_table.settings.show_history and storage.delivery_history then
+  local networkdata = network_data.get_networkdata(player_table.network)
+  if player_table.settings.show_history and networkdata and networkdata.delivery_history then
     sorted_item_row.update(
       player_table,
       "totals-row",
-      storage.delivery_history,
+      networkdata.delivery_history,
       function(a, b) return a.count > b.count end,
       "count",
       clearing,
@@ -34,7 +35,7 @@ function history_rows.update(player_table, clearing)
     sorted_item_row.update(
       player_table,
       "avgticks-row",
-      storage.delivery_history,
+      networkdata.delivery_history,
       function(a, b) return a.avg > b.avg end,
       "avg",
       clearing,

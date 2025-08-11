@@ -1,6 +1,7 @@
 local bot_counter = {}
 
 local player_data = require("scripts.player-data")
+local network_data = require("scripts.network-data")
 local chunker = require("scripts.chunker")
 local utils = require("scripts.utils")
 local pause_manager = require("scripts.pause-manager")
@@ -77,6 +78,7 @@ local function add_item_to_current_deliveries(item_name, localised_name, quality
 end
 
 --- Add the bot and order to the list of things being delivered for the purpose of calculating history
+--- @param networkdata LINetworkData The network data to update
 --- @param bot LuaEntity The robot entity
 --- @param order table The robot's delivery order
 --- @param item_name string The name of the item being delivered
@@ -84,7 +86,7 @@ end
 --- @param quality string The quality name of the item
 --- @param localised_quality_name LocalisedString The localised display name of the quality
 --- @param count number The number of items being delivered
-local function add_bot_to_active_deliveries(bot, order, item_name, localised_name, quality, localised_quality_name, count)
+local function add_bot_to_active_deliveries(networkdata, bot, order, item_name, localised_name, quality, localised_quality_name, count)
   if not bot.valid or not order then
     return
   end
@@ -94,23 +96,23 @@ local function add_bot_to_active_deliveries(bot, order, item_name, localised_nam
     -- No unit number, so we can't track this bot
     return
   end
-  local botorder = storage.bot_active_deliveries[unit_number]
+  local botorder = networkdata.bot_active_deliveries[unit_number]
 
   if botorder then
     -- We have an existing order for this bot
     if botorder.targetpos and order.target and order.target.position and
-       (botorder.targetpos.x ~= order.target.position.x or
+      (botorder.targetpos.x ~= order.target.position.x or
         botorder.targetpos.y ~= order.target.position.y) then
       -- New target position, so order has changed since last time
-      add_delivered_order_to_history(storage.delivery_history, botorder)
-      storage.bot_active_deliveries[unit_number] = nil
+      add_delivered_order_to_history(networkdata.delivery_history, botorder)
+      networkdata.bot_active_deliveries[unit_number] = nil
     else
       -- Just note that we've seen this order again
       botorder.last_seen = current_tick
     end
   else
     -- No order for this bot, so add it
-    storage.bot_active_deliveries[unit_number] = {
+    networkdata.bot_active_deliveries[unit_number] = {
       item_name = item_name,
       localised_name = localised_name,
       quality_name = quality,
@@ -125,17 +127,18 @@ end
 
 --- The bot is not delivering an order; check if the bot finished a prior delivery
 --- and update the history accordingly
+--- @param networkdata LINetworkData The network being processed
 --- @param unit_number number The unique identifier of the robot
 --- @param show_history boolean Whether history tracking is enabled
-local function check_if_no_order_bot_finished_delivery(unit_number, show_history)
+local function check_if_no_order_bot_finished_delivery(networkdata, unit_number, show_history)
   if show_history then
     -- The bot has a delivery interval but no delivery, so it's finished
-    local delivered_order = storage.bot_active_deliveries[unit_number]
+    local delivered_order = networkdata.bot_active_deliveries[unit_number]
     if delivered_order then
-      add_delivered_order_to_history(storage.delivery_history, delivered_order)
+      add_delivered_order_to_history(networkdata.delivery_history, delivered_order)
 
       -- Remove from active deliveries being tracked
-      storage.bot_active_deliveries[unit_number] = nil
+      networkdata.bot_active_deliveries[unit_number] = nil
     end
   end
 end
@@ -149,6 +152,11 @@ local function process_one_bot(bot, accumulator, player_table)
     local unit_number = bot.unit_number
     if not unit_number then
       -- No unit number, so we can't track this bot
+      return
+    end
+    local networkdata = network_data.get_networkdata(player_table.network)
+    if not networkdata then
+      -- No network data, so we can't track this bot
       return
     end
     if accumulator.last_seen[unit_number] then
@@ -184,18 +192,18 @@ local function process_one_bot(bot, accumulator, player_table)
           -- Record current deliveries
           add_item_to_current_deliveries(item_name, localised_name, item_quality, localised_quality_name, item_count, accumulator.item_deliveries)
           -- Record delivery for history purposes
-          add_bot_to_active_deliveries(bot, order, item_name, localised_name, item_quality, localised_quality_name, item_count)
+          add_bot_to_active_deliveries(networkdata, bot, order, item_name, localised_name, item_quality, localised_quality_name, item_count)
         else
           -- Check if the bot was delivering last time we saw it, and record the delivery
-          check_if_no_order_bot_finished_delivery(unit_number, player_table.settings.show_history)
+          check_if_no_order_bot_finished_delivery(networkdata, unit_number, player_table.settings.show_history)
         end
       else
         -- This is a situation that should not occur: we haver an order but no target item. Clear it.
-        check_if_no_order_bot_finished_delivery(unit_number, player_table.settings.show_history)
+        check_if_no_order_bot_finished_delivery(networkdata, unit_number, player_table.settings.show_history)
       end
     else
       -- No orders, check if it's because the bot has finished its delivery
-      check_if_no_order_bot_finished_delivery(unit_number, player_table.settings.show_history)
+      check_if_no_order_bot_finished_delivery(networkdata, unit_number, player_table.settings.show_history)
       utils.accumulate_quality(accumulator.other_bot_qualities, quality, 1)
     end
   end
@@ -219,59 +227,62 @@ end
 --- @param accumulator Accumulator The data accumulator containing all gathered statistics
 --- @param player_table PlayerData The player's data table containing settings
 local function bot_chunks_done(accumulator, player_table)
-  storage.bot_items["delivering"] = accumulator.delivering_bots or nil
-  storage.bot_items["picking"] = accumulator.picking_bots or nil
-  storage.bot_deliveries = accumulator.item_deliveries or {}
-  storage.delivering_bot_qualities = accumulator.delivering_bot_qualities or {}
-  storage.picking_bot_qualities = accumulator.picking_bot_qualities or {}
-  storage.other_bot_qualities = accumulator.other_bot_qualities or {}
-    -- Sum all of the qualities gathered by bot-counter, plus idle ones, to get the totals
-  local total_bot_qualities = {}
-  if prototypes and prototypes.quality and prototypes.quality.normal then
-    local quality = prototypes.quality.normal
-    while quality and quality.name do
-      local qname = quality.name
-      local amount = (storage.idle_bot_qualities[qname] or 0)
-        + (storage.picking_bot_qualities[qname] or 0)
-        + (storage.delivering_bot_qualities[qname] or 0)
-        + (storage.other_bot_qualities[qname] or 0)
-      total_bot_qualities[qname] = amount
-      -- Go to the next higher quality
-      quality = quality.next
+  local networkdata = network_data.get_networkdata(player_table.network)
+  if networkdata then
+    networkdata.bot_items["delivering"] = accumulator.delivering_bots or nil
+    networkdata.bot_items["picking"] = accumulator.picking_bots or nil
+    networkdata.bot_deliveries = accumulator.item_deliveries or {}
+    networkdata.delivering_bot_qualities = accumulator.delivering_bot_qualities or {}
+    networkdata.picking_bot_qualities = accumulator.picking_bot_qualities or {}
+    networkdata.other_bot_qualities = accumulator.other_bot_qualities or {}
+      -- Sum all of the qualities gathered by bot-counter, plus idle ones, to get the totals
+    local total_bot_qualities = {}
+    if prototypes and prototypes.quality and prototypes.quality.normal then
+      local quality = prototypes.quality.normal
+      while quality and quality.name do
+        local qname = quality.name
+        local amount = (networkdata.idle_bot_qualities[qname] or 0)
+          + (networkdata.picking_bot_qualities[qname] or 0)
+          + (networkdata.delivering_bot_qualities[qname] or 0)
+          + (networkdata.other_bot_qualities[qname] or 0)
+        total_bot_qualities[qname] = amount
+        -- Go to the next higher quality
+        quality = quality.next
+      end
     end
-  end
-  storage.total_bot_qualities = total_bot_qualities
+    networkdata.total_bot_qualities = total_bot_qualities
 
-  if player_table and player_table.settings.show_history and table_size(storage.bot_active_deliveries) > 0 then
-    -- Consider bots we saw last pass but not this chunk pass as delivered.
-    -- They are either destroyed or parked in a roboport, no longer part of the network
-    if accumulator.last_seen then
-      for unit_number, seen in pairs(accumulator.last_seen) do
-        if seen == seen_bot_this_pass then
-          -- We saw this bot in the last pass
-          accumulator.just_seen[unit_number] = seen_bot_last_pass
-        else
-          -- We did not see this bot in the last pass, so it probably finished its delivery
-          check_if_no_order_bot_finished_delivery(unit_number, true)
+    if player_table and player_table.settings.show_history and table_size(networkdata.bot_active_deliveries) > 0 then
+      -- Consider bots we saw last pass but not this chunk pass as delivered.
+      -- They are either destroyed or parked in a roboport, no longer part of the network
+      if accumulator.last_seen then
+        for unit_number, seen in pairs(accumulator.last_seen) do
+          if seen == seen_bot_this_pass then
+            -- We saw this bot in the last pass
+            accumulator.just_seen[unit_number] = seen_bot_last_pass
+          else
+            -- We did not see this bot in the last pass, so it probably finished its delivery
+            check_if_no_order_bot_finished_delivery(networkdata, unit_number, true)
+          end
         end
       end
     end
-  end
-  -- Save the last-seen list so it can be used in the next pass
-  storage.last_pass_bots_seen = accumulator.just_seen or {}
+    -- Save the last-seen list so it can be used in the next pass
+    networkdata.last_pass_bots_seen = accumulator.just_seen or {}
 
-  -- See if there are new suggestions based on the data just gathered
-  if player_table and player_table.suggestions then
-    player_table.suggestions:bots_data_updated(player_table.network, pause_manager.is_running(player_table.paused_items, "undersupply"))
+    -- See if there are new suggestions based on the data just gathered
+    if player_table and player_table.suggestions then
+      player_table.suggestions:bots_data_updated(player_table.network, pause_manager.is_running(player_table, "undersupply"))
+    end
   end
 end
 
--- Use the generic chunker to process bots in chunks, to moderate CPU usage
-local bot_chunker = chunker.new(bot_initialise_chunking, process_one_bot, bot_chunks_done)
-
 --- Process data gathered so far and start over
-function bot_counter.restart_counting()
-  bot_chunker:reset()
+--- @param player_table PlayerData|nil The player's data table
+function bot_counter.restart_counting(player_table)
+  if player_table and player_table.bot_chunker then
+    player_table.bot_chunker:reset(bot_initialise_chunking, bot_chunks_done)
+  end
 end
 
 --- When the network changes, reset all bot data
@@ -279,8 +290,10 @@ end
 --- @param player_table PlayerData|nil The player's data table
 function bot_counter.network_changed(player, player_table)
   -- Clear all current state when we change networks
-  bot_chunker:reset()
-  player_data.init_bot_counter_storage()
+  bot_counter.restart_counting(player_table)
+  if player_table then
+    network_data.init_bot_counter_storage(player_table.network)
+  end
 end
 
 --- Gather bot delivery data for all bots, one chunk at a time
@@ -294,7 +307,13 @@ function bot_counter.gather_bot_data(player, player_table)
   end
 
   local network = player_table.network
-  if not network or not network.valid or pause_manager.is_paused(player_table.paused_items, "activity") then
+  if not network or not network.valid or pause_manager.is_paused(player_table, "activity") then
+    return progress
+  end
+
+  local networkdata = network_data.get_networkdata(network)
+  if not networkdata then
+    -- No network data, so we can't gather bot data
     return progress
   end
 
@@ -302,17 +321,29 @@ function bot_counter.gather_bot_data(player, player_table)
   local show_history = player_table.settings.show_history
 
   if show_delivering or show_history then
+    local bot_chunker = bot_counter.get_or_create_chunker(player_table)
+
     if bot_chunker:is_done() then
-      bot_chunker:initialise_chunking(network.logistic_robots, player_table, storage.last_pass_bots_seen)
+      bot_chunker:initialise_chunking(network.logistic_robots, player_table, networkdata.last_pass_bots_seen, bot_initialise_chunking)
     end
-    bot_chunker:process_chunk()
+    bot_chunker:process_chunk(process_one_bot, bot_chunks_done)
     progress = bot_chunker:get_progress()
   else
-    storage.bot_items["delivering"] = nil
-    storage.bot_items["picking"] = nil
+    networkdata.bot_items["delivering"] = nil
+    networkdata.bot_items["picking"] = nil
   end
 
   return progress
+end
+
+--- Create or get the player's existing chunker for processing bots
+---@param player_table PlayerData The player's data table
+---@return Chunker The created chunker instance
+function bot_counter.get_or_create_chunker(player_table)
+  if not player_table.bot_chunker then
+    player_table.bot_chunker = chunker.new(player_table)
+  end
+  return player_table.bot_chunker
 end
 
 return bot_counter

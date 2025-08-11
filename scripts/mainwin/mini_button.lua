@@ -19,8 +19,9 @@ function mini_button.update_paused(element, is_paused)
   end
 end
 
-local function get_button(name)
-  local player_table = player_data.get_singleplayer_table()
+--- @param player_table PlayerData The player's data table
+---@param name string The name of the button
+local function get_button(player_table, name)
   if player_table and player_table.ui then
     local button = player_table.ui[name .. "_control"]
     if button and button.valid then
@@ -31,19 +32,21 @@ local function get_button(name)
 end
 
 --- Update the paused state of a mini button by name
+--- @param player_table PlayerData The player's data table
 ---@param name string The name of the button to update
 ---@param is_paused boolean Whether the button should show as paused
-function mini_button.update_paused_state(name, is_paused)
-  local button = get_button(name)
+function mini_button.update_paused_state(player_table, name, is_paused)
+  local button = get_button(player_table, name)
   if button then
     mini_button.update_paused(button, is_paused)
   end
 end
 
 --- Enable/disable a mini button by name
+--- @param player_table PlayerData The player's data table
 ---@param name string The name of the button to update
-function mini_button.set_enabled(name, enabled)
-  local button = get_button(name)
+function mini_button.set_enabled(player_table, name, enabled)
+  local button = get_button(player_table, name)
   if button then
     button.enabled = enabled
   end
