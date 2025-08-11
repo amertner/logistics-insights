@@ -78,6 +78,7 @@ local li_migrations = {
         local counter = player_table.history_timer
         if counter and type(counter) == "table" then
         -- Check if this looks like a TickCounter object
+        ---@diagnostic disable-next-line: inject-field, undefined-field
         if counter.start_tick and counter.paused ~= nil then
           -- Reconnect the metatable
           setmetatable(counter, TickCounter)
@@ -139,9 +140,13 @@ local li_migrations = {
           counter._pause_tick = counter.pause_tick or nil
           counter._accumulated_time = counter.accumulated_time or 0
           -- Remove the old fields
+        ---@diagnostic disable-next-line: inject-field
           counter.start_tick = nil
+        ---@diagnostic disable-next-line: inject-field
           counter.paused = nil
+        ---@diagnostic disable-next-line: inject-field
           counter.pause_tick = nil
+        ---@diagnostic disable-next-line: inject-field
           counter.accumulated_time = nil
         end
       end
@@ -178,9 +183,13 @@ local li_migrations = {
     -- Move all of the things that used to be global to per-player
     for player_index, player_table in pairs(storage.players) do
       -- Removed fields
+      ---@diagnostic disable-next-line: inject-field
       player_table.bots_table = nil
+      ---@diagnostic disable-next-line: inject-field
       player_table.current_activity_interval = nil
+      ---@diagnostic disable-next-line: inject-field
       player_table.current_activity_size = nil
+      ---@diagnostic disable-next-line: inject-field
       player_table.undersupply_paused = nil
       -- Ensure network data exists
       network_data.create_networkdata(player_table.network)
