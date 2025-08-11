@@ -1,6 +1,6 @@
 -- Process lists of entities in chunks to avoid performance issues
 
-local chunker = {}
+local player_data = require("scripts.player-data")
 
 ---@class Progress
 ---@field current number The current progress index
@@ -15,15 +15,19 @@ local chunker = {}
 ---@field on_process_entity function Function called for each entity (entity, partial_data, player_table)
 ---@field on_completion function Function called when all chunks are processed (data, player_table)
 ---@field player_table PlayerData|nil The player's data table containing settings
+local chunker = {}
+chunker.__index = chunker
+script.register_metatable("logistics-insights-Chunker", chunker)
 
 --- Create a new chunker instance for processing entities in chunks
+--- @param player_table PlayerData|nil The player's data table containing settings
 --- @param call_on_init function|nil Function called when chunking is initialized (partial_data, initial_data)
 --- @param call_on_processing function|nil Function called for each entity (entity, partial_data, player_table)
 --- @param call_on_completion function|nil Function called when all chunks are processed (data, player_table)
 --- @return Chunker The new chunker instance
-function chunker.new(call_on_init, call_on_processing, call_on_completion)
+function chunker.new(player_table, call_on_init, call_on_processing, call_on_completion)
   local instance = {
-    CHUNK_SIZE = 200,
+    CHUNK_SIZE = player_table and player_table.settings.chunk_size or 207,
     current_index = 1,
     processing_list = nil,
     partial_data = {},

@@ -23,6 +23,7 @@ local math_ceil = math.ceil
 ---@field ui table<string, table> -- UI elements for the mod's GUI
 ---@field current_logistic_cell_interval number -- Dynamically calculated interval for logistic cell updates
 ---@field paused_items string[] -- List of paused items by name
+---@field cell_chunker Chunker|nil -- Chunker for processing logistic cells
 ---@param player_index uint
 ---@return nil
 function player_data.init(player_index)
@@ -32,14 +33,15 @@ function player_data.init(player_index)
     window = nil, -- Will be created later
     bots_window_visible = false, -- Start invisible
     network = nil,
-    history_timer = tick_counter.new(), -- #TODO: This should be for the network
-    suggestions = suggestions.new(),   -- #TODO: This should be for the network
+    history_timer = tick_counter.new(),
+    suggestions = suggestions.new(),
     fixed_network = false,
     player_index = player_index,
     window_location = {x = 200, y = 0},
     ui = {},
     current_logistic_cell_interval = 60,
-    paused_items = {} -- Paused activities #TODO: Only paused in UI? Only for this player?
+    paused_items = {}, -- Paused activities
+    cell_chunker = nil, -- Chunker for processing logistic cells
   }
   storage.players[player_index] = player_data_entry
 end

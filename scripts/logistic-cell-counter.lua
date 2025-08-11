@@ -5,6 +5,7 @@ local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
 local utils = require("scripts.utils")
 local pause_manager = require("scripts.pause-manager")
+local chunker = require("scripts.chunker")
 
 ---@class CellAccumulator
 ---@field bots_charging number Count of bots currently charging
@@ -97,19 +98,22 @@ local function all_chunks_done(accumulator, player_table)
   end
 end
 
-local cell_chunker = require("scripts.chunker").new(initialise_cell_network_list, process_one_cell, all_chunks_done)
-
 --- Process data gathered so far and start over
-function logistic_cell_counter.restart_counting()
-  cell_chunker:reset()
+--- @param player_table PlayerData The player's data table
+function logistic_cell_counter.restart_counting(player_table)
+  if player_table.cell_chunker then
+    player_table.cell_chunker:reset()
+  end
 end
 
 --- Reset logistic cell data when network changes
 --- @param player? LuaPlayer The player whose network changed
 --- @param player_table? PlayerData The player's data table
 function logistic_cell_counter.network_changed(player, player_table)
-  cell_chunker:reset()
   if player_table then
+    if player_table.cell_chunker then
+      player_table.cell_chunker:reset() -- Reset the chunker for new network
+    end
     network_data.init_logistic_cell_counter_storage(player_table.network)
     if player_table.suggestions then
       player_table.suggestions:clear_suggestions()
@@ -149,6 +153,8 @@ function logistic_cell_counter.gather_data(player, player_table)
     return progress
   end
 
+  local cell_chunker = logistic_cell_counter.get_or_create_chunker(player_table)
+
   -- Process cell data
   if cell_chunker:is_done() then
     cell_chunker:initialise_chunking(network.cells, player_table, nil)
@@ -157,6 +163,21 @@ function logistic_cell_counter.gather_data(player, player_table)
   cell_chunker:process_chunk()
 
   return cell_chunker:get_progress()
+end
+
+--- Create or get the player's existing chunker for processing logistic cells
+---@param player_table PlayerData The player's data table
+---@return Chunker The created chunker instance
+function logistic_cell_counter.get_or_create_chunker(player_table)
+  if not player_table.cell_chunker then
+    player_table.cell_chunker = chunker.new(
+      player_table,
+      initialise_cell_network_list,
+      process_one_cell,
+      all_chunks_done
+    )
+  end
+  return player_table.cell_chunker
 end
 
 return logistic_cell_counter

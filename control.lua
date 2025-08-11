@@ -100,7 +100,7 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
         player_data.update_settings(player, player_table)
         -- Process (partial) data and start gathering with new chunk size
         bot_counter.restart_counting()
-        logistic_cell_counter.restart_counting()
+        logistic_cell_counter.restart_counting(player_table)
       elseif e.setting == "li-chunk-processing-interval" or
             e.setting == "li-ui-update-interval" or
             e.setting == "li-pause-for-bots" or
