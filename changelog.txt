@@ -1,8 +1,10 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.9.8
-Date: ????
+Date: 2025-08-11
   Features:
-    - Now supports multiplayer games
+    - Now fully supports multiplayer games
+  Bugfixes:
+    - Fixed a situation where a suggestion button sometimes would keep a past click action
 ---------------------------------------------------------------------------------------------------
 Version: 0.9.7
 Date: 2025-08-08
