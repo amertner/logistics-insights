@@ -29,7 +29,8 @@ function history_rows.update(player_table, clearing)
       function(a, b) return a.count > b.count end,
       "count",
       clearing,
-      is_history_enabled
+      is_history_enabled,
+      nil
     )
 
     sorted_item_row.update(
@@ -39,7 +40,8 @@ function history_rows.update(player_table, clearing)
       function(a, b) return a.avg > b.avg end,
       "avg",
       clearing,
-      is_history_enabled
+      is_history_enabled,
+      nil
     )
   end
 end

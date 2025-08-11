@@ -75,8 +75,13 @@ end
 
 --- Get item list and focus data for mobile items (with following)
 --- @param item_list LuaEntity[] List of entities
+--- @param filter_fn function|nil Optional filter function to apply to the items
+--- @param filter_value any Optional value to filter by
 --- @return ViewData View data with items and random selection (with follow enabled)
-local function get_item_list_and_focus_mobile(item_list)
+local function get_item_list_and_focus_mobile(item_list, filter_fn, filter_value)
+  if filter_fn then
+    item_list = apply_filter(item_list, filter_fn, filter_value)
+  end
   local rando = utils.get_random(item_list)
   if rando then
     return {items = item_list, item = rando, follow = true}
@@ -187,6 +192,9 @@ local get_list_function = {
   ["logistics-insights-undersupply"] = function(pd, filter_fn, filter_value)
     return get_item_list_and_focus(pd.network.requesters, filter_fn, filter_value)
   end,
+  ["logistics-insights-delivery"] = function(pd, filter_fn, filter_value)
+    return get_item_list_and_focus_mobile(pd.network.logistic_robots, filter_fn, filter_value)
+  end,
 }
 
 --- Open viewdata in the result location viewer
@@ -228,6 +236,21 @@ function find_and_highlight.highlight_locations_on_map(player, player_table, ele
   end
 
   open_viewdata(player, viewdata, focus_on_element)
+end
+
+-- Filter function to find robots carrying a specific item
+function find_and_highlight.is_delivering_item(robot, item)
+  if robot and robot.valid then
+    local order = robot.robot_order_queue[1] or nil
+    if order and order.type == defines.robot_order_type.deliver and order.target_item then
+      if order.target_item.name.name == item.name then
+        if order.target_item.quality.name == item.quality then
+          return true
+        end
+      end
+    end
+  end
+  return false
 end
 
 -- Filter function to find requesters of a specific item

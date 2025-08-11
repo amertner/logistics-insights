@@ -26,6 +26,12 @@ end
 function delivery_row.update(player_table, clearing)
   local networkdata = network_data.get_networkdata(player_table.network)
   if player_table.settings.show_delivering and networkdata then
+    local clicktip
+    if player_table.settings.pause_for_bots then
+      clicktip = {"bots-gui.show-location-and-pause-tooltip"}
+    else
+      clicktip = {"bots-gui.show-location-tooltip"}
+    end
     sorted_item_row.update(
       player_table,
       "deliveries-row",
@@ -33,7 +39,8 @@ function delivery_row.update(player_table, clearing)
       function(a, b) return a.count > b.count end,
       "count",
       clearing,
-      is_delivery_enabled
+      is_delivery_enabled,
+      clicktip
     )
   end
 end

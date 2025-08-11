@@ -32,7 +32,8 @@ function undersupply_row.update(player_table, clearing)
       function(a, b) return a.shortage > b.shortage end,
       "shortage",
       clearing or false,
-      function(pt) return pause_manager.is_running(player_table, "undersupply") end
+      function(pt) return pause_manager.is_running(player_table, "undersupply") end,
+      {"undersupply-row.show-location-tooltip"}
     )
   end
 end

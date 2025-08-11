@@ -85,7 +85,8 @@ end -- add
 --- @param number_field string The field name to display as number ("count", "ticks", "avg")
 --- @param clearing boolean Whether this update is due to clearing history
 --- @param enabled_fn function(player_table) Function to determine if the cells are enabled
-function sorted_item_row.update(player_table, title, all_entries, sort_fn, number_field, clearing, enabled_fn)
+--- @param show_click_tip LocalisedString|nil String to show if the cell is clickable
+function sorted_item_row.update(player_table, title, all_entries, sort_fn, number_field, clearing, enabled_fn, show_click_tip)
 
   --- Generate tooltip text for a cell based on the entry data and number field type
   --- @param entry DeliveryItem|DeliveredItems|UndersupplyItem The entry containing item data
@@ -105,9 +106,11 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
       tip = {"", {"item-row.avg-field-tooltip-1ticks-2count-3quality-4itemname", ticks_formatted, entry.count, quality, name}}
     elseif number_field == "shortage" then
       tip = {"", {"undersupply-row.shortage-tooltip-1shortage_2item_3quality_4requested_5storage_6underway",
-        entry.shortage, name, quality, entry.request, entry.supply, entry.under_way},
-        "\n",
-        {"undersupply-row.show-location-tooltip"}}
+        entry.shortage, name, quality, entry.request, entry.supply, entry.under_way}}
+    end
+    if show_click_tip then
+      -- Add a click tip if provided
+      tip = {"", tip, "\n", show_click_tip}
     end
     return tip
   end
@@ -192,6 +195,13 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
         cell.enabled = enabled_fn(player_table)
       else
         cell.enabled = true -- Default to enabled if no function provided
+      end
+      if show_click_tip then
+        -- Enables following click in main_window.
+        cell.tags = { follow = true }
+      else
+        -- No click tip, so no need for tags
+        cell.tags = {}
       end
     end
     count = count + 1

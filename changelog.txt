@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.9.9
+Date: ????
+  Features:
+    - Added ability to click on an item being delivered to highlight all the bots delivering it
+---------------------------------------------------------------------------------------------------
 Version: 0.9.8
 Date: 2025-08-11
   Features:

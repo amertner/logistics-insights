@@ -323,6 +323,18 @@ function main_window.onclick(event)
         pause_manager.toggle_paused(player_table, "undersupply")
       elseif event.element.name == "logistics-insights-sorted-suggestions" then
         pause_manager.toggle_paused(player_table, "suggestions")
+      elseif utils.starts_with(event.element.name, "logistics-insights-delivery/") then
+        -- This is a delivery item row
+        local item_name = event.element.sprite:match("^item/(.+)$")
+        local quality_name = (event.element.quality and event.element.quality.name) or "normal"
+        local item = {name = item_name, quality = quality_name}
+        -- Find the row name without number
+        local rowname = event.element.name:match("^(.+)/")
+        find_and_highlight.highlight_locations_with_filter_on_map(
+          player, player_table, rowname,
+          find_and_highlight.is_delivering_item,
+          item,
+          event.button == defines.mouse_button_type.right)
       elseif utils.starts_with(event.element.name, "logistics-insights-undersupply") then
         -- This is an undersupply row item button, find the item it's referring to
         local item_name = event.element.sprite:match("^item/(.+)$")
