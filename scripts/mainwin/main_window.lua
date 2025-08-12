@@ -291,7 +291,6 @@ function main_window.onclick(event)
     local player = game.get_player(event.player_index)
     local player_table = player_data.get_player_table(event.player_index)
     if player and player.valid and player_table then
-      local cleared = false
       if game_state.handle_control_button(player_table, event.element) then
         -- Control button handled (freeze/unfreeze/step)
       elseif event.element.name == "logistics-insights-network-id" then
@@ -304,10 +303,10 @@ function main_window.onclick(event)
         if player_table and player_table.history_timer then
           player_table.history_timer:reset_keep_pause()
         end
-        cleared = true
         main_window.update(player, player_table, true)
       elseif pause_manager.handle_pause_button(player_table, event.element) then
         -- Pause button handled
+        main_window.update(player, player_table, false)
       else
         -- The click may require a highlight/freeze
         local handled = find_and_highlight.handle_click(
@@ -316,12 +315,6 @@ function main_window.onclick(event)
           event.element,
           event.button == defines.mouse_button_type.right
         )
-        -- If handled is true, nothing more to do for this click branch
-      end
-
-      if utils.starts_with(event.element.name, "logistics-insights-sorted") then
-        -- A mini button was clicked, update the UI
-        main_window.update(player, player_table, cleared)
       end
     end
   end
