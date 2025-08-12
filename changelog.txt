@@ -5,6 +5,7 @@ Date: ????
     - New suggestion: if >50% of bots are idle and more are still being added, stop adding more bots
   Bugfixes:
     - The Delivery, History and Undersupply rows now clear when there is no active network
+    - Messages about who freezes or unfreezes the game are not only shown once
 ---------------------------------------------------------------------------------------------------
 Version: 0.9.9
 Date: 2025-08-12
