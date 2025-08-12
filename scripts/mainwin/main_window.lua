@@ -323,45 +323,15 @@ function main_window.onclick(event)
         pause_manager.toggle_paused(player_table, "undersupply")
       elseif event.element.name == "logistics-insights-sorted-suggestions" then
         pause_manager.toggle_paused(player_table, "suggestions")
-      elseif utils.starts_with(event.element.name, "logistics-insights-delivery/") then
-        -- This is a delivery item row
-        local item_name = event.element.sprite:match("^item/(.+)$")
-        local quality_name = (event.element.quality and event.element.quality.name) or "normal"
-        local item = {name = item_name, quality = quality_name}
-        -- Find the row name without number
-        local rowname = event.element.name:match("^(.+)/")
-        find_and_highlight.highlight_locations_with_filter_on_map(
-          player, player_table, rowname,
-          find_and_highlight.is_delivering_item,
-          item,
-          event.button == defines.mouse_button_type.right)
-      elseif utils.starts_with(event.element.name, "logistics-insights-undersupply") then
-        -- This is an undersupply row item button, find the item it's referring to
-        local item_name = event.element.sprite:match("^item/(.+)$")
-        local quality_name = (event.element.quality and event.element.quality.name) or "normal"
-        local iq = {name = item_name, quality = quality_name}
-        -- Find the row name without number
-        local rowname = event.element.name:match("^(.+)/")
-        find_and_highlight.highlight_locations_with_filter_on_map(
-          player, player_table, rowname,
-          find_and_highlight.is_requester_of_item,
-          iq,
-          event.button == defines.mouse_button_type.right)
-      elseif utils.starts_with(event.element.name, "logistics-insights-suggestion/") then
-        -- This is a suggestion button, find the suggestion index
-        if event.element.tags then
-          -- The suggestion has evidence, so show it
-          if event.element.tags.clickname then
-            local list_to_show = player_table.suggestions:get_cached_list(event.element.tags.clickname)
-            if list_to_show then
-              find_and_highlight.highlight_list_locations_on_map(
-                player, list_to_show, event.button == defines.mouse_button_type.right)
-            end
-          end
-        end
-      elseif event.element.tags and player then
-        -- Highlight elements. If right-click, also focus on random element
-        find_and_highlight.highlight_locations_on_map(player, player_table, event.element, event.button == defines.mouse_button_type.right)
+      else
+        -- The click may require a highlight/freeze
+        local handled = find_and_highlight.handle_click(
+          player,
+          player_table,
+          event.element,
+          event.button == defines.mouse_button_type.right
+        )
+        -- If handled is true, nothing more to do for this click branch
       end
 
       if utils.starts_with(event.element.name, "logistics-insights-sorted") then

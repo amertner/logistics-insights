@@ -337,4 +337,76 @@ function find_and_highlight.clear_markers(player)
   ResultLocation.clear_markers(player)
 end
 
+--- Unified handler to process a GUI click for highlighting; returns true if handled.
+--- @param player LuaPlayer
+--- @param player_table PlayerData
+--- @param element LuaGuiElement
+--- @param is_right_click boolean
+--- @return boolean handled Whether the element was a highlight element
+function find_and_highlight.handle_click(player, player_table, element, is_right_click)
+  if not (player and player.valid and player_table and element and element.valid) then
+    return false
+  end
+  local name = element.name
+  if not utils.starts_with(name, "logistics-insights") then return false end
+  -- Find the row name, without the index part
+  local rowname = name:match("^(.+)/")
+
+  -- Helper: extract { name = <item_name>, quality = <quality_name> } from a sprite-button
+  local function extract_item_quality()
+    local item_name = element.sprite and element.sprite:match("^item/(.+)$")
+    if not item_name then return nil end
+    local quality_name = (element.quality and element.quality.name) or "normal"
+    return { name = item_name, quality = quality_name }
+  end
+
+  -- Delivery row item buttons: logistics-insights-delivery/<index>
+  if rowname == "logistics-insights-delivery" then
+    local iq = extract_item_quality()
+    if not iq then return false end
+    find_and_highlight.highlight_locations_with_filter_on_map(
+      player, player_table, rowname,
+      find_and_highlight.is_delivering_item,
+      iq,
+      is_right_click
+    )
+    return true
+  end
+
+  -- Undersupply row item buttons: logistics-insights-undersupply/<index>
+  if rowname == "logistics-insights-undersupply" then
+    local iq = extract_item_quality()
+    if not iq then return false end
+    find_and_highlight.highlight_locations_with_filter_on_map(
+      player, player_table, rowname,
+      find_and_highlight.is_requester_of_item,
+      iq,
+      is_right_click
+    )
+    return true
+  end
+
+  -- Suggestion buttons: logistics-insights-suggestion/<index>
+  if rowname == "logistics-insights-suggestion" then
+    local tags = element.tags
+    local clickname = tags and tags.clickname
+    if clickname and player_table.suggestions then
+      local list = player_table.suggestions:get_cached_list(clickname)
+      if list then
+        find_and_highlight.highlight_list_locations_on_map(player, list, is_right_click)
+        return true
+      end
+    end
+    return false
+  end
+
+  -- Generic highlight (element registered in get_list_function table)
+  if element.tags then
+    find_and_highlight.highlight_locations_on_map(player, player_table, element, is_right_click)
+    return true
+  end
+
+  return false
+end
+
 return find_and_highlight
