@@ -311,18 +311,8 @@ function main_window.onclick(event)
         end
         cleared = true
         main_window.update(player, player_table, true)
-      elseif event.element.name == "logistics-insights-sorted-delivery" then
-        pause_manager.toggle_paused(player_table, "delivery")
-      elseif event.element.name == "logistics-insights-sorted-history" then
-        local paused = pause_manager.toggle_paused(player_table,  "history")
-        -- Also toggle the history timer
-        player_table.history_timer:set_paused(paused)
-      elseif event.element.name == "logistics-insights-sorted-activity" then
-        pause_manager.toggle_paused(player_table, "activity")
-      elseif event.element.name == "logistics-insights-sorted-undersupply" then
-        pause_manager.toggle_paused(player_table, "undersupply")
-      elseif event.element.name == "logistics-insights-sorted-suggestions" then
-        pause_manager.toggle_paused(player_table, "suggestions")
+      elseif pause_manager.handle_pause_button(player_table, event.element) then
+        -- Pause button handled
       else
         -- The click may require a highlight/freeze
         local handled = find_and_highlight.handle_click(

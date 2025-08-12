@@ -2,6 +2,7 @@
 local pause_manager = {}
 --local player_data = require("scripts.player-data")
 local mini_button = require("scripts.mainwin.mini_button")
+local utils = require("scripts.utils")
 
 --- Array of paused item names
 ---@alias PausedItems string[]
@@ -27,6 +28,56 @@ pause_manager.dependencies = {
   delivery = { "window" },
   activity = { "window" },
 }
+
+-- Configuration for GUI pause buttons (suffix after logistics-insights-sorted-)
+---@class PauseButtonConfig
+---@field key string Pause manager key
+---@field side_effect fun(player_table:PlayerData, paused:boolean)|nil Optional extra side effects when toggled
+local PAUSE_BUTTONS ---@type table<string, PauseButtonConfig>
+PAUSE_BUTTONS = {
+  delivery    = { key = "delivery" },
+  history     = { key = "history", side_effect = function(pt, paused)
+    if pt.history_timer then pt.history_timer:set_paused(paused) end
+  end },
+  activity    = { key = "activity" },
+  undersupply = { key = "undersupply" },
+  suggestions = { key = "suggestions" },
+}
+
+local PAUSE_PREFIX = "logistics-insights-sorted-"
+
+--- Handle a GUI pause button click; returns true if handled.
+--- @param player_table PlayerData
+--- @param element LuaGuiElement
+--- @return boolean handled True if element was a known pause button
+function pause_manager.handle_pause_button(player_table, element)
+  -- Validate inputs early (compound condition per style preference)
+  if not player_table or not element or not element.valid then
+    return false
+  end
+
+  local element_name = element.name
+  if not utils.starts_with(element_name, PAUSE_PREFIX) then
+    return false
+  end
+
+  -- Extract the suffix (button identifier)
+  local pause_button_suffix = element_name:sub(#PAUSE_PREFIX + 1)
+  local config = PAUSE_BUTTONS[pause_button_suffix]
+  if config == nil then
+    return false
+  end
+
+  -- Toggle paused state for this key
+  local is_now_paused = pause_manager.toggle_paused(player_table, config.key)
+
+  -- Apply any side effect (e.g. history timer) in a separate step for breakpoint ease
+  if config.side_effect then
+    config.side_effect(player_table, is_now_paused)
+  end
+
+  return true
+end
 
 --- Enable all pause items, i.e. set them to running state (on window create/recreate)
 --- @param player_table PlayerData The player's data table
