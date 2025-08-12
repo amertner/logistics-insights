@@ -162,6 +162,13 @@ function main_window._add_titlebar(window, player_table)
     tooltip = {"bots-gui.step-game-tooltip"},
   }
   game_state.init(player_table, unfreeze, freeze)
+  -- Register callback to clear highlight markers whenever the game is unfrozen
+  game_state.set_on_unfreeze(function(pt)
+    local p = game.get_player(pt.player_index)
+    if p and p.valid then
+      find_and_highlight.clear_markers(p)
+    end
+  end)
   game_state.force_update_ui(player_table, false, false)
 end
 

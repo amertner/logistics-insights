@@ -14,6 +14,16 @@ function game_state.init(player_table, ui_unfreeze, ui_freeze)
   player_table.ui["unfreeze_button"] = ui_unfreeze
 end
 
+-- Optional callback executed whenever the game is unfrozen
+local on_unfreeze_callback ---@type fun(player_table:PlayerData)|nil
+
+--- Register a callback to be executed every time unfreeze_game runs.
+--- Only one callback is stored; later calls replace the previous one.
+--- @param cb fun(player_table:PlayerData)|nil Pass nil to clear the callback
+function game_state.set_on_unfreeze(cb)
+  on_unfreeze_callback = cb
+end
+
 --- Freeze the game by pausing ticks
 function game_state.freeze_game(player_table)
   game.tick_paused = true
@@ -24,6 +34,9 @@ end
 ---@param player_table any Unused parameter for compatibility
 function game_state.unfreeze_game(player_table)
   game.tick_paused = false
+  if on_unfreeze_callback then
+    on_unfreeze_callback(player_table)
+  end
   game_state.force_update_ui(player_table, false, true)
 end
 
