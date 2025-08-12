@@ -23,6 +23,8 @@ local network_data = require("scripts.network-data")
 --- Table containing historical data for a suggestion
 --- @alias HistoryData table<HistoryDataEntry>?
 local MAX_HISTORY_TICKS = 60*5 -- 5 seconds
+local BOT_TREND_WINDOW_TICKS = 60 * 10 -- 10 seconds window for trend
+local MIN_TOTAL_BOTS_FOR_SUGGESTION = 100 -- Ignore small networks
 
 --- Table containing all suggestions
 ---@alias SuggestionsTable table<string, Suggestion?>
@@ -43,12 +45,14 @@ Suggestions.storage_low_key = "insufficient-storage"
 Suggestions.unfiltered_storage_low_key = "insufficient-unfiltered-storage"
 Suggestions.mismatched_storage_key = "mismatched-storage"
 Suggestions.undersupply_key = "supply-shortage"
+Suggestions.too_many_bots_key = "too-many-bots"
 -- Order of suggestions in the UI: First by priority, then by this order:
 Suggestions.order = { 
   Suggestions.awaiting_charge_key,
   Suggestions.storage_low_key,
   Suggestions.unfiltered_storage_low_key,
-  Suggestions.mismatched_storage_key
+  Suggestions.mismatched_storage_key,
+  Suggestions.too_many_bots_key
 }
 
 function Suggestions.new()
@@ -142,6 +146,7 @@ function Suggestions:clear_suggestions()
     [Suggestions.unfiltered_storage_low_key] = nil,
     [Suggestions.undersupply_key] = nil,
     [Suggestions.mismatched_storage_key] = nil,
+  [Suggestions.too_many_bots_key] = nil,
   }
   self._suggestions = {
     [Suggestions.awaiting_charge_key] = nil,
@@ -149,6 +154,7 @@ function Suggestions:clear_suggestions()
     [Suggestions.unfiltered_storage_low_key] = nil,
     [Suggestions.undersupply_key] = nil,
     [Suggestions.mismatched_storage_key] = nil,
+  [Suggestions.too_many_bots_key] = nil,
   }
   self._cached_data = {
     [Suggestions.awaiting_charge_key] = nil,
@@ -156,6 +162,7 @@ function Suggestions:clear_suggestions()
     [Suggestions.unfiltered_storage_low_key] = nil,
     [Suggestions.undersupply_key] = nil,
     [Suggestions.mismatched_storage_key] = nil,
+  [Suggestions.too_many_bots_key] = nil,
   }
 end
 
@@ -308,6 +315,61 @@ function Suggestions:analyse_storage(network)
   end
 end
 
+-- Analyse whether the player is adding too many bots: rising total with many idle
+---@param network? LuaLogisticNetwork
+function Suggestions:analyse_too_many_bots(network)
+  if not network then
+    self:clear_suggestion(Suggestions.too_many_bots_key)
+    return
+  end
+  local total = network.all_logistic_robots or 0
+  if total < MIN_TOTAL_BOTS_FOR_SUGGESTION then
+    self:clear_suggestion(Suggestions.too_many_bots_key)
+    return
+  end
+  local idle = network.available_logistic_robots or 0
+
+  -- Record total for trend analysis
+  self:remember(Suggestions.too_many_bots_key, total)
+  local history = self._historydata[Suggestions.too_many_bots_key]
+  if not history or #history < 3 then
+    return -- Need more samples
+  end
+  local window_start = self._current_tick - BOT_TREND_WINDOW_TICKS
+  local first, last
+  for i = #history, 1, -1 do
+    local entry = history[i]
+    if entry.tick < window_start then
+      -- Drop older entries outside window to keep history lean
+      table.remove(history, i)
+    else
+      last = last or entry.data
+      first = entry.data
+    end
+  end
+  if not first or not last or last <= first then
+    self:clear_suggestion(Suggestions.too_many_bots_key)
+    return
+  end
+  local idle_ratio = (total > 0) and (idle / total) or 0
+  if idle_ratio <= 0.5 then
+    self:clear_suggestion(Suggestions.too_many_bots_key)
+    return
+  end
+
+  -- If more than 80% of bots are idle, make it an urgent suggestion
+  local urgency = self:get_urgency(idle_ratio, 0.8)
+  local idle_rounded = math.floor(idle_ratio * 1000)/10
+  self:create_or_clear_suggestion(
+    Suggestions.too_many_bots_key,
+    total,
+    "entity/logistic-robot",
+    urgency,
+    false,
+    {"suggestions-row.too-many-bots-action", idle_rounded}
+  )
+end
+
 --- Call when the data about logistics cells has been udpated
 --- @param network? LuaLogisticNetwork The network being analysed
 function Suggestions:cells_data_updated(network)
@@ -335,6 +397,8 @@ function Suggestions:bots_data_updated(network, run_undersupply)
     local excessivedemand = undersupply.analyse_demand_and_supply(network)
     self:set_cached_list("undersupply", excessivedemand) -- Store the list of mismatched storages
   end
+  -- Always run the too-many-bots analysis when bot data updates
+  self:analyse_too_many_bots(network)
 end
 
 return Suggestions
