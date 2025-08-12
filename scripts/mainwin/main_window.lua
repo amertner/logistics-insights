@@ -18,6 +18,9 @@ local network_row = require("scripts.mainwin.network_row")
 local undersupply_row = require("scripts.mainwin.undersupply_row")
 local suggestions_row = require("scripts.mainwin.suggestions_row")
 
+-- Control action dispatch (freeze / unfreeze / step)
+-- Control button handling moved to game_state.handle_control_button for centralization
+
 -------------------------------------------------------------------------------
 -- Create main window and all rows needed based on settings
 -------------------------------------------------------------------------------
@@ -289,16 +292,8 @@ function main_window.onclick(event)
     local player_table = player_data.get_player_table(event.player_index)
     if player and player.valid and player_table then
       local cleared = false
-      if event.element.name == "logistics-insights-unfreeze" then
-        -- Unfreeze the game after it's been frozen
-        find_and_highlight.clear_markers(player)
-        game_state.unfreeze_game(player_table)
-      elseif event.element.name == "logistics-insights-freeze" then
-        -- Freeze the game so player can inspect the state
-        game_state.freeze_game(player_table)
-      elseif event.element.name == "logistics-insights-step" then
-        -- Single-step the game to see what happens
-        game_state.step_game(player_table)
+      if game_state.handle_control_button(player_table, event.element) then
+        -- Control button handled (freeze/unfreeze/step)
       elseif event.element.name == "logistics-insights-network-id" then
         -- Clicking the network ID button toggles between fixed and dynamic network
         event.element.toggled = not event.element.toggled
@@ -326,7 +321,7 @@ function main_window.onclick(event)
 
       if utils.starts_with(event.element.name, "logistics-insights-sorted") then
         -- A mini button was clicked, update the UI
-        main_window.update(player, player_table, cleared) 
+        main_window.update(player, player_table, cleared)
       end
     end
   end

@@ -34,6 +34,43 @@ function game_state.step_game(player_table)
   game_state.force_update_ui(player_table, true, true)
 end
 
+-- Control button handling (unfreeze / freeze / step)
+local CONTROL_PREFIX = "logistics-insights-"
+local CONTROL_ACTIONS = {
+  unfreeze = function(player_table)
+    -- Unfreeze the game after it's been frozen
+    game_state.unfreeze_game(player_table)
+  end,
+  freeze = function(player_table)
+    -- Freeze the game so player can inspect the state
+    game_state.freeze_game(player_table)
+  end,
+  step = function(player_table)
+    -- Single-step the game to see what happens
+    game_state.step_game(player_table)
+  end,
+}
+
+--- Handle a control button click (freeze/unfreeze/step). Returns true if handled.
+--- @param player_table PlayerData
+--- @param element LuaGuiElement
+--- @return boolean handled
+function game_state.handle_control_button(player_table, element)
+  if not element or not element.valid then
+    return false
+  end
+  if not element.name or not string.find(element.name, CONTROL_PREFIX, 1, true) then
+    return false
+  end
+  local action_key = element.name:sub(#CONTROL_PREFIX + 1)
+  local handler = CONTROL_ACTIONS[action_key]
+  if not handler then
+    return false
+  end
+  handler(player_table)
+  return true
+end
+
 --- Update the UI button states to reflect current game state
 --- Unusually, need to do this for ALL connected players
 ---@param player_table PlayerData The player's data table
