@@ -1,8 +1,8 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.9.9
-Date: ????
+Date: 2025-08-12
   Features:
-    - Added ability to click on an item being delivered to highlight all the bots delivering it
+    - Click on any item in the Delivery row to highlight/focus on the bots delivering it
 ---------------------------------------------------------------------------------------------------
 Version: 0.9.8
 Date: 2025-08-11
