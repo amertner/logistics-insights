@@ -26,18 +26,22 @@ end
 
 --- Freeze the game by pausing ticks
 function game_state.freeze_game(player_table)
-  game.tick_paused = true
-  game_state.force_update_ui(player_table, false, true)
+  if not game.tick_paused then -- Do not repeat if already frozen
+    game.tick_paused = true
+    game_state.force_update_ui(player_table, false, true)
+  end
 end
 
 --- Unfreeze the game by resuming ticks
 ---@param player_table any Unused parameter for compatibility
 function game_state.unfreeze_game(player_table)
-  game.tick_paused = false
-  if on_unfreeze_callback then
-    on_unfreeze_callback(player_table)
+  if game.tick_paused then
+    game.tick_paused = false
+    if on_unfreeze_callback then
+      on_unfreeze_callback(player_table)
+    end
+    game_state.force_update_ui(player_table, false, true)
   end
-  game_state.force_update_ui(player_table, false, true)
 end
 
 --- Step the game by one tick
