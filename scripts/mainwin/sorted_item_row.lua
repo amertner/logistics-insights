@@ -221,4 +221,27 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
   end
 end -- update
 
+--- Clear all cells in a sorted item row
+---@param player_table PlayerData The player's data table
+---@param title string The title/key for this row type
+function sorted_item_row.clear_cells(player_table, title)
+  if not player_table.ui[title] or not player_table.ui[title].cells then
+    return
+  end
+  for i = 1, player_table.settings.max_items do
+    local cell = player_table.ui[title].cells[i]
+    if cell and cell.valid then
+      cell.sprite = ""
+      cell.tooltip = ""
+      cell.number = nil
+      cell.enabled = false
+      cell.tags = {} -- Clear tags to avoid confusion
+    end
+  end
+  -- Clear progress bar if it exists
+  if player_table.ui[title].progressbar then
+    player_table.ui[title].progressbar.value = 1
+  end
+end
+
 return sorted_item_row

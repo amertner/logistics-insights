@@ -25,23 +25,28 @@ end
 --- @param clearing boolean Whether this update is due to clearing history
 function delivery_row.update(player_table, clearing)
   local networkdata = network_data.get_networkdata(player_table.network)
-  if player_table.settings.show_delivering and networkdata then
-    local clicktip
-    if player_table.settings.pause_for_bots then
-      clicktip = {"bots-gui.show-location-and-pause-tooltip"}
+  if player_table.settings.show_delivering then
+    if networkdata then
+      local clicktip
+      if player_table.settings.pause_for_bots then
+        clicktip = {"bots-gui.show-location-and-pause-tooltip"}
+      else
+        clicktip = {"bots-gui.show-location-tooltip"}
+      end
+      sorted_item_row.update(
+        player_table,
+        "deliveries-row",
+        networkdata.bot_deliveries,
+        function(a, b) return a.count > b.count end,
+        "count",
+        clearing,
+        is_delivery_enabled,
+        clicktip
+      )
     else
-      clicktip = {"bots-gui.show-location-tooltip"}
+      -- If no network data, clear the delivery row
+      sorted_item_row.clear_cells(player_table, "deliveries-row")
     end
-    sorted_item_row.update(
-      player_table,
-      "deliveries-row",
-      networkdata.bot_deliveries,
-      function(a, b) return a.count > b.count end,
-      "count",
-      clearing,
-      is_delivery_enabled,
-      clicktip
-    )
   end
 end
 

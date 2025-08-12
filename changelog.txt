@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.9.10
+Date: ????
+  Bugfixes:
+    - The Delivery, History and Undersupply rows now clear when there is no active network
+---------------------------------------------------------------------------------------------------
 Version: 0.9.9
 Date: 2025-08-12
   Features:
