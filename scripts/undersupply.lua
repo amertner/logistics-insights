@@ -51,7 +51,7 @@ function undersupply.analyse_demand_and_supply(network)
                         local current_count = inventory.get_item_count(item_quality)
                         local actual_demand = math.max(0, requested_count - current_count)
                         if actual_demand > 0 then
-                          local key = utils.get_item_quality_key(item_name, quality_name)
+                          local key = utils.get_ItemQuality_key(item_quality)
                           total_demand[key] = (total_demand[key] or 0) + actual_demand
                         end
                       end

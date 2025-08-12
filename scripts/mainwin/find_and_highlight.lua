@@ -223,30 +223,32 @@ end
 function find_and_highlight.highlight_locations_on_map(player, player_table, element, focus_on_element)
   local fn = get_list_function[element.name]
   if not fn then
-    return
+    return -- No function to processs this highlight
   end
 
   if player_table == nil or player_table.network == nil then
-    return -- Fix crash when outside of network
+    return -- Don't crash if there is no network
   end
 
   local viewdata = fn(player_table)
   if viewdata == nil or viewdata.item == nil then
-    return
+    return -- No items to highlight
   end
 
   open_viewdata(player, viewdata, focus_on_element)
 end
 
 -- Filter function to find robots carrying a specific item
-function find_and_highlight.is_delivering_item(robot, item)
+---@param robot LuaEntity The robot entity to check
+---@param iq ItemQuality The item to check against the robot's orders
+function find_and_highlight.is_delivering_item(robot, iq)
   if robot and robot.valid then
     local order = robot.robot_order_queue[1] or nil
     if order and order.type == defines.robot_order_type.deliver and order.target_item then
-      if order.target_item.name.name == item.name then
-        if order.target_item.quality.name == item.quality then
-          return true
-        end
+      local order_name = order.target_item.name.name
+      local order_quality = order.target_item.quality.name or "normal"
+      if order_name == iq.name and order_quality == iq.quality then
+        return true
       end
     end
   end
@@ -254,7 +256,9 @@ function find_and_highlight.is_delivering_item(robot, item)
 end
 
 -- Filter function to find requesters of a specific item
-function find_and_highlight.is_requester_of_item(requester, item)
+---@param requester LuaEntity The requester entity to check
+---@param iq ItemQuality The item to check against the requester's active requests
+function find_and_highlight.is_requester_of_item(requester, iq)
   if requester and requester.valid then
     -- Get the logistic point (the actual requester interface)
     local logistic_point = requester.get_logistic_point(defines.logistic_member_index.logistic_container)
@@ -274,7 +278,7 @@ function find_and_highlight.is_requester_of_item(requester, item)
               if type == "item" or type == "entity" then
                 local item_name = filter.value.name
                 local quality = filter.value.quality or "normal"
-                if item_name == item.name and quality == item.quality then
+                if item_name == iq.name and quality == iq.quality then
                   return true -- Found a matching requester for the item
                 end
               end

@@ -339,13 +339,13 @@ function main_window.onclick(event)
         -- This is an undersupply row item button, find the item it's referring to
         local item_name = event.element.sprite:match("^item/(.+)$")
         local quality_name = (event.element.quality and event.element.quality.name) or "normal"
-        local item = {name = item_name, quality = quality_name}
+        local iq = {name = item_name, quality = quality_name}
         -- Find the row name without number
         local rowname = event.element.name:match("^(.+)/")
         find_and_highlight.highlight_locations_with_filter_on_map(
           player, player_table, rowname,
           find_and_highlight.is_requester_of_item,
-          item,
+          iq,
           event.button == defines.mouse_button_type.right)
       elseif utils.starts_with(event.element.name, "logistics-insights-suggestion/") then
         -- This is a suggestion button, find the suggestion index

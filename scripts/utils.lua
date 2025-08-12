@@ -5,6 +5,10 @@ local utils = {}
 
 ---@alias QualityTable table<string, number> -- Quality name to count mapping
 
+---@class ItemQuality
+---@field name string        -- Prototype/item name
+---@field quality string     -- Quality ("normal", "uncommon", etc.)
+
 --- Test whether a string starts with the given prefix.
 --- @param str string
 --- @param prefix string
@@ -50,6 +54,19 @@ local item_quality_keys = {}
 --- @return string key Interned combined key
 function utils.get_item_quality_key(item_name, quality)
   local cache_key = item_name .. ":" .. quality
+  local key = item_quality_keys[cache_key]
+  if not key then
+    key = cache_key
+    item_quality_keys[cache_key] = key
+  end
+  return key
+end
+
+--- Return (and cache) a stable key for an item/quality pair ("item:quality").
+--- @param iq ItemQuality
+--- @return string key Interned combined key
+function utils.get_ItemQuality_key(iq)
+  local cache_key = iq.name .. ":" .. iq.quality
   local key = item_quality_keys[cache_key]
   if not key then
     key = cache_key
