@@ -146,7 +146,7 @@ function Suggestions:clear_suggestions()
     [Suggestions.unfiltered_storage_low_key] = nil,
     [Suggestions.undersupply_key] = nil,
     [Suggestions.mismatched_storage_key] = nil,
-  [Suggestions.too_many_bots_key] = nil,
+    [Suggestions.too_many_bots_key] = nil,
   }
   self._suggestions = {
     [Suggestions.awaiting_charge_key] = nil,
@@ -154,7 +154,7 @@ function Suggestions:clear_suggestions()
     [Suggestions.unfiltered_storage_low_key] = nil,
     [Suggestions.undersupply_key] = nil,
     [Suggestions.mismatched_storage_key] = nil,
-  [Suggestions.too_many_bots_key] = nil,
+    [Suggestions.too_many_bots_key] = nil,
   }
   self._cached_data = {
     [Suggestions.awaiting_charge_key] = nil,
@@ -162,7 +162,7 @@ function Suggestions:clear_suggestions()
     [Suggestions.unfiltered_storage_low_key] = nil,
     [Suggestions.undersupply_key] = nil,
     [Suggestions.mismatched_storage_key] = nil,
-  [Suggestions.too_many_bots_key] = nil,
+    [Suggestions.too_many_bots_key] = nil,
   }
 end
 
@@ -362,7 +362,7 @@ function Suggestions:analyse_too_many_bots(network)
   local idle_rounded = math.floor(idle_ratio * 1000)/10
   self:create_or_clear_suggestion(
     Suggestions.too_many_bots_key,
-    total,
+    idle_rounded,
     "entity/logistic-robot",
     urgency,
     false,

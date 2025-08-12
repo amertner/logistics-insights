@@ -1,6 +1,8 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.9.10
 Date: ????
+  Features:
+    - New suggestion: if >50% of bots are idle and more are still being added, stop adding more bots
   Bugfixes:
     - The Delivery, History and Undersupply rows now clear when there is no active network
 ---------------------------------------------------------------------------------------------------
