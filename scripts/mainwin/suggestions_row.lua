@@ -3,7 +3,7 @@
 local player_data = require("scripts.player-data")
 local suggestions = require("scripts.suggestions")
 local mini_button = require("scripts.mainwin.mini_button")
-local pause_manager = require("scripts.pause-manager")
+local capability_manager = require("scripts.capability-manager")
 
 local suggestions_row = {}
 local ROW_TITLE = "suggestions-row"
@@ -39,7 +39,7 @@ function suggestions_row.add(player_table, gui_table)
   }
   -- Add pause button and set its state
   local tip = {"suggestions-row.pause-tooltip"}
-  local is_paused = pause_manager.is_paused(player_table, "suggestions") or false
+  local is_paused = not capability_manager.is_active(player_table, "suggestions")
   mini_button.add(player_table, hcell, "suggestions", tip, "pause", is_paused)
 
   -- Remember the title cell so we can update the tooltip later
@@ -163,7 +163,7 @@ function suggestions_row.update(player_table)
     return
   end
 
-  local running = pause_manager.is_running(player_table, "suggestions")
+  local running = capability_manager.is_active(player_table, "suggestions")
   -- Show all suggestions
   local shown = suggestions_row.show_suggestions(player_table, running)
   -- Clear any remaining cells

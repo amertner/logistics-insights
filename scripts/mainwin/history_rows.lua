@@ -5,10 +5,10 @@ local history_rows = {}
 
 local network_data = require("scripts.network-data")
 local sorted_item_row = require("scripts.mainwin.sorted_item_row")
-local pause_manager = require("scripts.pause-manager")
+local capability_manager = require("scripts.capability-manager")
 
 local function is_history_enabled(player_table)
-  return pause_manager.is_running(player_table, "history")
+  return capability_manager.is_active(player_table, "history")
 end
 
 --- Add history rows to the GUI (totals and average ticks)

@@ -2,6 +2,7 @@
 
 local undersupply = require("scripts.undersupply")
 local network_data = require("scripts.network-data")
+local capability_manager = require("scripts.capability-manager")
 
 --- Urgency levels for suggestions
 ---@alias SuggestionUrgency "high"|"low"
@@ -82,10 +83,9 @@ end
 --- Evaluate cell-related suggestions if needed (scheduler sets dirty flag and cadence)
 --- @param player_table PlayerData
 function Suggestions:evaluate_cells(player_table)
-  if not player_table or not player_table.suggestions_dirty_cells then 
-    return -- Cell data hasn't been updated, so nothing to do
-  end
-  player_table.suggestions_dirty_cells = false
+  if not player_table then return end
+  -- Consume dirty flag from capability manager; if not dirty skip
+  if not capability_manager.consume_dirty(player_table, "suggestions") then return end
   self._current_tick = game.tick
   local network = player_table.network
   self:analyse_waiting_to_charge(network)
@@ -95,10 +95,8 @@ end
 --- Evaluate bot-related suggestions & undersupply if needed
 --- @param player_table PlayerData
 function Suggestions:evaluate_bots(player_table)
-  if not player_table or not player_table.suggestions_dirty_bots then
-    return -- Bot data hasn't been updated, so nothing to do
-  end
-  player_table.suggestions_dirty_bots = false
+  if not player_table then return end
+  if not capability_manager.consume_dirty(player_table, "suggestions") then return end
   self._current_tick = game.tick
   local network = player_table.network
   if network then
@@ -110,17 +108,15 @@ end
 --- @param player_table PlayerData
 --- @param consume_flag boolean Whether to consume the dirty flag (default: false)
 function Suggestions:evaluate_undersupply(player_table, consume_flag)
-  if not player_table or not player_table.suggestions_dirty_bots then
-    return -- No new bot data; undersupply unchanged
-  end
+  if not player_table then return end
+  -- Only proceed if undersupply capability is dirty
+  local dirty = capability_manager.consume_dirty(player_table, "undersupply")
+  if not dirty then return end
   local network = player_table.network
   if not network then return end
   local excessivedemand = undersupply.analyse_demand_and_supply(network)
   self:set_cached_list("undersupply", excessivedemand)
-  if consume_flag then
-    player_table.suggestions_dirty_bots = false
-    self._current_tick = game.tick
-  end
+  self._current_tick = game.tick
 end
 
 ---@param value number The value to evaluate for urgency

@@ -4,7 +4,7 @@ local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
 local chunker = require("scripts.chunker")
 local utils = require("scripts.utils")
-local pause_manager = require("scripts.pause-manager")
+local capability_manager = require("scripts.capability-manager")
 
 -- Cache frequently used functions and values for performance
 local pairs = pairs
@@ -253,7 +253,7 @@ local function bot_chunks_done(accumulator, player_table)
     networkdata.total_bot_qualities = total_bot_qualities
 
     if player_table and player_table.settings.show_history and table_size(networkdata.bot_active_deliveries) > 0 
-      and pause_manager.is_running(player_table, "history") then
+      and capability_manager.is_active(player_table, "history") then
       -- Consider bots we saw last pass but not this chunk pass as delivered.
       -- They are either destroyed or parked in a roboport, no longer part of the network
       if accumulator.last_seen then

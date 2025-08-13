@@ -4,6 +4,7 @@ local player_data = {}
 local tick_counter = require("scripts.tick-counter")
 local suggestions = require("scripts.suggestions")
 local network_data = require("scripts.network-data")
+local capability_manager = require("scripts.capability-manager")
 
 -- Cache frequently used functions for performance
 local math_max = math.max
@@ -22,12 +23,10 @@ local math_ceil = math.ceil
 ---@field window_location {x: number, y: number} -- Saved window position
 ---@field ui table<string, table> -- UI elements for the mod's GUI
 ---@field current_logistic_cell_interval number -- Dynamically calculated interval for logistic cell updates
----@field paused_items string[] -- List of paused items by name
----@field suggestions_dirty_cells boolean -- Dirty flag for cell-based suggestions (set by cell-chunk task)
----@field suggestions_dirty_bots boolean -- Dirty flag for bot-based suggestions (set by bot-chunk task)
 ---@field bot_chunker Chunker|nil -- Chunker for processing logistic bots
 ---@field cell_chunker Chunker|nil -- Chunker for processing logistic cells
 ---@field schedule_last_run table<string, uint>|nil -- Per-task last run ticks for scheduler
+---@field capabilities table<string, CapabilityRecord>|nil -- Unified capability records
 ---@param player_index uint
 ---@return nil
 function player_data.init(player_index)
@@ -44,14 +43,12 @@ function player_data.init(player_index)
     window_location = {x = 200, y = 0},
     ui = {},
     current_logistic_cell_interval = 60,
-    paused_items = {}, -- Paused activities
-    suggestions_dirty_cells = false,
-    suggestions_dirty_bots = false,
     bot_chunker = nil, -- Chunker for processing logistic bots
     cell_chunker = nil, -- Chunker for processing logistic cells
     schedule_last_run = {}, -- Per-task last run ticks for scheduler
   }
   storage.players[player_index] = player_data_entry
+  capability_manager.init_player(player_data_entry)
 end
 
 --- Initialise all storages
@@ -90,6 +87,19 @@ function player_data.update_settings(player, player_table)
     }
     player_table.settings = settings
     player_table.player_index = player.index
+  -- Update capability setting reasons (true = enabled => clear reason; false = disabled => set reason)
+  capability_manager.set_reason(player_table, "suggestions", "setting", not settings.show_suggestions)
+  capability_manager.set_reason(player_table, "undersupply", "setting", not settings.show_undersupply)
+  capability_manager.set_reason(player_table, "history", "setting", not settings.show_history)
+  capability_manager.set_reason(player_table, "activity", "setting", not settings.show_activity)
+  capability_manager.set_reason(player_table, "delivery", "setting", not settings.show_delivering)
+    if player_table.history_timer then
+      if capability_manager.is_active(player_table, "history") then
+        player_table.history_timer:resume()
+      else
+        player_table.history_timer:pause()
+      end
+    end
   end
 end
 
@@ -130,6 +140,13 @@ function player_data.check_network_changed(player, player_table)
     local old_network_id = player_table_network and player_table_network.valid and player_table_network.network_id
 
     if new_network_id == old_network_id then
+      -- Update no_network reason (still evaluate if network exists)
+      local has_network = (network ~= nil)
+      capability_manager.set_reason(player_table, "delivery", "no_network", not has_network)
+      capability_manager.set_reason(player_table, "activity", "no_network", not has_network)
+      capability_manager.set_reason(player_table, "history", "no_network", not has_network)
+      capability_manager.set_reason(player_table, "suggestions", "no_network", not has_network)
+      capability_manager.set_reason(player_table, "undersupply", "no_network", not has_network)
       return false
     else
       player_table.network = network
@@ -139,6 +156,12 @@ function player_data.check_network_changed(player, player_table)
         player_table.suggestions = suggestions.new()
       end
       player_table.suggestions:clear_suggestions()
+      local has_network = (network ~= nil)
+      capability_manager.set_reason(player_table, "delivery", "no_network", not has_network)
+      capability_manager.set_reason(player_table, "activity", "no_network", not has_network)
+      capability_manager.set_reason(player_table, "history", "no_network", not has_network)
+      capability_manager.set_reason(player_table, "suggestions", "no_network", not has_network)
+      capability_manager.set_reason(player_table, "undersupply", "no_network", not has_network)
       return true
     end
   else

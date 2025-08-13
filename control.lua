@@ -11,6 +11,7 @@ local li_migrations = require("scripts.migrations")
 local progress_bars = require("scripts.mainwin.progress_bars")
 local main_window = require("scripts.mainwin.main_window")
 local scheduler = require("scripts.scheduler")
+local capability_manager = require("scripts.capability-manager")
 
 ---@alias SurfaceName string
 
@@ -32,7 +33,7 @@ end)
 
 -- Register periodic tasks with default intervals. Can be overridden with settings
 scheduler.register({
-  name = "network-check", interval = 30, per_player = false, fn = function(player, player_table)
+  name = "network-check", interval = 30, per_player = true, fn = function(player, player_table)
     if player_data.check_network_changed(player, player_table) then
       bot_counter.network_changed(player, player_table)
       logistic_cell_counter.network_changed(player, player_table)
@@ -41,12 +42,14 @@ scheduler.register({
 scheduler.register({ name = "bot-chunk", interval = 10, per_player = true, capability = "delivery", fn = function(player, player_table)
     local bot_progress = bot_counter.gather_bot_data(player, player_table)
     main_window.update_bot_progress(player_table, bot_progress)
-    player_table.suggestions_dirty_bots = true
+    -- Mark suggestions & undersupply capabilities dirty (they both depend on bot data)
+    capability_manager.mark_dirty(player_table, "suggestions")
+    capability_manager.mark_dirty(player_table, "undersupply")
   end })
 scheduler.register({ name = "cell-chunk", interval = 60, per_player = true, capability = "activity", fn = function(player, player_table)
     local cells_progress = logistic_cell_counter.gather_data(player, player_table)
     main_window.update_cells_progress(player_table, cells_progress)
-    player_table.suggestions_dirty_cells = true
+    capability_manager.mark_dirty(player_table, "suggestions")
   end })
 scheduler.register({ name = "undersupply-bots", interval = 60, per_player = true, capability = "undersupply", fn = function(player, player_table)
     player_table.suggestions:evaluate_undersupply(player_table, false)

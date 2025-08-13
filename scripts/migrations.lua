@@ -6,6 +6,7 @@ local main_window = require("scripts.mainwin.main_window")
 local suggestions = require("scripts.suggestions")
 local chunker = require("scripts.chunker")
 local scheduler = require("scripts.scheduler")
+local capability_manager = require("scripts.capability-manager")
 
 local function init_storage_and_settings()
   player_data.init_storages()
@@ -161,6 +162,7 @@ local li_migrations = {
       local player = game.get_player(player_index)
       if player_table and player_table.ui then
         -- Initialise new paused_items table
+        ---@diagnostic disable-next-line: inject-field
         player_table.paused_items = {}
         ---@diagnostic disable-next-line: inject-field
         player_table.saved_paused_state = nil -- Remove old saved paused state
@@ -217,12 +219,31 @@ local li_migrations = {
     -- Initialise scheduler and player overrides on schedules
     for _, player_table in pairs(storage.players) do
       player_table.schedule_last_run = {}
-      player_table.suggestions_dirty_cells = false
-      player_table.suggestions_dirty_bots = false
+      -- Ensure capabilities structure exists
+      if not player_table.capabilities then
+        capability_manager.init_player(player_table)
+      end
+      -- Translate legacy paused_items into capability user reasons
+      local paused = player_table.paused_items
+      if paused and #paused > 0 then
+        for _, name in ipairs(paused) do
+          capability_manager.set_reason(player_table, name, "user", true)
+        end
+      end
+      -- Ensure dirty flags cleared but retain capability records
+      if player_table.capabilities then
+        for _, rec in pairs(player_table.capabilities) do
+          rec.dirty = false
+        end
+      end
+      -- Clear legacy paused list contents
+      ---@diagnostic disable-next-line: inject-field
+      player_table.paused_items = nil
     end
+    -- Apply player-defined intervals to scheduled tasks
     scheduler.apply_all_player_intervals()
   end,
-  
+
 }
 
 return li_migrations

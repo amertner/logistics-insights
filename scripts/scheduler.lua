@@ -4,7 +4,7 @@
 local scheduler = {}
 
 local player_data = require("scripts.player-data")
-local pause_manager = require("scripts.pause-manager")
+local capability_manager = require("scripts.capability-manager")
 
 ---@class SchedulerTask
 ---@field name string Unique task name
@@ -186,8 +186,16 @@ function scheduler.on_tick()
             local effective_interval = overrides[task.name] or task.interval
             local last = player_table.schedule_last_run[task.name] or 0
             if effective_interval and (tick - last) >= effective_interval then
-              if task.capability and pause_manager.is_paused(player_table, task.capability) then
-                -- Skip while paused (do not advance last_run)
+              if task.capability then
+                if not capability_manager.is_active(player_table, task.capability) then
+                  -- Skip while inactive (do not advance last_run)
+                else
+                  player_table.schedule_last_run[task.name] = tick
+                  local ok, err = pcall(task.fn, player, player_table)
+                  if not ok then
+                    log("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
+                  end
+                end
               else
                 player_table.schedule_last_run[task.name] = tick
                 local ok, err = pcall(task.fn, player, player_table)

@@ -4,7 +4,6 @@ local logistic_cell_counter = {}
 local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
 local utils = require("scripts.utils")
-local pause_manager = require("scripts.pause-manager")
 local chunker = require("scripts.chunker")
 
 ---@class CellAccumulator

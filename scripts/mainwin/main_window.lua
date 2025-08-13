@@ -7,7 +7,7 @@ local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
 local utils = require("scripts.utils")
 local game_state = require("scripts.game-state")
-local pause_manager = require("scripts.pause-manager")
+local capability_manager = require("scripts.capability-manager")
 local mini_button = require("scripts.mainwin.mini_button")
 local find_and_highlight = require("scripts.mainwin.find_and_highlight")
 local progress_bars = require("scripts.mainwin.progress_bars")
@@ -27,6 +27,26 @@ local suggestions_row = require("scripts.mainwin.suggestions_row")
 
 local WINDOW_NAME = "logistics_insights_window"
 local SHORTCUT_TOGGLE = "logistics-insights-toggle"
+
+-- Enable/disable row mini pause buttons based on capability dependencies
+local function refresh_mini_button_enables(player_table)
+  local snap = capability_manager.snapshot(player_table)
+  if not snap then return end
+  for name, rec in pairs(snap) do
+    if rec then
+      local enabled = true
+      for _, dep in ipairs(rec.deps or {}) do
+        local dep_rec = snap[dep]
+        if not (dep_rec and dep_rec.active) then
+          enabled = false
+          break
+        end
+      end
+      -- This will be a no-op for capabilities without a corresponding mini button
+      mini_button.set_enabled(player_table, name, enabled)
+    end
+  end
+end
 
 --- Create the main Logistics Insights window
 --- @param player LuaPlayer The player to create the window for
@@ -60,11 +80,12 @@ function main_window.create(player, player_table)
     column_count = player_table.settings.max_items + 1
   }
 
-  -- Reset all Paused states
-  player_table.paused_items = {}
-  pause_manager.enable_all(player_table)
+
   -- Add all of the data rows
   main_window._add_all_rows(player_table, content_table)
+
+  -- Ensure mini buttons are enabled/disabled according to capability deps
+  refresh_mini_button_enables(player_table)
 
   -- Restore the previous location, if it exists
   local gui = player.gui.screen
@@ -100,6 +121,9 @@ function main_window.ensure_ui_consistency(player, player_table)
       game_state.force_update_ui(player_table, false, false)
     end
   end
+
+  -- Keep mini-button enables in sync with current capability deps
+  -- refresh_mini_button_enables(player_table)
 
   -- Make sure the "Fixed network" toggle is set correctly. 
   -- It cannot be un-set in player_data if the fixed network is deleted
@@ -256,15 +280,13 @@ function main_window.set_window_visible(player, player_table, visible)
 
   -- Figure out if the paused state needs changing as a result
   if player_table.history_timer and player_table.settings.pause_while_hidden then
-    if not player_table.bots_window_visible then
-      -- History collection pauses when the window is minimized, but remember paused state
-      pause_manager.set_paused(player_table, "window", true)
+    local hiding = not player_table.bots_window_visible
+    -- Use capability hidden reason instead of explicit window pause toggle (shim maintains UI buttons)
+    capability_manager.set_reason(player_table, "window", "hidden", hiding)
+    if hiding then
       player_table.history_timer:pause()
     else
-      -- Restore prior paused states
-      pause_manager.set_paused(player_table, "window", false)
-      -- Resume the history timer if it was paused only because the window was hidden
-      if pause_manager.is_running(player_table, "history") then
+      if capability_manager.is_active(player_table, "history") then
         player_table.history_timer:resume()
       end
     end
@@ -311,9 +333,27 @@ function main_window.onclick(event)
           player_table.history_timer:reset_keep_pause()
         end
         main_window.update(player, player_table, true)
-      elseif pause_manager.handle_pause_button(player_table, event.element) then
-        -- Pause button handled
-        main_window.update(player, player_table, false)
+      elseif utils.starts_with(event.element.name, "logistics-insights-sorted-") then
+        -- Inline handling for mini pause buttons -> toggles capability "user" reason
+        local suffix = event.element.name:sub(string.len("logistics-insights-sorted-") + 1)
+        local valid = {
+          delivery = true, history = true, activity = true, undersupply = true, suggestions = true
+        }
+        if valid[suffix] then
+          local now_paused = not capability_manager.is_active(player_table, suffix)
+          -- Toggle
+          capability_manager.set_reason(player_table, suffix, "user", not now_paused)
+          -- Special side-effect for history timer
+          if suffix == "history" and player_table.history_timer then
+            player_table.history_timer:set_paused(not now_paused)
+          end
+          -- Update UI mini-button state and dependent enable
+          mini_button.update_paused_state(player_table, suffix, not now_paused)
+          -- Enable/disable dependent buttons using capability snapshot
+          refresh_mini_button_enables(player_table)
+          -- Now update window
+          main_window.update(player, player_table, false)
+        end
       else
         -- The click may require a highlight/freeze
         local handled = find_and_highlight.handle_click(
