@@ -48,7 +48,9 @@ scheduler.register({ name = "cell-chunk", interval = 60, per_player = true, capa
     main_window.update_cells_progress(player_table, cells_progress)
     player_table.suggestions_dirty_cells = true
   end })
--- Suggestions evaluation tasks (run after data chunkers). Using same interval initially; can tune later.
+scheduler.register({ name = "undersupply-bots", interval = 60, per_player = true, capability = "undersupply", fn = function(player, player_table)
+    player_table.suggestions:evaluate_undersupply(player_table, false)
+  end })
 scheduler.register({ name = "suggestions-cells", interval = 60, per_player = true, capability = "suggestions", fn = function(player, player_table)
     player_table.suggestions:evaluate_cells(player_table)
   end })

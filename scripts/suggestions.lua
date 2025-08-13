@@ -102,10 +102,24 @@ function Suggestions:evaluate_bots(player_table)
   self._current_tick = game.tick
   local network = player_table.network
   if network then
-    local networkdata = network_data.get_networkdata(network)
-    local excessivedemand = undersupply.analyse_demand_and_supply(network, networkdata)
-    self:set_cached_list("undersupply", excessivedemand)
     self:analyse_too_many_bots(network)
+  end
+end
+
+--- Evaluate undersupply based on latest bot data without consuming dirty flag (runs even if suggestions paused)
+--- @param player_table PlayerData
+--- @param consume_flag boolean Whether to consume the dirty flag (default: false)
+function Suggestions:evaluate_undersupply(player_table, consume_flag)
+  if not player_table or not player_table.suggestions_dirty_bots then
+    return -- No new bot data; undersupply unchanged
+  end
+  local network = player_table.network
+  if not network then return end
+  local excessivedemand = undersupply.analyse_demand_and_supply(network)
+  self:set_cached_list("undersupply", excessivedemand)
+  if consume_flag then
+    player_table.suggestions_dirty_bots = false
+    self._current_tick = game.tick
   end
 end
 
@@ -378,7 +392,5 @@ function Suggestions:analyse_too_many_bots(network)
     {"suggestions-row.too-many-bots-action", idle_rounded}
   )
 end
-
--- Legacy cells_data_updated / bots_data_updated removed: evaluation handled by evaluate_cells/evaluate_bots
 
 return Suggestions

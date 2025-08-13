@@ -18,9 +18,10 @@ local function get_underway(networkdata, itemkey)
 end
 
 ---@param network LuaLogisticNetwork The logistics network to analyse
----@param networkdata LINetworkData The network data for the network
 ---@return ItemWithQualityCount[]|nil An array of items with shortages, sorted by shortage, or nil
-function undersupply.analyse_demand_and_supply(network, networkdata)
+function undersupply.analyse_demand_and_supply(network)
+  local networkdata = network_data.get_networkdata(network)
+  if not networkdata then return nil end
   if network and network.storages then
     -- Where are there shortages, where demand + under way << supply?
     --@type array<ItemWithQualityCount>
@@ -77,7 +78,7 @@ function undersupply.analyse_demand_and_supply(network, networkdata)
     local total_supply = {}
     for _, item_with_quality in pairs(total_supply_array) do
       local quality_name = item_with_quality.quality or "normal" -- ensure plain string
-      local key = utils.get_item_quality_key(item_with_quality.name, tostring(quality_name))
+  local key = utils.get_item_quality_key(item_with_quality.name, tostring(quality_name))
       total_supply[key] = item_with_quality.count
     end
 
