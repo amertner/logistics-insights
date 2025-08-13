@@ -270,13 +270,6 @@ local function bot_chunks_done(accumulator, player_table)
     end
     -- Save the last-seen list so it can be used in the next pass
     networkdata.last_pass_bots_seen = accumulator.just_seen or {}
-
-    -- See if there are new suggestions based on the data just gathered
-    if player_table and player_table.suggestions then
-      player_table.suggestions:bots_data_updated(player_table.network, 
-        pause_manager.is_running(player_table, "undersupply"),
-        pause_manager.is_running(player_table, "suggestions"))
-    end
   end
 end
 

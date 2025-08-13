@@ -91,10 +91,6 @@ local function all_chunks_done(accumulator, player_table)
     networkdata.roboport_qualities = accumulator.roboport_qualities or {}
     networkdata.charging_bot_qualities = accumulator.charging_bot_qualities or {}
     networkdata.waiting_bot_qualities = accumulator.waiting_bot_qualities or {}
-
-    if player_table and player_table.suggestions and pause_manager.is_running(player_table, "suggestions") then
-      player_table.suggestions:cells_data_updated(player_table.network)
-    end
   end
 end
 

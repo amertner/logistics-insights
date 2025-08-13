@@ -16,6 +16,9 @@ local pause_manager = require("scripts.pause-manager")
 
 local global_tasks = {}   ---@type table<string, SchedulerTask>
 local player_tasks = {}   ---@type table<string, SchedulerTask>
+-- Deterministic execution order (arrays of task names)
+local global_task_order = {} ---@type string[]
+local player_task_order = {} ---@type string[]
 -- Per-player interval overrides: player_index -> task_name -> interval
 local player_intervals = {} ---@type table<uint, table<string, uint>>
 
@@ -34,8 +37,14 @@ function scheduler.register(opts)
     capability = opts.capability,
   }
   if task.per_player then
+    if not player_tasks[task.name] then
+      table.insert(player_task_order, task.name)
+    end
     player_tasks[task.name] = task
   else
+    if not global_tasks[task.name] then
+      table.insert(global_task_order, task.name)
+    end
     global_tasks[task.name] = task
   end
 end
@@ -43,8 +52,24 @@ end
 --- Unregister a task by name.
 ---@param name string
 function scheduler.unregister(name)
-  global_tasks[name] = nil
-  player_tasks[name] = nil
+  if global_tasks[name] then
+    global_tasks[name] = nil
+    for i, n in ipairs(global_task_order) do
+      if n == name then
+        table.remove(global_task_order, i)
+        break
+      end
+    end
+  end
+  if player_tasks[name] then
+    player_tasks[name] = nil
+    for i, n in ipairs(player_task_order) do
+      if n == name then
+        table.remove(player_task_order, i)
+        break
+      end
+    end
+  end
 end
 
 --- Update interval for an existing task without resetting last_run state.
@@ -113,22 +138,24 @@ function scheduler.update_player_intervals(player_index, intervals)
     scheduler.update_player_interval(player_index, name, interval)
   end
 end
-
 --- Bulk re-register: given a list of task specs, register new ones and update intervals of existing ones.
---- @param specs table[] Each spec: {name, interval, per_player, fn}
+--- @param specs table[] Each spec: {name, interval, per_player, fn, capability?}
 function scheduler.reregister(specs)
   for _, spec in pairs(specs) do
     local existing = (spec.per_player and player_tasks[spec.name]) or (not spec.per_player and global_tasks[spec.name])
     if existing then
-      if existing.interval ~= spec.interval then
+      if spec.interval and existing.interval ~= spec.interval then
         existing.interval = spec.interval
       end
-      -- Update function reference in case it changed
-      if existing.fn ~= spec.fn then
+      if spec.fn and existing.fn ~= spec.fn then
         existing.fn = spec.fn
       end
+      if spec.capability and existing.capability ~= spec.capability then
+        existing.capability = spec.capability
+      end
+      -- Order unchanged for existing tasks
     else
-      scheduler.register(spec)
+      scheduler.register(spec) -- Adds to order arrays
     end
   end
 end
@@ -136,9 +163,10 @@ end
 --- Run due tasks for this tick.
 function scheduler.on_tick()
   local tick = game.tick
-  -- Global tasks
-  for _, task in pairs(global_tasks) do
-    if tick - task.last_run >= task.interval then
+  -- Global tasks in deterministic order
+  for _, name in ipairs(global_task_order) do
+    local task = global_tasks[name]
+    if task and (tick - task.last_run) >= task.interval then
       task.last_run = tick
       local ok, err = pcall(task.fn)
       if not ok then
@@ -152,21 +180,20 @@ function scheduler.on_tick()
       local player = game.get_player(player_index)
       if player and player.valid and player.connected then
         local overrides = player_intervals[player_index] or {}
-        for _, task in pairs(player_tasks) do
-          local effective_interval = task.interval
-          if overrides[task.name] then
-            effective_interval = overrides[task.name]
-          end
-          local last = player_table.schedule_last_run[task.name] or 0
-          if effective_interval and tick - last >= effective_interval then
-            -- If the task is capability-gated and currently paused for this player, skip execution.
-            if task.capability and pause_manager.is_paused(player_table, task.capability) then
-              -- Do NOT update last_run; we want it to fire immediately after unpausing.
-            else
-              player_table.schedule_last_run[task.name] = tick
-              local ok, err = pcall(task.fn, player, player_table)
-              if not ok then
-                log("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
+        for _, name in ipairs(player_task_order) do
+          local task = player_tasks[name]
+          if task then
+            local effective_interval = overrides[task.name] or task.interval
+            local last = player_table.schedule_last_run[task.name] or 0
+            if effective_interval and (tick - last) >= effective_interval then
+              if task.capability and pause_manager.is_paused(player_table, task.capability) then
+                -- Skip while paused (do not advance last_run)
+              else
+                player_table.schedule_last_run[task.name] = tick
+                local ok, err = pcall(task.fn, player, player_table)
+                if not ok then
+                  log("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
+                end
               end
             end
           end

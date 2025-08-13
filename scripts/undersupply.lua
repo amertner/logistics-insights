@@ -3,20 +3,27 @@
 local undersupply = {}
 
 local utils = require("scripts.utils")
+local network_data = require("scripts.network-data")
 
-local function get_underway(itemkey)
-  if storage.bot_deliveries then
-    local delivery = storage.bot_deliveries[itemkey]
+--- Get the number of items currently being delivered by bots
+--- @param networkdata LINetworkData The network data for the network
+--- @param itemkey string The key for the item being delivered
+--- @return number The count of items currently being delivered
+local function get_underway(networkdata, itemkey)
+  if networkdata.bot_deliveries then
+    local delivery = networkdata.bot_deliveries[itemkey]
     return (delivery and delivery.count) or 0
   end
 end
 
 ---@param network LuaLogisticNetwork The logistics network to analyse
+---@param networkdata LINetworkData The network data for the network
 ---@return ItemWithQualityCount[]|nil An array of items with shortages, sorted by shortage, or nil
-function undersupply.analyse_demand_and_supply(network)
+function undersupply.analyse_demand_and_supply(network, networkdata)
   if network and network.storages then
     -- Where are there shortages, where demand + under way << supply?
     --@type array<ItemWithQualityCount>
+    -- Get_contents returns what's in storage, less what is being picked up. This causes a discrepancy in undersupply :(
     local total_supply_array = network.get_contents() -- Get total supply
     local total_demand = {}
     
@@ -81,7 +88,7 @@ function undersupply.analyse_demand_and_supply(network)
       if request > supply then
         local shortage = request - supply
         local item_name, quality_name = key:match("([^:]+):(.+)")
-        local under_way = get_underway(key) or 0
+        local under_way = get_underway(networkdata, key) or 0
         if under_way > 0 then
           shortage = shortage - under_way
         end

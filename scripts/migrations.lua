@@ -217,10 +217,12 @@ local li_migrations = {
     -- Initialise scheduler and player overrides on schedules
     for _, player_table in pairs(storage.players) do
       player_table.schedule_last_run = {}
+      player_table.suggestions_dirty_cells = false
+      player_table.suggestions_dirty_bots = false
     end
     scheduler.apply_all_player_intervals()
   end,
-
+  
 }
 
 return li_migrations

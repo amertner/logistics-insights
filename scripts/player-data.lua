@@ -23,6 +23,8 @@ local math_ceil = math.ceil
 ---@field ui table<string, table> -- UI elements for the mod's GUI
 ---@field current_logistic_cell_interval number -- Dynamically calculated interval for logistic cell updates
 ---@field paused_items string[] -- List of paused items by name
+---@field suggestions_dirty_cells boolean -- Dirty flag for cell-based suggestions (set by cell-chunk task)
+---@field suggestions_dirty_bots boolean -- Dirty flag for bot-based suggestions (set by bot-chunk task)
 ---@field bot_chunker Chunker|nil -- Chunker for processing logistic bots
 ---@field cell_chunker Chunker|nil -- Chunker for processing logistic cells
 ---@field schedule_last_run table<string, uint>|nil -- Per-task last run ticks for scheduler
@@ -43,6 +45,8 @@ function player_data.init(player_index)
     ui = {},
     current_logistic_cell_interval = 60,
     paused_items = {}, -- Paused activities
+    suggestions_dirty_cells = false,
+    suggestions_dirty_bots = false,
     bot_chunker = nil, -- Chunker for processing logistic bots
     cell_chunker = nil, -- Chunker for processing logistic cells
     schedule_last_run = {}, -- Per-task last run ticks for scheduler

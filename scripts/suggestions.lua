@@ -30,8 +30,6 @@ local MIN_TOTAL_BOTS_FOR_SUGGESTION = 100 -- Ignore small networks
 ---@alias SuggestionsTable table<string, Suggestion?>
 
 ---@class Suggestions
----@field _current_cell_tick number The game tick when suggestions were last updated
----@field _current_bot_tick number The game tick when suggestions were last updated
 ---@field _current_tick number The game tick when suggestions were last updated
 ---@field _historydata table<string, HistoryData> Historical data needed to make good suggestions
 ---@field _suggestions SuggestionsTable Table containing all suggestions
@@ -57,11 +55,8 @@ Suggestions.order = {
 
 function Suggestions.new()
   local self = setmetatable({}, Suggestions)
-  self._current_cell_tick = 0
-  self._current_bot_tick = 0
   self._current_tick = 0
   self:clear_suggestions()
-
   return self
 end
 
@@ -82,22 +77,36 @@ function Suggestions:set_cached_list(suggestion_name, list)
   self._cached_data[suggestion_name] = list
 end
 
-function Suggestions:run_process(processname)
-  local tick = game.tick
-  if processname == "cell_data_updated" then
-    if tick - 60 > (self._current_cell_tick or 0) then
-      self._current_cell_tick = tick
-      self._current_tick = tick
-      return true
-    end
-  elseif processname == "bot_data_updated" then
-    if tick - 60 > (self._current_bot_tick or 0) then
-      self._current_bot_tick = tick
-      self._current_tick = tick
-      return true
-    end
+
+-- Scheduler-driven evaluation helpers (dirty-flag + interval externalised)
+--- Evaluate cell-related suggestions if needed (scheduler sets dirty flag and cadence)
+--- @param player_table PlayerData
+function Suggestions:evaluate_cells(player_table)
+  if not player_table or not player_table.suggestions_dirty_cells then 
+    return -- Cell data hasn't been updated, so nothing to do
   end
-  return false
+  player_table.suggestions_dirty_cells = false
+  self._current_tick = game.tick
+  local network = player_table.network
+  self:analyse_waiting_to_charge(network)
+  self:analyse_storage(network)
+end
+
+--- Evaluate bot-related suggestions & undersupply if needed
+--- @param player_table PlayerData
+function Suggestions:evaluate_bots(player_table)
+  if not player_table or not player_table.suggestions_dirty_bots then
+    return -- Bot data hasn't been updated, so nothing to do
+  end
+  player_table.suggestions_dirty_bots = false
+  self._current_tick = game.tick
+  local network = player_table.network
+  if network then
+    local networkdata = network_data.get_networkdata(network)
+    local excessivedemand = undersupply.analyse_demand_and_supply(network, networkdata)
+    self:set_cached_list("undersupply", excessivedemand)
+    self:analyse_too_many_bots(network)
+  end
 end
 
 ---@param value number The value to evaluate for urgency
@@ -370,38 +379,6 @@ function Suggestions:analyse_too_many_bots(network)
   )
 end
 
---- Call when the data about logistics cells has been udpated
---- @param network? LuaLogisticNetwork The network being analysed
-function Suggestions:cells_data_updated(network)
-  if not self:run_process("cell_data_updated") then
-    return -- Not time to update yet
-  end
-
-  -- Do we have enough places to charge, or are too many waiting to charge?
-  self:analyse_waiting_to_charge(network)
-
-  -- Three possible suggestions from analysing storage chests
-  self:analyse_storage(network)
-end
-
---- Call when the data about bots has been udpated
---- @param network? LuaLogisticNetwork The network being analysed
---- @param run_undersupply boolean Whether to run the undersupply analysis
---- @param run_suggestions boolean Whether to run the suggestions analysis
-function Suggestions:bots_data_updated(network, run_undersupply, run_suggestions)
-  if not self:run_process("bot_data_updated") then
-    return -- Not time to update yet
-  end
-
-  if network and run_undersupply then
-    -- We're using the Suggestions cache mechanism for undersupply too
-    local excessivedemand = undersupply.analyse_demand_and_supply(network)
-    self:set_cached_list("undersupply", excessivedemand) -- Store the list of mismatched storages
-  end
-
-  if run_suggestions then
-    self:analyse_too_many_bots(network)
-  end
-end
+-- Legacy cells_data_updated / bots_data_updated removed: evaluation handled by evaluate_cells/evaluate_bots
 
 return Suggestions
