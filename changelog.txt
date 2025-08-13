@@ -1,13 +1,15 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.9.10
-Date: ????
+Date: 2025-08-13
   Features:
     - New suggestion: if >50% of bots are idle and more are still being added, stop adding more bots
+  Changes:
+    - Many internal changes and optimisations to prepare for future features
   Bugfixes:
     - The Delivery, History and Undersupply rows now clear when there is no active network
-    - Messages about who freezes or unfreezes the game are not only shown once
+    - Messages about who freezes or unfreezes the game are now only shown once
     - Use paused state more aggressively to avoid unnecessary calculations
-    - Take on-the-way deliveries into account when calculating undersupply
+    - Now takes on-the-way deliveries into account when calculating undersupply
 ---------------------------------------------------------------------------------------------------
 Version: 0.9.9
 Date: 2025-08-12
