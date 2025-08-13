@@ -6,6 +6,7 @@ Date: ????
   Bugfixes:
     - The Delivery, History and Undersupply rows now clear when there is no active network
     - Messages about who freezes or unfreezes the game are not only shown once
+    - Use paused state more aggressively to avoid unnecessary calculations
 ---------------------------------------------------------------------------------------------------
 Version: 0.9.9
 Date: 2025-08-12

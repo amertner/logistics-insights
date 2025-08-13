@@ -4,6 +4,7 @@
 local scheduler = {}
 
 local player_data = require("scripts.player-data")
+local pause_manager = require("scripts.pause-manager")
 
 ---@class SchedulerTask
 ---@field name string Unique task name
@@ -11,7 +12,7 @@ local player_data = require("scripts.player-data")
 ---@field per_player boolean If true, runs once per player (fn(player, player_table)), else global (fn())
 ---@field fn function The function to execute
 ---@field last_run uint Last tick run (for global tasks)
----@field capability string|nil Optional pause capability key (future integration)
+---@field capability string|nil Optional pause capability key. If set and the capability is paused for the player (per_player tasks) the task is skipped without updating last_run.
 
 local global_tasks = {}   ---@type table<string, SchedulerTask>
 local player_tasks = {}   ---@type table<string, SchedulerTask>
@@ -149,7 +150,7 @@ function scheduler.on_tick()
   if storage.players then
     for player_index, player_table in pairs(storage.players) do
       local player = game.get_player(player_index)
-      if player and player.valid then
+      if player and player.valid and player.connected then
         local overrides = player_intervals[player_index] or {}
         for _, task in pairs(player_tasks) do
           local effective_interval = task.interval
@@ -158,10 +159,15 @@ function scheduler.on_tick()
           end
           local last = player_table.schedule_last_run[task.name] or 0
           if effective_interval and tick - last >= effective_interval then
-            player_table.schedule_last_run[task.name] = tick
-            local ok, err = pcall(task.fn, player, player_table)
-            if not ok then
-              log("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
+            -- If the task is capability-gated and currently paused for this player, skip execution.
+            if task.capability and pause_manager.is_paused(player_table, task.capability) then
+              -- Do NOT update last_run; we want it to fire immediately after unpausing.
+            else
+              player_table.schedule_last_run[task.name] = tick
+              local ok, err = pcall(task.fn, player, player_table)
+              if not ok then
+                log("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
+              end
             end
           end
         end

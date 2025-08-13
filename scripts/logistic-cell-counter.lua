@@ -150,12 +150,7 @@ function logistic_cell_counter.gather_data(player, player_table)
   bot_items["logistic-robot-total"] = network.all_logistic_robots
   bot_items["logistic-robot-available"] = network.available_logistic_robots
 
-  if pause_manager.is_paused(player_table, "activity") then
-    return progress
-  end
-
   local cell_chunker = logistic_cell_counter.get_or_create_chunker(player_table)
-
   -- Process cell data
   if cell_chunker:is_done() then
     cell_chunker:initialise_chunking(network.cells, player_table, nil, initialise_cell_network_list)

@@ -252,7 +252,8 @@ local function bot_chunks_done(accumulator, player_table)
     end
     networkdata.total_bot_qualities = total_bot_qualities
 
-    if player_table and player_table.settings.show_history and table_size(networkdata.bot_active_deliveries) > 0 then
+    if player_table and player_table.settings.show_history and table_size(networkdata.bot_active_deliveries) > 0 
+      and pause_manager.is_running(player_table, "history") then
       -- Consider bots we saw last pass but not this chunk pass as delivered.
       -- They are either destroyed or parked in a roboport, no longer part of the network
       if accumulator.last_seen then
@@ -272,7 +273,9 @@ local function bot_chunks_done(accumulator, player_table)
 
     -- See if there are new suggestions based on the data just gathered
     if player_table and player_table.suggestions then
-      player_table.suggestions:bots_data_updated(player_table.network, pause_manager.is_running(player_table, "undersupply"))
+      player_table.suggestions:bots_data_updated(player_table.network, 
+        pause_manager.is_running(player_table, "undersupply"),
+        pause_manager.is_running(player_table, "suggestions"))
     end
   end
 end
@@ -307,7 +310,7 @@ function bot_counter.gather_bot_data(player, player_table)
   end
 
   local network = player_table.network
-  if not network or not network.valid or pause_manager.is_paused(player_table, "activity") then
+  if not network or not network.valid then
     return progress
   end
 

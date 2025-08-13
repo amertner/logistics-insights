@@ -387,7 +387,8 @@ end
 --- Call when the data about bots has been udpated
 --- @param network? LuaLogisticNetwork The network being analysed
 --- @param run_undersupply boolean Whether to run the undersupply analysis
-function Suggestions:bots_data_updated(network, run_undersupply)
+--- @param run_suggestions boolean Whether to run the suggestions analysis
+function Suggestions:bots_data_updated(network, run_undersupply, run_suggestions)
   if not self:run_process("bot_data_updated") then
     return -- Not time to update yet
   end
@@ -397,8 +398,10 @@ function Suggestions:bots_data_updated(network, run_undersupply)
     local excessivedemand = undersupply.analyse_demand_and_supply(network)
     self:set_cached_list("undersupply", excessivedemand) -- Store the list of mismatched storages
   end
-  -- Always run the too-many-bots analysis when bot data updates
-  self:analyse_too_many_bots(network)
+
+  if run_suggestions then
+    self:analyse_too_many_bots(network)
+  end
 end
 
 return Suggestions

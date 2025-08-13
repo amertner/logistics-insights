@@ -38,11 +38,11 @@ scheduler.register({
       logistic_cell_counter.network_changed(player, player_table)
     end
   end })
-scheduler.register({ name = "bot-chunk", interval = 10, per_player = true, fn = function(player, player_table)
+scheduler.register({ name = "bot-chunk", interval = 10, per_player = true, capability = "delivery", fn = function(player, player_table)
     local bot_progress = bot_counter.gather_bot_data(player, player_table)
     main_window.update_bot_progress(player_table, bot_progress)
   end })
-scheduler.register({ name = "cell-chunk", interval = 60, per_player = true, fn = function(player, player_table)
+scheduler.register({ name = "cell-chunk", interval = 60, per_player = true, capability = "activity", fn = function(player, player_table)
     local cells_progress = logistic_cell_counter.gather_data(player, player_table)
     main_window.update_cells_progress(player_table, cells_progress)
   end })
@@ -57,10 +57,10 @@ script.on_nth_tick(1, function()
   scheduler.on_tick()
 end)
 
+-- Called when a new player joins the game
 script.on_event({ defines.events.on_player_created },
   --- @param e EventData.on_player_created
   function(e)
-    -- Called when a game is created or a mod is added to an existing game
     local player = game.get_player(e.player_index)
     if player then
       controller_gui.create_window(player)
