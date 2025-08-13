@@ -25,6 +25,7 @@ local math_ceil = math.ceil
 ---@field paused_items string[] -- List of paused items by name
 ---@field bot_chunker Chunker|nil -- Chunker for processing logistic bots
 ---@field cell_chunker Chunker|nil -- Chunker for processing logistic cells
+---@field schedule_last_run table<string, uint>|nil -- Per-task last run ticks for scheduler
 ---@param player_index uint
 ---@return nil
 function player_data.init(player_index)
@@ -44,6 +45,7 @@ function player_data.init(player_index)
     paused_items = {}, -- Paused activities
     bot_chunker = nil, -- Chunker for processing logistic bots
     cell_chunker = nil, -- Chunker for processing logistic cells
+    schedule_last_run = {}, -- Per-task last run ticks for scheduler
   }
   storage.players[player_index] = player_data_entry
 end
@@ -143,7 +145,7 @@ end
 ---@param player_table PlayerData
 ---@return integer
 function player_data.bot_chunk_interval(player_table)
-  return player_table.settings.bot_chunk_interval or 400
+  return player_table.settings.bot_chunk_interval or 10
 end
 
 -- Scale the update interval based on how often the UI updates, but not too often

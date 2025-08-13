@@ -4,9 +4,8 @@ local network_data = require("scripts.network-data")
 local TickCounter = require("scripts.tick-counter")
 local main_window = require("scripts.mainwin.main_window")
 local suggestions = require("scripts.suggestions")
-local undersupply_row = require("scripts.mainwin.undersupply_row")
-local suggestions_row = require("scripts.mainwin.suggestions_row")
 local chunker = require("scripts.chunker")
+local scheduler = require("scripts.scheduler")
 
 local function init_storage_and_settings()
   player_data.init_storages()
@@ -212,6 +211,14 @@ local li_migrations = {
     storage.other_bot_qualities = nil
     storage.bot_delivery_lookup = nil
     storage.total_bot_qualities = nil
+  end,
+
+  ["0.9.10"] = function()
+    -- Initialise scheduler and player overrides on schedules
+    for _, player_table in pairs(storage.players) do
+      player_table.schedule_last_run = {}
+    end
+    scheduler.apply_all_player_intervals()
   end,
 
 }

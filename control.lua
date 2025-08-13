@@ -10,6 +10,7 @@ local utils = require("scripts.utils")
 local li_migrations = require("scripts.migrations")
 local progress_bars = require("scripts.mainwin.progress_bars")
 local main_window = require("scripts.mainwin.main_window")
+local scheduler = require("scripts.scheduler")
 
 ---@alias SurfaceName string
 
@@ -27,26 +28,53 @@ script.on_init(
   player_data.init_storages()
 end)
 
--- PLAYER
+-- SETTING UP AND HANDLING SCHEDULED EVENTS
+
+-- Register periodic tasks with default intervals. Can be overridden with settings
+scheduler.register({
+  name = "network-check", interval = 30, per_player = false, fn = function(player, player_table)
+    if player_data.check_network_changed(player, player_table) then
+      bot_counter.network_changed(player, player_table)
+      logistic_cell_counter.network_changed(player, player_table)
+    end
+  end })
+scheduler.register({ name = "bot-chunk", interval = 10, per_player = true, fn = function(player, player_table)
+    local bot_progress = bot_counter.gather_bot_data(player, player_table)
+    main_window.update_bot_progress(player_table, bot_progress)
+  end })
+scheduler.register({ name = "cell-chunk", interval = 60, per_player = true, fn = function(player, player_table)
+    local cells_progress = logistic_cell_counter.gather_data(player, player_table)
+    main_window.update_cells_progress(player_table, cells_progress)
+  end })
+scheduler.register({ name = "ui-update", interval = 60, per_player = true, fn = function(player, player_table)
+    main_window.ensure_ui_consistency(player, player_table)
+    controller_gui.update_window(player, player_table)
+    main_window.update(player, player_table, false)
+  end })
+
+-- All actual timed dispatching handler in scheduler.lua
+script.on_nth_tick(1, function()
+  scheduler.on_tick()
+end)
 
 script.on_event({ defines.events.on_player_created },
   --- @param e EventData.on_player_created
   function(e)
-  -- Called when a game is created or a mod is added to an existing game
-  local player = game.get_player(e.player_index)
-  if player then
-    controller_gui.create_window(player)
-    player_data.init(e.player_index)
-
-    local player_table = storage.players[e.player_index]
-    player_data.update_settings(player, player_table)
-
-    -- Initialize shortcut state
-    if player_table and player then
-      main_window.set_window_visible(player, player_table, player_table.bots_window_visible)
+    -- Called when a game is created or a mod is added to an existing game
+    local player = game.get_player(e.player_index)
+    if player then
+      controller_gui.create_window(player)
+      player_data.init(e.player_index)
+      local player_table = storage.players[e.player_index]
+      player_data.update_settings(player, player_table)
+      if player_table then
+        scheduler.apply_player_intervals(e.player_index, player_table)
+      end
+      if player_table and player then
+        main_window.set_window_visible(player, player_table, player_table.bots_window_visible)
+      end
     end
-  end
-end)
+  end)
 
 script.on_event(defines.events.on_player_removed,
   --- @param e EventData.on_player_removed
@@ -107,6 +135,9 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
             e.setting == "li-highlight-duration" then
         -- These settings will be adapted dynamically
         player_data.update_settings(player, player_table)
+        if e.setting == "li-chunk-processing-interval" or e.setting == "li-ui-update-interval" then
+          scheduler.apply_player_intervals(e.player_index, player_table)
+        end
       elseif e.setting == "li-show-history" then
         -- Show History was enabled or disabled
         player_data.update_settings(player, player_table)
@@ -131,54 +162,6 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
         player_data.update_settings(player, player_table)
         main_window.destroy(player, player_table)
         main_window.create(player, player_table)
-      end
-    end
-  end
-end)
-
--- TICK
-
--- Count bots and update the UI
-script.on_nth_tick(1,
-  --- @param e NthTickEventData
-  function(e)
-  for player_index, player_table in pairs(storage.players) do
-    local player = game.get_player(player_index)
-    if player and player.valid and player_table then
-      if  player_table then
-        if game.tick % 30 == 0 then -- Update this twice a second only
-          if player_data.check_network_changed(player, player_table) then
-            bot_counter.network_changed(player, player_table)
-            logistic_cell_counter.network_changed(player, player_table)
-          end
-        end
-
-        if game.tick % player_data.bot_chunk_interval(player_table) == 0 then
-          local bot_progress = bot_counter.gather_bot_data(player, player_table)
-          main_window.update_bot_progress(player_table, bot_progress)
-        end
-
-        if game.tick % player_data.cells_chunk_interval(player_table) == 0 then
-          local cells_progress = logistic_cell_counter.gather_data(player, player_table)
-          main_window.update_cells_progress(player_table, cells_progress)
-        end
-
-        if game.tick % player_data.ui_update_interval(player_table) == 0 then
-          main_window.ensure_ui_consistency(player, player_table)
-          controller_gui.update_window(player, player_table)
-          main_window.update(player, player_table, false)
-        end
-      end
-      -- Debug: Dump player_table
-      if game.tick % 60 == 0 and storage.debugdump then
-        local tickfile = "li-" .. player_table.player_index .. "-" .. game.tick .. ".txt"
-        local save_ui = player_table.ui
-        player_table.ui = nil -- Don't dump UI table
-        helpers.write_file(tickfile, "\nPlayer data:\n", false)
-        helpers.write_file(tickfile, serpent.block(player_table), true)
-        helpers.write_file(tickfile, "\nNetwork data:\n", true)
-        helpers.write_file(tickfile, serpent.block(storage.networks), true)
-        player_table.ui = save_ui
       end
     end
   end
