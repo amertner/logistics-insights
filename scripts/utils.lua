@@ -22,13 +22,10 @@ end
 --- @param list T[]|nil list Array-like table (sequential integer keys) or nil
 --- @return T|nil value Randomly selected element, or nil if list empty/nil
 function utils.get_random(list)
-  if list and #list ~= table_size(list) then
-    assert(false, "Need to use table_size!")
-  end
-  if not list or #list == 0 then
+  if not list or table_size(list) == 0 then
     return nil
   end
-  local index = math.random(1, #list)
+  local index = math.random(1, table_size(list))
   return list[index]
 end
 
@@ -66,13 +63,7 @@ end
 --- @param iq ItemQuality
 --- @return string key Interned combined key
 function utils.get_ItemQuality_key(iq)
-  local cache_key = iq.name .. ":" .. iq.quality
-  local key = item_quality_keys[cache_key]
-  if not key then
-    key = cache_key
-    item_quality_keys[cache_key] = key
-  end
-  return key
+  return utils.get_item_quality_key(iq.name, iq.quality)
 end
 
 return utils

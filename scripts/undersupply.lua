@@ -14,6 +14,7 @@ local function get_underway(networkdata, itemkey)
     local delivery = networkdata.bot_deliveries[itemkey]
     return (delivery and delivery.count) or 0
   end
+  return 0
 end
 
 ---@param network LuaLogisticNetwork The logistics network to analyse
