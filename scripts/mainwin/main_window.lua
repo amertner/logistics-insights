@@ -29,7 +29,7 @@ local WINDOW_NAME = "logistics_insights_window"
 local SHORTCUT_TOGGLE = "logistics-insights-toggle"
 
 -- Enable/disable row mini pause buttons based on capability dependencies
-local function refresh_mini_button_enables(player_table)
+function main_window.refresh_mini_button_enabled_states(player_table)
   local snap = capability_manager.snapshot(player_table)
   if not snap then return end
   for name, rec in pairs(snap) do
@@ -85,7 +85,7 @@ function main_window.create(player, player_table)
   main_window._add_all_rows(player_table, content_table)
 
   -- Ensure mini buttons are enabled/disabled according to capability deps
-  refresh_mini_button_enables(player_table)
+  main_window.refresh_mini_button_enabled_states(player_table)
 
   -- Restore the previous location, if it exists
   local gui = player.gui.screen
@@ -290,6 +290,8 @@ function main_window.set_window_visible(player, player_table, visible)
         player_table.history_timer:resume()
       end
     end
+  else
+    capability_manager.set_reason(player_table, "window", "user", false)
   end
 
   local gui = player.gui.screen
@@ -333,6 +335,8 @@ function main_window.onclick(event)
           player_table.history_timer:reset_keep_pause()
         end
         main_window.update(player, player_table, true)
+        -- Also update the mini-button state. This is a workaround in case things get stuck.
+        main_window.refresh_mini_button_enabled_states(player_table)
       elseif utils.starts_with(event.element.name, "logistics-insights-sorted-") then
         -- Inline handling for mini pause buttons -> toggles capability "user" reason
         local suffix = event.element.name:sub(string.len("logistics-insights-sorted-") + 1)
@@ -350,7 +354,7 @@ function main_window.onclick(event)
           -- Update UI mini-button state and dependent enable
           mini_button.update_paused_state(player_table, suffix, not now_paused)
           -- Enable/disable dependent buttons using capability snapshot
-          refresh_mini_button_enables(player_table)
+          main_window.refresh_mini_button_enabled_states(player_table)
           -- Now update window
           main_window.update(player, player_table, false)
         end

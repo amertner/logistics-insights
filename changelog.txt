@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.9.11
+Date: 2025-08-16
+  Bugfixes:
+    - Fixed an issue where the paused state would be inconsistent, with no way for the UI to refresh correctly
+---------------------------------------------------------------------------------------------------
 Version: 0.9.10
 Date: 2025-08-13
   Features:
