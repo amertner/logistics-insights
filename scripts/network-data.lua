@@ -6,6 +6,7 @@ local network_data = {}
 ---@field id number -- The unique ID of the network
 ---@field surface string -- The surface name where the network is located
 ---@ -- Data capture fields
+---@field last_active_tick number -- The last tick this network's data was updated
 ---@field last_accessed_tick number -- The last tick this network's data was accessed
 ---@field last_pass_bots_seen table<number, number> -- A list of bots seen in the last full pass
 ---@ -- Fields populated by analysing cells
@@ -78,6 +79,7 @@ function network_data.get_networkdata(network)
   else
     -- Update last-accessed
     networkdata.last_accessed_tick = game.tick
+    networkdata.last_active_tick = game.tick
     return networkdata
   end
 end
@@ -92,8 +94,9 @@ function network_data.create_networkdata(network)
   if not storage.networks[network.network_id] then
     storage.networks[network.network_id] = {
       id = network.network_id,
-      surface = "",
+      surface = network.cells[1].owner.surface.name or "",
       last_accessed_tick = game.tick,
+      last_active_tick = game.tick,
       last_pass_bots_seen = {},
       idle_bot_qualities = {},
       charging_bot_qualities = {},
@@ -175,7 +178,7 @@ function network_data.network_changed(player_table, old_network_id, new_network_
   -- If the network has changed, reset the network data
   if old_network_id and old_network_id > 0 then
     -- Clear the old network data. One day, we may want to keep this data, but not needed atm
-    storage.networks[old_network_id] = nil
+    -- storage.networks[old_network_id] = nil
   end
 end
 

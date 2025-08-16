@@ -17,6 +17,7 @@ local activity_row = require("scripts.mainwin.activity_row")
 local network_row = require("scripts.mainwin.network_row")
 local undersupply_row = require("scripts.mainwin.undersupply_row")
 local suggestions_row = require("scripts.mainwin.suggestions_row")
+local networks_window = require("scripts.networkswin.networks_window")
 
 -- Control action dispatch (freeze / unfreeze / step)
 -- Control button handling moved to game_state.handle_control_button for centralization
@@ -328,6 +329,10 @@ function main_window.onclick(event)
         -- Clicking the network ID button toggles between fixed and dynamic network
         event.element.toggled = not event.element.toggled
         player_table.fixed_network = event.element.toggled
+      elseif event.element.name == "logistics-insights-sorted-network" then
+        -- Show/Hide Networks window
+        networks_window.create(player)
+        --networks_window.toggle(player)
       elseif event.element.name == "logistics-insights-sorted-clear" then
         -- Clear the delivery history and clear the timer
         network_data.clear_delivery_history(player_table.network)

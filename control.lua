@@ -12,6 +12,7 @@ local progress_bars = require("scripts.mainwin.progress_bars")
 local main_window = require("scripts.mainwin.main_window")
 local scheduler = require("scripts.scheduler")
 local capability_manager = require("scripts.capability-manager")
+local networks_window= require("scripts.networkswin.networks_window")
 
 ---@alias SurfaceName string
 
@@ -37,6 +38,7 @@ scheduler.register({
     if player_data.check_network_changed(player, player_table) then
       bot_counter.network_changed(player, player_table)
       logistic_cell_counter.network_changed(player, player_table)
+      networks_window.set_network_count(player, table_size(storage.networks) or 0)
     end
   end })
 scheduler.register({ name = "bot-chunk", interval = 10, per_player = true, capability = "delivery", fn = function(player, player_table)
@@ -64,6 +66,7 @@ scheduler.register({ name = "ui-update", interval = 60, per_player = true, fn = 
     main_window.ensure_ui_consistency(player, player_table)
     controller_gui.update_window(player, player_table)
     main_window.update(player, player_table, false)
+    networks_window.update(player)
   end })
 
 -- All actual timed dispatching handler in scheduler.lua

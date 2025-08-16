@@ -3,7 +3,7 @@
 local mini_button = {}
 local player_data = require("scripts.player-data")
 
----@alias ButtonType "pause" | "trash"
+---@alias ButtonType "pause" | "trash" | "networks"
 
 --- Update the start/stop button appearance based on current state
 --- @param element LuaGuiElement The button element to update
@@ -77,6 +77,8 @@ function mini_button.add(player_table, label_ui, button_name, tooltip, button_ty
     end
   elseif button_type == "trash" then
     sprite = "utility/trash"
+  elseif button_type == "networks" then
+    sprite = "virtual-signal/signal-info"
   end
 
   -- Add right-aligned button that's vertically centered with the label

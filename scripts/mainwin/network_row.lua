@@ -6,6 +6,7 @@ local network_row = {}
 local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
 local tooltips_helper = require("scripts.tooltips-helper")
+local mini_button = require("scripts.mainwin.mini_button")
 
 -- Cache frequently used functions
 local pairs = pairs
@@ -20,12 +21,19 @@ function network_row.add(player_table, gui_table)
     type = "flow",
     direction = "vertical"
   }
-  flow.add {
+  local hcell = flow.add {
+    type = "flow",
+    direction = "horizontal"
+  }
+  hcell.add {
     type = "label",
     caption = {"network-row.header"},
     style = "heading_2_label",
     tooltip = {"network-row.header-tooltip"},
   }
+  hcell.style.horizontally_stretchable = true
+  mini_button.add(player_table, hcell, "network", {"network-row.networks-tooltip"}, "networks", false)
+
   player_table.ui.network.id = gui_table.add {
     type = "sprite-button",
     sprite = "virtual-signal/signal-L",
