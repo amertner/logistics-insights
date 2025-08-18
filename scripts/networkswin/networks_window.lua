@@ -2,6 +2,8 @@
 
 local networks_window = {}
 
+local flib_format = require("__flib__.format")
+
 local WINDOW_NAME = "li_networks_window"
 
 --- Create the Networks window for a player
@@ -85,8 +87,8 @@ function networks_window.create(player)
   local function add_header_icon(sprite, tooltip)
     local e = table_el.add{ type = "sprite", sprite = sprite, tooltip = tooltip }
     -- Make header icons bigger
-    e.style.width = 30
-    e.style.height = 30
+    e.style.width = 28
+    e.style.height = 28
     e.style.stretch_image_to_widget_size = true
     return e
   end
@@ -119,7 +121,7 @@ end
 
 --- Toggle visibility of the Networks window
 --- @param player LuaPlayer
-function networks_window.toggle(player)
+function networks_window.toggle_window_visible(player)
   if not player or not player.valid then return end
   local w = player.gui.screen[WINDOW_NAME]
   if not w then
@@ -241,14 +243,8 @@ function networks_window.update(player)
 
     -- Bots (sprite-button with number overlay)
     local botscell = el(string.format("%s-cell-%d-bots", WINDOW_NAME, i))
-    if botscell and botscell.valid then
-      local bots = 0
-      if nw.last_pass_bots_seen then
-        bots = (table_size and table_size(nw.last_pass_bots_seen)) or 0
-        if not table_size then
-          for _ in pairs(nw.last_pass_bots_seen) do bots = bots + 1 end
-        end
-      end
+    if botscell and botscell.valid and nw then
+      local bots = nw.bot_items["logistic-robot-total"]
       botscell.caption = tostring(bots)
     end
 
@@ -266,9 +262,9 @@ function networks_window.update(player)
       local lt = nw.last_active_tick or nw.last_accessed_tick or 0
       local age_ticks = (game and game.tick or 0) - lt
       if age_ticks < 0 then age_ticks = 0 end
-      local secs = math.floor(age_ticks / 60)
-      updatedcell.caption = tostring(secs)
-      updatedcell.tooltip = {"", secs, " s"}
+      time_str = flib_format.time(age_ticks, false)
+      updatedcell.caption = time_str
+      updatedcell.tooltip = nil
     end
 
     -- Settings (no-op placeholder)

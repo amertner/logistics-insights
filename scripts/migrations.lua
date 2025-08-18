@@ -244,6 +244,36 @@ local li_migrations = {
     scheduler.apply_all_player_intervals()
   end,
 
+  ["0.9.12"] = function()
+    -- Destroy the controller window so it can be recreated with the new layout
+    for player_index, _ in pairs(storage.players) do
+      local player = game.get_player(player_index)
+      -- local gui = player.gui.top.logistics_insights_mini
+      if player and player.valid and player.gui.top.logistics_insights_mini then
+        player.gui.top.logistics_insights_mini.destroy()
+      end
+    end
+
+    -- Add a surface to every network. #TODO: Is this the right place to do it?
+    for _, storage_nw in pairs(storage.networks) do
+      if not storage_nw.surface or storage_nw.surface == "" then
+        -- A network has no surface, so find it by brute force
+        local nwid = storage_nw.id
+        for _, force in pairs(game.forces) do
+          for surface, networks in pairs(force.logistic_networks) do
+            for xyz, network in pairs(networks) do
+              if network.network_id == nwid then
+                storage_nw.surface = surface or ""
+                goto network_found
+              end
+            end
+          end
+        end
+        ::network_found::
+      end
+    end
+  end,
+
 }
 
 return li_migrations
