@@ -61,6 +61,17 @@ function Suggestions.new()
   return self
 end
 
+---@return number The current number of suggestions
+function Suggestions:get_current_count()
+  local count = 0
+  for _, suggestion in pairs(self._suggestions) do
+    if suggestion and suggestion.count then
+      count = count + suggestion.count
+    end
+  end
+  return count
+end
+
 --- Retrieve the list of current suggestions
 --- @return SuggestionsTable The current suggestions
 function Suggestions:get_suggestions()

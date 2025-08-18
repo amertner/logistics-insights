@@ -38,7 +38,7 @@ scheduler.register({
     if player_data.check_network_changed(player, player_table) then
       bot_counter.network_changed(player, player_table)
       logistic_cell_counter.network_changed(player, player_table)
-      networks_window.set_network_count(player, table_size(storage.networks) or 0)
+      networks_window.update_network_count(player, table_size(storage.networks) or 0)
     end
   end })
 scheduler.register({ name = "bot-chunk", interval = 10, per_player = true, capability = "delivery", fn = function(player, player_table)

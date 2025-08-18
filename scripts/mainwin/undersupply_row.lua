@@ -33,7 +33,7 @@ function undersupply_row.update(player_table, clearing)
       function(a, b) return a.shortage > b.shortage end,
       "shortage",
       clearing or false,
-  function(pt) return capability_manager.is_active(player_table, "undersupply") end,
+      function(pt) return capability_manager.is_active(player_table, "undersupply") end,
       {"undersupply-row.show-location-tooltip"}
     )
   else
