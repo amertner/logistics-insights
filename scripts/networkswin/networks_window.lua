@@ -1,8 +1,8 @@
--- Networks window: skeleton UI only (no internals yet)
-
+-- Networks window: Show a summary of all networks seen
 local networks_window = {}
 
 local flib_format = require("__flib__.format")
+local player_data = require("scripts.player-data")
 
 local WINDOW_NAME = "li_networks_window"
 
@@ -25,7 +25,8 @@ function networks_window.create(player)
     visible = true,
   }
   -- Make the window taller by default while keeping it flexible
-  window.style.minimal_height = 520
+  window.style.minimal_height = 250
+  window.style.horizontally_stretchable = true
 
   -- Title bar with dragger, pin, and close
   local titlebar = window.add {
@@ -37,7 +38,7 @@ function networks_window.create(player)
 
   titlebar.add {
     type = "label",
-    caption = "Networks",
+    caption = "Logistics Networks",
     style = "frame_title",
     ignored_by_interaction = true,
   }
@@ -68,7 +69,7 @@ function networks_window.create(player)
   local table_el = scroll.add {
     type = "table",
     name = WINDOW_NAME .. "-table",
-    column_count = 7,
+    column_count = 8,
     draw_horizontal_lines = true,
   }
   table_el.style.horizontal_spacing = 12
@@ -76,9 +77,11 @@ function networks_window.create(player)
   table_el.style.column_alignments[1] = "right"
   table_el.style.column_alignments[2] = "center"
   table_el.style.column_alignments[3] = "right"
+  table_el.style.column_alignments[4] = "right"
   table_el.style.column_alignments[5] = "right"
-  table_el.style.column_alignments[6] = "center"
+  table_el.style.column_alignments[6] = "right"
   table_el.style.column_alignments[7] = "center"
+  table_el.style.column_alignments[8] = "center"
 
   -- Header row: mix of text and icons
   local function add_header_label(caption)
@@ -87,8 +90,8 @@ function networks_window.create(player)
   local function add_header_icon(sprite, tooltip)
     local e = table_el.add{ type = "sprite", sprite = sprite, tooltip = tooltip }
     -- Make header icons bigger
-    e.style.width = 28
-    e.style.height = 28
+    e.style.width = 26
+    e.style.height = 26
     e.style.stretch_image_to_widget_size = true
     return e
   end
@@ -98,8 +101,10 @@ function networks_window.create(player)
   add_header_icon("space-location/nauvis", {"", "Surface"})
   -- Bots (icon)
   add_header_icon("entity/logistic-robot", {"", "Total bots"})
-  -- Insights (text)
-  add_header_label("Insights")
+  -- Undersupply
+  add_header_icon("virtual-signal/signal-U", {"", "Undersupply"})
+  -- Suggestions
+  add_header_icon("virtual-signal/signal-S", {"", "Suggestions"})
   -- Updated (hourglass icon)
   add_header_icon("virtual-signal/signal-hourglass", {"", "Last updated/sec"})
   -- Settings (same icon as row data)
@@ -135,7 +140,7 @@ end
 --- Rows are created with placeholder cells so they can be filled later without resizing.
 --- @param player LuaPlayer
 --- @param count integer Expected range 0-100
-function networks_window.set_network_count(player, count)
+function networks_window.update_network_count(player, count)
   if not player or not player.valid then return end
   if type(count) ~= "number" then return end
   if count < 0 then count = 0 end
@@ -164,19 +169,18 @@ function networks_window.set_network_count(player, count)
       el.style.horizontal_align = "right"
       return el
     elseif col_key == "surface" then
-      -- Sprite placeholder; will be set later
       return table_el.add{ type = "sprite", name = name, sprite = "utility/questionmark" }
     elseif col_key == "bots" then
       local el = table_el.add{ type = "label", name = name, caption = "0" }
       el.style.horizontally_stretchable = true
+      el.style.minimal_width = 50
       el.style.horizontal_align = "right"
       return el
-    elseif col_key == "insights" then
-      local flow = table_el.add{ type = "flow", name = name, direction = "horizontal" }
-      for i = 1, 4 do
-        flow.add{ type = "sprite-button", style = "slot_button", name = string.format("%s-btn-%d", name, i), sprite = "li_arrow", visible = false }
-      end
-      return flow
+    elseif col_key == "undersupply" or col_key == "suggestions" then
+      local el = table_el.add{ type = "label", name = name, caption = "0" }
+      el.style.horizontally_stretchable = false
+      el.style.horizontal_align = "right"
+      return el
     elseif col_key == "updated" then
       local el = table_el.add{ type = "label", name = name, caption = "" }
       el.style.horizontally_stretchable = false
@@ -195,7 +199,28 @@ function networks_window.set_network_count(player, count)
     else
       return table_el.add{ type = "label", name = name, caption = "" }
     end
+  end -- add_cell
+
+  if current_rows < count then
+    for r = current_rows + 1, count do
+      add_cell(r, "id")
+      add_cell(r, "surface")
+      add_cell(r, "bots")
+      add_cell(r, "undersupply")
+      add_cell(r, "suggestions")
+      add_cell(r, "updated")
+      add_cell(r, "settings")
+      add_cell(r, "trash")
+    end
+  elseif current_rows > count then
+    local to_remove = (current_rows - count) * columns
+    for _ = 1, to_remove do
+      local children = table_el.children
+      local last = children[#children]
+      if last and last.valid then last.destroy() end
+    end
   end
+end
 
 --- Update all data rows in the networks window from storage.networks
 --- @param player LuaPlayer
@@ -217,7 +242,9 @@ function networks_window.update(player)
   table.sort(list, function(a,b) return (a.id or 0) < (b.id or 0) end)
 
   -- Ensure row count matches
-  networks_window.set_network_count(player, #list)
+  networks_window.update_network_count(player, #list)
+
+  player_table = player_data.get_player_table(player.index)
 
   local function el(name)
     return table_el[name]
@@ -256,6 +283,23 @@ function networks_window.update(player)
       end
     end
 
+    -- Undersupply
+    local undersupplycell = el(string.format("%s-cell-%d-undersupply", WINDOW_NAME, i))
+    if undersupplycell and undersupplycell.valid and nw then
+      -- #TODO: Move Undersupply to network, not player_table.
+      local undersupply = player_table.suggestions:get_cached_list("undersupply")
+      local undersupply_count = (undersupply and table_size(undersupply)) or 0
+      undersupplycell.caption = tostring(undersupply_count)
+    end
+
+    -- Suggestions
+    local suggestionscell = el(string.format("%s-cell-%d-suggestions", WINDOW_NAME, i))
+    if suggestionscell and suggestionscell.valid and nw then
+      -- #TODO: Move Suggestions to network, not player_table.
+      local suggestions_count = player_table.suggestions:get_current_count()
+      suggestionscell.caption = tostring(suggestions_count)
+    end
+
     -- Updated (seconds since last_active_tick)
     local updatedcell = el(string.format("%s-cell-%d-updated", WINDOW_NAME, i))
     if updatedcell and updatedcell.valid then
@@ -267,35 +311,16 @@ function networks_window.update(player)
       updatedcell.tooltip = nil
     end
 
-    -- Settings (no-op placeholder)
+    -- Settings
     local setcell = el(string.format("%s-cell-%d-settings", WINDOW_NAME, i))
     if setcell and setcell.valid and setcell.type == "sprite-button" then
       setcell.sprite = setcell.sprite ~= "" and setcell.sprite or "utility/rename_icon"
     end
 
-    local setcell = el(string.format("%s-cell-%d-trash", WINDOW_NAME, i))
-    if setcell and setcell.valid and setcell.type == "sprite-button" then
-      setcell.sprite = setcell.sprite ~= "" and setcell.sprite or "utility/trash"
-    end
-  end
-end
-
-  if current_rows < count then
-    for r = current_rows + 1, count do
-      add_cell(r, "id")
-      add_cell(r, "surface")
-      add_cell(r, "bots")
-      add_cell(r, "insights")
-      add_cell(r, "updated")
-      add_cell(r, "settings")
-      add_cell(r, "trash")
-    end
-  elseif current_rows > count then
-    local to_remove = (current_rows - count) * columns
-    for _ = 1, to_remove do
-      local children = table_el.children
-      local last = children[#children]
-      if last and last.valid then last.destroy() end
+    -- Trash
+    local trashcell = el(string.format("%s-cell-%d-trash", WINDOW_NAME, i))
+    if trashcell and trashcell.valid and trashcell.type == "sprite-button" then
+      trashcell.sprite = trashcell.sprite ~= "" and trashcell.sprite or "utility/trash"
     end
   end
 end

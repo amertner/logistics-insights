@@ -87,12 +87,12 @@ function player_data.update_settings(player, player_table)
     }
     player_table.settings = settings
     player_table.player_index = player.index
-  -- Update capability setting reasons (true = enabled => clear reason; false = disabled => set reason)
-  capability_manager.set_reason(player_table, "suggestions", "setting", not settings.show_suggestions)
-  capability_manager.set_reason(player_table, "undersupply", "setting", not settings.show_undersupply)
-  capability_manager.set_reason(player_table, "history", "setting", not settings.show_history)
-  capability_manager.set_reason(player_table, "activity", "setting", not settings.show_activity)
-  capability_manager.set_reason(player_table, "delivery", "setting", not settings.show_delivering)
+    -- Update capability setting reasons (true = enabled => clear reason; false = disabled => set reason)
+    capability_manager.set_reason(player_table, "suggestions", "setting", not settings.show_suggestions)
+    capability_manager.set_reason(player_table, "undersupply", "setting", not settings.show_undersupply)
+    capability_manager.set_reason(player_table, "history", "setting", not settings.show_history)
+    capability_manager.set_reason(player_table, "activity", "setting", not settings.show_activity)
+    capability_manager.set_reason(player_table, "delivery", "setting", not settings.show_delivering)
     if player_table.history_timer then
       if capability_manager.is_active(player_table, "history") then
         player_table.history_timer:resume()
