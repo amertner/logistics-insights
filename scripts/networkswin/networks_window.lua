@@ -175,12 +175,17 @@ function networks_window.create(player)
     type = "frame",
     name = WINDOW_NAME,
     direction = "vertical",
-    style = "botsgui_frame_style",
+    style = "li_networks_frame_style",
     visible = true,
   }
   -- Make the window taller by default while keeping it flexible
-  window.style.minimal_height = 250
+  window.style.minimal_height = 200
   window.style.horizontally_stretchable = true
+  -- Allow the frame to grow tall; cap at 80% of screen height for usability
+  local screen_h = player.display_resolution and player.display_resolution.height or 1080
+  local scale = player.display_scale or 1
+  local usable = math.floor((screen_h / scale) * 0.8)
+  window.style.maximal_height = usable
 
   -- Title bar with dragger, pin, and close
   local titlebar = window.add {
@@ -201,7 +206,7 @@ function networks_window.create(player)
     type = "empty-widget",
     style = "draggable_space_header",
     height = 24,
-    right_margin = 4,
+    right_margin = 0,
     ignored_by_interaction = true,
   }
   dragger.style.horizontally_stretchable = true
@@ -217,8 +222,9 @@ function networks_window.create(player)
   scroll.style.horizontally_stretchable = true
   scroll.style.vertically_stretchable = true
   scroll.style.padding = 8
-  -- Ensure a comfortably tall content area by default
+  -- Ensure a comfortably tall content area by default, but let it expand
   scroll.style.minimal_height = 200
+  scroll.style.maximal_height = usable - 80 -- leave room for titlebar
 
   local col_count = #cell_setup
   local table_el = scroll.add {
@@ -228,7 +234,7 @@ function networks_window.create(player)
     draw_horizontal_lines = true,
   }
   table_el.style.horizontal_spacing = 6
-  table_el.style.vertical_spacing = 2
+  table_el.style.vertical_spacing = 4
   -- Set column alignments as configured
   for idx, col in ipairs(cell_setup) do
     if col.align then
