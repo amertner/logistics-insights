@@ -6,6 +6,160 @@ local player_data = require("scripts.player-data")
 
 local WINDOW_NAME = "li_networks_window"
 
+-- Column configuration for Networks window
+-- key: column id used in element names
+-- header: { type = "sprite"|"label", sprite?, caption?, tooltip? }
+-- align: "left"|"center"|"right"
+-- add_cell: function(table_el, name) -> LuaGuiElement
+local cell_setup = {
+  {
+    key = "id",
+    header = { type = "sprite", sprite = "virtual-signal/signal-L", tooltip = {"networks-window.id-tooltip"} },
+    align = "right",
+    add_cell = function(table_el, name)
+      local el = table_el.add{ type = "label", name = name, caption = "" }
+      el.style.horizontally_stretchable = false
+      el.style.horizontal_align = "right"
+      return el
+    end,
+    populate = function(el, nw)
+      if el and el.valid then el.caption = tostring(nw.id or "") end
+    end
+  },
+  {
+    key = "surface",
+    header = { type = "sprite", sprite = "space-location/nauvis", tooltip = {"networks-window.surface-tooltip"} },
+    align = "center",
+    add_cell = function(table_el, name)
+      return table_el.add{ type = "sprite", name = name, sprite = "utility/questionmark" }
+    end,
+    populate = function(el, nw)
+      if not (el and el.valid) then return end
+      local surface = nw.surface
+      if not surface or surface == "" then surface = "space-location-unknown" end
+      el.sprite = "space-location/" .. surface
+    end
+  },
+  {
+    key = "players",
+    header = { type = "sprite", sprite = "entity/character", tooltip = {"networks-window.players-tooltip"} },
+    align = "center",
+    add_cell = function(table_el, name)
+      local el = table_el.add{ type = "label", name = name, caption = "" }
+      el.style.horizontally_stretchable = true
+      el.style.horizontal_align = "right"
+    end,
+    populate = function(el, nw)
+      if not (el and el.valid) then return end
+      el.caption = tostring(table_size(nw.players or {}))
+    end
+  },
+  {
+    key = "bots",
+    header = { type = "sprite", sprite = "entity/logistic-robot", tooltip = {"networks-window.totalbots-tooltip"} },
+    align = "right",
+    add_cell = function(table_el, name)
+      local el = table_el.add{ type = "label", name = name, caption = "0" }
+      el.style.horizontally_stretchable = true
+      el.style.minimal_width = 40
+      el.style.horizontal_align = "right"
+      return el
+    end,
+    populate = function(el, nw)
+      if not (el and el.valid) then return end
+      local bots = 0
+      if nw.bot_items and nw.bot_items["logistic-robot-total"] then
+        bots = nw.bot_items["logistic-robot-total"] or 0
+      end
+      el.caption = tostring(bots)
+    end
+  },
+  {
+    key = "undersupply",
+    header = { type = "sprite", sprite = "virtual-signal/signal-U", tooltip = {"networks-window.undersupply-tooltip"} },
+    align = "right",
+    add_cell = function(table_el, name)
+      local el = table_el.add{ type = "label", name = name, caption = "0" }
+      el.style.horizontally_stretchable = true
+      el.style.horizontal_align = "right"
+      return el
+    end,
+    populate = function(el, nw)
+      if not (el and el.valid) then return end
+      local count = 0
+      if nw.suggestions and nw.suggestions.get_cached_list then
+        local undersupply = nw.suggestions:get_cached_list("undersupply")
+        if undersupply then
+          count = table_size(undersupply)
+        end
+      end
+      el.caption = tostring(count)
+    end
+  },
+  {
+    key = "suggestions",
+    header = { type = "sprite", sprite = "virtual-signal/signal-S", tooltip = {"networks-window.suggestions-tooltip"} },
+    align = "right",
+    add_cell = function(table_el, name)
+      local el = table_el.add{ type = "label", name = name, caption = "0" }
+      el.style.horizontally_stretchable = true
+      el.style.horizontal_align = "right"
+      return el
+    end,
+    populate = function(el, nw)
+      if not (el and el.valid) then return end
+      local count = 0
+      if nw.suggestions then
+        count = nw.suggestions:get_current_count() or 0
+      end
+      el.caption = tostring(count)
+    end
+  },
+  {
+    key = "updated",
+    header = { type = "sprite", sprite = "virtual-signal/signal-clock", tooltip = {"networks-window.timesinceupdate-tooltip"} },
+    align = "right",
+    add_cell = function(table_el, name)
+      local el = table_el.add{ type = "label", name = name, caption = "" }
+      el.style.horizontally_stretchable = true
+      el.style.minimal_width = 50
+      el.style.horizontal_align = "right"
+      return el
+    end,
+    populate = function(el, nw)
+      if not (el and el.valid) then return end
+      local lt = nw.last_active_tick or nw.last_accessed_tick or 0
+      local age_ticks = (game and game.tick or 0) - lt
+      if age_ticks < 0 then age_ticks = 0 end
+      local time_str = flib_format.time(age_ticks, false)
+      el.caption = time_str
+      el.tooltip = nil
+    end
+  },
+  {
+    key = "settings",
+    header = { type = "sprite", sprite = "utility/rename_icon", tooltip = {"networks-window.settings-tooltip"} },
+    align = "center",
+    add_cell = function(table_el, name)
+      local btn = table_el.add{ type = "sprite-button", name = name, style = "mini_button", sprite = "utility/rename_icon" }
+      btn.style.top_margin = 2
+      return btn
+  end,
+  populate = function(el, nw) end
+  },
+  {
+    key = "trash",
+    header = { type = "sprite", sprite = "utility/trash", tooltip = {"networks-window.stop-tooltip"} },
+    align = "center",
+    add_cell = function(table_el, name)
+      local btn = table_el.add{ type = "sprite-button", name = name, style = "mini_button", sprite = "utility/trash" }
+      btn.style.top_margin = 2
+      return btn
+  end,
+  populate = function(el, nw) end
+  },
+}
+
 --- Create the Networks window for a player
 --- @param player LuaPlayer
 function networks_window.create(player)
@@ -64,53 +218,36 @@ function networks_window.create(player)
   scroll.style.vertically_stretchable = true
   scroll.style.padding = 8
   -- Ensure a comfortably tall content area by default
-  scroll.style.minimal_height = 480
+  scroll.style.minimal_height = 200
 
+  local col_count = #cell_setup
   local table_el = scroll.add {
     type = "table",
     name = WINDOW_NAME .. "-table",
-    column_count = 8,
+    column_count = col_count,
     draw_horizontal_lines = true,
   }
-  table_el.style.horizontal_spacing = 12
-  table_el.style.vertical_spacing = 4
-  table_el.style.column_alignments[1] = "right"
-  table_el.style.column_alignments[2] = "center"
-  table_el.style.column_alignments[3] = "right"
-  table_el.style.column_alignments[4] = "right"
-  table_el.style.column_alignments[5] = "right"
-  table_el.style.column_alignments[6] = "right"
-  table_el.style.column_alignments[7] = "center"
-  table_el.style.column_alignments[8] = "center"
-
-  ---@param sprite string The sprite to use for the icon
-  ---@param tooltip LocalisedString The tooltip for the icon
-  local function add_header_icon(sprite, tooltip)
-    local e = table_el.add{ type = "sprite", sprite = sprite, tooltip = tooltip }
-    -- Make header icons bigger
-    e.style.width = 26
-    e.style.height = 26
-    e.style.stretch_image_to_widget_size = true
-    return e
+  table_el.style.horizontal_spacing = 6
+  table_el.style.vertical_spacing = 2
+  -- Set column alignments as configured
+  for idx, col in ipairs(cell_setup) do
+    if col.align then
+      table_el.style.column_alignments[idx] = col.align
+    end
   end
-  -- ID (text)
-  add_header_icon("virtual-signal/signal-L", {"networks-window.id-tooltip"})
-  -- Surface (Nauvis icon)
-  add_header_icon("space-location/nauvis", {"networks-window.surface-tooltip"})
-  -- Bots (icon)
-  add_header_icon("entity/logistic-robot", {"networks-window.totalbots-tooltip"})
-  -- Undersupply
-  add_header_icon("virtual-signal/signal-U", {"networks-window.undersupply-tooltip"})
-  -- Suggestions
-  add_header_icon("virtual-signal/signal-S", {"networks-window.suggestions-tooltip"})
-  -- Updated (hourglass icon)
-  add_header_icon("virtual-signal/signal-hourglass", {"networks-window.timesinceupdate-tooltip"})
-  -- Settings (same icon as row data)
-  add_header_icon("utility/rename_icon", {"networks-window.settings-tooltip"})
-  -- Clear/stop
-  add_header_icon("utility/trash", {"networks-window.stop-tooltip"})
 
-  -- Optional: initial size; content is stretchable to support future resize logic
+  -- Build header row from cell_setup
+  for _, col in ipairs(cell_setup) do
+    if col.header.type == "sprite" then
+      local e = table_el.add{ type = "sprite", sprite = col.header.sprite, tooltip = col.header.tooltip }
+      e.style.width = 26
+      e.style.height = 26
+      e.style.stretch_image_to_widget_size = true
+    else
+      table_el.add{ type = "label", caption = col.header.caption or "", style = "bold_label" }
+    end
+  end
+
   window.force_auto_center()
 end
 
@@ -150,7 +287,7 @@ function networks_window.update_network_count(player, count)
   local table_el = scroll[WINDOW_NAME .. "-table"]
   if not table_el or not table_el.valid then return end
 
-  local columns = table_el.column_count or 6
+  local columns = table_el.column_count or #cell_setup
   local header_cells = columns -- One header row already present
 
   local child_count = #table_el.children
@@ -161,54 +298,19 @@ function networks_window.update_network_count(player, count)
 
   local function add_cell(row_index, col_key)
     local name = string.format("%s-cell-%d-%s", WINDOW_NAME, row_index, col_key)
-    if col_key == "id" then
-      local el = table_el.add{ type = "label", name = name, caption = "" }
-      el.style.horizontally_stretchable = false
-      el.style.horizontal_align = "right"
-      return el
-    elseif col_key == "surface" then
-      return table_el.add{ type = "sprite", name = name, sprite = "utility/questionmark" }
-    elseif col_key == "bots" then
-      local el = table_el.add{ type = "label", name = name, caption = "0" }
-      el.style.horizontally_stretchable = true
-      el.style.minimal_width = 50
-      el.style.horizontal_align = "right"
-      return el
-    elseif col_key == "undersupply" or col_key == "suggestions" then
-      local el = table_el.add{ type = "label", name = name, caption = "0" }
-      el.style.horizontally_stretchable = false
-      el.style.horizontal_align = "right"
-      return el
-    elseif col_key == "updated" then
-      local el = table_el.add{ type = "label", name = name, caption = "" }
-      el.style.horizontally_stretchable = false
-      el.style.horizontal_align = "right"
-      return el
-    elseif col_key == "settings" then
-      -- Use a mini button for settings
-      local btn = table_el.add{ type = "sprite-button", name = name, style = "mini_button", sprite = "utility/rename_icon" }
-      btn.style.top_margin = 2
-      return btn
-    elseif col_key == "trash" then
-      -- Use a mini button for settings
-      local btn = table_el.add{ type = "sprite-button", name = name, style = "mini_button", sprite = "utility/trash" }
-      btn.style.top_margin = 2
-      return btn
-    else
-      return table_el.add{ type = "label", name = name, caption = "" }
+    for _, col in ipairs(cell_setup) do
+      if col.key == col_key then
+        return col.add_cell(table_el, name)
+      end
     end
+    return table_el.add{ type = "label", name = name, caption = "" }
   end -- add_cell
 
   if current_rows < count then
     for r = current_rows + 1, count do
-      add_cell(r, "id")
-      add_cell(r, "surface")
-      add_cell(r, "bots")
-      add_cell(r, "undersupply")
-      add_cell(r, "suggestions")
-      add_cell(r, "updated")
-      add_cell(r, "settings")
-      add_cell(r, "trash")
+      for _, col in ipairs(cell_setup) do
+        add_cell(r, col.key)
+      end
     end
   elseif current_rows > count then
     local to_remove = (current_rows - count) * columns
@@ -242,81 +344,17 @@ function networks_window.update(player)
   -- Ensure row count matches
   networks_window.update_network_count(player, #list)
 
-  player_table = player_data.get_player_table(player.index)
-
-  local function el(name)
-    return table_el[name]
-  end
-
   for i, nw in ipairs(list) do
-    -- ID
-    local idcell = el(string.format("%s-cell-%d-id", WINDOW_NAME, i))
-    if idcell and idcell.valid then idcell.caption = tostring(nw.id or "") end
-
-    -- Surface (sprite + tooltip localised name)
-    local surf = nw.surface or ""
-    local scell = el(string.format("%s-cell-%d-surface", WINDOW_NAME, i))
-    if scell and scell.valid then
-      if scell.type == "sprite" then
-        local surface = nw.surface
-        if surface == "" then
-          surface = "space-location-unknown"
-        end
-        scell.sprite = "space-location/" .. surface
+    for _, col in ipairs(cell_setup) do
+      local name = string.format("%s-cell-%d-%s", WINDOW_NAME, i, col.key)
+      local el = table_el[name]
+      if col.populate then col.populate(el, nw) end
+      -- Ensure default sprites if needed for icon columns
+      if col.key == "settings" and el and el.valid and el.type == "sprite-button" and el.sprite == "" then
+        el.sprite = "utility/rename_icon"
+      elseif col.key == "trash" and el and el.valid and el.type == "sprite-button" and el.sprite == "" then
+        el.sprite = "utility/trash"
       end
-    end
-
-    -- Bots (sprite-button with number overlay)
-    local botscell = el(string.format("%s-cell-%d-bots", WINDOW_NAME, i))
-    if botscell and botscell.valid and nw then
-      local bots = nw.bot_items["logistic-robot-total"]
-      botscell.caption = tostring(bots)
-    end
-
-    -- Insights (no data yet; keep sub-buttons hidden/cleared)
-    local insflow = el(string.format("%s-cell-%d-insights", WINDOW_NAME, i))
-    if insflow and insflow.valid and insflow.children then
-      for _, child in ipairs(insflow.children) do
-        child.visible = false
-      end
-    end
-
-    -- Undersupply
-    local undersupplycell = el(string.format("%s-cell-%d-undersupply", WINDOW_NAME, i))
-    if undersupplycell and undersupplycell.valid and nw then
-      local undersupply = nw.suggestions:get_cached_list("undersupply")
-      local undersupply_count = (undersupply and table_size(undersupply)) or 0
-      undersupplycell.caption = tostring(undersupply_count)
-    end
-
-    -- Suggestions
-    local suggestionscell = el(string.format("%s-cell-%d-suggestions", WINDOW_NAME, i))
-    if suggestionscell and suggestionscell.valid and nw then
-      local suggestions_count = nw.suggestions:get_current_count()
-      suggestionscell.caption = tostring(suggestions_count)
-    end
-
-    -- Updated (seconds since last_active_tick)
-    local updatedcell = el(string.format("%s-cell-%d-updated", WINDOW_NAME, i))
-    if updatedcell and updatedcell.valid then
-      local lt = nw.last_active_tick or nw.last_accessed_tick or 0
-      local age_ticks = (game and game.tick or 0) - lt
-      if age_ticks < 0 then age_ticks = 0 end
-      time_str = flib_format.time(age_ticks, false)
-      updatedcell.caption = time_str
-      updatedcell.tooltip = nil
-    end
-
-    -- Settings
-    local setcell = el(string.format("%s-cell-%d-settings", WINDOW_NAME, i))
-    if setcell and setcell.valid and setcell.type == "sprite-button" then
-      setcell.sprite = setcell.sprite ~= "" and setcell.sprite or "utility/rename_icon"
-    end
-
-    -- Trash
-    local trashcell = el(string.format("%s-cell-%d-trash", WINDOW_NAME, i))
-    if trashcell and trashcell.valid and trashcell.type == "sprite-button" then
-      trashcell.sprite = trashcell.sprite ~= "" and trashcell.sprite or "utility/trash"
     end
   end
 end
