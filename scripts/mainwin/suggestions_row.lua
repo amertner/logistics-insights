@@ -106,10 +106,11 @@ function suggestions_row.set_suggestion_cell(items, index, suggestion, enabled)
   end
 end
 
+---@param player_table PlayerData The player's data table
 ---@param suggestions_table Suggestions The suggestions list to show
 ---@param enabled boolean Whether suggestions are enabled
 ---@return number The number of suggestions shown
-function suggestions_row.show_suggestions(suggestions_table, enabled)
+function suggestions_row.show_suggestions(player_table, suggestions_table, enabled)
   local items = player_table.ui[ROW_TITLE]
 
   local order = (suggestions_table and suggestions_table.order) or (suggestions_table.order) or {}
@@ -166,7 +167,7 @@ function suggestions_row.update(player_table)
 
   local running = capability_manager.is_active(player_table, "suggestions")
   -- Show all suggestions
-  local shown = suggestions_row.show_suggestions(networkdata.suggestions, running)
+  local shown = suggestions_row.show_suggestions(player_table, networkdata.suggestions, running)
   -- Clear any remaining cells
   local items = player_table.ui[ROW_TITLE]
   for i = shown + 1, player_table.settings.max_items do
