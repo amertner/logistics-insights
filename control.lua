@@ -54,10 +54,19 @@ scheduler.register({ name = "cell-chunk", interval = 60, per_player = true, capa
     capability_manager.mark_dirty(player_table, "suggestions")
   end })
 scheduler.register({ name = "undersupply-bots", interval = 60, per_player = true, capability = "undersupply", fn = function(player, player_table)
-    player_table.suggestions:evaluate_undersupply(player_table, false)
+    local nwd = network_data.get_networkdata(player_table.network)
+    if nwd then
+      local bot_deliveries = nwd.bot_deliveries or {}
+      nwd.suggestions:evaluate_undersupply(player_table, bot_deliveries, false)
+    end
   end })
 scheduler.register({ name = "suggestions-cells", interval = 60, per_player = true, capability = "suggestions", fn = function(player, player_table)
-    player_table.suggestions:evaluate_cells(player_table)
+    local nwd = network_data.get_networkdata(player_table.network)
+    if nwd then
+      local waiting_to_charge_count = (nwd.bot_items and nwd.bot_items["waiting-for-charge-robot"]) or 0
+      -- Evaluate cells and bots for suggestions
+      nwd.suggestions:evaluate_cells(player_table, waiting_to_charge_count)
+    end
   end })
 scheduler.register({ name = "suggestions-bots", interval = 60, per_player = true, capability = "suggestions", fn = function(player, player_table)
     player_table.suggestions:evaluate_bots(player_table)

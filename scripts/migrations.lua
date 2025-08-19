@@ -3,10 +3,10 @@ local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
 local TickCounter = require("scripts.tick-counter")
 local main_window = require("scripts.mainwin.main_window")
-local suggestions = require("scripts.suggestions")
 local chunker = require("scripts.chunker")
 local scheduler = require("scripts.scheduler")
 local capability_manager = require("scripts.capability-manager")
+local suggestions = require("scripts.suggestions")
 
 local function init_storage_and_settings()
   player_data.init_storages()
@@ -215,7 +215,7 @@ local li_migrations = {
     storage.total_bot_qualities = nil
   end,
 
-  ["0.9.10"] = function()
+  ["0.9.10"] = function() -- Add new scheduler
     -- Initialise scheduler and player overrides on schedules
     for _, player_table in pairs(storage.players) do
       player_table.schedule_last_run = {}
@@ -244,13 +244,32 @@ local li_migrations = {
     scheduler.apply_all_player_intervals()
   end,
 
-  ["0.9.12"] = function()
+  ["0.9.12"] = function() -- Add new networks window
     -- Destroy the controller window so it can be recreated with the new layout
     for player_index, _ in pairs(storage.players) do
       local player = game.get_player(player_index)
       -- local gui = player.gui.top.logistics_insights_mini
       if player and player.valid and player.gui.top.logistics_insights_mini then
         player.gui.top.logistics_insights_mini.destroy()
+      end
+    end
+
+    -- Transfer suggestions from player data to network data for active network and initialise the rest
+    for player_index, player_table in pairs(storage.players) do
+      local player = game.get_player(player_index)
+      local pt_sugg = player_table.suggestions
+      -- Iterate over all networks we're scanning
+      for nwid, nwdata in pairs(storage.networks) do
+        if player and player.valid and player_table.network and player_table.network.valid then
+          if nwid == player_table.network.network_id then
+            -- Transfer suggestions to network data
+            nwdata.suggestions = pt_sugg
+          else
+            nwdata.suggestions = suggestions.new()
+          end
+          ---@diagnostic disable-next-line: inject-field
+          player_table.suggestions = nil
+        end
       end
     end
 

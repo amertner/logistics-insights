@@ -5,6 +5,7 @@ local sorted_item_row = require("scripts.mainwin.sorted_item_row")
 local mini_button = require("scripts.mainwin.mini_button")
 local capability_manager = require("scripts.capability-manager")
 local suggestions   = require("scripts.suggestions")
+local network_data = require("scripts.network-data")
 
 ---@class undersupply_row
 local undersupply_row = {}
@@ -24,7 +25,8 @@ end
 function undersupply_row.update(player_table, clearing)
   if not player_table then return end
   if not player_table.settings.show_undersupply then return end
-  local in_demand = player_table.suggestions:get_cached_list("undersupply")
+  local networkdata = network_data.get_networkdata(player_table.network)
+  local in_demand = networkdata and networkdata.suggestions:get_cached_list("undersupply")
   if in_demand then
     sorted_item_row.update(
       player_table,

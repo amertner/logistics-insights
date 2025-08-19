@@ -4,6 +4,7 @@ local player_data = require("scripts.player-data")
 local suggestions = require("scripts.suggestions")
 local mini_button = require("scripts.mainwin.mini_button")
 local capability_manager = require("scripts.capability-manager")
+local network_data = require("scripts.network-data")
 
 local suggestions_row = {}
 local ROW_TITLE = "suggestions-row"
@@ -105,14 +106,13 @@ function suggestions_row.set_suggestion_cell(items, index, suggestion, enabled)
   end
 end
 
----@param player_table PlayerData The player's data table
+---@param suggestions_table Suggestions The suggestions list to show
 ---@param enabled boolean Whether suggestions are enabled
 ---@return number The number of suggestions shown
-function suggestions_row.show_suggestions(player_table, enabled)
-  local suggestions_table = player_table.suggestions:get_suggestions()
+function suggestions_row.show_suggestions(suggestions_table, enabled)
   local items = player_table.ui[ROW_TITLE]
 
-  local order = (player_table.suggestions and player_table.suggestions.order) or (suggestions.order) or {}
+  local order = (suggestions_table and suggestions_table.order) or (suggestions_table.order) or {}
   local max_items = player_table.settings.max_items
   local index = 1
   -- Pass 1: high urgency in order
@@ -159,13 +159,14 @@ function suggestions_row.update(player_table)
   if not player_table.ui or not player_table.ui[ROW_TITLE] or not player_table.ui[ROW_TITLE].titlecell then
     return
   end
-  if not player_table.suggestions or not player_table.suggestions._historydata then
+  local networkdata = network_data.get_networkdata(player_table.network)
+  if not networkdata or not networkdata.suggestions or not networkdata.suggestions._historydata then
     return
   end
 
   local running = capability_manager.is_active(player_table, "suggestions")
   -- Show all suggestions
-  local shown = suggestions_row.show_suggestions(player_table, running)
+  local shown = suggestions_row.show_suggestions(networkdata.suggestions, running)
   -- Clear any remaining cells
   local items = player_table.ui[ROW_TITLE]
   for i = shown + 1, player_table.settings.max_items do

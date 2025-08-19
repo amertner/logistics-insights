@@ -1,10 +1,14 @@
 --- Manage storage of network data analysed by LI
 local network_data = {}
 
+local suggestions = require("scripts.suggestions")
+
 -- Data stored for each network
 ---@class LINetworkData
 ---@field id number -- The unique ID of the network
 ---@field surface string -- The surface name where the network is located
+---@ -- Suggestions and undersupply data
+---@field suggestions Suggestions -- The list of suggestions associated with this network
 ---@ -- Data capture fields
 ---@field last_active_tick number -- The last tick this network's data was updated
 ---@field last_accessed_tick number -- The last tick this network's data was accessed
@@ -97,6 +101,7 @@ function network_data.create_networkdata(network)
       surface = network.cells[1].owner.surface.name or "",
       last_accessed_tick = game.tick,
       last_active_tick = game.tick,
+      suggestions = suggestions.new(),
       last_pass_bots_seen = {},
       idle_bot_qualities = {},
       charging_bot_qualities = {},
@@ -171,15 +176,5 @@ function network_data.clear_old_network_data(max_age_ticks)
   end
 end
 
----@param player_table PlayerData The player data table to update
----@param old_network_id number|nil|boolean The previous network ID
----@param new_network_id number|nil|boolean The new network ID
-function network_data.network_changed(player_table, old_network_id, new_network_id)
-  -- If the network has changed, reset the network data
-  if old_network_id and old_network_id > 0 then
-    -- Clear the old network data. One day, we may want to keep this data, but not needed atm
-    -- storage.networks[old_network_id] = nil
-  end
-end
 
 return network_data
