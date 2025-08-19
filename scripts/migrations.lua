@@ -167,7 +167,8 @@ local li_migrations = {
         ---@diagnostic disable-next-line: inject-field
         player_table.saved_paused_state = nil -- Remove old saved paused state
         
-        -- Initialise the new suggestions table
+        -- Initialise the suggestions table (from 0.9.12, deprecated)
+        ---@diagnostic disable-next-line: inject-field
         player_table.suggestions = suggestions.new()
         -- Set new settings
         player_table.settings.show_undersupply = true -- Enable undersupply by default
@@ -284,6 +285,16 @@ local li_migrations = {
           ---@diagnostic disable-next-line: inject-field
           player_table.suggestions = nil
         end
+      end
+    end
+
+    -- Initialise players and add active players to networks
+    for _, storage_nw in pairs(storage.networks) do
+      storage_nw.players = {}
+    end
+    for _, player_table in pairs(storage.players) do
+      if player_table and player_table.network then
+        network_data.player_changed_networks(player_table, nil, player_table.network.network_id)
       end
     end
 

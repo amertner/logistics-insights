@@ -2,11 +2,14 @@
 local network_data = {}
 
 local suggestions = require("scripts.suggestions")
+local capability_manager = require("scripts.capability-manager")
+local player_data = require("scripts.player-data")
 
 -- Data stored for each network
 ---@class LINetworkData
 ---@field id number -- The unique ID of the network
 ---@field surface string -- The surface name where the network is located
+---@field players number[] -- A list of player indexes that are active in this network
 ---@ -- Suggestions and undersupply data
 ---@field suggestions Suggestions -- The list of suggestions associated with this network
 ---@ -- Data capture fields
@@ -88,6 +91,23 @@ function network_data.get_networkdata(network)
   end
 end
 
+---@param network_id number|nil The network to get data for
+---@return LINetworkData|nil
+function network_data.get_networkdata_fromid(network_id)
+  if not network_id or not storage.networks then
+    return nil -- No network ID or storage available
+  end
+  local networkdata = storage.networks[network_id]
+  if not networkdata then
+    return nil -- No data for this network
+  else
+    -- Update last-accessed
+    networkdata.last_accessed_tick = game.tick
+    networkdata.last_active_tick = game.tick
+    return networkdata
+  end
+end
+
 ---@param network LuaLogisticNetwork|nil The network to create storage for
 function network_data.create_networkdata(network)
   if not network or not storage.networks then
@@ -99,6 +119,7 @@ function network_data.create_networkdata(network)
     storage.networks[network.network_id] = {
       id = network.network_id,
       surface = network.cells[1].owner.surface.name or "",
+      players = {},
       last_accessed_tick = game.tick,
       last_active_tick = game.tick,
       suggestions = suggestions.new(),
@@ -173,6 +194,79 @@ function network_data.clear_old_network_data(max_age_ticks)
       -- Remove the network data if it hasn't been accessed for a long time
       storage.networks[network_id] = nil
     end
+  end
+end
+
+
+---@param player LuaPlayer|nil
+---@param player_table PlayerData|nil
+---@return boolean True if the network has changed, false otherwise
+function network_data.check_network_changed(player, player_table)
+  if not player or not player.valid then
+    return false
+  end
+
+  if player_table and player_table.fixed_network then
+    -- Check that the fixed network is still valid
+    if player_table.network and player_table.network.valid then
+      return false
+    else
+      -- The fixed network is no longer valid, so make sure to clear it
+      player_table.network = nil
+      player_table.fixed_network = false
+    end
+  end
+
+  -- Get or update the network, return true if the network is changed
+  if player_table then
+    local network = player.force.find_logistic_network_by_position(player.position, player.surface)
+    local player_table_network = player_table.network
+    -- Get the network IDs, making sure the network references are still valid
+    local new_network_id = network and network.valid and network.network_id or 0
+    local old_network_id = player_table_network and player_table_network.valid and player_table_network.network_id or 0
+
+    if new_network_id == old_network_id then
+      -- Update no_network reason (still evaluate if network exists)
+      local has_network = (network ~= nil)
+      capability_manager.set_reason(player_table, "delivery", "no_network", not has_network)
+      capability_manager.set_reason(player_table, "activity", "no_network", not has_network)
+      capability_manager.set_reason(player_table, "history", "no_network", not has_network)
+      capability_manager.set_reason(player_table, "suggestions", "no_network", not has_network)
+      capability_manager.set_reason(player_table, "undersupply", "no_network", not has_network)
+      return false
+    else
+      player_table.network = network
+      player_table.history_timer:reset() -- Reset the tick counter when network changes
+      local has_network = (network ~= nil)
+      capability_manager.set_reason(player_table, "delivery", "no_network", not has_network)
+      capability_manager.set_reason(player_table, "activity", "no_network", not has_network)
+      capability_manager.set_reason(player_table, "history", "no_network", not has_network)
+      capability_manager.set_reason(player_table, "suggestions", "no_network", not has_network)
+      capability_manager.set_reason(player_table, "undersupply", "no_network", not has_network)
+
+      network_data.player_changed_networks(player_table, old_network_id, new_network_id)
+      return true
+    end
+  else
+    return false
+  end
+end
+
+--- Call this to update the list of players active in a network
+---@param player_table PlayerData The player's data table
+---@param old_network_id uint|nil The old network ID, if any
+---@param new_network_id uint|nil The new network ID, if any
+function network_data.player_changed_networks(player_table, old_network_id, new_network_id)
+  if not player_table then
+    return
+  end
+  local old_nw = network_data.get_networkdata_fromid(old_network_id)
+  if old_nw then
+    table.remove(old_nw.players, player_table.player_index)
+  end
+  local new_nw = network_data.get_networkdata_fromid(new_network_id)
+  if new_nw then
+    table.insert(new_nw.players, player_table.player_index)
   end
 end
 
