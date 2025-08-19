@@ -38,7 +38,7 @@ function networks_window.create(player)
 
   titlebar.add {
     type = "label",
-    caption = "Logistics Networks",
+    caption = {"networks-window.window-title"},
     style = "frame_title",
     ignored_by_interaction = true,
   }
@@ -83,10 +83,8 @@ function networks_window.create(player)
   table_el.style.column_alignments[7] = "center"
   table_el.style.column_alignments[8] = "center"
 
-  -- Header row: mix of text and icons
-  local function add_header_label(caption)
-    table_el.add{ type = "label", caption = caption, style = "bold_label" }
-  end
+  ---@param sprite string The sprite to use for the icon
+  ---@param tooltip LocalisedString The tooltip for the icon
   local function add_header_icon(sprite, tooltip)
     local e = table_el.add{ type = "sprite", sprite = sprite, tooltip = tooltip }
     -- Make header icons bigger
@@ -96,21 +94,21 @@ function networks_window.create(player)
     return e
   end
   -- ID (text)
-  add_header_label("ID")
+  add_header_icon("virtual-signal/signal-L", {"networks-window.id-tooltip"})
   -- Surface (Nauvis icon)
-  add_header_icon("space-location/nauvis", {"", "Surface"})
+  add_header_icon("space-location/nauvis", {"networks-window.surface-tooltip"})
   -- Bots (icon)
-  add_header_icon("entity/logistic-robot", {"", "Total logistics bots"})
+  add_header_icon("entity/logistic-robot", {"networks-window.totalbots-tooltip"})
   -- Undersupply
-  add_header_icon("virtual-signal/signal-U", {"", "Number of undersupplied items"})
+  add_header_icon("virtual-signal/signal-U", {"networks-window.undersupply-tooltip"})
   -- Suggestions
-  add_header_icon("virtual-signal/signal-S", {"", "Number of suggestions"})
+  add_header_icon("virtual-signal/signal-S", {"networks-window.suggestions-tooltip"})
   -- Updated (hourglass icon)
-  add_header_icon("virtual-signal/signal-hourglass", {"", "Last updated/sec"})
+  add_header_icon("virtual-signal/signal-hourglass", {"networks-window.timesinceupdate-tooltip"})
   -- Settings (same icon as row data)
-  add_header_icon("utility/rename_icon", {"", "Settings"})
+  add_header_icon("utility/rename_icon", {"networks-window.settings-tooltip"})
   -- Clear/stop
-  add_header_icon("utility/trash", {"", "Stop monitoring"})
+  add_header_icon("utility/trash", {"networks-window.stop-tooltip"})
 
   -- Optional: initial size; content is stretchable to support future resize logic
   window.force_auto_center()
