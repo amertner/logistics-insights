@@ -18,6 +18,14 @@ styles.botsgui_frame_style = {
   }
 }
 
+-- Networks window frame style: inherit base look but allow much taller height
+styles.li_networks_frame_style = {
+  type = "frame_style",
+  parent = "botsgui_frame_style",
+  -- Allow effectively unlimited height; can still be constrained per-instance at runtime
+  maximal_height = 10000,
+}
+
 styles.botsgui_controller_style = {
   type = "frame_style",
   parent = "frame",
