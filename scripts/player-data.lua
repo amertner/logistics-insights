@@ -2,8 +2,6 @@
 local player_data = {}
 
 local tick_counter = require("scripts.tick-counter")
-local suggestions = require("scripts.suggestions")
-local network_data = require("scripts.network-data")
 local capability_manager = require("scripts.capability-manager")
 
 -- Cache frequently used functions for performance
@@ -17,7 +15,6 @@ local math_ceil = math.ceil
 ---@field bots_window_visible boolean -- Whether the logistics insights window is visible
 ---@field network LuaLogisticNetwork|nil -- The current logistics network being monitored
 ---@field fixed_network boolean -- Whether to keep watching the current network even if the player moves away
----@field suggestions Suggestions -- Suggestions for improving logistics network
 ---@field history_timer TickCounter -- Tracks time for collecting delivery history
 ---@field player_index uint -- The player's index
 ---@field window_location {x: number, y: number} -- Saved window position
@@ -37,7 +34,6 @@ function player_data.init(player_index)
     bots_window_visible = false, -- Start invisible
     network = nil,
     history_timer = tick_counter.new(),
-    suggestions = suggestions.new(),
     fixed_network = false,
     player_index = player_index,
     window_location = {x = 200, y = 0},
@@ -61,7 +57,7 @@ function player_data.init_storages()
     player_data.update_settings(player, storage.players[player.index])
   end
 
-  network_data.init() -- Initialise network data storage
+  --network_data.init() -- Initialise network data storage
 end
 
 ---@param player LuaPlayer|nil
@@ -151,11 +147,6 @@ function player_data.check_network_changed(player, player_table)
     else
       player_table.network = network
       player_table.history_timer:reset() -- Reset the tick counter when network changes
-      network_data.network_changed(player_table, old_network_id, new_network_id)
-      if not player_table.suggestions then
-        player_table.suggestions = suggestions.new()
-      end
-      player_table.suggestions:clear_suggestions()
       local has_network = (network ~= nil)
       capability_manager.set_reason(player_table, "delivery", "no_network", not has_network)
       capability_manager.set_reason(player_table, "activity", "no_network", not has_network)

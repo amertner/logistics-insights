@@ -1,7 +1,6 @@
 --- Handles suggestions for improving logistics network
 
 local undersupply = require("scripts.undersupply")
-local network_data = require("scripts.network-data")
 local capability_manager = require("scripts.capability-manager")
 
 --- Urgency levels for suggestions
@@ -65,8 +64,8 @@ end
 function Suggestions:get_current_count()
   local count = 0
   for _, suggestion in pairs(self._suggestions) do
-    if suggestion and suggestion.count then
-      count = count + suggestion.count
+    if suggestion then
+      count = count + 1
     end
   end
   return count
@@ -93,13 +92,14 @@ end
 -- Scheduler-driven evaluation helpers (dirty-flag + interval externalised)
 --- Evaluate cell-related suggestions if needed (scheduler sets dirty flag and cadence)
 --- @param player_table PlayerData
-function Suggestions:evaluate_cells(player_table)
+--- @param waiting_to_charge_count number The number of bots waiting to charge
+function Suggestions:evaluate_cells(player_table, waiting_to_charge_count)
   if not player_table then return end
   -- Consume dirty flag from capability manager; if not dirty skip
   if not capability_manager.consume_dirty(player_table, "suggestions") then return end
   self._current_tick = game.tick
   local network = player_table.network
-  self:analyse_waiting_to_charge(network)
+  self:analyse_waiting_to_charge(waiting_to_charge_count)
   self:analyse_storage(network)
 end
 
@@ -108,6 +108,7 @@ end
 function Suggestions:evaluate_bots(player_table)
   if not player_table then return end
   if not capability_manager.consume_dirty(player_table, "suggestions") then return end
+
   self._current_tick = game.tick
   local network = player_table.network
   if network then
@@ -117,15 +118,17 @@ end
 
 --- Evaluate undersupply based on latest bot data without consuming dirty flag (runs even if suggestions paused)
 --- @param player_table PlayerData
+--- @param bot_deliveries table<string, DeliveryItem> A list of items being delivered right now
 --- @param consume_flag boolean Whether to consume the dirty flag (default: false)
-function Suggestions:evaluate_undersupply(player_table, consume_flag)
+function Suggestions:evaluate_undersupply(player_table, bot_deliveries, consume_flag)
   if not player_table then return end
   -- Only proceed if undersupply capability is dirty
   local dirty = capability_manager.consume_dirty(player_table, "undersupply")
   if not dirty then return end
   local network = player_table.network
   if not network then return end
-  local excessivedemand = undersupply.analyse_demand_and_supply(network)
+
+  local excessivedemand = undersupply.analyse_demand_and_supply(network, bot_deliveries)
   self:set_cached_list("undersupply", excessivedemand)
   self._current_tick = game.tick
 end
@@ -233,26 +236,21 @@ function Suggestions:create_or_clear_suggestion(suggestion_name, count, sprite, 
 end
 
 -- Potential issue: Too many bots waiting to charge means we need more RPs
----@param network? LuaLogisticNetwork The network being analysed
-function Suggestions:analyse_waiting_to_charge(network)
-  local networkdata = network_data.get_networkdata(network)
-  if networkdata then
-    -- Do we have enough places to charge, or are too many waiting to charge?
-    local waiting = networkdata.bot_items["waiting-for-charge-robot"] or 0
-    local need_rps = (waiting > 9) and math.ceil(waiting / 4) or 0
-    -- Record the last few numbers so the recommendation does not jump around randomly
-    self:remember(Suggestions.awaiting_charge_key, need_rps)
+---@param waiting_for_charge_count number The number of bots waiting to charge
+function Suggestions:analyse_waiting_to_charge(waiting_for_charge_count)
+  local need_rps = (waiting_for_charge_count > 9) and math.ceil(waiting_for_charge_count / 4) or 0
+  -- Record the last few numbers so the recommendation does not jump around randomly
+  self:remember(Suggestions.awaiting_charge_key, need_rps)
 
-    local suggested_number = self:max_from_history(Suggestions.awaiting_charge_key)
-    self:create_or_clear_suggestion(
-      Suggestions.awaiting_charge_key,
-      suggested_number,
-      "entity/roboport",
-      self:get_urgency(suggested_number, 100),
-      false,
-      {"suggestions-row.waiting-to-charge-action", suggested_number}
-    )
-  end
+  local suggested_number = self:max_from_history(Suggestions.awaiting_charge_key)
+  self:create_or_clear_suggestion(
+    Suggestions.awaiting_charge_key,
+    suggested_number,
+    "entity/roboport",
+    self:get_urgency(suggested_number, 100),
+    false,
+    {"suggestions-row.waiting-to-charge-action", suggested_number}
+  )
 end
 
 --- Create a suggestion, if the numbers warrant it

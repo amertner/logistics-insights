@@ -100,11 +100,11 @@ function networks_window.create(player)
   -- Surface (Nauvis icon)
   add_header_icon("space-location/nauvis", {"", "Surface"})
   -- Bots (icon)
-  add_header_icon("entity/logistic-robot", {"", "Total bots"})
+  add_header_icon("entity/logistic-robot", {"", "Total logistics bots"})
   -- Undersupply
-  add_header_icon("virtual-signal/signal-U", {"", "Undersupply"})
+  add_header_icon("virtual-signal/signal-U", {"", "Number of undersupplied items"})
   -- Suggestions
-  add_header_icon("virtual-signal/signal-S", {"", "Suggestions"})
+  add_header_icon("virtual-signal/signal-S", {"", "Number of suggestions"})
   -- Updated (hourglass icon)
   add_header_icon("virtual-signal/signal-hourglass", {"", "Last updated/sec"})
   -- Settings (same icon as row data)
@@ -286,8 +286,7 @@ function networks_window.update(player)
     -- Undersupply
     local undersupplycell = el(string.format("%s-cell-%d-undersupply", WINDOW_NAME, i))
     if undersupplycell and undersupplycell.valid and nw then
-      -- #TODO: Move Undersupply to network, not player_table.
-      local undersupply = player_table.suggestions:get_cached_list("undersupply")
+      local undersupply = nw.suggestions:get_cached_list("undersupply")
       local undersupply_count = (undersupply and table_size(undersupply)) or 0
       undersupplycell.caption = tostring(undersupply_count)
     end
@@ -295,8 +294,7 @@ function networks_window.update(player)
     -- Suggestions
     local suggestionscell = el(string.format("%s-cell-%d-suggestions", WINDOW_NAME, i))
     if suggestionscell and suggestionscell.valid and nw then
-      -- #TODO: Move Suggestions to network, not player_table.
-      local suggestions_count = player_table.suggestions:get_current_count()
+      local suggestions_count = nw.suggestions:get_current_count()
       suggestionscell.caption = tostring(suggestions_count)
     end
 

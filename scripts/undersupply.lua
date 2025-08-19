@@ -3,26 +3,24 @@
 local undersupply = {}
 
 local utils = require("scripts.utils")
-local network_data = require("scripts.network-data")
 
 --- Get the number of items currently being delivered by bots
---- @param networkdata LINetworkData The network data for the network
---- @param itemkey string The key for the item being delivered
---- @return number The count of items currently being delivered
-local function get_underway(networkdata, itemkey)
-  if networkdata.bot_deliveries then
-    local delivery = networkdata.bot_deliveries[itemkey]
+---@param bot_deliveries table<string, DeliveryItem> A list of items being delivered right now
+---@param itemkey string The key for the item being delivered
+---@return number The count of items currently being delivered
+local function get_underway(bot_deliveries, itemkey)
+  if bot_deliveries and itemkey then
+    local delivery = bot_deliveries[itemkey]
     return (delivery and delivery.count) or 0
   end
   return 0
 end
 
 ---@param network LuaLogisticNetwork The logistics network to analyse
+---@param bot_deliveries table<string, DeliveryItem> A list of items being delivered right now
 ---@return ItemWithQualityCount[]|nil An array of items with shortages, sorted by shortage, or nil
-function undersupply.analyse_demand_and_supply(network)
-  local networkdata = network_data.get_networkdata(network)
-  if not networkdata then return nil end
-  if network and network.storages then
+function undersupply.analyse_demand_and_supply(network, bot_deliveries)
+  if network then
     -- Where are there shortages, where demand + under way << supply?
     --@type array<ItemWithQualityCount>
     -- Get_contents returns what's in storage, less what is being picked up. This causes a discrepancy in undersupply :(
@@ -90,7 +88,7 @@ function undersupply.analyse_demand_and_supply(network)
       if request > supply then
         local shortage = request - supply
         local item_name, quality_name = key:match("([^:]+):(.+)")
-        local under_way = get_underway(networkdata, key) or 0
+        local under_way = get_underway(bot_deliveries, key) or 0
         if under_way > 0 then
           shortage = shortage - under_way
         end
