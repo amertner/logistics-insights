@@ -114,12 +114,13 @@ function suggestions_row.show_suggestions(player_table, suggestions_table, enabl
   local items = player_table.ui[ROW_TITLE]
 
   local order = (suggestions_table and suggestions_table.order) or (suggestions_table.order) or {}
+  local suggestions_list = suggestions_table:get_suggestions()
   local max_items = player_table.settings.max_items
   local index = 1
   -- Pass 1: high urgency in order
   for _, key in ipairs(order) do
     if index > max_items then break end
-    local s = suggestions_table[key]
+    local s = suggestions_list[key]
     if s and s.urgency == "high" then
       suggestions_row.set_suggestion_cell(items, index, s, enabled)
       index = index + 1
@@ -129,7 +130,7 @@ function suggestions_row.show_suggestions(player_table, suggestions_table, enabl
   if index <= max_items then
     for _, key in ipairs(order) do
       if index > max_items then break end
-      local s = suggestions_table[key]
+      local s = suggestions_list[key]
       if s and s.urgency ~= "high" then
         suggestions_row.set_suggestion_cell(items, index, s, enabled)
         index = index + 1
