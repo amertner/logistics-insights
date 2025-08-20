@@ -147,8 +147,10 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
     local player_table = player_data.get_player_table(e.player_index)
     if player and player_table then
       if e.setting == "li-show-all-networks" then
-        network_data.purge_unobserved_networks()
-        networks_window.update(player)
+        -- When this setting is changed, potentially purge unobserved networks and refresh the UI
+        if network_data.purge_unobserved_networks() then
+          networks_window.update(player)
+        end
       elseif e.setting == "li-show-mini-window" then
         -- Special handling for mini window setting
         controller_gui.update_window(player, player_table)

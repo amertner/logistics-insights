@@ -277,15 +277,19 @@ function network_data.player_changed_networks(player_table, old_network_id, new_
 end
 
 -- If the setting "li-show-all-networks" is false, purge networks that are not currently observed by any player
+---@return boolean True if any networks were purged, false otherwise
 function network_data.purge_unobserved_networks()
+  local purged = false
   if not settings.global["li-show-all-networks"].value then
     for network_id, networkdata in pairs(storage.networks) do
       if not networkdata.players or #networkdata.players == 0 then
         -- Remove the network data if it has no players
         storage.networks[network_id] = nil
+        purged = true
       end
     end
   end
+  return purged
 end
 
 
