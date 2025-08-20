@@ -261,12 +261,30 @@ function network_data.player_changed_networks(player_table, old_network_id, new_
     return
   end
   local old_nw = network_data.get_networkdata_fromid(old_network_id)
-  if old_nw then
+  if old_nw and old_network_id then
     table.remove(old_nw.players, player_table.player_index)
+    -- If the old network has no players left, potentially remove it
+    if old_nw.players and #old_nw.players == 0 then
+      if not settings.global["li-show-all-networks"].value then
+        storage.networks[old_network_id] = nil
+      end
+    end
   end
   local new_nw = network_data.get_networkdata_fromid(new_network_id)
   if new_nw then
     table.insert(new_nw.players, player_table.player_index)
+  end
+end
+
+-- If the setting "li-show-all-networks" is false, purge networks that are not currently observed by any player
+function network_data.purge_unobserved_networks()
+  if not settings.global["li-show-all-networks"].value then
+    for network_id, networkdata in pairs(storage.networks) do
+      if not networkdata.players or #networkdata.players == 0 then
+        -- Remove the network data if it has no players
+        storage.networks[network_id] = nil
+      end
+    end
   end
 end
 
