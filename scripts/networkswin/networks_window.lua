@@ -38,6 +38,7 @@ local cell_setup = {
       local surface = nw.surface
       if not surface or surface == "" then surface = "space-location-unknown" end
       el.sprite = "space-location/" .. surface
+      el.tooltip = surface
     end
   },
   {
@@ -51,6 +52,7 @@ local cell_setup = {
     end,
     populate = function(el, nw)
       if not (el and el.valid) then return end
+      -- #FIXME: Count online players only
       el.caption = tostring(table_size(nw.players or {}))
     end
   },
