@@ -283,6 +283,8 @@ local li_migrations = {
         network_data.player_changed_networks(player_table, nil, player_table.network.network_id)
       end
     end
+    -- Remove any networks that are not observed, if the setting is set that way
+    network_data.purge_unobserved_networks()
 
     -- Add a surface to every network. #TODO: Is this the right place to do it?
     for _, storage_nw in pairs(storage.networks) do

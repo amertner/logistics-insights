@@ -146,8 +146,11 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
     local player = game.get_player(e.player_index)
     local player_table = player_data.get_player_table(e.player_index)
     if player and player_table then
-      -- Special handling for mini window setting
-      if e.setting == "li-show-mini-window" then
+      if e.setting == "li-show-all-networks" then
+        network_data.purge_unobserved_networks()
+        networks_window.update(player)
+      elseif e.setting == "li-show-mini-window" then
+        -- Special handling for mini window setting
         controller_gui.update_window(player, player_table)
       elseif e.setting == "li-chunk-size" then
         -- Adopt and cache the updated setting

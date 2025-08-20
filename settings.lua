@@ -120,5 +120,22 @@ data:extend(
       minimum_value = 0.05,
       maximum_value = 10,
       order = "8",
-    }, }
+    }, 
+    {
+      type = "bool-setting",
+      name = "li-show-all-networks",
+      setting_type = "runtime-global",
+      default_value = true,
+      order = "1"
+    },
+    {
+      type = "int-setting",
+      name = "li-background-refresh-interval",
+      setting_type = "runtime-global",
+      default_value = 10,
+      minimum_value = 0,
+      maximum_value = 3600,
+      order = "3"
+    }
+  }
 )
