@@ -19,7 +19,7 @@ function progress_bars.update_progressbar(player_table, progressbar_name, progre
   if not progressbar or not progressbar.valid then
     return
   end
-  local chunk_size = player_table.settings.chunk_size
+  local chunk_size = settings.global["li-chunk-size-global"].value
 
   if not progress or progress.total == 0 then
     -- Only update if needed (value might already be 1)

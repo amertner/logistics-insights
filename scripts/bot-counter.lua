@@ -1,6 +1,5 @@
 local bot_counter = {}
 
-local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
 local chunker = require("scripts.chunker")
 local utils = require("scripts.utils")
@@ -146,17 +145,13 @@ end
 --- This function is called by the chunker once for every bot in the list
 --- @param bot LuaEntity The robot entity to process
 --- @param accumulator Accumulator The data accumulator containing counters and bot lists
---- @param player_table PlayerData The player's data table containing settings
-local function process_one_bot(bot, accumulator, player_table)
+--- @param gather GatherOptions for what to gather
+--- @param networkdata LINetworkData The network data associated with this chunker
+local function process_one_bot(bot, accumulator, gather, networkdata)
   if bot and bot.valid then
     local unit_number = bot.unit_number
     if not unit_number then
       -- No unit number, so we can't track this bot
-      return
-    end
-    local networkdata = network_data.get_networkdata(player_table.network)
-    if not networkdata then
-      -- No network data, so we can't track this bot
       return
     end
     if accumulator.last_seen[unit_number] then
@@ -195,15 +190,15 @@ local function process_one_bot(bot, accumulator, player_table)
           add_bot_to_active_deliveries(networkdata, bot, order, item_name, localised_name, item_quality, localised_quality_name, item_count)
         else
           -- Check if the bot was delivering last time we saw it, and record the delivery
-          check_if_no_order_bot_finished_delivery(networkdata, unit_number, player_table.settings.show_history)
+          check_if_no_order_bot_finished_delivery(networkdata, unit_number, gather.history)
         end
       else
         -- This is a situation that should not occur: we haver an order but no target item. Clear it.
-        check_if_no_order_bot_finished_delivery(networkdata, unit_number, player_table.settings.show_history)
+        check_if_no_order_bot_finished_delivery(networkdata, unit_number, gather.history)
       end
     else
       -- No orders, check if it's because the bot has finished its delivery
-      check_if_no_order_bot_finished_delivery(networkdata, unit_number, player_table.settings.show_history)
+      check_if_no_order_bot_finished_delivery(networkdata, unit_number, gather.history)
       utils.accumulate_quality(accumulator.other_bot_qualities, quality, 1)
     end
   end
@@ -225,9 +220,9 @@ end
 
 --- This function is called when all chunks are done processing, ready for a new chunk
 --- @param accumulator Accumulator The data accumulator containing all gathered statistics
---- @param player_table PlayerData The player's data table containing settings
-local function bot_chunks_done(accumulator, player_table)
-  local networkdata = network_data.get_networkdata(player_table.network)
+--- @param gather GatherOptions for what to gather
+--- @param networkdata LINetworkData The network data to update with results
+local function bot_chunks_done(accumulator, gather, networkdata)
   if networkdata then
     networkdata.bot_items["delivering"] = accumulator.delivering_bots or nil
     networkdata.bot_items["picking"] = accumulator.picking_bots or nil
@@ -252,8 +247,9 @@ local function bot_chunks_done(accumulator, player_table)
     end
     networkdata.total_bot_qualities = total_bot_qualities
 
-    if player_table and player_table.settings.show_history and table_size(networkdata.bot_active_deliveries) > 0 
-      and capability_manager.is_active(player_table, "history") then
+    if gather.history and table_size(networkdata.bot_active_deliveries) > 0 then
+      -- # FIXME: How to pass on this?
+      -- and capability_manager.is_active(player_table, "history") then
       -- Consider bots we saw last pass but not this chunk pass as delivered.
       -- They are either destroyed or parked in a roboport, no longer part of the network
       if accumulator.last_seen then
@@ -276,8 +272,16 @@ end
 --- Process data gathered so far and start over
 --- @param player_table PlayerData|nil The player's data table
 function bot_counter.restart_counting(player_table)
-  if player_table and player_table.bot_chunker then
-    player_table.bot_chunker:reset(bot_initialise_chunking, bot_chunks_done)
+  if player_table then
+    local network = player_table.network
+    if not network or not network.valid then
+      return
+    end
+    local networkdata = network_data.get_networkdata(network)
+    if not networkdata then
+      return
+    end
+    networkdata.bot_chunker:reset(networkdata, bot_initialise_chunking, bot_chunks_done)
   end
 end
 
@@ -296,7 +300,7 @@ end
 --- @param player? LuaPlayer The player to gather bot data for
 --- @param player_table? PlayerData The player's data table containing network and settings
 --- @return Progress progress A table with current and total progress values
-function bot_counter.gather_bot_data(player, player_table)
+function bot_counter.gather_data_for_player_network(player, player_table)
   local progress = { current = 0, total = 0 }
   if not player_table then
     return progress
@@ -317,10 +321,14 @@ function bot_counter.gather_bot_data(player, player_table)
   local show_history = player_table.settings.show_history
 
   if show_delivering or show_history then
-    local bot_chunker = bot_counter.get_or_create_chunker(player_table)
+    local bot_chunker = networkdata.bot_chunker
 
     if bot_chunker:is_done() then
-      bot_chunker:initialise_chunking(network.logistic_robots, player_table, networkdata.last_pass_bots_seen, bot_initialise_chunking)
+      local gather_options = {}
+      if player_table.settings.show_history then
+        gather_options.history = true
+      end
+      bot_chunker:initialise_chunking(networkdata, network.logistic_robots, networkdata.last_pass_bots_seen, gather_options, bot_initialise_chunking)
     end
     bot_chunker:process_chunk(process_one_bot, bot_chunks_done)
     progress = bot_chunker:get_progress()
@@ -330,16 +338,6 @@ function bot_counter.gather_bot_data(player, player_table)
   end
 
   return progress
-end
-
---- Create or get the player's existing chunker for processing bots
----@param player_table PlayerData The player's data table
----@return Chunker The created chunker instance
-function bot_counter.get_or_create_chunker(player_table)
-  if not player_table.bot_chunker then
-    player_table.bot_chunker = chunker.new(player_table)
-  end
-  return player_table.bot_chunker
 end
 
 return bot_counter

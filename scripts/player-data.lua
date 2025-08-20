@@ -20,8 +20,6 @@ local math_ceil = math.ceil
 ---@field window_location {x: number, y: number} -- Saved window position
 ---@field ui table<string, table> -- UI elements for the mod's GUI
 ---@field current_logistic_cell_interval number -- Dynamically calculated interval for logistic cell updates
----@field bot_chunker Chunker|nil -- Chunker for processing logistic bots
----@field cell_chunker Chunker|nil -- Chunker for processing logistic cells
 ---@field schedule_last_run table<string, uint>|nil -- Per-task last run ticks for scheduler
 ---@field capabilities table<string, CapabilityRecord>|nil -- Unified capability records
 ---@param player_index uint
@@ -39,8 +37,6 @@ function player_data.init(player_index)
     window_location = {x = 200, y = 0},
     ui = {},
     current_logistic_cell_interval = 60,
-    bot_chunker = nil, -- Chunker for processing logistic bots
-    cell_chunker = nil, -- Chunker for processing logistic cells
     schedule_last_run = {}, -- Per-task last run ticks for scheduler
   }
   storage.players[player_index] = player_data_entry
@@ -73,9 +69,9 @@ function player_data.update_settings(player, player_table)
       max_items = mod_settings["li-max-items"].value,
       show_history = mod_settings["li-show-history"].value,
       show_activity = mod_settings["li-show-activity"].value,
-      gather_quality_data = mod_settings["li-gather-quality-data"].value,
-      chunk_size = mod_settings["li-chunk-size"].value,
-      bot_chunk_interval = mod_settings["li-chunk-processing-interval"].value,
+      --gather_quality_data = mod_settings["li-gather-quality-data"].value,
+      --chunk_size = mod_settings["li-chunk-size"].value,
+      --bot_chunk_interval = mod_settings["li-chunk-processing-interval"].value,
       ui_update_interval = mod_settings["li-ui-update-interval"].value,
       pause_for_bots = mod_settings["li-pause-for-bots"].value,
       pause_while_hidden = mod_settings["li-pause-while-hidden"].value,

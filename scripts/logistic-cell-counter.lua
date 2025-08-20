@@ -28,8 +28,9 @@ end
 --- Process one logistic cell to gather statistics
 --- @param cell LuaLogisticCell The logistic cell to process
 --- @param accumulator CellAccumulator The accumulator for gathering statistics
---- @param player_table PlayerData The player's data table containing settings
-local function process_one_cell(cell, accumulator, player_table)
+--- @param gather_quality_data boolean Whether to gather quality data
+--- @param networkdata LINetworkData The network data associated with this cell
+local function process_one_cell(cell, accumulator, gather_quality_data, networkdata)
   local bots_charging = accumulator.bots_charging
   local bots_waiting = accumulator.bots_waiting_for_charge
 
@@ -37,7 +38,7 @@ local function process_one_cell(cell, accumulator, player_table)
   accumulator.bots_waiting_for_charge = bots_waiting + cell.to_charge_robot_count
 
   -- Check the bots stationed at this roboport
-  if cell.owner and cell.owner.valid and player_table.settings.gather_quality_data then
+  if cell.owner and cell.owner.valid and gather_quality_data then
     -- Count roboport quality
     local rp_quality = cell.owner.quality.name
     utils.accumulate_quality(accumulator.roboport_qualities, rp_quality, 1)
@@ -78,9 +79,9 @@ end
 
 --- Complete processing of all chunks and store results
 --- @param accumulator CellAccumulator The accumulator containing gathered statistics
---- @param player_table PlayerData The player's data table
-local function all_chunks_done(accumulator, player_table)
-  local networkdata = network_data.get_networkdata(player_table.network)
+--- @param gather GatherOptions for what to gather
+--- @param networkdata LINetworkData The network data to update with results
+local function all_chunks_done(accumulator, gather, networkdata)
   if networkdata then
     local bot_items = networkdata.bot_items
     bot_items["charging-robot"] = accumulator.bots_charging
@@ -96,8 +97,16 @@ end
 --- Process data gathered so far and start over
 --- @param player_table PlayerData The player's data table
 function logistic_cell_counter.restart_counting(player_table)
-  if player_table.cell_chunker then
-    player_table.cell_chunker:reset(initialise_cell_network_list, all_chunks_done)
+  if player_table then
+    local network = player_table.network
+    if not network or not network.valid then
+      return
+    end
+    local networkdata = network_data.get_networkdata(network)
+    if not networkdata then
+      return
+    end
+    networkdata.cell_chunker:reset(networkdata, initialise_cell_network_list, all_chunks_done)
   end
 end
 
@@ -106,22 +115,26 @@ end
 --- @param player_table? PlayerData The player's data table
 function logistic_cell_counter.network_changed(player, player_table)
   if player_table then
-    if player_table.cell_chunker then
-      -- Reset the chunker for new network
-      player_table.cell_chunker:reset(initialise_cell_network_list, all_chunks_done)
+    local network = player_table.network
+    if not network or not network.valid then
+      return
     end
+    local networkdata = network_data.get_networkdata(network)
+    if not networkdata then
+      return
+    end
+
+    networkdata.cell_chunker:reset(networkdata, initialise_cell_network_list, all_chunks_done)
     network_data.init_logistic_cell_counter_storage(player_table.network)
-    if player_table.suggestions then
-      player_table.suggestions:clear_suggestions()
-    end
+    networkdata.suggestions:clear_suggestions()
   end
 end
 
---- Gather activity data from all cells in network
+--- Gather activity data from all cells in this player's network
 --- @param player? LuaPlayer The player to gather data for
 --- @param player_table? PlayerData The player's data table containing network and settings
 --- @return Progress A table with current and total progress values
-function logistic_cell_counter.gather_data(player, player_table)
+function logistic_cell_counter.gather_data_for_player_network(player, player_table)
   -- First update and validate network
   local progress = { current = 0, total = 0 } -- Use local variable to avoid global access
   if not player_table then
@@ -139,31 +152,20 @@ function logistic_cell_counter.gather_data(player, player_table)
   if not networkdata then
     return progress -- No valid network data available
   end
-  local bot_items = networkdata.bot_items       -- Cache the table lookup
 
   -- Store basic network stats
-  bot_items["logistic-robot-total"] = network.all_logistic_robots
-  bot_items["logistic-robot-available"] = network.available_logistic_robots
+  networkdata.bot_items["logistic-robot-total"] = network.all_logistic_robots
+  networkdata.bot_items["logistic-robot-available"] = network.available_logistic_robots
 
-  local cell_chunker = logistic_cell_counter.get_or_create_chunker(player_table)
+  local cell_chunker = networkdata.cell_chunker
   -- Process cell data
   if cell_chunker:is_done() then
-    cell_chunker:initialise_chunking(network.cells, player_table, nil, initialise_cell_network_list)
-    player_data.set_logistic_cell_chunks(player_table, cell_chunker:num_chunks())
+    -- Prior pass was done, so start a new pass
+    cell_chunker:initialise_chunking(networkdata, network.cells, nil, {}, initialise_cell_network_list)
   end
   cell_chunker:process_chunk(process_one_cell, all_chunks_done)
 
   return cell_chunker:get_progress()
-end
-
---- Create or get the player's existing chunker for processing logistic cells
----@param player_table PlayerData The player's data table
----@return Chunker The created chunker instance
-function logistic_cell_counter.get_or_create_chunker(player_table)
-  if not player_table.cell_chunker then
-    player_table.cell_chunker = chunker.new(player_table)
-  end
-  return player_table.cell_chunker
 end
 
 return logistic_cell_counter

@@ -3,6 +3,7 @@ local network_data = {}
 
 local suggestions = require("scripts.suggestions")
 local capability_manager = require("scripts.capability-manager")
+local chunker = require("scripts.chunker")
 local player_data = require("scripts.player-data")
 
 -- Data stored for each network
@@ -10,6 +11,8 @@ local player_data = require("scripts.player-data")
 ---@field id number -- The unique ID of the network
 ---@field surface string -- The surface name where the network is located
 ---@field players number[] -- A list of player indexes that are active in this network
+---@field cell_chunker Chunker -- Chunker for processing logistic cells
+---@field bot_chunker Chunker -- Chunker for processing logistic bots
 ---@ -- Suggestions and undersupply data
 ---@field suggestions Suggestions -- The list of suggestions associated with this network
 ---@ -- Data capture fields
@@ -120,6 +123,8 @@ function network_data.create_networkdata(network)
       id = network.network_id,
       surface = network.cells[1].owner.surface.name or "",
       players = {},
+      cell_chunker = chunker.new(),
+      bot_chunker = chunker.new(),
       last_accessed_tick = game.tick,
       last_active_tick = game.tick,
       suggestions = suggestions.new(),

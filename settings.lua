@@ -40,7 +40,8 @@ data:extend(
       name = "li-gather-quality-data",
       setting_type = "runtime-per-user",
       default_value = true,
-      order = "3.1"
+      order = "3.1",
+      hidden = true -- This is now a global setting
     },
     {
       type = "bool-setting",
@@ -72,7 +73,8 @@ data:extend(
       default_value = 400,
       minimum_value = 10,
       maximum_value = 100000,
-      order = "5"
+      order = "5",
+      hidden = true -- This is now a global setting
     }
     ,
     {
@@ -82,7 +84,8 @@ data:extend(
       default_value = 10,
       minimum_value = 1,
       maximum_value = 120,
-      order = "5.2"
+      order = "5.2",
+      hidden = true -- This is now a global setting
     }
     ,
     {
@@ -129,13 +132,40 @@ data:extend(
       order = "1"
     },
     {
+      type = "bool-setting",
+      name = "li-gather-quality-data-global",
+      setting_type = "runtime-global",
+      default_value = true,
+      order = "2"
+    },
+    {
+      type = "int-setting",
+      name = "li-chunk-size-global",
+      setting_type = "runtime-global",
+      default_value = 400,
+      minimum_value = 10,
+      maximum_value = 100000,
+      order = "3"
+    }
+    ,
+    {
+      type = "int-setting",
+      name = "li-chunk-processing-interval-ticks",
+      setting_type = "runtime-global",
+      default_value = 10,
+      minimum_value = 1,
+      maximum_value = 120,
+      order = "4"
+    }
+    ,
+    {
       type = "int-setting",
       name = "li-background-refresh-interval",
       setting_type = "runtime-global",
       default_value = 10,
       minimum_value = 0,
       maximum_value = 3600,
-      order = "3"
+      order = "5"
     }
   }
 )
