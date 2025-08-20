@@ -3,6 +3,8 @@ local networks_window = {}
 
 local flib_format = require("__flib__.format")
 local player_data = require("scripts.player-data")
+local network_data = require("scripts.network-data")
+local ResultLocation = require("scripts.result-location")
 
 local WINDOW_NAME = "li_networks_window"
 
@@ -146,8 +148,12 @@ local cell_setup = {
       local btn = table_el.add{ type = "sprite-button", name = name, style = "mini_button", sprite = "utility/rename_icon" }
       btn.style.top_margin = 2
       return btn
-  end,
-  populate = function(el, nw) end
+    end,
+    populate = function(el, nw)
+      if not (el and el.valid) then return end
+      -- Tag the button so click handler can find the network
+      el.tags = { network_id = nw.id or 0 }
+    end
   },
   {
     key = "trash",
@@ -157,8 +163,12 @@ local cell_setup = {
       local btn = table_el.add{ type = "sprite-button", name = name, style = "mini_button", sprite = "utility/trash" }
       btn.style.top_margin = 2
       return btn
-  end,
-  populate = function(el, nw) end
+    end,
+    populate = function(el, nw)
+      if not (el and el.valid) then return end
+      -- Tag the button so click handler can find the network
+      el.tags = { network_id = nw.id or 0 }
+    end
   },
 }
 
@@ -363,6 +373,55 @@ function networks_window.update(player)
       elseif col.key == "trash" and el and el.valid and el.type == "sprite-button" and el.sprite == "" then
         el.sprite = "utility/trash"
       end
+    end
+  end
+end
+
+--- Handle clicks on Networks window mini buttons (settings/trash).
+--- Returns true if the event was handled.
+---@param event EventData.on_gui_click
+---@return boolean
+function networks_window.on_gui_click(event)
+  local element = event.element
+  if not (element and element.valid) then return false end
+  local name = element.name or ""
+  -- Only handle our window cells
+  if not name:find(WINDOW_NAME .. "-cell-", 1, true) then return false end
+
+  -- Identify column from the control name
+  local row_str, col_key = name:match(WINDOW_NAME .. "%-cell%-(%d+)%-(%w+)$")
+  if not col_key or (col_key ~= "settings" and col_key ~= "trash") then
+    return false
+  end
+
+  -- Resolve the network id: prefer tags; fallback to row index lookup
+  if element.tags then
+    local network_id = tonumber(element.tags.network_id)
+    local networkdata = network_data.get_networkdata_fromid(network_id)
+    local network = networkdata and network_data.get_LuaNetwork(networkdata)
+
+    if col_key == "settings" and network then
+      if network.cells and network.cells[1] and network.cells[1].owner then
+        local entity = network.cells[1].owner
+        local toview = {
+          position = entity.position,
+          surface = entity.surface.name,
+          zoom = 0.8,
+          items = nil
+        }
+        local player = game.get_player(event.player_index)
+        if player and player.valid then
+          -- Open the network view for the player
+          ResultLocation.open(player, toview, true)
+        end
+      end
+    end
+
+    -- Basic handler action: just notify for now (placeholder)
+    local player = game.get_player(event.player_index)
+    if player then
+      local id_text = nw and nw.id and tostring(nw.id) or "?"
+      player.print({"", "[Logistics Insights] ", col_key, " clicked for network ", id_text})
     end
   end
 end

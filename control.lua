@@ -270,6 +270,7 @@ script.on_event(defines.events.on_gui_click,
   function(event)
   controller_gui.onclick(event)
   main_window.onclick(event)
+  networks_window.on_gui_click(event)
 end)
 
 script.on_event(
