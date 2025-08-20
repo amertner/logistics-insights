@@ -259,7 +259,7 @@ local li_migrations = {
     end
   end,
 
-  ["0.10.0"] = function() -- Add new networks window
+  ["0.10.1"] = function() -- Add new networks window
     -- Destroy the controller window so it can be recreated with the new layout
     for player_index, _ in pairs(storage.players) do
       local player = game.get_player(player_index)
@@ -321,7 +321,7 @@ local li_migrations = {
       end
     end
 
-    -- Add a surface and force to every network without one. Brute force!
+    -- Add surface and force name to every network without one. Brute force!
     for _, storage_nw in pairs(storage.networks) do
       local nwid = storage_nw.id
       for _, force in pairs(game.forces) do
