@@ -42,14 +42,14 @@ scheduler.register({
     end
   end })
 scheduler.register({ name = "bot-chunk", interval = 10, per_player = true, capability = "delivery", fn = function(player, player_table)
-    local bot_progress = bot_counter.gather_bot_data(player, player_table)
+    local bot_progress = bot_counter.gather_data_for_player_network(player, player_table)
     main_window.update_bot_progress(player_table, bot_progress)
     -- Mark suggestions & undersupply capabilities dirty (they both depend on bot data)
     capability_manager.mark_dirty(player_table, "suggestions")
     capability_manager.mark_dirty(player_table, "undersupply")
   end })
 scheduler.register({ name = "cell-chunk", interval = 60, per_player = true, capability = "activity", fn = function(player, player_table)
-    local cells_progress = logistic_cell_counter.gather_data(player, player_table)
+    local cells_progress = logistic_cell_counter.gather_data_for_player_network(player, player_table)
     main_window.update_cells_progress(player_table, cells_progress)
     capability_manager.mark_dirty(player_table, "suggestions")
   end })
@@ -69,7 +69,8 @@ scheduler.register({ name = "suggestions-cells", interval = 60, per_player = tru
     end
   end })
 scheduler.register({ name = "suggestions-bots", interval = 60, per_player = true, capability = "suggestions", fn = function(player, player_table)
-    player_table.suggestions:evaluate_bots(player_table)
+    -- #FIXME: Need to evaluate suggestions
+    --player_table.suggestions:evaluate_bots(player_table)
   end })
 scheduler.register({ name = "ui-update", interval = 60, per_player = true, fn = function(player, player_table)
     main_window.ensure_ui_consistency(player, player_table)
@@ -154,9 +155,7 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
       elseif e.setting == "li-show-mini-window" then
         -- Special handling for mini window setting
         controller_gui.update_window(player, player_table)
-      elseif e.setting == "li-chunk-size" then
-        -- Adopt and cache the updated setting
-        player_data.update_settings(player, player_table)
+      elseif e.setting == "li-chunk-size-global" then
         -- Process (partial) data and start gathering with new chunk size
         bot_counter.restart_counting(player_table)
         logistic_cell_counter.restart_counting(player_table)

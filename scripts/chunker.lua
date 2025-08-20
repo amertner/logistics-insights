@@ -1,57 +1,67 @@
 -- Process lists of entities in chunks to avoid performance issues
 
-local player_data = require("scripts.player-data")
-
 ---@class Progress
 ---@field current number The current progress index
 ---@field total number The total number of items to process
 
+---@class GatherOptions
+---@field quality? boolean
+---@field history? boolean
+---@
 ---@class Chunker
 ---@field CHUNK_SIZE number The size of each chunk to process
+---@field gather GatherOptions
 ---@field current_index number The current index in the processing list
 ---@field processing_list LuaEntity[]|nil The list of entities to process in chunks
 ---@field partial_data table Accumulator for partial data during processing
----@field player_table PlayerData|nil The player's data table containing settings
+---@field networkdata LINetworkData|nil The network data associated with this chunker
 local chunker = {}
 chunker.__index = chunker
 script.register_metatable("logistics-insights-Chunker", chunker)
 
 --- Create a new chunker instance for processing entities in chunks
---- @param player_table PlayerData|nil The player's data table containing settings
 --- @return Chunker The new chunker instance
-function chunker.new(player_table)
+function chunker.new()
   local self = setmetatable({}, chunker)
-  self.CHUNK_SIZE = player_table and player_table.settings.chunk_size or 207
+  self.CHUNK_SIZE = tonumber(settings.global["li-chunk-size-global"].value) or 207
+  self.gather = {}
+  if settings.global["li-gather-quality-data-global"].value then
+    self.gather.quality = true
+  end
   self.current_index = 1
   self.processing_list = nil
   self.partial_data = {}
-  self.player_table = player_table
+  self.networkdata = nil
   return self
 end
 
 --- Initialize chunking with a list of entities to process
 --- @param list table|nil The list of entities to process in chunks
---- @param player_table PlayerData|nil The player's data table containing settings
 --- @param initial_data any|nil Initial data to pass to the initialization function
+--- @param networkdata LINetworkData|nil The network data associated with this chunker
+--- @param gather_options GatherOptions Options for what to gather during processing
 --- @param on_init function(partial_data, initial_data) 
-function chunker:initialise_chunking(list, player_table, initial_data, on_init)
+function chunker:initialise_chunking(networkdata, list, initial_data, gather_options, on_init)
   self.processing_list = list
   self.current_index = 1
-  self.player_table = player_table
-  if self.player_table and self.player_table.settings.chunk_size then
-    self.CHUNK_SIZE = self.player_table.settings.chunk_size
+  self.CHUNK_SIZE = tonumber(settings.global["li-chunk-size-global"].value) or 208
+  self.gather = gather_options or {}
+  if settings.global["li-gather-quality-data-global"].value then
+    self.gather.quality = true
   end
+  self.networkdata = networkdata
   on_init(self.partial_data, initial_data)
 end
 
 --- Reset the chunker and complete current processing
+--- @param networkdata LINetworkData The network data associated with this chunker
 --- @param on_init function(partial_data, initial_data) 
 --- @param on_completion function(partial_data, player_table)
-function chunker:reset(on_init, on_completion)
+function chunker:reset(networkdata, on_init, on_completion)
   -- Do whatever needs doing when the list is done
-  on_completion(self.partial_data, self.player_table)
+  on_completion(self.partial_data, self.networkdata)
   -- Reset the counter and claim completion
-  self:initialise_chunking(nil, self.player_table, nil, on_init)
+  self:initialise_chunking(nil, nil, networkdata, self.gather, on_init)
 end
 
 --- Get the total number of chunks needed to process the current list
@@ -108,7 +118,7 @@ end
 function chunker:process_chunk(on_process_entity, on_completion)
   local processing_list = self.processing_list
   if not processing_list or #processing_list == 0 then
-    on_completion(self.partial_data, self.player_table)
+    on_completion(self.partial_data)
     return
   end
 
@@ -120,14 +130,14 @@ function chunker:process_chunk(on_process_entity, on_completion)
   for i = current_index, end_index do
     local entity = processing_list[i]
     if entity.valid then
-      on_process_entity(entity, self.partial_data, self.player_table)
+      on_process_entity(entity, self.partial_data, self.gather, self.networkdata)
     end
   end
 
   self.current_index = end_index + 1
 
   if end_index + 1 > list_size then
-    on_completion(self.partial_data, self.player_table)
+    on_completion(self.partial_data, self.gather, self.networkdata)
   end
 end
 

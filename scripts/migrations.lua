@@ -195,9 +195,9 @@ local li_migrations = {
       player_table.undersupply_paused = nil
       -- Ensure network data exists
       network_data.create_networkdata(player_table.network)
-      -- Create persistent chunkers
-      player_table.bot_chunker = chunker.new(player_table)
-      player_table.cell_chunker = chunker.new(player_table)
+      -- Create persistent chunkers (deprecated)
+      --player_table.bot_chunker = chunker.new(player_table)
+      --player_table.cell_chunker = chunker.new(player_table)
     end
     -- Remove all of the old global storages
     storage.bot_items = nil
@@ -288,9 +288,11 @@ local li_migrations = {
       end
     end
 
-    -- Initialise players and add active players to networks
+    -- Initialise players and add new fields to networks
     for _, storage_nw in pairs(storage.networks) do
       storage_nw.players = {}
+      storage_nw.bot_chunker = chunker.new()
+      storage_nw.cell_chunker = chunker.new()
     end
     for _, player_table in pairs(storage.players) do
       if player_table and player_table.network then
