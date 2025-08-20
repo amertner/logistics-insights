@@ -93,7 +93,7 @@ end
 --- Evaluate cell-related suggestions if needed (scheduler sets dirty flag and cadence)
 --- @param player_table PlayerData
 --- @param waiting_to_charge_count number The number of bots waiting to charge
-function Suggestions:evaluate_cells(player_table, waiting_to_charge_count)
+function Suggestions:evaluate_player_cells(player_table, waiting_to_charge_count)
   if not player_table then return end
   -- Consume dirty flag from capability manager; if not dirty skip
   if not capability_manager.consume_dirty(player_table, "suggestions") then return end
@@ -103,9 +103,18 @@ function Suggestions:evaluate_cells(player_table, waiting_to_charge_count)
   self:analyse_storage(network)
 end
 
+-- Scheduler-driven evaluation helpers (dirty-flag + interval externalised)
+--- Evaluate cell-related suggestions if needed (scheduler sets dirty flag and cadence)
+--- @param network LuaLogisticNetwork The network to evaluate
+--- @param waiting_to_charge_count number The number of bots waiting to charge
+function Suggestions:evaluate_background_cells(network, waiting_to_charge_count)
+  self:analyse_waiting_to_charge(waiting_to_charge_count)
+  self:analyse_storage(network)
+end
+
 --- Evaluate bot-related suggestions & undersupply if needed
 --- @param player_table PlayerData
-function Suggestions:evaluate_bots(player_table)
+function Suggestions:evaluate_player_bots(player_table)
   if not player_table then return end
   if not capability_manager.consume_dirty(player_table, "suggestions") then return end
 
@@ -116,11 +125,18 @@ function Suggestions:evaluate_bots(player_table)
   end
 end
 
+--- Evaluate bot-related suggestions & undersupply if needed
+--- @param network LuaLogisticNetwork The network to evaluate
+function Suggestions:evaluate_background_bots(network)
+  self._current_tick = game.tick
+  self:analyse_too_many_bots(network)
+end
+
 --- Evaluate undersupply based on latest bot data without consuming dirty flag (runs even if suggestions paused)
 --- @param player_table PlayerData
 --- @param bot_deliveries table<string, DeliveryItem> A list of items being delivered right now
 --- @param consume_flag boolean Whether to consume the dirty flag (default: false)
-function Suggestions:evaluate_undersupply(player_table, bot_deliveries, consume_flag)
+function Suggestions:evaluate_player_undersupply(player_table, bot_deliveries, consume_flag)
   if not player_table then return end
   -- Only proceed if undersupply capability is dirty
   local dirty = capability_manager.consume_dirty(player_table, "undersupply")
@@ -128,6 +144,15 @@ function Suggestions:evaluate_undersupply(player_table, bot_deliveries, consume_
   local network = player_table.network
   if not network then return end
 
+  local excessivedemand = undersupply.analyse_demand_and_supply(network, bot_deliveries)
+  self:set_cached_list("undersupply", excessivedemand)
+  self._current_tick = game.tick
+end
+
+--- Evaluate undersupply for a background network
+--- @param network LuaLogisticNetwork The network to evaluate
+--- @param bot_deliveries table<string, DeliveryItem> A list of items being delivered right now
+function Suggestions:evaluate_background_undersupply(network, bot_deliveries)
   local excessivedemand = undersupply.analyse_demand_and_supply(network, bot_deliveries)
   self:set_cached_list("undersupply", excessivedemand)
   self._current_tick = game.tick

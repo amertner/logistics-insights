@@ -59,7 +59,7 @@ end
 --- @param on_completion function(partial_data, player_table)
 function chunker:reset(networkdata, on_init, on_completion)
   -- Do whatever needs doing when the list is done
-  on_completion(self.partial_data, self.networkdata)
+  on_completion(self.partial_data, self.gather, self.networkdata)
   -- Reset the counter and claim completion
   self:initialise_chunking(nil, nil, networkdata, self.gather, on_init)
 end

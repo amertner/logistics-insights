@@ -53,6 +53,7 @@ function player_data.init_storages()
     player_data.update_settings(player, storage.players[player.index])
   end
 
+  storage.bg_refreshing_network_id = nil ---@type number|nil
   --network_data.init() -- Initialise network data storage
 end
 
@@ -69,9 +70,6 @@ function player_data.update_settings(player, player_table)
       max_items = mod_settings["li-max-items"].value,
       show_history = mod_settings["li-show-history"].value,
       show_activity = mod_settings["li-show-activity"].value,
-      --gather_quality_data = mod_settings["li-gather-quality-data"].value,
-      --chunk_size = mod_settings["li-chunk-size"].value,
-      --bot_chunk_interval = mod_settings["li-chunk-processing-interval"].value,
       ui_update_interval = mod_settings["li-ui-update-interval"].value,
       pause_for_bots = mod_settings["li-pause-for-bots"].value,
       pause_while_hidden = mod_settings["li-pause-while-hidden"].value,
@@ -104,10 +102,9 @@ function player_data.get_player_table(player_index)
   return storage.players[player_index] or nil -- Return the player table if it exists
 end
 
----@param player_table PlayerData
----@return integer
-function player_data.bot_chunk_interval(player_table)
-  return player_table.settings.bot_chunk_interval or 10
+---@return integer The global bot chunk interval setting
+function player_data.bot_chunk_interval()
+  return tonumber(settings.global["li-chunk-processing-interval-ticks"].value) or 10
 end
 
 -- Scale the update interval based on how often the UI updates, but not too often
@@ -116,8 +113,9 @@ end
 ---@return nil
 function player_data.set_logistic_cell_chunks(player_table, chunks)
   local interval = player_data.ui_update_interval(player_table) / math_max(1, chunks)
-  local bot_interval = player_data.bot_chunk_interval(player_table)
+  local bot_interval = player_data.bot_chunk_interval()
   if interval < bot_interval then
+    -- The bot interval is the smallest interval we can allow, so don't go lower
     interval = bot_interval
   end
 

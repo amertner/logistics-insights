@@ -270,17 +270,9 @@ local function bot_chunks_done(accumulator, gather, networkdata)
 end
 
 --- Process data gathered so far and start over
---- @param player_table PlayerData|nil The player's data table
-function bot_counter.restart_counting(player_table)
-  if player_table then
-    local network = player_table.network
-    if not network or not network.valid then
-      return
-    end
-    local networkdata = network_data.get_networkdata(network)
-    if not networkdata then
-      return
-    end
+--- @param networkdata LINetworkData|nil
+function bot_counter.restart_counting(networkdata)
+  if networkdata then
     networkdata.bot_chunker:reset(networkdata, bot_initialise_chunking, bot_chunks_done)
   end
 end
@@ -290,8 +282,9 @@ end
 --- @param player_table PlayerData|nil The player's data table
 function bot_counter.network_changed(player, player_table)
   -- Clear all current state when we change networks
-  bot_counter.restart_counting(player_table)
   if player_table then
+    local networkdata = network_data.get_networkdata(player_table.network)
+    bot_counter.restart_counting(networkdata)
     network_data.init_bot_counter_storage(player_table.network)
   end
 end
@@ -338,6 +331,44 @@ function bot_counter.gather_data_for_player_network(player, player_table)
   end
 
   return progress
+end
+
+--- BACKGROUND NETWORK PROCESSING
+
+---@param networkdata LINetworkData|nil
+---@return boolean True if the network is fully processed, false if there is more data to process
+function bot_counter.is_background_done(networkdata)
+  if not networkdata then
+    return true
+  end
+
+  local bot_chunker = networkdata.bot_chunker
+  if not bot_chunker then
+    return true
+  end
+
+  return bot_chunker:is_done()
+end
+
+-- Initialise background processing of a network
+---@param networkdata LINetworkData
+---@param network LuaLogisticNetwork
+function bot_counter.init_background_processing(networkdata, network)
+  -- Initialise the chunker for background processing
+  local gather_options = {}
+  if settings.global["li-gather-quality-data-global"].value then
+    gather_options.quality = true
+  end
+  bot_counter.restart_counting(networkdata)
+  networkdata.bot_chunker:initialise_chunking(networkdata, network.logistic_robots, networkdata.last_pass_bots_seen, gather_options, bot_initialise_chunking)
+end
+
+-- Process a single chunk of background network data
+---@param networkdata LINetworkData
+function bot_counter.process_background_network(networkdata)
+  -- Process the background network data
+  networkdata.bot_chunker:process_chunk(process_one_bot, bot_chunks_done)
+  return true
 end
 
 return bot_counter

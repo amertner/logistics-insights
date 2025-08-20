@@ -37,14 +37,6 @@ data:extend(
     },
     {
       type = "bool-setting",
-      name = "li-gather-quality-data",
-      setting_type = "runtime-per-user",
-      default_value = true,
-      order = "3.1",
-      hidden = true -- This is now a global setting
-    },
-    {
-      type = "bool-setting",
       name = "li-pause-while-hidden",
       setting_type = "runtime-per-user",
       default_value = false,
@@ -66,28 +58,6 @@ data:extend(
       maximum_value = 10,
       order = "4"
     },
-    {
-      type = "int-setting",
-      name = "li-chunk-size",
-      setting_type = "runtime-per-user",
-      default_value = 400,
-      minimum_value = 10,
-      maximum_value = 100000,
-      order = "5",
-      hidden = true -- This is now a global setting
-    }
-    ,
-    {
-      type = "int-setting",
-      name = "li-chunk-processing-interval",
-      setting_type = "runtime-per-user",
-      default_value = 10,
-      minimum_value = 1,
-      maximum_value = 120,
-      order = "5.2",
-      hidden = true -- This is now a global setting
-    }
-    ,
     {
       type = "int-setting",
       name = "li-ui-update-interval",
