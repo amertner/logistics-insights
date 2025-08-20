@@ -91,8 +91,8 @@ end
 function scheduler.apply_player_intervals(player_index, player_table)
   assert(player_table.player_index == player_index, "Player table index mismatch")
   scheduler.update_player_intervals(player_index, {
-    ["bot-chunk"] = player_data.bot_chunk_interval(player_table),
-    ["cell-chunk"] = player_data.cells_chunk_interval(player_table),
+    ["player-bot-chunk"] = player_data.bot_chunk_interval(),
+    ["player-cell-chunk"] = player_data.cells_chunk_interval(player_table),
     ["ui-update"] = player_data.ui_update_interval(player_table),
   })
 end

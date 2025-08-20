@@ -10,6 +10,7 @@ local player_data = require("scripts.player-data")
 ---@class LINetworkData
 ---@field id number -- The unique ID of the network
 ---@field surface string -- The surface name where the network is located
+---@field force_name string -- The force name of the network
 ---@field players number[] -- A list of player indexes that are active in this network
 ---@field cell_chunker Chunker -- Chunker for processing logistic cells
 ---@field bot_chunker Chunker -- Chunker for processing logistic bots
@@ -122,6 +123,7 @@ function network_data.create_networkdata(network)
     storage.networks[network.network_id] = {
       id = network.network_id,
       surface = network.cells[1].owner.surface.name or "",
+      force_name = network.force.name or "",
       players = {},
       cell_chunker = chunker.new(),
       bot_chunker = chunker.new(),
@@ -296,6 +298,57 @@ function network_data.purge_unobserved_networks()
   end
   return purged
 end
+
+-- Get the LuaLogisticNetwork object for a given network data
+---@param networkdata LINetworkData The network data to get the LuaLogisticNetwork
+---@return LuaLogisticNetwork|nil
+function network_data.get_LuaNetwork(networkdata)
+  local force = game.forces[networkdata.force_name]
+  if not force then return nil end
+
+  local networks = force.logistic_networks[networkdata.surface] -- surface object as key
+  if not networks then return nil end
+
+  for _, nw in pairs(networks) do
+    if nw.network_id == networkdata.id then
+      return nw
+    end
+  end
+  return nil
+end
+
+-- Return the next network to background scan, if any
+---@return LINetworkData|nil The next network to scan, or nil if none available
+function network_data.get_next_background_network()
+  -- Only refresh networks that have not been refreshed for at least refresh-interval
+  local last_tick = game.tick - settings.global["li-background-refresh-interval"].value * 60
+  local list = {}
+  if storage.networks then
+    for _, nw in pairs(storage.networks) do
+      if nw and nw.players and #nw.players == 0 and nw.last_active_tick < last_tick then
+        -- This network has no active players, so it can be scanned in the background
+        -- Add it to the list for background scanning
+        list[#list+1] = nw
+      end
+    end
+  else
+    return nil -- No networks available
+  end
+
+  if #list == 0 then
+    return nil -- No networks need a background scan
+  end
+  -- Sort by last active tick, so the oldest networks are scanned first
+  table.sort(list, function(a,b) return (a.last_active_tick or 0) < (b.last_active_tick or 0) end)
+
+  if #list > 0 then
+    -- Return the first network in the sorted list
+    return list[1]
+  else
+    return nil -- No background networks available
+  end
+end
+
 
 
 return network_data

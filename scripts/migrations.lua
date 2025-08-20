@@ -285,26 +285,43 @@ local li_migrations = {
         network_data.player_changed_networks(player_table, nil, player_table.network.network_id)
       end
     end
+
     -- Remove any networks that are not observed, if the setting is set that way
     network_data.purge_unobserved_networks()
 
-    -- Add a surface to every network. #TODO: Is this the right place to do it?
+    -- Transfer old per-player settings to new global settings
+    local got_settings = false
+    for _, player_table in pairs(storage.players) do
+      if player_table and player_table.settings then
+        -- Set the new global settings
+        if not got_settings then
+          settings.global["li-chunk-size-global"] = {value = player_table.settings.chunk_size}
+          settings.global["li-chunk-processing-interval-ticks"] = {value = player_table.settings.bot_chunk_interval}
+          settings.global["li-gather-quality-data-global"] = {value = player_table.settings.gather_quality_data}
+          got_settings = true -- Only do this for the first player, who hopefully was the host
+        end
+        -- Remove old settings
+        player_table.settings.chunk_size = nil
+        player_table.settings.bot_chunk_interval = nil
+        player_table.settings.gather_quality_data = nil
+      end
+    end
+
+    -- Add a surface and force to every network without one. Brute force!
     for _, storage_nw in pairs(storage.networks) do
-      if not storage_nw.surface or storage_nw.surface == "" then
-        -- A network has no surface, so find it by brute force
-        local nwid = storage_nw.id
-        for _, force in pairs(game.forces) do
-          for surface, networks in pairs(force.logistic_networks) do
-            for xyz, network in pairs(networks) do
-              if network.network_id == nwid then
-                storage_nw.surface = surface or ""
-                goto network_found
-              end
+      local nwid = storage_nw.id
+      for _, force in pairs(game.forces) do
+        for surface, networks in pairs(force.logistic_networks) do
+          for _, network in pairs(networks) do
+            if network.network_id == nwid then
+              storage_nw.surface = surface or ""
+              storage_nw.force_name = force.name or ""
+              goto network_found
             end
           end
         end
-        ::network_found::
       end
+      ::network_found::
     end
   end,
 

@@ -164,7 +164,7 @@ end
 ---@param formatstr? string Optional format string to wrap the quality tip
 ---@return table<LocalisedString> The tooltip with quality information added
 function tooltips_helper.get_quality_tooltip_line(tip, player_table, quality_table, newline, formatstr)
-  if player_table.settings.gather_quality_data and prototypes.quality then
+  if settings.global["li-gather-quality-data-global"].value and prototypes.quality then
     local quality_tip = getqualitytip("network-row.quality-tooltip-1quality-2count", quality_table, "  ", true)
     if formatstr then
       tip = {"", tip, {formatstr, quality_tip}}

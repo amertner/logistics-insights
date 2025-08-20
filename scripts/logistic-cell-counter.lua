@@ -28,9 +28,9 @@ end
 --- Process one logistic cell to gather statistics
 --- @param cell LuaLogisticCell The logistic cell to process
 --- @param accumulator CellAccumulator The accumulator for gathering statistics
---- @param gather_quality_data boolean Whether to gather quality data
+--- @param gather GatherOptions Whether to gather quality data
 --- @param networkdata LINetworkData The network data associated with this cell
-local function process_one_cell(cell, accumulator, gather_quality_data, networkdata)
+local function process_one_cell(cell, accumulator, gather, networkdata)
   local bots_charging = accumulator.bots_charging
   local bots_waiting = accumulator.bots_waiting_for_charge
 
@@ -38,7 +38,7 @@ local function process_one_cell(cell, accumulator, gather_quality_data, networkd
   accumulator.bots_waiting_for_charge = bots_waiting + cell.to_charge_robot_count
 
   -- Check the bots stationed at this roboport
-  if cell.owner and cell.owner.valid and gather_quality_data then
+  if cell.owner and cell.owner.valid and gather.quality then
     -- Count roboport quality
     local rp_quality = cell.owner.quality.name
     utils.accumulate_quality(accumulator.roboport_qualities, rp_quality, 1)
@@ -95,17 +95,9 @@ local function all_chunks_done(accumulator, gather, networkdata)
 end
 
 --- Process data gathered so far and start over
---- @param player_table PlayerData The player's data table
-function logistic_cell_counter.restart_counting(player_table)
-  if player_table then
-    local network = player_table.network
-    if not network or not network.valid then
-      return
-    end
-    local networkdata = network_data.get_networkdata(network)
-    if not networkdata then
-      return
-    end
+--- @param networkdata LINetworkData|nil The network data to reset
+function logistic_cell_counter.restart_counting(networkdata)
+  if networkdata then
     networkdata.cell_chunker:reset(networkdata, initialise_cell_network_list, all_chunks_done)
   end
 end
@@ -167,5 +159,49 @@ function logistic_cell_counter.gather_data_for_player_network(player, player_tab
 
   return cell_chunker:get_progress()
 end
+
+--- BACKGROUND NETWORK PROCESSING
+
+---@param networkdata LINetworkData|nil
+---@return boolean True if the network is fully processed, false if there is more data to process
+function logistic_cell_counter.is_background_done(networkdata)
+  if not networkdata then
+    return true
+  end
+
+  local bot_chunker = networkdata.bot_chunker
+  if not bot_chunker then
+    return true
+  end
+
+  return bot_chunker:is_done()
+end
+
+-- Initialise background processing of a network
+---@param networkdata LINetworkData
+---@param network LuaLogisticNetwork
+function logistic_cell_counter.init_background_processing(networkdata, network)
+  -- Initialise the chunker for background processing
+  local gather_options = {}
+  if settings.global["li-gather-quality-data-global"].value then
+    gather_options.quality = true
+  end
+
+  -- Store basic network stats
+  networkdata.bot_items["logistic-robot-total"] = network.all_logistic_robots
+  networkdata.bot_items["logistic-robot-available"] = network.available_logistic_robots
+
+  logistic_cell_counter.restart_counting(networkdata)
+  networkdata.cell_chunker:initialise_chunking(networkdata, network.cells, nil, {}, initialise_cell_network_list)
+end
+
+-- Process a single chunk of background network data
+---@param networkdata LINetworkData
+function logistic_cell_counter.process_background_network(networkdata)
+  -- Process the background network data
+  networkdata.cell_chunker:process_chunk(process_one_cell, all_chunks_done)
+  return true
+end
+
 
 return logistic_cell_counter
