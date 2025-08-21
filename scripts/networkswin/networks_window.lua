@@ -141,33 +141,33 @@ local cell_setup = {
     end
   },
   {
-    key = "settings",
-    header = { type = "sprite", sprite = "utility/rename_icon", tooltip = {"networks-window.settings-tooltip"} },
+    key = "actions",
+    header = { type = "sprite", sprite = "item/iron-gear-wheel", tooltip = {"networks-window.actions-tooltip"} },
     align = "center",
     add_cell = function(table_el, name)
-      local btn = table_el.add{ type = "sprite-button", name = name, style = "mini_button", sprite = "utility/rename_icon" }
+      local flow = table_el.add {
+        type = "flow",
+        name = name,
+        direction = "horizontal",
+      }
+      local btn = flow.add{ type = "sprite-button", name = name .. "-view", style = "mini_button", sprite = "virtual-signal/signal-map-marker", tooltip = {"networks-window.view-tooltip"} }
       btn.style.top_margin = 2
-      return btn
+      btn = flow.add{ type = "sprite-button", name = name .. "-pause", style = "mini_button", sprite = "li_pause", tooltip = {"networks-window.pause-tooltip"} }
+      btn.style.top_margin = 2
+      btn = flow.add{ type = "sprite-button", name = name .. "-settings", style = "mini_button", sprite = "utility/rename_icon", tooltip = {"networks-window.settings-tooltip"} }
+      btn.style.top_margin = 2
+      btn = flow.add{ type = "sprite-button", name = name .. "-trash", style = "mini_button", sprite = "utility/trash", tooltip = {"networks-window.trash-tooltip"} }
+      btn.style.top_margin = 2
+      return flow
     end,
     populate = function(el, nw)
       if not (el and el.valid) then return end
-      -- Tag the button so click handler can find the network
-      el.tags = { network_id = nw.id or 0 }
-    end
-  },
-  {
-    key = "trash",
-    header = { type = "sprite", sprite = "utility/trash", tooltip = {"networks-window.stop-tooltip"} },
-    align = "center",
-    add_cell = function(table_el, name)
-      local btn = table_el.add{ type = "sprite-button", name = name, style = "mini_button", sprite = "utility/trash" }
-      btn.style.top_margin = 2
-      return btn
-    end,
-    populate = function(el, nw)
-      if not (el and el.valid) then return end
-      -- Tag the button so click handler can find the network
-      el.tags = { network_id = nw.id or 0 }
+      -- Tag the buttons so click handler can find the network
+      for _, btn in ipairs(el.children) do
+        if btn and btn.valid and btn.type == "sprite-button" then
+          btn.tags = { network_id = nw.id or 0 }
+        end
+      end
     end
   },
 }
@@ -351,6 +351,7 @@ function networks_window.update(player)
   local table_el = scroll[WINDOW_NAME .. "-table"]
   if not table_el or not table_el.valid then return end
 
+  -- Always show the networks by ID
   local list = {}
   if storage and storage.networks then
     for _, nw in pairs(storage.networks) do
@@ -366,12 +367,8 @@ function networks_window.update(player)
     for _, col in ipairs(cell_setup) do
       local name = string.format("%s-cell-%d-%s", WINDOW_NAME, i, col.key)
       local el = table_el[name]
-      if col.populate then col.populate(el, nw) end
-      -- Ensure default sprites if needed for icon columns
-      if col.key == "settings" and el and el.valid and el.type == "sprite-button" and el.sprite == "" then
-        el.sprite = "utility/rename_icon"
-      elseif col.key == "trash" and el and el.valid and el.type == "sprite-button" and el.sprite == "" then
-        el.sprite = "utility/trash"
+      if col.populate then
+        col.populate(el, nw)
       end
     end
   end
@@ -385,12 +382,12 @@ function networks_window.on_gui_click(event)
   local element = event.element
   if not (element and element.valid) then return false end
   local name = element.name or ""
-  -- Only handle our window cells
+  -- Only handle Action buttons
   if not name:find(WINDOW_NAME .. "-cell-", 1, true) then return false end
 
   -- Identify column from the control name
-  local row_str, col_key = name:match(WINDOW_NAME .. "%-cell%-(%d+)%-(%w+)$")
-  if not col_key or (col_key ~= "settings" and col_key ~= "trash") then
+  local row_str, col_key = name:match(WINDOW_NAME .. "%-cell%-(%d+)%-actions%-(%w+)$")
+  if not col_key or (col_key ~= "settings" and col_key ~= "trash" and col_key ~= "view" and col_key ~= "pause") then
     return false
   end
 
@@ -400,7 +397,7 @@ function networks_window.on_gui_click(event)
     local networkdata = network_data.get_networkdata_fromid(network_id)
     local network = networkdata and network_data.get_LuaNetwork(networkdata)
 
-    if col_key == "settings" and network then
+    if col_key == "view" and network then
       if network.cells and network.cells[1] and network.cells[1].owner then
         local entity = network.cells[1].owner
         local toview = {
@@ -416,14 +413,9 @@ function networks_window.on_gui_click(event)
         end
       end
     end
-
-    -- Basic handler action: just notify for now (placeholder)
-    local player = game.get_player(event.player_index)
-    if player then
-      local id_text = nw and nw.id and tostring(nw.id) or "?"
-      player.print({"", "[Logistics Insights] ", col_key, " clicked for network ", id_text})
-    end
+    return true
   end
+  return false
 end
 
 return networks_window
