@@ -165,6 +165,12 @@ local cell_setup = {
       -- Tag the buttons so click handler can find the network
       for _, btn in ipairs(el.children) do
         if btn and btn.valid and btn.type == "sprite-button" then
+          local has_players = nw.players and #nw.players > 0
+          if btn.name:find("trash", 1, true) then
+            btn.enabled = not has_players -- Disable if players are using it
+          else
+            btn.enabled = true -- Enable other buttons regardless
+          end
           btn.tags = { network_id = nw.id or 0 }
         end
       end
@@ -410,6 +416,15 @@ function networks_window.on_gui_click(event)
         if player and player.valid then
           -- Open the network view for the player
           ResultLocation.open(player, toview, true)
+        end
+      end
+    elseif col_key == "trash" and network_id then
+      -- Remove the network from storage
+      if network_data.remove_network(network_id) then
+        local player = game.get_player(event.player_index)
+        if player and player.valid then
+          -- Update the window after removal
+          networks_window.update(player)
         end
       end
     end

@@ -283,6 +283,13 @@ function network_data.player_changed_networks(player_table, old_network_id, new_
   end
 end
 
+--- Remove a network from storage, if it exists
+---@param network_id number The network to remove
+function network_data.remove_network(network_id)
+  -- Remove the network from storage
+  storage.networks[network_id] = nil
+end
+
 -- If the setting "li-show-all-networks" is false, purge networks that are not currently observed by any player
 ---@return boolean True if any networks were purged, false otherwise
 function network_data.purge_unobserved_networks()
@@ -291,7 +298,7 @@ function network_data.purge_unobserved_networks()
     for network_id, networkdata in pairs(storage.networks) do
       if not networkdata.players or #networkdata.players == 0 then
         -- Remove the network data if it has no players
-        storage.networks[network_id] = nil
+        network_data.remove_network(network_id)
         purged = true
       end
     end
