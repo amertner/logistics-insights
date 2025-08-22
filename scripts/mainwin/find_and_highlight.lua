@@ -3,6 +3,7 @@
 local find_and_highlight = {}
 
 local player_data = require("scripts.player-data")
+local network_data = require("scripts.network-data")
 local utils = require("scripts.utils")
 local game_state = require("scripts.game-state")
 local ResultLocation = require("scripts.result-location")
@@ -418,8 +419,9 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
   if rowname == "logistics-insights-suggestion" then
     local tags = element.tags
     local clickname = tags and tags.clickname
-    if clickname and player_table.suggestions then
-      local list = player_table.suggestions:get_cached_list(clickname)
+    local networkdata = network_data.get_networkdata(player_table.network)
+    if clickname and networkdata and networkdata.suggestions then
+      local list = networkdata.suggestions:get_cached_list(clickname)
       if list then
         find_and_highlight.highlight_list_locations_on_map(player, list, is_right_click)
         return true
