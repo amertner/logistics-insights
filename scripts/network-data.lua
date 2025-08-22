@@ -333,11 +333,18 @@ function network_data.get_next_background_network()
   local last_tick = game.tick - settings.global["li-background-refresh-interval"].value * 60
   local list = {}
   if storage.networks then
-    for _, nw in pairs(storage.networks) do
-      if nw and nw.players and #nw.players == 0 and nw.last_active_tick < last_tick then
-        -- This network has no active players, so it can be scanned in the background
-        -- Add it to the list for background scanning
-        list[#list+1] = nw
+    for _, networkdata in pairs(storage.networks) do
+      if networkdata and networkdata.players then
+        -- Check if the network still exists - might have been removed!
+        local nw = network_data.get_LuaNetwork(networkdata)
+        if not nw or not nw.valid then
+          -- The network no longer exists, so remove it from storage
+          network_data.remove_network(networkdata.id)
+        elseif #networkdata.players == 0 and networkdata.last_active_tick < last_tick then
+          -- This network has no active players, so it can be scanned in the background
+          -- Add it to the list for background scanning
+          list[#list+1] = networkdata
+        end
       end
     end
   else
