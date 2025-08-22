@@ -304,7 +304,7 @@ function bot_counter.gather_data_for_player_network(player, player_table)
     return progress
   end
 
-  local networkdata = network_data.get_networkdata(network)
+  local networkdata = network_data.create_networkdata(network)
   if not networkdata then
     -- No network data, so we can't gather bot data
     return progress

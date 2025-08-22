@@ -132,12 +132,17 @@ local cell_setup = {
     end,
     populate = function(el, nw)
       if not (el and el.valid) then return end
-      local lt = nw.last_active_tick or nw.last_accessed_tick or 0
-      local age_ticks = (game and game.tick or 0) - lt
-      if age_ticks < 0 then age_ticks = 0 end
-      local time_str = flib_format.time(age_ticks, false)
-      el.caption = time_str
-      el.tooltip = nil
+      if nw.id == storage.bg_refreshing_network_id then
+        el.caption = "*"
+        el.tooltip = {"networks-window.updating-tooltip"}
+      else
+        local last_tick = nw.last_active_tick or nw.last_accessed_tick or 0
+        local age_ticks = (game and game.tick or 0) - last_tick
+        if age_ticks < 0 then age_ticks = 0 end
+        local time_str = flib_format.time(age_ticks, false)
+        el.caption = time_str
+        el.tooltip = nil
+      end
     end
   },
   {
