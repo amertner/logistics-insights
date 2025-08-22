@@ -28,6 +28,7 @@ script.on_init(
   function(e)
   -- Called when the mod is first added to a save
   player_data.init_storages()
+  network_data.init()
 end)
 
 -- Called often to refresh background networks. Do at most one chunk of work per call.
