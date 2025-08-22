@@ -113,6 +113,7 @@ function network_data.get_networkdata_fromid(network_id)
 end
 
 ---@param network LuaLogisticNetwork|nil The network to create storage for
+---@return LINetworkData|nil The created or existing network data
 function network_data.create_networkdata(network)
   if not network or not storage.networks then
     return nil -- No network ID or storage available
@@ -145,6 +146,7 @@ function network_data.create_networkdata(network)
       total_bot_qualities = {}
     }
   end
+  return storage.networks[network.network_id]
 end
 
 -- Initialize all of the storage elements managed by logistic_cell_counter

@@ -5,6 +5,7 @@ local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
 local utils = require("scripts.utils")
 local chunker = require("scripts.chunker")
+local scheduler = require("scripts.scheduler")
 
 ---@class CellAccumulator
 ---@field bots_charging number Count of bots currently charging
@@ -111,7 +112,7 @@ function logistic_cell_counter.network_changed(player, player_table)
     if not network or not network.valid then
       return
     end
-    local networkdata = network_data.get_networkdata(network)
+    local networkdata = network_data.create_networkdata(network)
     if not networkdata then
       return
     end
@@ -140,7 +141,7 @@ function logistic_cell_counter.gather_data_for_player_network(player, player_tab
   if not network or not network.valid then
     return progress
   end
-  local networkdata = network_data.get_networkdata(network)
+  local networkdata = network_data.create_networkdata(network)
   if not networkdata then
     return progress -- No valid network data available
   end
@@ -154,6 +155,9 @@ function logistic_cell_counter.gather_data_for_player_network(player, player_tab
   if cell_chunker:is_done() then
     -- Prior pass was done, so start a new pass
     cell_chunker:initialise_chunking(networkdata, network.cells, nil, {}, initialise_cell_network_list)
+    -- Take into account number of chunks to minimize redundant counting
+    player_data.set_logistic_cell_chunks(player_table, cell_chunker:num_chunks())
+    scheduler.apply_player_intervals(player_table.player_index, player_table)
   end
   cell_chunker:process_chunk(process_one_cell, all_chunks_done)
 

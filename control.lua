@@ -57,6 +57,9 @@ local function background_refresh()
       else
         bot_counter.process_background_network(networkdata)
       end
+    else
+      -- The network is no longer valid, so stop refreshing it
+      storage.bg_refreshing_network_id = nil
     end
   else
     -- No background network is being refreshed; find one to refresh
@@ -78,8 +81,8 @@ end
 scheduler.register({
 name = "network-check", interval = 30, per_player = true, fn = function(player, player_table)
   if network_data.check_network_changed(player, player_table) then
-    bot_counter.network_changed(player, player_table)
-    logistic_cell_counter.network_changed(player, player_table)
+    --bot_counter.network_changed(player, player_table)
+    --logistic_cell_counter.network_changed(player, player_table)
     networks_window.update_network_count(player, table_size(storage.networks) or 0)
   end
 end })
@@ -211,9 +214,8 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
         end
       elseif e.setting == "li-chunk-processing-interval-ticks" then
         -- Update the global bot chunk interval setting
-        -- #TODO: Add a way to apply this global setting
-        --scheduler.apply_player_intervals(e.player_index, player_table)
-        --scheduler.update_interval("chunk-interval", e.value)
+        scheduler.apply_all_player_intervals()
+        scheduler.update_interval( "background-refresh", tonumber(settings.global[e.setting].value) or 401)
       elseif e.setting == "li-gather-quality-data-global" then
       end
     else
