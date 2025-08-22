@@ -156,7 +156,7 @@ local function get_item_list_and_focus_exclude_roboports(item_list)
 end
 
 ---@type table<string, fun(pd: PlayerData, filter_fn?: function, filter_value: any): ViewData>
-local get_list_function = {
+local get_player_list_function = {
   -- Activity row buttons
   ["logistics-insights-logistic-robot-total"] = function(pd)
     return get_item_list_and_focus_mobile(pd.network.logistic_robots)
@@ -197,6 +197,15 @@ local get_list_function = {
   end,
 }
 
+--- Functions that work on a network, not a player
+---@type table<string, fun(network: LuaLogisticNetwork, filter_fn?: function, filter_value: any): ViewData>
+local get_network_list_function = {
+  -- Network row buttons
+  ["logistics-insights-roboports"] = function(network)
+    return get_item_list_and_focus_owner(network.cells)
+  end,
+}
+
 --- Open viewdata in the result location viewer
 --- @param player LuaPlayer The player viewing the map
 --- @param viewdata ViewData The view data containing items and focus information
@@ -218,10 +227,10 @@ end
 --- Highlight locations on the map when GUI elements are clicked
 --- @param player LuaPlayer The player viewing the map
 --- @param player_table PlayerData|nil The player's data table
---- @param element LuaGuiElement The sprite-button that was clicked
+--- @param action string The name of the row/action
 --- @param focus_on_element boolean Whether to focus on the selected element
-function find_and_highlight.highlight_locations_on_map(player, player_table, element, focus_on_element)
-  local fn = get_list_function[element.name]
+function find_and_highlight.highlight_locations_on_map(player, player_table, action, focus_on_element)
+  local fn = get_player_list_function[action]
   if not fn then
     return -- No function to processs this highlight
   end
@@ -231,6 +240,25 @@ function find_and_highlight.highlight_locations_on_map(player, player_table, ele
   end
 
   local viewdata = fn(player_table)
+  if viewdata == nil or viewdata.item == nil then
+    return -- No items to highlight
+  end
+
+  open_viewdata(player, viewdata, focus_on_element)
+end
+
+--- Highlight locations on the map when GUI elements are clicked
+--- @param player LuaPlayer The player viewing the map
+--- @param network LuaLogisticNetwork The network to highlight from
+--- @param action string The name of the row/action
+--- @param focus_on_element boolean Whether to focus on the selected element
+function find_and_highlight.highlight_network_locations_on_map(player, network, action, focus_on_element)
+  local fn = get_network_list_function[action]
+  if not fn then
+    return -- No function to processs this highlight
+  end
+
+  local viewdata = fn(network)
   if viewdata == nil or viewdata.item == nil then
     return -- No items to highlight
   end
@@ -303,7 +331,7 @@ function find_and_highlight.highlight_locations_with_filter_on_map(player, playe
     return
   end
 
-  local fn = get_list_function[rowname]
+  local fn = get_player_list_function[rowname]
   if not fn then
     return
   end
@@ -402,7 +430,7 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
 
   -- Generic highlight (element registered in get_list_function table)
   if element.tags then
-    find_and_highlight.highlight_locations_on_map(player, player_table, element, is_right_click)
+    find_and_highlight.highlight_locations_on_map(player, player_table, name, is_right_click)
     return true
   end
 

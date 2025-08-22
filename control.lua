@@ -272,7 +272,13 @@ script.on_event(defines.events.on_gui_click,
   function(event)
   controller_gui.onclick(event)
   main_window.onclick(event)
-  networks_window.on_gui_click(event)
+  if networks_window.on_gui_click(event) then
+    local player = game.get_player(event.player_index)
+    local player_table = player_data.get_player_table(event.player_index)
+    if player and player.valid and player_table then
+      main_window.set_window_visible(player, player_table, true)
+    end
+  end
 end)
 
 script.on_event(

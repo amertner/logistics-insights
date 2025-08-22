@@ -4,7 +4,7 @@ local networks_window = {}
 local flib_format = require("__flib__.format")
 local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
-local ResultLocation = require("scripts.result-location")
+local find_and_highlight = require("scripts.mainwin.find_and_highlight")
 
 local WINDOW_NAME = "li_networks_window"
 
@@ -388,7 +388,7 @@ end
 --- Handle clicks on Networks window mini buttons (settings/trash).
 --- Returns true if the event was handled.
 ---@param event EventData.on_gui_click
----@return boolean
+---@return boolean Returns true if the main window should be opened as a result
 function networks_window.on_gui_click(event)
   local element = event.element
   if not (element and element.valid) then return false end
@@ -409,20 +409,18 @@ function networks_window.on_gui_click(event)
     local network = networkdata and network_data.get_LuaNetwork(networkdata)
 
     if col_key == "view" and network then
-      if network.cells and network.cells[1] and network.cells[1].owner then
-        local entity = network.cells[1].owner
-        local toview = {
-          position = entity.position,
-          surface = entity.surface.name,
-          zoom = 0.8,
-          items = nil
-        }
-        local player = game.get_player(event.player_index)
-        if player and player.valid then
-          -- Open the network view for the player
-          ResultLocation.open(player, toview, true)
-        end
+      -- In map view, focus on a random roboport in the network
+      local player = game.get_player(event.player_index)
+      if player and player.valid and network and network.valid then
+        find_and_highlight.highlight_network_locations_on_map(
+          player,
+          network,
+          "logistics-insights-roboports", --Highlight roboports
+          true -- Focus on an element
+        )
       end
+      -- Open the main window if not already open
+      return true
     elseif col_key == "trash" and network_id then
       -- Remove the network from storage
       if network_data.remove_network(network_id) then
@@ -433,7 +431,6 @@ function networks_window.on_gui_click(event)
         end
       end
     end
-    return true
   end
   return false
 end
