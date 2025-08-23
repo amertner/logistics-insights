@@ -167,6 +167,7 @@ script.on_event(defines.events.on_player_removed,
   storage.players[e.player_index] = nil
   -- Reset cached references as player configuration has changed
   player_data.reset_cache()
+  network_data.remove_player_index(e.player_index)
 end)
 
 script.on_event(
@@ -338,4 +339,7 @@ script.on_event(defines.events.on_player_changed_surface,
     -- If there is a space platform, ricity network, there can't be bots
     window.visible = player_table.bots_window_visible and not player.surface.platform
   end
+
+  -- Remove the player from any networks they might have been in
+  network_data.remove_player_index(e.player_index)
 end)

@@ -115,8 +115,11 @@ end
 ---@param network LuaLogisticNetwork|nil The network to create storage for
 ---@return LINetworkData|nil The created or existing network data
 function network_data.create_networkdata(network)
-  if not network or not storage.networks then
-    return nil -- No network ID or storage available
+  if not network then
+    return nil -- No network supplied
+  end
+  if not storage.networks then
+    storage.networks = {} -- Inialise
   end
 
   -- Create a new network data entry if it doesn't exist
@@ -253,7 +256,9 @@ function network_data.check_network_changed(player, player_table)
       capability_manager.set_reason(player_table, "suggestions", "no_network", not has_network)
       capability_manager.set_reason(player_table, "undersupply", "no_network", not has_network)
 
-      network_data.player_changed_networks(player_table, old_network_id, new_network_id)
+      if network then
+        network_data.player_changed_networks(player_table, old_network_id, network)
+      end
       return true
     end
   else
@@ -264,8 +269,8 @@ end
 --- Call this to update the list of players active in a network
 ---@param player_table PlayerData The player's data table
 ---@param old_network_id uint|nil The old network ID, if any
----@param new_network_id uint|nil The new network ID, if any
-function network_data.player_changed_networks(player_table, old_network_id, new_network_id)
+---@param new_network LuaLogisticNetwork The new network, if any
+function network_data.player_changed_networks(player_table, old_network_id, new_network)
   if not player_table then
     return
   end
@@ -279,9 +284,22 @@ function network_data.player_changed_networks(player_table, old_network_id, new_
       end
     end
   end
-  local new_nw = network_data.get_networkdata_fromid(new_network_id)
-  if new_nw then
-    table.insert(new_nw.players, player_table.player_index)
+  local new_nwd = network_data.get_networkdata(new_network)
+  if not new_nwd and new_network then
+    new_nwd = network_data.create_networkdata(new_network)
+  end
+  if new_nwd then
+    table.insert(new_nwd.players, player_table.player_index)
+  end
+end
+
+--- Remove all references to this player
+--- @param player_index uint The player index to remove
+function network_data.remove_player_index(player_index)
+  for _, networkdata in pairs(storage.networks) do
+    if networkdata.players then
+      table.remove(networkdata.players, player_index)
+    end
   end
 end
 
