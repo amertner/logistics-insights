@@ -294,9 +294,10 @@ local li_migrations = {
       storage_nw.bot_chunker = chunker.new()
       storage_nw.cell_chunker = chunker.new()
     end
-    for _, player_table in pairs(storage.players) do
+    for _, player in pairs(game.connected_players) do
+      local player_table = player_data.get_player_table(player.index)
       if player_table and player_table.network then
-        network_data.player_changed_networks(player_table, nil, player_table.network.network_id)
+        network_data.player_changed_networks(player_table, nil, player_table.network)
       end
     end
 
