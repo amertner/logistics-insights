@@ -47,14 +47,8 @@ local li_migrations = {
   ["0.8.9"] = function()
     for player_index, player_table in pairs(storage.players) do
       local player = game.get_player(player_index)
-      -- Initialize the new History Timer object
+      -- Initialize the new History Timer object (Deprecated in 0.10)
       if player_table then
-        player_table.history_timer = TickCounter.new()
-        -- The paused state is now contained within the history timer
-        ---@diagnostic disable-next-line: undefined-field
-        if player_table.paused then
-          player_table.history_timer:pause()
-        end
         ---@diagnostic disable-next-line: inject-field
         player_table.paused = nil -- Remove old paused state
       end
@@ -73,19 +67,7 @@ local li_migrations = {
   ["0.9.3"] = function()
     -- TickCounter now registers the metatable so this isn't needed on_load anymore
     -- Go through all player data and restore any TickCounter objects
-    for _, player_table in pairs(storage.players) do
-      if player_table then
-        local counter = player_table.history_timer
-        if counter and type(counter) == "table" then
-        -- Check if this looks like a TickCounter object
-        ---@diagnostic disable-next-line: inject-field, undefined-field
-        if counter.start_tick and counter.paused ~= nil then
-          -- Reconnect the metatable
-          setmetatable(counter, TickCounter)
-          end
-        end
-      end
-    end
+    -- (Deprecated in 0.10)
 
     local function add_localised_names_to(list)
       for key, entry in pairs(list) do
@@ -130,27 +112,8 @@ local li_migrations = {
 
   ["0.9.6"] = function()
     -- Rename the private fields in TickCounter references
+    -- (Deprecated in 0.10)
     for player_index, player_table in pairs(storage.players) do
-      if player_table and player_table.history_timer then
-        local counter = player_table.history_timer
-        if type(counter) == "table" then
-          -- Rename the fields to match the new TickCounter structure
-          counter._start_tick = counter.start_tick or game.tick
-          counter._paused = counter.paused or false
-          counter._pause_tick = counter.pause_tick or nil
-          counter._accumulated_time = counter.accumulated_time or 0
-          -- Remove the old fields
-        ---@diagnostic disable-next-line: inject-field
-          counter.start_tick = nil
-        ---@diagnostic disable-next-line: inject-field
-          counter.paused = nil
-        ---@diagnostic disable-next-line: inject-field
-          counter.pause_tick = nil
-        ---@diagnostic disable-next-line: inject-field
-          counter.accumulated_time = nil
-        end
-      end
-
       -- Re-initialise the UI to use the new Activity row tooltips
       local player = game.get_player(player_index)
       reinitialise_ui(player, player_table)
@@ -360,29 +323,23 @@ local li_migrations = {
       nwd.players = nil -- Remove old field
     end
 
-    -- Transfer old per-player history_timer to relevant network
+    -- Get rid of old per-player history_timer and move to per-network history_timer
     for _, player_table in pairs(storage.players) do
       if player_table then
-        ---@diagnostic disable-next-line: undefined-field
-        local old_timer = player_table.history_timer
-        local network = player_table.network
-        local nwd = network_data.get_networkdata(network)
-        if nwd then
-          if network and network.valid and storage.networks then
-            nwd.history_timer = old_timer
-          else
-            nwd.history_timer = TickCounter.new()
-          end
-        end
         ---@diagnostic disable-next-line: undefined-field, inject-field
         player_table.history_timer = nil -- Remove old field
+        -- Ensure the window does not appear to be hidden
+        capability_manager.set_reason(player_table, "window", "hidden", false)
       end
     end
-    -- Make sure all networks have a history timer
+    -- Make sure all networks have a history timer, unpaused, and that histories are cleared
+    -- Sad, but necessary for this transition to work
     for _, nwd in pairs(storage.networks) do
       if not nwd.history_timer then
         nwd.history_timer = TickCounter.new()
       end
+      nwd.history_timer:reset() -- Ensure unpaused
+      nwd.delivery_history = {} -- Clear history
     end
   end,
 
