@@ -82,8 +82,6 @@ end
 scheduler.register({
 name = "network-check", interval = 30, per_player = true, fn = function(player, player_table)
   if network_data.check_network_changed(player, player_table) then
-    --bot_counter.network_changed(player, player_table)
-    --logistic_cell_counter.network_changed(player, player_table)
     networks_window.update_network_count(player, table_size(storage.networks) or 0)
   end
 end })

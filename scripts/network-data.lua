@@ -277,9 +277,6 @@ function network_data.player_changed_networks(player_table, old_network_id, new_
   local old_nw = network_data.get_networkdata_fromid(old_network_id)
   if old_nw and old_network_id then
     network_data.remove_player_index_from_networkdata(old_nw, player_table.player_index)
-    if old_nw.players_set then
-      old_nw.players_set[player_table.player_index] = nil
-    end
     -- If the old network has no players left, potentially remove it
     if not settings.global["li-show-all-networks"].value then
       local count = table_size(old_nw.players_set or {})
@@ -293,7 +290,9 @@ function network_data.player_changed_networks(player_table, old_network_id, new_
     new_nwd = network_data.create_networkdata(new_network)
   end
   if new_nwd then
+    -- Add the player to the new network's player set
     new_nwd.players_set[player_table.player_index] = true
+    player_table.network = new_network
   end
 end
 
