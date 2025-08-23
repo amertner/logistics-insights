@@ -147,6 +147,11 @@ local cell_setup = {
     end,
     populate = function(el, nw)
       if not (el and el.valid) then return end
+      if nw and table_size(nw.players_set) == 0 and nw.bg_paused then
+        el.caption = "||"
+        el.tooltip = {"networks-window.paused-tooltip"}
+        return
+      end
       if nw.id == storage.bg_refreshing_network_id then
         el.caption = "*"
         el.tooltip = {"networks-window.updating-tooltip"}
@@ -190,6 +195,16 @@ local cell_setup = {
             btn.enabled = not has_players -- Disable if players are using it
           else
             btn.enabled = true -- Enable other buttons regardless
+            -- Show the right icon and tooltip for pause button
+            if btn.name:find("pause", 1, true) then
+              if nw.bg_paused then
+                btn.sprite = "li_play"
+                btn.tooltip = {"networks-window.unpause-tooltip"}
+              else
+                btn.sprite = "li_pause"
+                btn.tooltip = {"networks-window.pause-tooltip"}
+              end
+            end
           end
           btn.tags = { network_id = nw.id or 0 }
         end
@@ -444,6 +459,17 @@ function networks_window.on_gui_click(event)
           -- Update the window after removal
           networks_window.update(player)
         end
+      end
+    elseif col_key == "pause" and networkdata then
+      -- Pause/unpause background refresh for this network
+      if networkdata.bg_paused then
+        networkdata.bg_paused = nil
+      else
+        networkdata.bg_paused = true
+      end
+      if networkdata.bg_paused and storage.bg_refreshing_network_id == network_id then
+        -- If we just paused the network being refreshed, clear the refresh state
+        storage.bg_refreshing_network_id = nil
       end
     end
   end

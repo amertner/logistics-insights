@@ -340,6 +340,7 @@ local li_migrations = {
       end
       nwd.history_timer:reset() -- Ensure unpaused
       nwd.delivery_history = {} -- Clear history
+      nwd.bg_paused = false -- New field to track if background scanning is paused
     end
   end,
 
