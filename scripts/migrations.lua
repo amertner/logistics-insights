@@ -322,6 +322,7 @@ local li_migrations = {
           end
         end
       end
+      storage.networks[nwid] = nil -- Remove networks we can't find
       ::network_found::
     end
   end,
