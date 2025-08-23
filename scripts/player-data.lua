@@ -1,7 +1,6 @@
 --- Central definition of player data and related functions for Logistics Insights mod
 local player_data = {}
 
-local tick_counter = require("scripts.tick-counter")
 local capability_manager = require("scripts.capability-manager")
 
 -- Cache frequently used functions for performance
@@ -15,7 +14,6 @@ local math_ceil = math.ceil
 ---@field bots_window_visible boolean -- Whether the logistics insights window is visible
 ---@field network LuaLogisticNetwork|nil -- The current logistics network being monitored
 ---@field fixed_network boolean -- Whether to keep watching the current network even if the player moves away
----@field history_timer TickCounter -- Tracks time for collecting delivery history
 ---@field player_index uint -- The player's index
 ---@field window_location {x: number, y: number} -- Saved window position
 ---@field ui table<string, table> -- UI elements for the mod's GUI
@@ -31,7 +29,6 @@ function player_data.init(player_index)
     window = nil, -- Will be created later
     bots_window_visible = false, -- Start invisible
     network = nil,
-    history_timer = tick_counter.new(),
     fixed_network = false,
     player_index = player_index,
     window_location = {x = 200, y = 0},
@@ -83,13 +80,6 @@ function player_data.update_settings(player, player_table)
     capability_manager.set_reason(player_table, "history", "setting", not settings.show_history)
     capability_manager.set_reason(player_table, "activity", "setting", not settings.show_activity)
     capability_manager.set_reason(player_table, "delivery", "setting", not settings.show_delivering)
-    if player_table.history_timer then
-      if capability_manager.is_active(player_table, "history") then
-        player_table.history_timer:resume()
-      else
-        player_table.history_timer:pause()
-      end
-    end
   end
 end
 

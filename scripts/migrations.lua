@@ -358,6 +358,31 @@ local li_migrations = {
       ---@diagnostic disable-next-line: undefined-field, inject-field
       nwd.players = nil -- Remove old field
     end
+
+    -- Transfer old per-player history_timer to relevant network
+    for _, player_table in pairs(storage.players) do
+      if player_table then
+        ---@diagnostic disable-next-line: undefined-field
+        local old_timer = player_table.history_timer
+        local network = player_table.network
+        local nwd = network_data.get_networkdata(network)
+        if nwd then
+          if network and network.valid and storage.networks then
+            nwd.history_timer = old_timer
+          else
+            nwd.history_timer = TickCounter.new()
+          end
+        end
+        ---@diagnostic disable-next-line: undefined-field, inject-field
+        player_table.history_timer = nil -- Remove old field
+      end
+    end
+    -- Make sure all networks have a history timer
+    for _, nwd in pairs(storage.networks) do
+      if not nwd.history_timer then
+        nwd.history_timer = TickCounter.new()
+      end
+    end
   end,
 
 }

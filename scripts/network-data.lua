@@ -5,6 +5,7 @@ local suggestions = require("scripts.suggestions")
 local capability_manager = require("scripts.capability-manager")
 local chunker = require("scripts.chunker")
 local player_data = require("scripts.player-data")
+local tick_counter = require("scripts.tick-counter")
 
 -- Data stored for each network
 ---@class LINetworkData
@@ -14,6 +15,7 @@ local player_data = require("scripts.player-data")
 ---@field players_set table<uint, boolean> -- Set of player indexes active in this network (key = player index)
 ---@field cell_chunker Chunker -- Chunker for processing logistic cells
 ---@field bot_chunker Chunker -- Chunker for processing logistic bots
+---@field history_timer TickCounter -- Tracks time for collecting delivery history
 ---@ -- Suggestions and undersupply data
 ---@field suggestions Suggestions -- The list of suggestions associated with this network
 ---@ -- Data capture fields
@@ -133,6 +135,7 @@ function network_data.create_networkdata(network)
       bot_chunker = chunker.new(),
       last_accessed_tick = game.tick,
       last_active_tick = game.tick,
+      history_timer = tick_counter.new(),
       suggestions = suggestions.new(),
       last_pass_bots_seen = {},
       idle_bot_qualities = {},
@@ -190,9 +193,10 @@ end
 --- Clear delivery history for a network, in response to user clicking the "Clear" button
 --- @param network LuaLogisticNetwork The network to clear delivery history for
 function network_data.clear_delivery_history(network)
-  local nw = network_data.get_networkdata(network)
-  if nw then
-    nw.delivery_history = {} -- Clear the delivery history
+  local nwd = network_data.get_networkdata(network)
+  if nwd then
+    nwd.delivery_history = {} -- Clear the delivery history
+    nwd.history_timer:reset() -- Reset the history timer
   end
 end
 
@@ -247,8 +251,6 @@ function network_data.check_network_changed(player, player_table)
       capability_manager.set_reason(player_table, "undersupply", "no_network", not has_network)
       return false
     else
-      player_table.network = network
-      player_table.history_timer:reset() -- Reset the tick counter when network changes
       local has_network = (network ~= nil)
       capability_manager.set_reason(player_table, "delivery", "no_network", not has_network)
       capability_manager.set_reason(player_table, "activity", "no_network", not has_network)

@@ -254,7 +254,8 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
           player_data.update_settings(player, player_table)
           if player_table.settings.show_history then
             -- Show History was enabled, so resume the history timer if it was paused
-            player_table.history_timer:resume()
+            -- #FIXME: Does show_history make sense as a per-player setting?
+            -- player_table.history_timer:resume()
           end
         elseif e.setting == "li-pause-while-hidden" then
           -- Pause while hidden setting was changed
