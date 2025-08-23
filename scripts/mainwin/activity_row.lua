@@ -173,7 +173,7 @@ function activity_row.update(player_table)
       if window.cell.valid then
         local no_data = false
         -- Even if paused, the Total and Available robot counts are available
-  local is_active = capability_manager.is_active(player_table, "activity") or
+        local is_active = capability_manager.is_active(player_table, "activity") or
                           key == "logistic-robot-total" or key == "logistic-robot-available"
          -- If real time delivery is disabled, the Pickup/Delivery buttons should be inactive too
         if is_active and (key == "picking" or key == "delivering") and not activity_row.should_show_deliveries(player_table) then
