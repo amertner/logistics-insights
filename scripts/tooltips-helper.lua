@@ -85,20 +85,21 @@ end
 -- History data: Active for <time>, Paused, or Disabled in settings
 ---@param tip table<LocalisedString> Existing tooltip content
 ---@param player_table PlayerData The player's data table
+---@param networkdata LINetworkData|nil The logistics network to get history info from
 ---@return table<LocalisedString> The formatted tooltip with history information
-function tooltips_helper.add_network_history_tip(tip, player_table)
-  if not player_table or not player_table.history_timer then
+function tooltips_helper.add_network_history_tip(tip, player_table, networkdata)
+  if not networkdata or not networkdata.history_timer then
     return tip
   end
 
   if player_table.settings.show_history then
     local tickstr
   if not capability_manager.is_active(player_table, "history") then
-      tickstr =  flib_format.time(player_table.history_timer:time_since_paused(), false)
+      tickstr =  flib_format.time(networkdata.history_timer:time_since_paused(), false)
       tip = {"", tip, "\n", {"network-row.network-id-history", {"network-row.paused-for", tickstr}}}
     else
-      if player_table.history_timer then
-        tickstr = flib_format.time(player_table.history_timer:total_unpaused(), false)
+      if networkdata.history_timer then
+        tickstr = flib_format.time(networkdata.history_timer:total_unpaused(), false)
       else
         tickstr = "n/a"
       end

@@ -280,18 +280,19 @@ function main_window.set_window_visible(player, player_table, visible)
   player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
 
   -- Figure out if the paused state needs changing as a result
-  if player_table.history_timer and player_table.settings.pause_while_hidden then
-    local hiding = not player_table.bots_window_visible
-    -- Use capability hidden reason instead of explicit window pause toggle (shim maintains UI buttons)
-    capability_manager.set_reason(player_table, "window", "hidden", hiding)
-    if hiding then
-      player_table.history_timer:pause()
-    else
-      if capability_manager.is_active(player_table, "history") then
-        player_table.history_timer:resume()
-      end
-    end
-  end
+  -- #FIXME: pause_while_hidden? What to do?
+  --if player_table.history_timer and player_table.settings.pause_while_hidden then
+    -- local hiding = not player_table.bots_window_visible
+    -- -- Use capability hidden reason instead of explicit window pause toggle (shim maintains UI buttons)
+    -- capability_manager.set_reason(player_table, "window", "hidden", hiding)
+    -- if hiding then
+    --   player_table.history_timer:pause()
+    -- else
+    --   if capability_manager.is_active(player_table, "history") then
+    --     player_table.history_timer:resume()
+    --   end
+    -- end
+  --end
 
   local gui = player.gui.screen
   if not gui.logistics_insights_window then
@@ -334,9 +335,6 @@ function main_window.onclick(event)
       elseif event.element.name == "logistics-insights-sorted-clear" then
         -- Clear the delivery history and clear the timer
         network_data.clear_delivery_history(player_table.network)
-        if player_table and player_table.history_timer then
-          player_table.history_timer:reset_keep_pause()
-        end
         main_window.update(player, player_table, true)
       elseif utils.starts_with(event.element.name, "logistics-insights-sorted-") then
         -- Inline handling for mini pause buttons -> toggles capability "user" reason
@@ -349,9 +347,10 @@ function main_window.onclick(event)
           -- Toggle
           capability_manager.set_reason(player_table, suffix, "user", not now_paused)
           -- Special side-effect for history timer
-          if suffix == "history" and player_table.history_timer then
-            player_table.history_timer:set_paused(not now_paused)
-          end
+          -- #FIXME: Does Pause make sense? Is it per-player?
+          -- if suffix == "history" and player_table.history_timer then
+          --   player_table.history_timer:set_paused(not now_paused)
+          -- end
           -- Update UI mini-button state and dependent enable
           mini_button.update_paused_state(player_table, suffix, not now_paused)
           -- Enable/disable dependent buttons using capability snapshot

@@ -138,16 +138,21 @@ function network_row.update(player_table)
     end
   end
 
-  local function create_networkid_information_tooltip(network, network_id, is_fixed, clicktip)
+  ---@param player_table PlayerData
+  ---@param networkdata LINetworkData
+  ---@param is_fixed boolean
+  ---@param clicktip string
+  ---@return table<LocalisedString>
+  local function create_networkid_information_tooltip(player_table, networkdata, is_fixed, clicktip)
     -- Line 1: Network ID: xyz (Dynamic/Fixed)
     local tip = {}
-    tip = tooltips_helper.add_networkid_tip(tip, network_id, is_fixed)
+    tip = tooltips_helper.add_networkid_tip(tip, networkdata.id, is_fixed)
 
     --- Located on: (Planet)
-    tip = tooltips_helper.add_network_surface_tip(tip, network)
+    tip = tooltips_helper.add_network_surface_tip(tip, player_table.network)
 
     -- History data: "Disabled in settings", "Paused", or "Collected for <time>"
-    tip = tooltips_helper.add_network_history_tip(tip, player_table)
+    tip = tooltips_helper.add_network_history_tip(tip, player_table, networkdata)
 
     return {"", tip, "\n\n", {clicktip}}
   end
@@ -172,7 +177,7 @@ function network_row.update(player_table)
   if player_table.network and player_table.network.valid and player_table.ui.network and networkdata then
     -- Network ID cell and tooltip
     local network_id = player_table.network.network_id
-    local networkidtip = create_networkid_information_tooltip(player_table.network, network_id, player_table.fixed_network, networkidclicktip)
+    local networkidtip = create_networkid_information_tooltip(player_table, networkdata, player_table.fixed_network, networkidclicktip)
     if player_table.ui.network.id then
       update_key_element(player_table.ui.network.id, network_id, networkidtip)
     end
