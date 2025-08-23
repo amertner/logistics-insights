@@ -142,7 +142,7 @@ script.on_nth_tick(1, function()
   scheduler.on_tick()
 end)
 
--- Called when a new player joins the game
+-- Called when a new player is created
 script.on_event({ defines.events.on_player_created },
   --- @param e EventData.on_player_created
   function(e)
@@ -161,12 +161,29 @@ script.on_event({ defines.events.on_player_created },
     end
   end)
 
+-- Called when an existing player joins a multiplayer game
+script.on_event({ defines.events.on_player_joined_game },
+  --- @param e EventData.on_player_joined_game
+  function(e)
+    local player_table = player_data.get_player_table(e.player_index)
+    if player_table and player_table.network then
+      network_data.player_changed_networks(player_table, nil, player_table.network)
+    end
+  end)
+
+-- Called when a player is deleted/removed from the game
 script.on_event(defines.events.on_player_removed,
   --- @param e EventData.on_player_removed
   function(e)
   storage.players[e.player_index] = nil
   -- Reset cached references as player configuration has changed
   player_data.reset_cache()
+  network_data.remove_player_index(e.player_index)
+end)
+
+script.on_event(defines.events.on_player_left_game,
+  --- @param e EventData.on_player_left_game
+  function(e)
   network_data.remove_player_index(e.player_index)
 end)
 
@@ -190,10 +207,6 @@ script.on_event(
 script.on_configuration_changed(
   --- @param e ConfigurationChangedData
   function(e)
-
-  -- Remove all prior information since it may refer to modded items that are no longer available
-  -- #TODO Figure out how to do this in a good way. If mods were removed or upgraded, we may have dud info, but just clearing network data means that the storage.network isn't initialised for the players' current networks either, which is bad.
-  --network_data.init()
 
   -- Run migrations if the mod version has changed
   flib_migration.on_config_changed(e, li_migrations)
@@ -339,7 +352,4 @@ script.on_event(defines.events.on_player_changed_surface,
     -- If there is a space platform, ricity network, there can't be bots
     window.visible = player_table.bots_window_visible and not player.surface.platform
   end
-
-  -- Remove the player from any networks they might have been in
-  network_data.remove_player_index(e.player_index)
 end)

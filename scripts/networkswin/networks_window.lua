@@ -51,11 +51,26 @@ local cell_setup = {
       local el = table_el.add{ type = "label", name = name, caption = "" }
       el.style.horizontally_stretchable = true
       el.style.horizontal_align = "right"
+      return el
     end,
     populate = function(el, nw)
       if not (el and el.valid) then return end
-      -- #FIXME: Count online players only
-      el.caption = tostring(table_size(nw.players or {}))
+      local count = table_size(nw.players_set or {})
+      el.caption = tostring(count)
+      -- Build a tooltip with a list of players in the network
+      local list = {}
+      if nw.players_set then
+        for idx, present in pairs(nw.players_set) do
+          if present then
+            local player = game.get_player(idx)
+            if player and player.valid then
+              list[#list+1] = player.name
+            end
+          end
+        end
+      end
+      table.sort(list)
+      el.tooltip = table.concat(list, ", ")
     end
   },
   {
@@ -170,7 +185,7 @@ local cell_setup = {
       -- Tag the buttons so click handler can find the network
       for _, btn in ipairs(el.children) do
         if btn and btn.valid and btn.type == "sprite-button" then
-          local has_players = nw.players and #nw.players > 0
+          local has_players = nw.players_set and table_size(nw.players_set) > 0
           if btn.name:find("trash", 1, true) then
             btn.enabled = not has_players -- Disable if players are using it
           else

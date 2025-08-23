@@ -276,7 +276,7 @@ local li_migrations = {
 
     -- Initialise players and add new fields to networks
     for _, storage_nw in pairs(storage.networks) do
-      storage_nw.players = {}
+      storage_nw.players_set = {}
       storage_nw.bot_chunker = chunker.new()
       storage_nw.cell_chunker = chunker.new()
     end
@@ -323,6 +323,26 @@ local li_migrations = {
         end
       end
       ::network_found::
+    end
+  end,
+
+  ["0.10.2"] = function()
+    -- Convert LINetworkData.players from array-style to set-style (keys are player indices, value=true)
+    if not storage.networks then return end
+    for _, nwd in pairs(storage.networks) do
+      ---@diagnostic disable-next-line: undefined-field
+      local players = nwd.players -- Old field name
+      if players == nil then
+        nwd.players_set = {}
+      else
+        local newset = {}
+        for k, player_index in pairs(players) do
+          newset[player_index] = true
+        end
+        nwd.players_set = newset
+      end
+      ---@diagnostic disable-next-line: undefined-field, inject-field
+      nwd.players = nil -- Remove old field
     end
   end,
 

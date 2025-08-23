@@ -162,13 +162,12 @@ function suggestions_row.update(player_table)
     return
   end
   local networkdata = network_data.get_networkdata(player_table.network)
-  if not networkdata or not networkdata.suggestions or not networkdata.suggestions._historydata then
-    return
+  local shown = 0
+  if networkdata and networkdata.suggestions and networkdata.suggestions._historydata then
+    local running = capability_manager.is_active(player_table, "suggestions")
+    -- Show all suggestions
+    shown = suggestions_row.show_suggestions(player_table, networkdata.suggestions, running)
   end
-
-  local running = capability_manager.is_active(player_table, "suggestions")
-  -- Show all suggestions
-  local shown = suggestions_row.show_suggestions(player_table, networkdata.suggestions, running)
   -- Clear any remaining cells
   local items = player_table.ui[ROW_TITLE]
   for i = shown + 1, player_table.settings.max_items do

@@ -11,7 +11,7 @@ local player_data = require("scripts.player-data")
 ---@field id number -- The unique ID of the network
 ---@field surface string -- The surface name where the network is located
 ---@field force_name string -- The force name of the network
----@field players number[] -- A list of player indexes that are active in this network
+---@field players_set table<uint, boolean> -- Set of player indexes active in this network (key = player index)
 ---@field cell_chunker Chunker -- Chunker for processing logistic cells
 ---@field bot_chunker Chunker -- Chunker for processing logistic bots
 ---@ -- Suggestions and undersupply data
@@ -81,7 +81,7 @@ end
 
 ---@param network LuaLogisticNetwork|nil The network to get data for
 function network_data.get_networkdata(network)
-  if not network or not network.network_id or not storage.networks then
+  if not network or not network.valid or not network.network_id or not storage.networks then
     return nil -- No network ID or storage available
   end
   local networkdata = storage.networks[network.network_id]
@@ -128,7 +128,7 @@ function network_data.create_networkdata(network)
       id = network.network_id,
       surface = network.cells[1].owner.surface.name or "",
       force_name = network.force.name or "",
-      players = {},
+      players_set = {},
       cell_chunker = chunker.new(),
       bot_chunker = chunker.new(),
       last_accessed_tick = game.tick,
@@ -256,9 +256,7 @@ function network_data.check_network_changed(player, player_table)
       capability_manager.set_reason(player_table, "suggestions", "no_network", not has_network)
       capability_manager.set_reason(player_table, "undersupply", "no_network", not has_network)
 
-      if network then
-        network_data.player_changed_networks(player_table, old_network_id, network)
-      end
+      network_data.player_changed_networks(player_table, old_network_id, network)
       return true
     end
   else
@@ -269,27 +267,31 @@ end
 --- Call this to update the list of players active in a network
 ---@param player_table PlayerData The player's data table
 ---@param old_network_id uint|nil The old network ID, if any
----@param new_network LuaLogisticNetwork The new network, if any
+---@param new_network LuaLogisticNetwork|nil The new network, if any
 function network_data.player_changed_networks(player_table, old_network_id, new_network)
   if not player_table then
     return
   end
   local old_nw = network_data.get_networkdata_fromid(old_network_id)
   if old_nw and old_network_id then
-    table.remove(old_nw.players, player_table.player_index)
+    network_data.remove_player_index_from_networkdata(old_nw, player_table.player_index)
+    if old_nw.players_set then
+      old_nw.players_set[player_table.player_index] = nil
+    end
     -- If the old network has no players left, potentially remove it
-    if old_nw.players and #old_nw.players == 0 then
-      if not settings.global["li-show-all-networks"].value then
+    if not settings.global["li-show-all-networks"].value then
+      local count = table_size(old_nw.players_set or {})
+      if count == 0 then
         storage.networks[old_network_id] = nil
       end
     end
   end
   local new_nwd = network_data.get_networkdata(new_network)
-  if not new_nwd and new_network then
+  if not new_nwd and new_network and new_network.valid then
     new_nwd = network_data.create_networkdata(new_network)
   end
   if new_nwd then
-    table.insert(new_nwd.players, player_table.player_index)
+    new_nwd.players_set[player_table.player_index] = true
   end
 end
 
@@ -297,9 +299,15 @@ end
 --- @param player_index uint The player index to remove
 function network_data.remove_player_index(player_index)
   for _, networkdata in pairs(storage.networks) do
-    if networkdata.players then
-      table.remove(networkdata.players, player_index)
-    end
+    network_data.remove_player_index_from_networkdata(networkdata, player_index)
+  end
+end
+
+--- Remove all references to this player
+--- @param player_index uint The player index to remove
+function network_data.remove_player_index_from_networkdata(networkdata, player_index)
+  if networkdata and networkdata.players_set then
+    networkdata.players_set[player_index] = nil
   end
 end
 
@@ -316,7 +324,7 @@ function network_data.purge_unobserved_networks()
   local purged = false
   if not settings.global["li-show-all-networks"].value then
     for network_id, networkdata in pairs(storage.networks) do
-      if not networkdata.players or #networkdata.players == 0 then
+      if not networkdata.players_set or table_size(networkdata.players_set) == 0 then
         -- Remove the network data if it has no players
         network_data.remove_network(network_id)
         purged = true
@@ -352,13 +360,13 @@ function network_data.get_next_background_network()
   local list = {}
   if storage.networks then
     for _, networkdata in pairs(storage.networks) do
-      if networkdata and networkdata.players then
+      if networkdata and networkdata.players_set then
         -- Check if the network still exists - might have been removed!
         local nw = network_data.get_LuaNetwork(networkdata)
         if not nw or not nw.valid then
           -- The network no longer exists, so remove it from storage
           network_data.remove_network(networkdata.id)
-        elseif #networkdata.players == 0 and networkdata.last_active_tick < last_tick then
+        elseif table_size(networkdata.players_set) == 0 and networkdata.last_active_tick < last_tick then
           -- This network has no active players, so it can be scanned in the background
           -- Add it to the list for background scanning
           list[#list+1] = networkdata
