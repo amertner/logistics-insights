@@ -16,6 +16,7 @@ local tick_counter = require("scripts.tick-counter")
 ---@field cell_chunker Chunker -- Chunker for processing logistic cells
 ---@field bot_chunker Chunker -- Chunker for processing logistic bots
 ---@field history_timer TickCounter -- Tracks time for collecting delivery history
+---@field bg_paused boolean -- True if background processing is paused for this network
 ---@ -- Suggestions and undersupply data
 ---@field suggestions Suggestions -- The list of suggestions associated with this network
 ---@ -- Data capture fields
@@ -135,6 +136,7 @@ function network_data.create_networkdata(network)
       bot_chunker = chunker.new(),
       last_accessed_tick = game.tick,
       last_active_tick = game.tick,
+      bg_paused = false,
       history_timer = tick_counter.new(),
       suggestions = suggestions.new(),
       last_pass_bots_seen = {},
@@ -369,8 +371,10 @@ function network_data.get_next_background_network()
           network_data.remove_network(networkdata.id)
         elseif table_size(networkdata.players_set) == 0 and networkdata.last_active_tick < last_tick then
           -- This network has no active players, so it can be scanned in the background
-          -- Add it to the list for background scanning
-          list[#list+1] = networkdata
+          if not networkdata.bg_paused then
+            -- As the network is not paused, add it to the candidate list
+            list[#list+1] = networkdata
+          end
         end
       end
     end
