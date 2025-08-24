@@ -208,6 +208,20 @@ local li_migrations = {
     scheduler.apply_all_player_intervals()
   end,
 
+  ["0.9.11"] = function()
+    -- Fix an issue in the paused state
+    for _, player_table in pairs(storage.players) do
+      if player_table and player_table.history_timer then
+        if not player_table.settings.pause_while_hidden then
+          -- Don't say analysis is paused because the window is hidden if the setting is false
+          capability_manager.set_reason(player_table, "window", "user", false)
+        end
+        -- Ensure the UI is consistent with the paused state
+        main_window.refresh_mini_button_enabled_states(player_table)
+      end
+    end
+  end,
+
   ["0.10.1"] = function() -- Add new networks window
     -- Destroy the controller window so it can be recreated with the new layout
     for player_index, _ in pairs(storage.players) do
@@ -329,7 +343,6 @@ local li_migrations = {
       nwd.bg_paused = false -- New field to track if background scanning is paused
     end
   end,
-
 }
 
 return li_migrations
