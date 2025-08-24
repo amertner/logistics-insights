@@ -12,11 +12,11 @@ local capability_manager = {}
 -- Static registry of capability dependency graph (order-independent)
 local registry = {
   window       = { deps = {} },
-  delivery     = { deps = { "window" } },
-  activity     = { deps = { "window" } },
-  history      = { deps = { "window", "delivery" } },
-  suggestions  = { deps = { "window", "delivery", "activity" } },
-  undersupply  = { deps = { "window", "delivery" } },
+  delivery     = { deps = {  } },
+  activity     = { deps = {  } },
+  history      = { deps = { "delivery" } },
+  suggestions  = { deps = { "delivery", "activity" } },
+  undersupply  = { deps = { "delivery" } },
 }
 
 -- Reason precedence order for deriving a single state label

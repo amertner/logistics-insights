@@ -7,7 +7,6 @@ local chunker = require("scripts.chunker")
 local scheduler = require("scripts.scheduler")
 local capability_manager = require("scripts.capability-manager")
 local suggestions = require("scripts.suggestions")
-local suggestions = require("scripts.suggestions")
 
 local function init_storage_and_settings()
   player_data.init_storages()
@@ -25,44 +24,7 @@ end
 
 -- All migrations. MUST BE SORTED BY VERSION NUMBER!
 local li_migrations = {
-  ["0.8.3"] = function()
-    for player_index, player_table in pairs(storage.players) do
-      local player = game.get_player(player_index)
-      -- Changed the UI layout, so re-initialise it
-      reinitialise_ui(player, player_table)
-    end
-  end,
-
-  ["0.8.5"] = function()
-    -- Added bot chunk settings, set defaults
-    for player_index, player_table in pairs(storage.players) do
-      local player = game.get_player(player_index)
-      if player_table then
-        player_table.settings.bot_chunk_interval = 10
-      end
-
-      -- Added tags to certain cells to control tooltips, so re-generate the UI
-      reinitialise_ui(player, player_table)
-    end
-  end,
-  ["0.8.9"] = function()
-    for player_index, player_table in pairs(storage.players) do
-      local player = game.get_player(player_index)
-      -- Initialize the new History Timer object (Deprecated in 0.10)
-      -- Initialize the new History Timer object (Deprecated in 0.10)
-      if player_table then
-        ---@diagnostic disable-next-line: inject-field
-        player_table.paused = nil -- Remove old paused state
-      end
-    end
-  end,
-
   ["0.9.3"] = function()
-    -- TickCounter now registers the metatable so this isn't needed on_load anymore
-    -- Go through all player data and restore any TickCounter objects
-    -- (Deprecated in 0.10)
-    -- (Deprecated in 0.10)
-
     local function add_localised_names_to(list)
       for key, entry in pairs(list) do
         if entry.item_name and entry.quality_name then
@@ -82,54 +44,14 @@ local li_migrations = {
     add_localised_names_to(storage.bot_deliveries)
   end,
 
-  ["0.9.5"] = function()
-    -- Add "gather quality" setting"
-    for player_index, player_table in pairs(storage.players) do
-      local player = game.get_player(player_index)
-      if player_table and player_table.settings then
-        player_table.settings.gather_quality_data = true
-      end
-
-      -- Ensure new qualities storage exists
-      storage.idle_bot_qualities = storage.idle_bot_qualities or {}
-      storage.roboport_qualities = storage.roboport_qualities or {}
-      storage.picking_bot_qualities = storage.picking_bot_qualities or {}
-      storage.delivering_bot_qualities = storage.delivering_bot_qualities or {}
-      storage.charging_bot_qualities = storage.charging_bot_qualities or {}
-      storage.waiting_bot_qualities = storage.waiting_bot_qualities or {}
-      storage.other_bot_qualities = storage.other_bot_qualities or {}
-
-      -- Re-initialise the UI to make sure the new quality_table fields are set
-      reinitialise_ui(player, player_table)
-    end
-  end,
-
-  ["0.9.6"] = function()
-    -- Rename the private fields in TickCounter references
-    -- (Deprecated in 0.10)
-    -- (Deprecated in 0.10)
-    for player_index, player_table in pairs(storage.players) do
-      -- Re-initialise the UI to use the new Activity row tooltips
-      local player = game.get_player(player_index)
-      reinitialise_ui(player, player_table)
-    end
-  end,
-
   ["0.9.7"] = function()
     for player_index, player_table in pairs(storage.players) do
       local player = game.get_player(player_index)
       if player_table and player_table.ui then
         -- Initialise new paused_items table
         ---@diagnostic disable-next-line: inject-field
-        player_table.paused_items = {}
-        ---@diagnostic disable-next-line: inject-field
         player_table.saved_paused_state = nil -- Remove old saved paused state
-        
-        -- Initialise the suggestions table (from 0.9.12, deprecated)
-        ---@diagnostic disable-next-line: inject-field
-        -- Initialise the suggestions table (from 0.9.12, deprecated)
-        ---@diagnostic disable-next-line: inject-field
-        player_table.suggestions = suggestions.new()
+
         -- Set new settings
         player_table.settings.show_undersupply = true -- Enable undersupply by default
         player_table.settings.show_suggestions = true -- Enable suggestions by default
@@ -155,12 +77,6 @@ local li_migrations = {
       player_table.undersupply_paused = nil
       -- Ensure network data exists
       network_data.create_networkdata(player_table.network)
-      -- Create persistent chunkers (deprecated)
-      --player_table.bot_chunker = chunker.new(player_table)
-      --player_table.cell_chunker = chunker.new(player_table)
-      -- Create persistent chunkers (deprecated)
-      --player_table.bot_chunker = chunker.new(player_table)
-      --player_table.cell_chunker = chunker.new(player_table)
     end
     -- Remove all of the old global storages
     storage.bot_items = nil
@@ -206,20 +122,6 @@ local li_migrations = {
     end
     -- Apply player-defined intervals to scheduled tasks
     scheduler.apply_all_player_intervals()
-  end,
-
-  ["0.9.11"] = function()
-    -- Fix an issue in the paused state
-    for _, player_table in pairs(storage.players) do
-      if player_table and player_table.history_timer then
-        if not player_table.settings.pause_while_hidden then
-          -- Don't say analysis is paused because the window is hidden if the setting is false
-          capability_manager.set_reason(player_table, "window", "user", false)
-        end
-        -- Ensure the UI is consistent with the paused state
-        main_window.refresh_mini_button_enabled_states(player_table)
-      end
-    end
   end,
 
   ["0.10.1"] = function() -- Add new networks window
@@ -273,9 +175,9 @@ local li_migrations = {
       if player_table and player_table.settings then
         -- Set the new global settings
         if not got_settings then
-          settings.global["li-chunk-size-global"] = {value = player_table.settings.chunk_size}
-          settings.global["li-chunk-processing-interval-ticks"] = {value = player_table.settings.bot_chunk_interval}
-          settings.global["li-gather-quality-data-global"] = {value = player_table.settings.gather_quality_data}
+          settings.global["li-chunk-size-global"] = {value = player_table.settings.chunk_size or 400}
+          settings.global["li-chunk-processing-interval-ticks"] = {value = player_table.settings.bot_chunk_interval or 10}
+          settings.global["li-gather-quality-data-global"] = {value = player_table.settings.gather_quality_data or true}
           got_settings = true -- Only do this for the first player, who hopefully was the host
         end
         -- Remove old settings
@@ -335,8 +237,12 @@ local li_migrations = {
     -- Make sure all networks have a history timer, unpaused, and that histories are cleared
     -- Sad, but necessary for this transition to work
     for _, nwd in pairs(storage.networks) do
+      -- Initialise fields that may be missing
       if not nwd.history_timer then
         nwd.history_timer = TickCounter.new()
+      end
+      if not nwd.suggestions then
+        nwd.suggestions = suggestions.new()
       end
       nwd.history_timer:reset() -- Ensure unpaused
       nwd.delivery_history = {} -- Clear history
@@ -344,11 +250,16 @@ local li_migrations = {
     end
   end,
 
-  ["0.10.3"] = function() -- Remove old pause_for_bots setting as it's now global
+  ["0.10.3"] = function() -- Remove or globalise settings
     for _, player_table in pairs(storage.players) do
       if player_table and player_table.settings then
         player_table.settings.pause_for_bots = nil -- Remove old setting
       end
+      
+      -- Don't say analysis is paused because the window is hidden any more
+      capability_manager.set_reason(player_table, "window", "user", false)
+      -- Ensure the UI is consistent with the paused state
+      main_window.refresh_mini_button_enabled_states(player_table)
     end
   end,
 }
