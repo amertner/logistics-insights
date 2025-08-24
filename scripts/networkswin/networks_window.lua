@@ -332,7 +332,23 @@ function networks_window.create(player)
     end
   end
 
-  window.force_auto_center()
+  local player_table = player_data.get_player_table(player.index)
+  if player_table and player_table.networks_window_location then
+    window.location = player_table.networks_window_location
+  else
+    window.location = { x = 300, y = 100 }
+  end
+end
+
+-- When the window is moved, remember its new location
+function networks_window.gui_location_moved(element, player_table)
+  if element.name == WINDOW_NAME and player_table then
+    if not player_table.networks_window_location then
+      player_table.networks_window_location = {}
+    end
+    player_table.networks_window_location.x = element.location.x
+    player_table.networks_window_location.y = element.location.y
+  end
 end
 
 --- Destroy the Networks window for a player

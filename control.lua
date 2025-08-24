@@ -1,7 +1,7 @@
 -- Main script for Logistics Insights mod
 local flib_migration = require("__flib__.migration")
 
-local player_data = require("scripts.player-data")  
+local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
 local bot_counter = require("scripts.bot-counter")
 local logistic_cell_counter = require("scripts.logistic-cell-counter")
@@ -348,4 +348,15 @@ script.on_event(defines.events.on_player_changed_surface,
     -- If there is a space platform, ricity network, there can't be bots
     window.visible = player_table.bots_window_visible and not player.surface.platform
   end
+end)
+
+-- When a window is moved, remember its location
+script.on_event(defines.events.on_gui_location_changed,
+  ---@param event EventData.on_gui_location_changed
+  function(event)
+    local player_table = player_data.get_player_table(event.player_index)
+    if event.element and player_table then
+      main_window.gui_location_moved(event.element, player_table)
+      networks_window.gui_location_moved(event.element, player_table)
+    end
 end)

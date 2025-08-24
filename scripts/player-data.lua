@@ -15,7 +15,8 @@ local math_ceil = math.ceil
 ---@field network LuaLogisticNetwork|nil -- The current logistics network being monitored
 ---@field fixed_network boolean -- Whether to keep watching the current network even if the player moves away
 ---@field player_index uint -- The player's index
----@field window_location {x: number, y: number} -- Saved window position
+---@field window_location {x: number, y: number} -- Saved Main window position
+---@field networks_window_location {x: number, y: number} -- Saved Networks window position
 ---@field ui table<string, table> -- UI elements for the mod's GUI
 ---@field current_logistic_cell_interval number -- Dynamically calculated interval for logistic cell updates
 ---@field schedule_last_run table<string, uint>|nil -- Per-task last run ticks for scheduler
@@ -32,6 +33,7 @@ function player_data.init(player_index)
     fixed_network = false,
     player_index = player_index,
     window_location = {x = 200, y = 0},
+    networks_window_location = {x = 300, y = 100},
     ui = {},
     current_logistic_cell_interval = 60,
     schedule_last_run = {}, -- Per-task last run ticks for scheduler

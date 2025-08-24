@@ -372,20 +372,15 @@ function main_window.onclick(event)
 end
 
 -- When the window is moved, remember its new location
-script.on_event(defines.events.on_gui_location_changed,
-  ---@param event EventData.on_gui_location_changed
-  function(event)
-  if event.element and event.element.name == WINDOW_NAME then
-    local player_table = storage.players[event.player_index]
-    if player_table then
-      if not player_table.window_location then
-        player_table.window_location = {}
-      end
-      player_table.window_location.x = event.element.location.x
-      player_table.window_location.y = event.element.location.y
+function main_window.gui_location_moved(element, player_table)
+  if element.name == WINDOW_NAME and player_table then
+    if not player_table.window_location then
+      player_table.window_location = {}
     end
+    player_table.window_location.x = element.location.x
+    player_table.window_location.y = element.location.y
   end
-end)
+end
 
 -- Handle shortcut button clicks
 script.on_event(defines.events.on_lua_shortcut,
