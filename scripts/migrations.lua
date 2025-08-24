@@ -57,15 +57,6 @@ local li_migrations = {
     end
   end,
 
-  ["0.9.0"] = function()
-    -- Set the new mini window toggle setting to its default
-    for _, player_table in pairs(storage.players) do
-      if player_table and player_table.settings then
-        player_table.settings.show_mini_window = true
-      end
-    end
-  end,
-
   ["0.9.3"] = function()
     -- TickCounter now registers the metatable so this isn't needed on_load anymore
     -- Go through all player data and restore any TickCounter objects
@@ -350,6 +341,14 @@ local li_migrations = {
       nwd.history_timer:reset() -- Ensure unpaused
       nwd.delivery_history = {} -- Clear history
       nwd.bg_paused = false -- New field to track if background scanning is paused
+    end
+  end,
+
+  ["0.10.3"] = function() -- Remove old pause_for_bots setting as it's now global
+    for _, player_table in pairs(storage.players) do
+      if player_table and player_table.settings then
+        player_table.settings.pause_for_bots = nil -- Remove old setting
+      end
     end
   end,
 }

@@ -14,11 +14,6 @@ function controller_gui.create_window(player)
   local gui = player.gui.top
   if gui.logistics_insights_mini then gui.logistics_insights_mini.destroy() end
 
-  -- Check if the mini window should be shown based on the setting
-  if not player.mod_settings["li-show-mini-window"].value then
-    return
-  end
-
   local mini = gui.add {
     type = "frame",
     name = "logistics_insights_mini",
@@ -123,14 +118,6 @@ end
 function controller_gui.update_window(player, player_table)
   if not player then
     return -- No player, nothing to update
-  end
-  -- If the mini window should not be shown, return early
-  if not player.mod_settings["li-show-mini-window"].value then
-    -- Make sure to destroy any existing mini window
-    if player.gui.top.logistics_insights_mini then
-      player.gui.top.logistics_insights_mini.destroy()
-    end
-    return
   end
 
   local gui = player.gui.top.logistics_insights_mini

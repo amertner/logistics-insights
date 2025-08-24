@@ -212,7 +212,7 @@ local get_network_list_function = {
 --- @param viewdata ViewData The view data containing items and focus information
 --- @param focus_on_element boolean Whether to focus on the selected element
 local function open_viewdata(player, viewdata, focus_on_element)
-  if viewdata.follow and player.mod_settings["li-pause-for-bots"].value then
+  if viewdata.follow and settings.global["li-freeze-highlighting-bots"].value then
     local player_table = player_data.get_player_table(player.index)
     game_state.freeze_game(player_table)
   end

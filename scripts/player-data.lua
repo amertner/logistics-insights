@@ -68,9 +68,6 @@ function player_data.update_settings(player, player_table)
       show_history = mod_settings["li-show-history"].value,
       show_activity = mod_settings["li-show-activity"].value,
       ui_update_interval = mod_settings["li-ui-update-interval"].value,
-      pause_for_bots = mod_settings["li-pause-for-bots"].value,
-      pause_while_hidden = mod_settings["li-pause-while-hidden"].value,
-      show_mini_window = mod_settings["li-show-mini-window"].value,
     }
     player_table.settings = settings
     player_table.player_index = player.index

@@ -36,20 +36,6 @@ data:extend(
       order = "3"
     },
     {
-      type = "bool-setting",
-      name = "li-pause-while-hidden",
-      setting_type = "runtime-per-user",
-      default_value = false,
-      order = "3.5"
-    },
-    {
-      type = "bool-setting",
-      name = "li-show-mini-window",
-      setting_type = "runtime-per-user",
-      default_value = true,
-      order = "3.6"
-    },
-    {
       type = "int-setting",
       name = "li-max-items",
       setting_type = "runtime-per-user",
@@ -66,14 +52,6 @@ data:extend(
       minimum_value = 10,
       maximum_value = 120,
       order = "5.3"
-    }
-    ,
-    {
-      type = "bool-setting",
-      name = "li-pause-for-bots",
-      setting_type = "runtime-per-user",
-      default_value = true,
-      order = "6"
     },
     {
       type = "int-setting",
@@ -107,6 +85,13 @@ data:extend(
       setting_type = "runtime-global",
       default_value = true,
       order = "2"
+    },
+    {
+      type = "bool-setting",
+      name = "li-freeze-highlighting-bots",
+      setting_type = "runtime-global",
+      default_value = true,
+      order = "2.5"
     },
     {
       type = "int-setting",

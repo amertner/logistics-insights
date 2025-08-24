@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.10.3
+Date: 2025-08-24
+  Changes:
+    - Move "Freeze highlighting bots" setting to be runtime-global setting
+    - Remove "Show mini window" setting, as the mini window is now always shown
+    - Remove "Pause while hidden" setting, as you can just pause the rows individually
+---------------------------------------------------------------------------------------------------
 Version: 0.9.12
 Date: 2025-08-24
   Bugfixes:

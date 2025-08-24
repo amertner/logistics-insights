@@ -236,12 +236,8 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
       local player = game.get_player(e.player_index)
       local player_table = player_data.get_player_table(e.player_index)
       if player and player_table then
-        if e.setting == "li-show-mini-window" then
-          -- Special handling for mini window setting
-          controller_gui.update_window(player, player_table)
-        elseif e.setting == "li-ui-update-interval" or
-              e.setting == "li-pause-for-bots" or
-              e.setting == "li-highlight-duration" then
+        if e.setting == "li-ui-update-interval" or
+           e.setting == "li-highlight-duration" then
           -- These settings will be adapted dynamically
           player_data.update_settings(player, player_table)
           if e.setting == "li-ui-update-interval" then
@@ -254,18 +250,6 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
             -- Show History was enabled, so resume the history timer if it was paused
             -- #FIXME: Does show_history make sense as a per-player setting?
             -- player_table.history_timer:resume()
-          end
-        elseif e.setting == "li-pause-while-hidden" then
-          -- Pause while hidden setting was changed
-          local flicker_window = not player_table.bots_window_visible
-          if flicker_window then
-            -- Show the window, so related things can update. Very messy.
-            main_window.set_window_visible(player, player_table, true)
-          end
-          player_data.update_settings(player, player_table)
-          if flicker_window then
-            -- Re-hide the window
-            main_window.set_window_visible(player, player_table, false)
           end
         else
           -- For other settings, rebuild the main window

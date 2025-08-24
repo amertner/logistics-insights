@@ -279,21 +279,6 @@ function main_window.set_window_visible(player, player_table, visible)
   -- Update shortcut button state
   player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
 
-  -- Figure out if the paused state needs changing as a result
-  -- #FIXME: pause_while_hidden? What to do?
-  --if player_table.history_timer and player_table.settings.pause_while_hidden then
-    -- local hiding = not player_table.bots_window_visible
-    -- -- Use capability hidden reason instead of explicit window pause toggle (shim maintains UI buttons)
-    -- capability_manager.set_reason(player_table, "window", "hidden", hiding)
-    -- if hiding then
-    --   player_table.history_timer:pause()
-    -- else
-    --   if capability_manager.is_active(player_table, "history") then
-    --     player_table.history_timer:resume()
-    --   end
-    -- end
-  --end
-
   local gui = player.gui.screen
   if not gui.logistics_insights_window then
     main_window.create(player, player_table)
