@@ -14,7 +14,7 @@ styles.botsgui_frame_style = {
     priority = "extra-high-no-scale",
     corner_size = { 3, 3 },
     position = { 0, 0 },
-    opacity = 0.9     -- 0 is fully transparent, 1 is fully opaque
+    opacity = 1.0     -- 0 is fully transparent, 1 is fully opaque
   }
 }
 
@@ -42,7 +42,6 @@ styles.botsgui_controller_style = {
       right = { position = { 0, 0 }, size = 1, color = { r = 1, g = 1, b = 1, a = 0.5 } },
     }
   },
-  -- Optional: adjust padding as needed
   padding = 4,
 }
 

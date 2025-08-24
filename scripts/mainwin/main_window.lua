@@ -148,12 +148,14 @@ function main_window._add_titlebar(window, player_table)
   titlebar.drag_target = window
 
   -- Add title label
-  titlebar.add {
+  local label = titlebar.add {
     type = "label",
     caption = {"mod-name.logistics-insights"},
     style = "frame_title",
     ignored_by_interaction = true
   }
+  -- #TODO: Reduce the size of the buttons in the titlebar to 48x48
+  --label.style.top_margin = -6
 
   local dragger = titlebar.add {
     type = "empty-widget",
@@ -183,9 +185,17 @@ function main_window._add_titlebar(window, player_table)
     type = "sprite-button",
     sprite = "li_step",
     style = "tool_button",
-   name = "logistics-insights-step",
+    name = "logistics-insights-step",
     tooltip = {"bots-gui.step-game-tooltip"},
   }
+  titlebar.add({
+      type = "sprite-button",
+      style = "frame_action_button",
+      sprite = "utility/close",
+      tooltip = {"bots-gui.close-window-tooltip"},
+      name = "logistics-insights-close",
+  })
+
   game_state.init(player_table, unfreeze, freeze)
   -- Register callback to clear highlight markers whenever the game is unfrozen
   game_state.set_on_unfreeze(function(pt)
@@ -309,6 +319,9 @@ function main_window.onclick(event)
     if player and player.valid and player_table then
       if game_state.handle_control_button(player_table, event.element) then
         -- Control button handled (freeze/unfreeze/step)
+      elseif event.element.name == "logistics-insights-close" then
+        -- Close button clicked
+        main_window.set_window_visible(player, player_table, false)
       elseif event.element.name == "logistics-insights-network-id" then
         -- Clicking the network ID button toggles between fixed and dynamic network
         event.element.toggled = not event.element.toggled

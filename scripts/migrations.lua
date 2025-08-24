@@ -56,8 +56,6 @@ local li_migrations = {
         player_table.settings.show_undersupply = true -- Enable undersupply by default
         player_table.settings.show_suggestions = true -- Enable suggestions by default
       end
-      -- Re-initialise the UI as buttons have moved around since last version
-      reinitialise_ui(player, player_table)
     end
   end,
 
@@ -251,15 +249,17 @@ local li_migrations = {
   end,
 
   ["0.10.3"] = function() -- Remove or globalise settings
-    for _, player_table in pairs(storage.players) do
+    for player_index, player_table in pairs(storage.players) do
       if player_table and player_table.settings then
         player_table.settings.pause_for_bots = nil -- Remove old setting
       end
-      
+
       -- Don't say analysis is paused because the window is hidden any more
       capability_manager.set_reason(player_table, "window", "user", false)
-      -- Ensure the UI is consistent with the paused state
-      main_window.refresh_mini_button_enabled_states(player_table)
+
+      -- Re-initialise the UI
+      local player = game.get_player(player_index)
+      reinitialise_ui(player, player_table)
     end
   end,
 }

@@ -251,9 +251,6 @@ function networks_window.create(player)
     style = "li_networks_frame_style",
     visible = true,
   }
-  -- Make the window taller by default while keeping it flexible
-  window.style.minimal_height = 200
-  window.style.horizontally_stretchable = true
   -- Allow the frame to grow tall; cap at 80% of screen height for usability
   local screen_h = player.display_resolution and player.display_resolution.height or 1080
   local scale = player.display_scale or 1
@@ -267,23 +264,32 @@ function networks_window.create(player)
     direction = "horizontal",
   }
   titlebar.drag_target = window
+  titlebar.style.vertically_stretchable = false
 
-  titlebar.add {
+  local label = titlebar.add {
     type = "label",
     caption = {"networks-window.window-title"},
     style = "frame_title",
     ignored_by_interaction = true,
   }
+  label.style.top_margin = -6
 
   local dragger = titlebar.add {
     type = "empty-widget",
     style = "draggable_space_header",
-    height = 24,
+    height = 48,
     right_margin = 0,
     ignored_by_interaction = true,
   }
   dragger.style.horizontally_stretchable = true
   dragger.style.vertically_stretchable = true
+  titlebar.add({
+      type = "sprite-button",
+      style = "frame_action_button",
+      sprite = "utility/close",
+      name = WINDOW_NAME .. "-close",
+      tooltip = {"networks-window.close-window-tooltip"},
+  })
 
   -- Content: scrollable table to align uneven-width data
   local scroll = window.add {
@@ -294,10 +300,9 @@ function networks_window.create(player)
   }
   scroll.style.horizontally_stretchable = true
   scroll.style.vertically_stretchable = true
-  scroll.style.padding = 8
-  -- Ensure a comfortably tall content area by default, but let it expand
-  scroll.style.minimal_height = 200
-  scroll.style.maximal_height = usable - 80 -- leave room for titlebar
+  scroll.style.padding = 0
+  -- Ensure a comfortably tall content area by default. Maybe add buttons to change size later.
+  scroll.style.minimal_height = 180
 
   local col_count = #cell_setup
   local table_el = scroll.add {
@@ -443,6 +448,13 @@ function networks_window.on_gui_click(event)
   local element = event.element
   if not (element and element.valid) then return false end
   local name = element.name or ""
+  local player = game.get_player(event.player_index)
+
+  if player and (name == WINDOW_NAME .. "-close") then
+     networks_window.toggle_window_visible(player)
+    return false
+  end
+
   -- Only handle Action buttons
   if not name:find(WINDOW_NAME .. "-cell-", 1, true) then return false end
 
@@ -460,7 +472,6 @@ function networks_window.on_gui_click(event)
 
     if col_key == "view" and network then
       -- In map view, focus on a random roboport in the network
-      local player = game.get_player(event.player_index)
       if player and player.valid and network and network.valid then
         find_and_highlight.highlight_network_locations_on_map(
           player,
