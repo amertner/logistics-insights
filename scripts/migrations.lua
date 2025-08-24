@@ -7,6 +7,7 @@ local chunker = require("scripts.chunker")
 local scheduler = require("scripts.scheduler")
 local capability_manager = require("scripts.capability-manager")
 local suggestions = require("scripts.suggestions")
+local suggestions = require("scripts.suggestions")
 
 local function init_storage_and_settings()
   player_data.init_storages()
@@ -48,6 +49,7 @@ local li_migrations = {
     for player_index, player_table in pairs(storage.players) do
       local player = game.get_player(player_index)
       -- Initialize the new History Timer object (Deprecated in 0.10)
+      -- Initialize the new History Timer object (Deprecated in 0.10)
       if player_table then
         ---@diagnostic disable-next-line: inject-field
         player_table.paused = nil -- Remove old paused state
@@ -67,6 +69,7 @@ local li_migrations = {
   ["0.9.3"] = function()
     -- TickCounter now registers the metatable so this isn't needed on_load anymore
     -- Go through all player data and restore any TickCounter objects
+    -- (Deprecated in 0.10)
     -- (Deprecated in 0.10)
 
     local function add_localised_names_to(list)
@@ -113,6 +116,7 @@ local li_migrations = {
   ["0.9.6"] = function()
     -- Rename the private fields in TickCounter references
     -- (Deprecated in 0.10)
+    -- (Deprecated in 0.10)
     for player_index, player_table in pairs(storage.players) do
       -- Re-initialise the UI to use the new Activity row tooltips
       local player = game.get_player(player_index)
@@ -130,6 +134,8 @@ local li_migrations = {
         ---@diagnostic disable-next-line: inject-field
         player_table.saved_paused_state = nil -- Remove old saved paused state
         
+        -- Initialise the suggestions table (from 0.9.12, deprecated)
+        ---@diagnostic disable-next-line: inject-field
         -- Initialise the suggestions table (from 0.9.12, deprecated)
         ---@diagnostic disable-next-line: inject-field
         player_table.suggestions = suggestions.new()
@@ -158,6 +164,9 @@ local li_migrations = {
       player_table.undersupply_paused = nil
       -- Ensure network data exists
       network_data.create_networkdata(player_table.network)
+      -- Create persistent chunkers (deprecated)
+      --player_table.bot_chunker = chunker.new(player_table)
+      --player_table.cell_chunker = chunker.new(player_table)
       -- Create persistent chunkers (deprecated)
       --player_table.bot_chunker = chunker.new(player_table)
       --player_table.cell_chunker = chunker.new(player_table)
@@ -343,7 +352,6 @@ local li_migrations = {
       nwd.bg_paused = false -- New field to track if background scanning is paused
     end
   end,
-
 }
 
 return li_migrations
