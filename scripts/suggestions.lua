@@ -93,14 +93,17 @@ end
 --- Evaluate cell-related suggestions if needed (scheduler sets dirty flag and cadence)
 --- @param player_table PlayerData
 --- @param waiting_to_charge_count number The number of bots waiting to charge
+--- @return boolean True if something was evaluated, false if skipped due to not dirty
 function Suggestions:evaluate_player_cells(player_table, waiting_to_charge_count)
-  if not player_table then return end
+  if not player_table then return false end
   -- Consume dirty flag from capability manager; if not dirty skip
-  if not capability_manager.consume_dirty(player_table, "suggestions") then return end
+  if not capability_manager.consume_dirty(player_table, "suggestions") then return false end
+
   self._current_tick = game.tick
   local network = player_table.network
   self:analyse_waiting_to_charge(waiting_to_charge_count)
   self:analyse_storage(network)
+  return true
 end
 
 -- Scheduler-driven evaluation helpers (dirty-flag + interval externalised)
@@ -114,15 +117,18 @@ end
 
 --- Evaluate bot-related suggestions & undersupply if needed
 --- @param player_table PlayerData
+--- @return boolean True if something was evaluated, false if skipped due to not dirty
 function Suggestions:evaluate_player_bots(player_table)
-  if not player_table then return end
-  if not capability_manager.consume_dirty(player_table, "suggestions") then return end
+  if not player_table then return false end
+  if not capability_manager.consume_dirty(player_table, "suggestions") then return false end
 
   self._current_tick = game.tick
   local network = player_table.network
   if network then
     self:analyse_too_many_bots(network)
+    return true
   end
+  return false
 end
 
 --- Evaluate bot-related suggestions & undersupply if needed
@@ -136,17 +142,19 @@ end
 --- @param player_table PlayerData
 --- @param bot_deliveries table<string, DeliveryItem> A list of items being delivered right now
 --- @param consume_flag boolean Whether to consume the dirty flag (default: false)
+--- @return boolean True if something was evaluated, false if skipped due to not dirty
 function Suggestions:evaluate_player_undersupply(player_table, bot_deliveries, consume_flag)
-  if not player_table then return end
+  if not player_table then return false end
   -- Only proceed if undersupply capability is dirty
   local dirty = capability_manager.consume_dirty(player_table, "undersupply")
-  if not dirty then return end
+  if not dirty then return false end
   local network = player_table.network
-  if not network then return end
+  if not network then return false end
 
   local excessivedemand = undersupply.analyse_demand_and_supply(network, bot_deliveries)
   self:set_cached_list("undersupply", excessivedemand)
   self._current_tick = game.tick
+  return true
 end
 
 --- Evaluate undersupply for a background network

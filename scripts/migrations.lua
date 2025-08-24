@@ -124,7 +124,7 @@ local li_migrations = {
     scheduler.apply_all_player_intervals()
   end,
 
-  ["0.10.1"] = function() -- Add new networks window
+  ["0.10.1"] = function() -- Add new networks window, move many things from player to network
     -- Destroy the controller window so it can be recreated with the new layout
     for player_index, _ in pairs(storage.players) do
       local player = game.get_player(player_index)
@@ -206,7 +206,7 @@ local li_migrations = {
     end
   end,
 
-  ["0.10.2"] = function()
+  ["0.10.2"] = function() -- History timer to network, players as set
     -- Convert LINetworkData.players from array-style to set-style (keys are player indices, value=true)
     if not storage.networks then return end
     for _, nwd in pairs(storage.networks) do

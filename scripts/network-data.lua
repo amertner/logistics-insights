@@ -93,7 +93,6 @@ function network_data.get_networkdata(network)
   else
     -- Update last-accessed
     networkdata.last_accessed_tick = game.tick
-    networkdata.last_active_tick = game.tick
     return networkdata
   end
 end
@@ -110,7 +109,6 @@ function network_data.get_networkdata_fromid(network_id)
   else
     -- Update last-accessed
     networkdata.last_accessed_tick = game.tick
-    networkdata.last_active_tick = game.tick
     return networkdata
   end
 end
@@ -396,6 +394,12 @@ function network_data.get_next_background_network()
   end
 end
 
+---@param networkdata LINetworkData|nil The network data that has finished updating
+function network_data.finished_updating_network(networkdata)
+  if networkdata then
+    networkdata.last_active_tick = game.tick
+  end
+end
 
 
 return network_data

@@ -94,6 +94,26 @@ local cell_setup = {
     end
   },
   {
+    key = "idlebots",
+    header = { type = "sprite", sprite = "virtual-signal/signal-battery-full", tooltip = {"networks-window.idlebots-tooltip"} },
+    align = "right",
+    add_cell = function(table_el, name)
+      local el = table_el.add{ type = "label", name = name, caption = "0" }
+      el.style.horizontally_stretchable = true
+      el.style.minimal_width = 40
+      el.style.horizontal_align = "right"
+      return el
+    end,
+    populate = function(el, nw)
+      if not (el and el.valid) then return end
+      local bots = 0
+      if nw.bot_items and nw.bot_items[ "logistic-robot-available"] then
+        bots = nw.bot_items[ "logistic-robot-available"] or 0
+      end
+      el.caption = tostring(bots)
+    end
+  },
+  {
     key = "undersupply",
     header = { type = "sprite", sprite = "virtual-signal/signal-U", tooltip = {"networks-window.undersupply-tooltip"} },
     align = "right",
@@ -156,7 +176,7 @@ local cell_setup = {
         el.caption = "*"
         el.tooltip = {"networks-window.updating-tooltip"}
       else
-        local last_tick = nw.last_active_tick or nw.last_accessed_tick or 0
+        local last_tick = nw.last_active_tick or 0
         local age_ticks = (game and game.tick or 0) - last_tick
         if age_ticks < 0 then age_ticks = 0 end
         local time_str = flib_format.time(age_ticks, false)

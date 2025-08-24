@@ -52,6 +52,7 @@ local function background_refresh()
           end
           -- Signal that the background refresh is done
           storage.bg_refreshing_network_id = nil
+          network_data.finished_updating_network(networkdata)
         else
           logistic_cell_counter.process_background_network(networkdata)
         end
@@ -94,14 +95,20 @@ scheduler.register({ name = "background-refresh", interval = 10, per_player = fa
 scheduler.register({ name = "player-bot-chunk", interval = 10, per_player = true, capability = "delivery", fn = function(player, player_table)
   local bot_progress = bot_counter.gather_data_for_player_network(player, player_table)
   main_window.update_bot_progress(player_table, bot_progress)
-  -- Mark suggestions & undersupply capabilities dirty (they both depend on bot data)
-  capability_manager.mark_dirty(player_table, "suggestions")
-  capability_manager.mark_dirty(player_table, "undersupply")
+  if bot_progress and bot_progress.total > 0 and bot_progress.current >= bot_progress.total  then
+    -- Mark suggestions & undersupply capabilities dirty (they both depend on bot data)
+    capability_manager.mark_dirty(player_table, "suggestions")
+    capability_manager.mark_dirty(player_table, "undersupply")
+  end
 end })
 scheduler.register({ name = "player-cell-chunk", interval = 60, per_player = true, capability = "activity", fn = function(player, player_table)
   local cells_progress = logistic_cell_counter.gather_data_for_player_network(player, player_table)
   main_window.update_cells_progress(player_table, cells_progress)
-  capability_manager.mark_dirty(player_table, "suggestions")
+  if cells_progress and cells_progress.total > 0 and cells_progress.current >= cells_progress.total  then
+    capability_manager.mark_dirty(player_table, "suggestions")
+    local nwd = network_data.get_networkdata(player_table.network)
+    network_data.finished_updating_network(nwd)
+  end
 end })
 
 -- Scheduler tasks for undersupply and suggestions
@@ -109,7 +116,9 @@ scheduler.register({ name = "undersupply-bots", interval = 60, per_player = true
   local nwd = network_data.get_networkdata(player_table.network)
   if nwd then
     local bot_deliveries = nwd.bot_deliveries or {}
-    nwd.suggestions:evaluate_player_undersupply(player_table, bot_deliveries, false)
+    if nwd.suggestions:evaluate_player_undersupply(player_table, bot_deliveries, false) then
+      network_data.finished_updating_network(nwd)
+    end
   end
 end })
 scheduler.register({ name = "suggestions-cells", interval = 60, per_player = true, capability = "suggestions", fn = function(player, player_table)
@@ -117,13 +126,17 @@ scheduler.register({ name = "suggestions-cells", interval = 60, per_player = tru
   if nwd then
     local waiting_to_charge_count = (nwd.bot_items and nwd.bot_items["waiting-for-charge-robot"]) or 0
     -- Evaluate cells and bots for suggestions
-    nwd.suggestions:evaluate_player_cells(player_table, waiting_to_charge_count)
+    if nwd.suggestions:evaluate_player_cells(player_table, waiting_to_charge_count) then
+      network_data.finished_updating_network(nwd)
+    end
   end
 end })
 scheduler.register({ name = "suggestions-bots", interval = 60, per_player = true, capability = "suggestions", fn = function(player, player_table)
   local nwd = network_data.get_networkdata(player_table.network)
   if nwd then
-    nwd.suggestions:evaluate_player_bots(player_table)
+    if nwd.suggestions:evaluate_player_bots(player_table) then
+      network_data.finished_updating_network(nwd)
+    end
   end
 end })
 
