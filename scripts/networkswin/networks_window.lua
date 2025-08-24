@@ -199,8 +199,9 @@ local cell_setup = {
       btn.style.top_margin = 2
       btn = flow.add{ type = "sprite-button", name = name .. "-pause", style = "mini_button", sprite = "li_pause", tooltip = {"networks-window.pause-tooltip"} }
       btn.style.top_margin = 2
-      btn = flow.add{ type = "sprite-button", name = name .. "-settings", style = "mini_button", sprite = "utility/rename_icon", tooltip = {"networks-window.settings-tooltip"} }
-      btn.style.top_margin = 2
+      -- #FEATURE: Add settings button once I know what it should do
+      -- btn = flow.add{ type = "sprite-button", name = name .. "-settings", style = "mini_button", sprite = "utility/rename_icon", tooltip = {"networks-window.settings-tooltip"} }
+      -- btn.style.top_margin = 2
       btn = flow.add{ type = "sprite-button", name = name .. "-trash", style = "mini_button", sprite = "utility/trash", tooltip = {"networks-window.trash-tooltip"} }
       btn.style.top_margin = 2
       return flow
