@@ -95,8 +95,7 @@ function tooltips_helper.add_network_history_tip(tip, player_table, networkdata)
   if player_table.settings.show_history then
     local tickstr
   if not capability_manager.is_active(player_table, "history") then
-      tickstr =  flib_format.time(networkdata.history_timer:time_since_paused(), false)
-      tip = {"", tip, "\n", {"network-row.network-id-history", {"network-row.paused-for", tickstr}}}
+      tip = {"", tip, "\n", {"network-row.network-id-history", {"network-row.paused"}}}
     else
       if networkdata.history_timer then
         tickstr = flib_format.time(networkdata.history_timer:total_unpaused(), false)

@@ -346,11 +346,11 @@ function main_window.onclick(event)
           local now_paused = not capability_manager.is_active(player_table, suffix)
           -- Toggle
           capability_manager.set_reason(player_table, suffix, "user", not now_paused)
-          -- Special side-effect for history timer
-          -- #FIXME: Does Pause make sense? Is it per-player?
-          -- if suffix == "history" and player_table.history_timer then
-          --   player_table.history_timer:set_paused(not now_paused)
-          -- end
+          -- Special side-effect for history timer: Update paused state
+          local networkdata = network_data.get_networkdata(player_table.network)
+          if suffix == "history" and networkdata and networkdata.history_timer then
+            networkdata.history_timer:set_paused(not now_paused)
+          end
           -- Update UI mini-button state and dependent enable
           mini_button.update_paused_state(player_table, suffix, not now_paused)
           -- Enable/disable dependent buttons using capability snapshot

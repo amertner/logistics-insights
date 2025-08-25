@@ -15,8 +15,8 @@ end
 --- @param player_table PlayerData The player's data table
 --- @param gui_table LuaGuiElement The GUI table to add the rows to
 function history_rows.add(player_table, gui_table)
- sorted_item_row.add(player_table, gui_table, "totals-row", "history", false)
- sorted_item_row.add(player_table, gui_table, "avgticks-row", "clear", false)
+  sorted_item_row.add(player_table, gui_table, "totals-row", "history", false)
+  sorted_item_row.add(player_table, gui_table, "avgticks-row", "clear", false)
 end
 
 function history_rows.update(player_table, clearing)
