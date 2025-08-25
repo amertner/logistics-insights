@@ -16,7 +16,7 @@ local WINDOW_NAME = "li_networks_window"
 local cell_setup = {
   {
     key = "id",
-    header = { type = "sprite", sprite = "virtual-signal/signal-L", tooltip = {"networks-window.id-tooltip"} },
+    header = { type = "sprite", sprite = "technology/logistic-system", tooltip = {"networks-window.id-tooltip"} },
     align = "right",
     add_cell = function(table_el, name)
       local el = table_el.add{ type = "label", name = name, caption = "" }
@@ -115,7 +115,7 @@ local cell_setup = {
   },
   {
     key = "undersupply",
-    header = { type = "sprite", sprite = "virtual-signal/signal-U", tooltip = {"networks-window.undersupply-tooltip"} },
+    header = { type = "sprite", sprite = "li_undersupply", tooltip = {"networks-window.undersupply-tooltip"} },
     align = "right",
     add_cell = function(table_el, name)
       local el = table_el.add{ type = "label", name = name, caption = "0" }
@@ -137,7 +137,7 @@ local cell_setup = {
   },
   {
     key = "suggestions",
-    header = { type = "sprite", sprite = "virtual-signal/signal-S", tooltip = {"networks-window.suggestions-tooltip"} },
+    header = { type = "sprite", sprite = "li_suggestions", tooltip = {"networks-window.suggestions-tooltip"} },
     align = "right",
     add_cell = function(table_el, name)
       local el = table_el.add{ type = "label", name = name, caption = "0" }
@@ -244,94 +244,93 @@ function networks_window.create(player)
     player.gui.screen[WINDOW_NAME].destroy()
   end
 
-  -- Root frame
+  -- The main Networks window
   local window = player.gui.screen.add {
     type = "frame",
     name = WINDOW_NAME,
     direction = "vertical",
-    style = "li_networks_frame_style",
+    --style = "li_networks_frame_style",
     visible = true,
   }
-  -- Allow the frame to grow tall; cap at 80% of screen height for usability
-  local screen_h = player.display_resolution and player.display_resolution.height or 1080
-  local scale = player.display_scale or 1
-  local usable = math.floor((screen_h / scale) * 0.8)
-  window.style.maximal_height = usable
 
-  -- Title bar with dragger, pin, and close
-  local titlebar = window.add {
-    type = "flow",
-    name = WINDOW_NAME .. "-titlebar",
-    direction = "horizontal",
-  }
-  titlebar.drag_target = window
-  titlebar.style.vertically_stretchable = false
+    -- Title bar with dragger and close
+    local titlebar = window.add {
+      type = "flow",
+      style = "fs_flib_titlebar_flow",
+      name = WINDOW_NAME .. "-titlebar",
+      drag_target = window,
+    }
 
-  local label = titlebar.add {
-    type = "label",
-    caption = {"networks-window.window-title"},
-    style = "frame_title",
-    ignored_by_interaction = true,
-  }
-  label.style.top_margin = -4
+      local label = titlebar.add {
+        type = "label",
+        caption = {"networks-window.window-title"},
+        style = "frame_title",
+        ignored_by_interaction = true,
+      }
+      label.style.top_margin = -4
+      titlebar.add {type = "empty-widget", style = "fs_flib_titlebar_drag_handle", ignored_by_interaction = true }
+      titlebar.add({
+        type = "sprite-button",
+        style = "frame_action_button",
+        sprite = "utility/close",
+        name = WINDOW_NAME .. "-close",
+        tooltip = {"networks-window.close-window-tooltip"},
+        drag_target = window,
+      })
+      titlebar.drag_target = window
 
-  local dragger = titlebar.add {
-    type = "empty-widget",
-    style = "draggable_space_header",
-    height = 48,
-    right_margin = 0,
-    ignored_by_interaction = true,
-  }
-  dragger.style.horizontally_stretchable = true
-  dragger.style.vertically_stretchable = true
-  titlebar.add({
-      type = "sprite-button",
-      style = "frame_action_button",
-      sprite = "utility/close",
-      name = WINDOW_NAME .. "-close",
-      tooltip = {"networks-window.close-window-tooltip"},
-  })
+    -- Content: scrollable table to align uneven-width data
+    local inside_frame = window.add{
+      type = "frame",
+      name = WINDOW_NAME.."-inside",
+      style = "inside_shallow_frame",
+      direction = "vertical",
+    }
+      local subheader_frame = inside_frame.add{
+        type = "frame",
+        name = WINDOW_NAME.."-subheader",
+        style = "subheader_frame",
+        direction = "horizontal",
+      }
+      subheader_frame.style.height = 200 -- This dictates how much there is room for
+        -- Scrollable area for the data table
+        local scroll = subheader_frame.add {
+          type = "scroll-pane",
+          style = "naked_scroll_pane",
+          name = WINDOW_NAME .. "-scroll",
+          horizontal_scroll_policy = "never",
+          vertical_scroll_policy = "auto-and-reserve-space",
+        }
+        scroll.style.vertically_stretchable = true -- To fill the scroller
+        scroll.style.padding = 2
 
-  -- Content: scrollable table to align uneven-width data
-  local scroll = window.add {
-    type = "scroll-pane",
-    name = WINDOW_NAME .. "-scroll",
-    vertical_scroll_policy = "auto",
-    horizontal_scroll_policy = "never",
-  }
-  scroll.style.horizontally_stretchable = true
-  scroll.style.vertically_stretchable = true
-  scroll.style.padding = 0
-  -- Ensure a comfortably tall content area by default. Maybe add buttons to change size later.
-  scroll.style.minimal_height = 180
+        local col_count = #cell_setup
+        local table_el = scroll.add {
+          type = "table",
+          name = WINDOW_NAME .. "-table",
+          column_count = col_count,
+          draw_horizontal_lines = true,
+          draw_vertical_lines = false,
+        }
+        table_el.style.horizontal_spacing = 6
+        table_el.style.vertical_spacing = 4
+        -- Set column alignments as configured
+        for idx, col in ipairs(cell_setup) do
+          if col.align then
+            table_el.style.column_alignments[idx] = col.align
+          end
+        end
 
-  local col_count = #cell_setup
-  local table_el = scroll.add {
-    type = "table",
-    name = WINDOW_NAME .. "-table",
-    column_count = col_count,
-    draw_horizontal_lines = true,
-  }
-  table_el.style.horizontal_spacing = 6
-  table_el.style.vertical_spacing = 4
-  -- Set column alignments as configured
-  for idx, col in ipairs(cell_setup) do
-    if col.align then
-      table_el.style.column_alignments[idx] = col.align
-    end
-  end
-
-  -- Build header row from cell_setup
-  for _, col in ipairs(cell_setup) do
-    if col.header.type == "sprite" then
-      local e = table_el.add{ type = "sprite", sprite = col.header.sprite, tooltip = col.header.tooltip }
-      e.style.width = 26
-      e.style.height = 26
-      e.style.stretch_image_to_widget_size = true
-    else
-      table_el.add{ type = "label", caption = col.header.caption or "", style = "bold_label" }
-    end
-  end
+        for _, col in ipairs(cell_setup) do
+          if col.header.type == "sprite" then
+            local e = table_el.add{ type = "sprite", sprite = col.header.sprite, tooltip = col.header.tooltip }
+            e.style.width = 26
+            e.style.height = 26
+            e.style.stretch_image_to_widget_size = true
+          else
+            table_el.add{ type = "label", caption = col.header.caption or "", style = "bold_label" }
+          end
+        end
 
   local player_table = player_data.get_player_table(player.index)
   if player_table and player_table.networks_window_location then
@@ -383,7 +382,11 @@ function networks_window.update_network_count(player, count)
 
   local window = player.gui.screen[WINDOW_NAME]
   if not window or not window.valid then return end
-  local scroll = window[WINDOW_NAME .. "-scroll"]
+  local inside = window[WINDOW_NAME .. "-inside"]
+  if not inside or not inside.valid then return end
+  local subheader = inside[WINDOW_NAME .. "-subheader"]
+  if not subheader or not subheader.valid then return end
+  local scroll = subheader[WINDOW_NAME .. "-scroll"]
   if not scroll or not scroll.valid then return end
   local table_el = scroll[WINDOW_NAME .. "-table"]
   if not table_el or not table_el.valid then return end
@@ -428,8 +431,11 @@ end
 function networks_window.update(player)
   if not player or not player.valid then return end
   local window = player.gui.screen[WINDOW_NAME]
-  if not window or not window.valid then return end
-  local scroll = window[WINDOW_NAME .. "-scroll"]
+  local inside = window[WINDOW_NAME .. "-inside"]
+  if not inside or not inside.valid then return end
+  local subheader = inside[WINDOW_NAME .. "-subheader"]
+  if not subheader or not subheader.valid then return end
+  local scroll = subheader[WINDOW_NAME .. "-scroll"]
   if not scroll or not scroll.valid then return end
   local table_el = scroll[WINDOW_NAME .. "-table"]
   if not table_el or not table_el.valid then return end

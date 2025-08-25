@@ -62,5 +62,21 @@ data:extend{
     size = 64,
     scale = 1.0,
     flags = {"gui-icon"},
+  },
+  {
+    type = "sprite",
+    name = "li_undersupply",
+    filename = "__logistics-insights__/graphics/undersupply-icon.png",
+    size = 64,
+    scale = 1.0,
+    flags = {"gui-icon"},
+  },
+  {
+    type = "sprite",
+    name = "li_suggestions",
+    filename = "__logistics-insights__/graphics/suggestions-icon.png",
+    size = 128,
+    scale = 1.0,
+    flags = {"gui-icon"},
   }
 }

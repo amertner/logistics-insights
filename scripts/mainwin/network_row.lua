@@ -36,7 +36,7 @@ function network_row.add(player_table, gui_table)
 
   player_table.ui.network.id = gui_table.add {
     type = "sprite-button",
-    sprite = "virtual-signal/signal-L",
+    sprite = "technology/logistic-system",
     style = "slot_button",
     name = "logistics-insights-network-id",
   }
