@@ -398,18 +398,26 @@ script.on_event(defines.events.on_lua_shortcut,
   main_window.toggle_window_visible(player)
 end)
 
--- Handle keyboard shortcut
+-- Handle keyboard shortcut for main window
 script.on_event("logistics-insights-toggle-gui",
   --- @param event EventData.CustomInputEvent
   function(event)
   local player = game.get_player(event.player_index)
   if not player then return end
 
-  local player_table = storage.players[player.index]
-  if not player_table then return end
-
   -- Toggle window visibility
   main_window.toggle_window_visible(player)
+end)
+
+-- Handle keyboard shortcut for Networks window
+script.on_event("logistics-insights-toggle-networks-gui",
+  --- @param event EventData.CustomInputEvent
+  function(event)
+  local player = game.get_player(event.player_index)
+  if not player then return end
+
+  -- Toggle window visibility
+  networks_window.toggle_window_visible(player)
 end)
 
 return main_window
