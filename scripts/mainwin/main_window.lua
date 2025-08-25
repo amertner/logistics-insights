@@ -154,8 +154,7 @@ function main_window._add_titlebar(window, player_table)
     style = "frame_title",
     ignored_by_interaction = true
   }
-  -- #TODO: Reduce the size of the buttons in the titlebar to 48x48
-  --label.style.top_margin = -6
+  label.style.top_margin = -4
 
   local dragger = titlebar.add {
     type = "empty-widget",
@@ -169,22 +168,22 @@ function main_window._add_titlebar(window, player_table)
 
   local unfreeze = titlebar.add {
     type = "sprite-button",
-    sprite = "li_play",
-    style = "tool_button",
+    sprite = "li_play_white",
+    style = "frame_action_button",
     name = "logistics-insights-unfreeze",
     tooltip = {"bots-gui.unfreeze-game-tooltip"},
   }
   local freeze = titlebar.add {
     type = "sprite-button",
-    sprite = "li_pause",
-    style = "tool_button",
+    sprite = "li_pause_white",
+    style = "frame_action_button",
     name = "logistics-insights-freeze",
     tooltip = {"bots-gui.freeze-game-tooltip"},
   }
   titlebar.add {
     type = "sprite-button",
-    sprite = "li_step",
-    style = "tool_button",
+    sprite = "li_step_white",
+    style = "frame_action_button",
     name = "logistics-insights-step",
     tooltip = {"bots-gui.step-game-tooltip"},
   }
@@ -329,7 +328,8 @@ function main_window.onclick(event)
       elseif event.element.name == "logistics-insights-sorted-network" then
         -- Show/Hide Networks window
         networks_window.toggle_window_visible(player)
-        --networks_window.toggle(player)
+        -- #FIXME: Create main window easily
+        main_window.create(player, player_table) -- Refresh to update button state
       elseif event.element.name == "logistics-insights-sorted-clear" then
         -- Clear the delivery history and clear the timer
         network_data.clear_delivery_history(player_table.network)

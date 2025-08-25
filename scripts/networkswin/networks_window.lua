@@ -273,7 +273,7 @@ function networks_window.create(player)
     style = "frame_title",
     ignored_by_interaction = true,
   }
-  label.style.top_margin = -6
+  label.style.top_margin = -4
 
   local dragger = titlebar.add {
     type = "empty-widget",

@@ -6,7 +6,6 @@ data:extend{
     size = 64,
     scale = 1.0,
     flags = {"icon"},
-    tint = { r = 0, g = 1, b = 0 }
   },
   {
     type = "sprite",
@@ -15,7 +14,6 @@ data:extend{
     size = 128,
     scale = 1.0,
     flags = {"icon"},
-    tint = { r = 0, g = 1, b = 0 }
   },
   {
     type = "sprite",
@@ -24,7 +22,38 @@ data:extend{
     size = 64,
     scale = 1.0,
     flags = {"icon"},
-    tint = { r = 0, g = 1, b = 0 }
+  },
+  {
+    type = "sprite",
+    name = "li_list",
+    filename = "__logistics-insights__/graphics/list-button.png",
+    size = 64,
+    scale = 1.0,
+    flags = {"icon"},
+  },
+  {
+    type = "sprite",
+    name = "li_pause_white",
+    filename = "__logistics-insights__/graphics/pause-button-white.png",
+    size = 64,
+    scale = 1.0,
+    flags = {"icon"},
+  },
+  {
+    type = "sprite",
+    name = "li_play_white",
+    filename = "__logistics-insights__/graphics/play-button-white.png",
+    size = 128,
+    scale = 1.0,
+    flags = {"icon"},
+  },
+  {
+    type = "sprite",
+    name = "li_step_white",
+    filename = "__logistics-insights__/graphics/step-button-white.png",
+    size = 128,
+    scale = 1.0,
+    flags = {"icon"},
   },
   {
     type = "sprite",
@@ -33,6 +62,5 @@ data:extend{
     size = 64,
     scale = 1.0,
     flags = {"gui-icon"},
-    tint = { r = 1, g = 1, b = 1 }
   }
 }
