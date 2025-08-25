@@ -328,7 +328,7 @@ function main_window.onclick(event)
         player_table.fixed_network = event.element.toggled
       elseif event.element.name == "logistics-insights-sorted-network" then
         -- Show/Hide Networks window
-        networks_window.create(player)
+        networks_window.toggle_window_visible(player)
         --networks_window.toggle(player)
       elseif event.element.name == "logistics-insights-sorted-clear" then
         -- Clear the delivery history and clear the timer
@@ -390,9 +390,6 @@ script.on_event(defines.events.on_lua_shortcut,
 
   local player = game.get_player(event.player_index)
   if not player then return end
-
-  local player_table = storage.players[player.index]
-  if not player_table then return end
 
   -- Toggle window visibility
   main_window.toggle_window_visible(player)

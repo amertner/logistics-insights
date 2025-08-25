@@ -78,7 +78,7 @@ function mini_button.add(player_table, label_ui, button_name, tooltip, button_ty
   elseif button_type == "trash" then
     sprite = "utility/trash"
   elseif button_type == "networks" then
-    sprite = "virtual-signal/signal-info"
+    sprite = "virtual-signal/signal-stack-size" -- Looks a bit like a list of stuff
   end
 
   -- Add right-aligned button that's vertically centered with the label
