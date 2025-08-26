@@ -343,8 +343,6 @@ function main_window.onclick(event)
       elseif event.element.name == "logistics-insights-sorted-network" then
         -- Show/Hide Networks window
         networks_window.toggle_window_visible(player)
-        -- #FIXME: Create main window easily
-        main_window.create(player, player_table) -- Refresh to update button state
       elseif event.element.name == "logistics-insights-sorted-clear" then
         -- Clear the delivery history and clear the timer
         network_data.clear_delivery_history(player_table.network)

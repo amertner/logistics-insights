@@ -238,6 +238,10 @@ local cell_setup = {
 --- @param player LuaPlayer
 function networks_window.create(player)
   if not player or not player.valid then return end
+  local player_table = player_data.get_player_table(player.index)
+  if not player_table then return end
+
+  player_data.register_ui(player_table, "networks")
 
   -- Destroy existing instance first
   if player.gui.screen[WINDOW_NAME] then
@@ -331,8 +335,9 @@ function networks_window.create(player)
             table_el.add{ type = "label", caption = col.header.caption or "", style = "bold_label" }
           end
         end
+  -- Remember this for easy access
+  player_table.ui.networks.table_elements = table_el
 
-  local player_table = player_data.get_player_table(player.index)
   if player_table and player_table.networks_window_location then
     window.location = player_table.networks_window_location
   else
@@ -357,6 +362,11 @@ function networks_window.destroy(player)
   if not player or not player.valid then return end
   local w = player.gui.screen[WINDOW_NAME]
   if w then w.destroy() end
+
+  local player_table = player_data.get_player_table(player.index)
+  if player_table and player_table.ui and player_table.ui.networks then
+    player_table.ui.networks.table_elements = nil
+  end
 end
 
 --- Toggle visibility of the Networks window
@@ -377,20 +387,12 @@ end
 --- @param count integer Expected range 0-100
 function networks_window.update_network_count(player, count)
   if not player or not player.valid then return end
+  local player_table = player_data.get_player_table(player.index)
+  if not player_table or not player_table.ui or not player_table.ui.networks then return end
   if type(count) ~= "number" then return end
   if count < 0 then count = 0 end
 
-  local window = player.gui.screen[WINDOW_NAME]
-  if not window or not window.valid then return end
-  local inside = window[WINDOW_NAME .. "-inside"]
-  if not inside or not inside.valid then return end
-  local subheader = inside[WINDOW_NAME .. "-subheader"]
-  if not subheader or not subheader.valid then return end
-  local scroll = subheader[WINDOW_NAME .. "-scroll"]
-  if not scroll or not scroll.valid then return end
-  local table_el = scroll[WINDOW_NAME .. "-table"]
-  if not table_el or not table_el.valid then return end
-
+  local table_el = player_table.ui.networks.table_elements
   local columns = table_el.column_count or #cell_setup
   local header_cells = columns -- One header row already present
 
@@ -430,15 +432,14 @@ end
 --- @param player LuaPlayer
 function networks_window.update(player)
   if not player or not player.valid then return end
-  local window = player.gui.screen[WINDOW_NAME]
-  local inside = window[WINDOW_NAME .. "-inside"]
-  if not inside or not inside.valid then return end
-  local subheader = inside[WINDOW_NAME .. "-subheader"]
-  if not subheader or not subheader.valid then return end
-  local scroll = subheader[WINDOW_NAME .. "-scroll"]
-  if not scroll or not scroll.valid then return end
-  local table_el = scroll[WINDOW_NAME .. "-table"]
-  if not table_el or not table_el.valid then return end
+  local player_table = player_data.get_player_table(player.index)
+  if not player_table then return end
+  if not player_table.ui or not player_table.ui.networks then
+    networks_window.create(player)
+    return -- Will update on the next call
+  end
+
+  local table_el = player_table.ui.networks.table_elements
 
   -- Always show the networks by ID
   local list = {}

@@ -3,6 +3,7 @@ local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
 local TickCounter = require("scripts.tick-counter")
 local main_window = require("scripts.mainwin.main_window")
+local networks_window = require("scripts.networkswin.networks_window")
 local chunker = require("scripts.chunker")
 local scheduler = require("scripts.scheduler")
 local capability_manager = require("scripts.capability-manager")
@@ -16,6 +17,7 @@ local function reinitialise_ui(player, player_table)
   if player and player_table then
     player_table.ui = nil -- Reset UI to force recreation
     main_window.ensure_ui_consistency(player, player_table)
+    networks_window.create(player)
   else
     -- If we can't get the player or table, just re-initialise storage and settings
     init_storage_and_settings()
