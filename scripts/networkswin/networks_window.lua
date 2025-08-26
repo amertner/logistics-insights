@@ -7,6 +7,9 @@ local network_data = require("scripts.network-data")
 local find_and_highlight = require("scripts.mainwin.find_and_highlight")
 
 local WINDOW_NAME = "li_networks_window"
+local WINDOW_MIN_HEIGHT = 110+5*24 -- Room for 8 networks
+local WINDOW_MAX_HEIGHT = 110+240 -- Room for 10 networks
+local WINDOW_HEIGHT_STEP = 24
 
 -- Column configuration for Networks window
 -- key: column id used in element names
@@ -25,7 +28,11 @@ local cell_setup = {
       return el
     end,
     populate = function(el, nw)
-      if el and el.valid then el.caption = tostring(nw.id or "") end
+      local idstr = tostring(nw.id or "")
+      if el and el.valid then 
+        el.caption = idstr 
+        el.tooltip = {"networks-window.id-cell-tooltip", idstr}
+      end
     end
   },
   {
@@ -277,6 +284,22 @@ function networks_window.create(player)
         type = "sprite-button",
         style = "frame_action_button",
         sprite = "utility/close",
+        name = WINDOW_NAME .. "-bigger",
+        tooltip = {"networks-window.bigger-window-tooltip"},
+        visible = false, -- Not ready yet
+      })
+      titlebar.add({
+        type = "sprite-button",
+        style = "frame_action_button",
+        sprite = "utility/close",
+        name = WINDOW_NAME .. "-smaller",
+        tooltip = {"networks-window.smaller-window-tooltip"},
+        visible = false, -- Not ready yet
+      })
+      titlebar.add({
+        type = "sprite-button",
+        style = "frame_action_button",
+        sprite = "utility/close",
         name = WINDOW_NAME .. "-close",
         tooltip = {"networks-window.close-window-tooltip"},
         drag_target = window,
@@ -296,7 +319,8 @@ function networks_window.create(player)
         style = "subheader_frame",
         direction = "horizontal",
       }
-      subheader_frame.style.height = 200 -- This dictates how much there is room for
+      subheader_frame.style.minimal_height = WINDOW_MIN_HEIGHT -- This dictates how much there is room for
+      subheader_frame.style.maximal_height = WINDOW_MAX_HEIGHT -- This dictates how much there is room for
         -- Scrollable area for the data table
         local scroll = subheader_frame.add {
           type = "scroll-pane",
@@ -314,6 +338,7 @@ function networks_window.create(player)
           name = WINDOW_NAME .. "-table",
           column_count = col_count,
           draw_horizontal_lines = true,
+          draw_horizontal_line_after_headers = true,
           draw_vertical_lines = false,
         }
         table_el.style.horizontal_spacing = 6
@@ -336,13 +361,16 @@ function networks_window.create(player)
           end
         end
   -- Remember this for easy access
-  player_table.ui.networks.table_elements = table_el
+  player_table.ui.networks.subheader_frame = subheader_frame -- To resize
+  player_table.ui.networks.table_elements = table_el -- To update content
 
   if player_table and player_table.networks_window_location then
     window.location = player_table.networks_window_location
   else
     window.location = { x = 300, y = 100 }
   end
+  -- Update the content now so the window can size itself properly before being shown
+  networks_window.update(player)
 end
 
 -- When the window is moved, remember its new location
@@ -464,6 +492,22 @@ function networks_window.update(player)
   end
 end
 
+function networks_window.increase_window_size(player)
+  local player_table = player_data.get_player_table(player.index)
+  if not player_table or not player_table.ui or not player_table.ui.networks then return end
+  local frame = player_table.ui.networks.subheader_frame
+
+  frame.style.minimal_height = math.min(WINDOW_MAX_HEIGHT, frame.style.minimal_height + WINDOW_HEIGHT_STEP)
+end
+
+function networks_window.decrease_window_size(player)
+  local player_table = player_data.get_player_table(player.index)
+  if not player_table or not player_table.ui or not player_table.ui.networks then return end
+  local frame = player_table.ui.networks.subheader_frame
+
+  frame.style.minimal_height = math.max(WINDOW_MIN_HEIGHT, frame.style.minimal_height - WINDOW_HEIGHT_STEP)
+end
+
 --- Handle clicks on Networks window mini buttons (settings/trash).
 --- Returns true if the event was handled.
 ---@param event EventData.on_gui_click
@@ -475,7 +519,15 @@ function networks_window.on_gui_click(event)
   local player = game.get_player(event.player_index)
 
   if player and (name == WINDOW_NAME .. "-close") then
-     networks_window.toggle_window_visible(player)
+    networks_window.toggle_window_visible(player)
+    return false
+  end
+  if player and (name == WINDOW_NAME .. "-bigger") then
+    networks_window.increase_window_size(player)
+    return false
+  end
+  if player and (name == WINDOW_NAME .. "-smaller") then
+    networks_window.decrease_window_size(player)
     return false
   end
 
