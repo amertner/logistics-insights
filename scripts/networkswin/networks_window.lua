@@ -249,7 +249,7 @@ function networks_window.create(player)
     type = "frame",
     name = WINDOW_NAME,
     direction = "vertical",
-    --style = "li_networks_frame_style",
+    style = "li_window_style",
     visible = true,
   }
 

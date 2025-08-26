@@ -3,29 +3,6 @@ require("prototypes.shortcuts")
 require("prototypes.custom-inputs")
 local styles = data.raw["gui-style"].default
 
-styles.botsgui_frame_style = {
-  type = "frame_style",
-  parent = "frame",
-  maximal_height = 400,
-  padding = 8,
-  graphical_set = {
-    type = "composition",
-    filename = "__core__/graphics/gui.png",
-    priority = "extra-high-no-scale",
-    corner_size = { 3, 3 },
-    position = { 0, 0 },
-    opacity = 1.0     -- 0 is fully transparent, 1 is fully opaque
-  }
-}
-
--- Networks window frame style: inherit base look but allow much taller height
-styles.li_networks_frame_style = {
-  type = "frame_style",
-  parent = "botsgui_frame_style",
-  -- Allow effectively unlimited height; can still be constrained per-instance at runtime
-  maximal_height = 10000,
-}
-
 styles.botsgui_controller_style = {
   type = "frame_style",
   parent = "frame",
@@ -42,6 +19,13 @@ styles.botsgui_controller_style = {
       right = { position = { 0, 0 }, size = 1, color = { r = 1, g = 1, b = 1, a = 0.5 } },
     }
   },
+  padding = 4,
+}
+
+-- Both main and networks windows use a narrow frame
+styles.li_window_style = {
+  type = "frame_style",
+  parent = "frame",
   padding = 4,
 }
 

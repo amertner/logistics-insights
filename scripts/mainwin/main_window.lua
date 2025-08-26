@@ -53,6 +53,8 @@ end
 --- @param player LuaPlayer The player to create the window for
 --- @param player_table PlayerData The player's data table
 function main_window.create(player, player_table)
+  if not player or not player.valid then return end
+
   -- If window already exists, destroy it first
   main_window.destroy(player, player_table)
 
@@ -61,7 +63,7 @@ function main_window.create(player, player_table)
     type = "frame",
     name = WINDOW_NAME,
     direction = "vertical",
-    style = "botsgui_frame_style",
+    style = "li_window_style",
     visible = player_table.bots_window_visible and player.controller_type ~= defines.controllers.cutscene,
   }
   -- Store root window separately (do not overwrite ui table)
@@ -73,14 +75,27 @@ function main_window.create(player, player_table)
   -- Create title bar with control buttons
   main_window._add_titlebar(window, player_table)
 
-  -- Create main content table
-  local content_table = window.add {
-    type = "table",
-    name = "bots_table",
-    style = "li_mainwindow_content_style",
-    column_count = player_table.settings.max_items + 1
+  -- Content: Standard frames, with a table for contents
+  local inside_frame = window.add{
+    type = "frame",
+    name = WINDOW_NAME.."-inside",
+    style = "inside_shallow_frame",
+    direction = "vertical",
   }
-
+    local subheader_frame = inside_frame.add{
+      type = "frame",
+      name = WINDOW_NAME.."-subheader",
+      style = "subheader_frame",
+      direction = "horizontal",
+    }
+      subheader_frame.style.height = 300 -- This dictates how much there is room for
+      -- Create main content table
+      local content_table = subheader_frame.add {
+        type = "table",
+        name = "bots_table",
+        style = "li_mainwindow_content_style",
+        column_count = player_table.settings.max_items + 1
+  }
 
   -- Add all of the data rows
   main_window._add_all_rows(player_table, content_table)
