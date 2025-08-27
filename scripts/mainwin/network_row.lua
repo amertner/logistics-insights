@@ -7,6 +7,7 @@ local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
 local tooltips_helper = require("scripts.tooltips-helper")
 local mini_button = require("scripts.mainwin.mini_button")
+local capability_manager = require("scripts.capability-manager")
 
 -- Cache frequently used functions
 local pairs = pairs
@@ -157,12 +158,14 @@ function network_row.update(player_table)
     return {"", tip, "\n\n", {clicktip}}
   end
 
-  local function create_logistic_bots_tooltip(network, networkdata)
+  local function create_logistic_bots_tooltip(network, networkdata, include_quality)
     -- Line 1: Show no of bots
     local tip = { "", {"network-row.logistic-bots-tooltip", network.all_logistic_robots}, "\n" }
 
     -- Line 2: Show quality counts
-    tip = tooltips_helper.get_quality_tooltip_line(tip, networkdata.total_bot_qualities, false)
+    if include_quality then
+      tip = tooltips_helper.get_quality_tooltip_line(tip, networkdata.total_bot_qualities, false)
+    end
     return tip
   end
 
@@ -175,6 +178,9 @@ function network_row.update(player_table)
 
   local networkdata = network_data.get_networkdata(player_table.network)
   if player_table.network and player_table.network.valid and player_table.ui.network and networkdata then
+    -- Cache whether delivery and activity capabilities are on, as items on this row depend on them
+    local delivery_on = capability_manager.is_active(player_table, "delivery")
+    local activity_on = capability_manager.is_active(player_table, "activity")
     -- Network ID cell and tooltip
     local network_id = player_table.network.network_id
     local networkidtip = create_networkid_information_tooltip(player_table, networkdata, player_table.fixed_network, networkidclicktip)
@@ -183,10 +189,13 @@ function network_row.update(player_table)
     end
 
     -- Roboports cell and tooltip
-    if player_table.ui.network.roboports then
+    if activity_on then
+      player_table.ui.network.roboports.enabled = true
       update_complex_element(player_table.ui.network.roboports, networkdata.total_cells,
         tooltips_helper.create_count_with_qualities_tip("network-row.roboports-tooltip", networkdata.total_cells, networkdata.roboport_qualities),
         "bots-gui.show-location-tooltip")
+    else
+      player_table.ui.network.roboports.enabled = false
     end
 
     --  All Logistic Bots cell and tooltip
@@ -196,22 +205,22 @@ function network_row.update(player_table)
     else
       bottip = "bots-gui.show-location-tooltip"
     end
-    if player_table.ui.network.logistics_bots then
-      update_complex_element(player_table.ui.network.logistics_bots, player_table.network.all_logistic_robots, create_logistic_bots_tooltip(player_table.network, networkdata), bottip)
-    end
+    update_complex_element(player_table.ui.network.logistics_bots, player_table.network.all_logistic_robots, 
+      create_logistic_bots_tooltip(player_table.network, networkdata, delivery_on), bottip)
 
     -- Requesters, Providers and Storages cells and tooltips
-    if player_table.ui.network.requesters then
-      update_element(player_table.ui.network.requesters, table_size(player_table.network.requesters), "network-row.requesters-tooltip", "bots-gui.show-location-tooltip")
-    end
-    if player_table.ui.network.providers then
+    update_element(player_table.ui.network.requesters, table_size(player_table.network.requesters), "network-row.requesters-tooltip", "bots-gui.show-location-tooltip")
+
+    if activity_on then
+      player_table.ui.network.providers.enabled = true
       -- Count how many providers are not roboports
       local providers_count = table_size(player_table.network.providers) - (networkdata.total_cells or 0)
       update_element(player_table.ui.network.providers, providers_count, "network-row.providers-tooltip", "bots-gui.show-location-tooltip")
+    else
+      player_table.ui.network.providers.enabled = false
     end
-    if player_table.ui.network.storages then
-      update_element(player_table.ui.network.storages, table_size(player_table.network.storages), "network-row.storages-tooltip", "bots-gui.show-location-tooltip")
-    end
+
+    update_element(player_table.ui.network.storages, table_size(player_table.network.storages), "network-row.storages-tooltip", "bots-gui.show-location-tooltip")
   else
     if player_table.ui.network then
       reset_network_buttons(player_table.ui.network, false, true, true, false)
