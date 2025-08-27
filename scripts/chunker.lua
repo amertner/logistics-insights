@@ -13,6 +13,7 @@
 ---@field gather GatherOptions
 ---@field current_index number The current index in the processing list
 ---@field processing_list LuaEntity[]|nil The list of entities to process in chunks
+---@field processing_count number The total number of entities to process
 ---@field partial_data table Accumulator for partial data during processing
 ---@field networkdata LINetworkData|nil The network data associated with this chunker
 local chunker = {}
@@ -43,6 +44,7 @@ end
 --- @param on_init function(partial_data, initial_data) 
 function chunker:initialise_chunking(networkdata, list, initial_data, gather_options, on_init)
   self.processing_list = list
+  self.processing_count = list and #list or 0 -- Calculate once to avoid recounting
   self.current_index = 1
   self.CHUNK_SIZE = tonumber(settings.global["li-chunk-size-global"].value) or 208
   self.gather = gather_options or {}
@@ -67,17 +69,17 @@ end
 --- Get the total number of chunks needed to process the current list
 --- @return number The number of chunks
 function chunker:num_chunks()
-  if not self.processing_list or #self.processing_list == 0 then
+  if self.processing_count == 0 then
     return 0
   else
-    return math.ceil(#self.processing_list / self.CHUNK_SIZE)
+    return math.ceil(self.processing_count / self.CHUNK_SIZE)
   end
 end
 
 --- Check if all chunks have been processed
 --- @return boolean True if processing is complete
 function chunker:is_done()
-  return not self.processing_list or #self.processing_list == 0 or self.current_index > #self.processing_list
+  return self.processing_count == 0 or self.current_index > self.processing_count
 end
 
 --- Get the number of chunks remaining to be processed
@@ -86,7 +88,7 @@ function chunker:get_chunks_remaining()
   if self:is_done() then
     return 0
   else
-    return math.ceil((#self.processing_list - self.current_index + 1) / self.CHUNK_SIZE)
+    return math.ceil((self.processing_count - self.current_index + 1) / self.CHUNK_SIZE)
   end
 end
 
@@ -101,7 +103,7 @@ function chunker:get_progress()
   else
     return {
       current = self.current_index,
-      total = #self.processing_list,
+      total = self.processing_count,
     }
   end
 end
@@ -117,12 +119,12 @@ end
 --- @param on_completion function(partial_data, player_table)
 function chunker:process_chunk(on_process_entity, on_completion)
   local processing_list = self.processing_list
-  if not processing_list or #processing_list == 0 then
+  if self.processing_count == 0 or not processing_list then
     on_completion(self.partial_data, self.gather, self.networkdata)
     return
   end
 
-  local list_size = #processing_list
+  local list_size = self.processing_count
   local current_index = self.current_index
   local chunk_size = self.CHUNK_SIZE
   local end_index = math.min(current_index + chunk_size - 1, list_size)

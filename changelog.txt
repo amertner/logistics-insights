@@ -1,6 +1,9 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.10.4
 Date: 2025-08-27
+  Features:
+    - Add new Networks window, which can show a summary of all logistics networks being monitored
+    - Networks can be monitored in the background, making it easy to keep an eye on multiple networks
   Changes:
     - Several optimisations that makes it cheaper to update the UI for large networks
   Bugfixes:
