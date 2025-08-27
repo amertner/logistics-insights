@@ -9,8 +9,7 @@ local table_size = _ENV.table_size or function(tbl)
 end
 
 -- Create a new cache
--- @param generator A function that generates a value for a key when it doesn't exist in the cache
--- @return A new cache object
+---@param generator function A function that generates a value for a key when it doesn't exist in the cache
 function cache.new(generator)
   local new_cache = {
     -- Internal storage for cached values

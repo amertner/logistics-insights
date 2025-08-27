@@ -188,7 +188,7 @@ function activity_row.update(player_table)
         local qualities_table = window.qualitytable
         if qualities_table then
           --  Augment the tooltip with a list of qualities found, if enabled in settings
-          local qualities_tooltip = tooltips_helper.get_quality_tooltip_line({""}, player_table, networkdata[qualities_table])
+          local qualities_tooltip = tooltips_helper.get_quality_tooltip_line({""}, networkdata[qualities_table])
           main_tip = {"", main_tip, "\n", qualities_tooltip}
         end
 

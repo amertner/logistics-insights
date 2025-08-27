@@ -162,7 +162,7 @@ function network_row.update(player_table)
     local tip = { "", {"network-row.logistic-bots-tooltip", network.all_logistic_robots}, "\n" }
 
     -- Line 2: Show quality counts
-    tip = tooltips_helper.get_quality_tooltip_line(tip, player_table, networkdata.total_bot_qualities, false)
+    tip = tooltips_helper.get_quality_tooltip_line(tip, networkdata.total_bot_qualities, false)
     return tip
   end
 
@@ -184,8 +184,8 @@ function network_row.update(player_table)
 
     -- Roboports cell and tooltip
     if player_table.ui.network.roboports then
-      update_complex_element(player_table.ui.network.roboports, table_size(player_table.network.cells),
-        tooltips_helper.create_count_with_qualities_tip(player_table, "network-row.roboports-tooltip", table_size(player_table.network.cells), networkdata.roboport_qualities),
+      update_complex_element(player_table.ui.network.roboports, networkdata.total_cells,
+        tooltips_helper.create_count_with_qualities_tip("network-row.roboports-tooltip", networkdata.total_cells, networkdata.roboport_qualities),
         "bots-gui.show-location-tooltip")
     end
 
@@ -206,12 +206,7 @@ function network_row.update(player_table)
     end
     if player_table.ui.network.providers then
       -- Count how many providers are not roboports
-      local providers_count = 0
-      for _, prov in pairs(player_table.network.providers) do
-        if prov and prov.valid and prov.type ~= "roboport" then
-          providers_count = providers_count + 1
-        end
-      end
+      local providers_count = table_size(player_table.network.providers) - (networkdata.total_cells or 0)
       update_element(player_table.ui.network.providers, providers_count, "network-row.providers-tooltip", "bots-gui.show-location-tooltip")
     end
     if player_table.ui.network.storages then

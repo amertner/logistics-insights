@@ -13,6 +13,7 @@ local main_window = require("scripts.mainwin.main_window")
 local scheduler = require("scripts.scheduler")
 local capability_manager = require("scripts.capability-manager")
 local networks_window= require("scripts.networkswin.networks_window")
+local tooltips_helper = require("scripts.tooltips-helper")
 
 ---@alias SurfaceName string
 
@@ -89,6 +90,10 @@ end })
 -- Scheduler for refreshing background networks that don't have an active player in them
 scheduler.register({ name = "background-refresh", interval = 10, per_player = false,
   fn = background_refresh
+})
+-- Clear the tooltip caches every 10 minutes to avoid memory bloat
+scheduler.register({ name = "clear-caches", interval = 60*10, per_player = false,
+  fn = tooltips_helper.clear_caches
 })
 
 -- Scheduler tasks for refreshing the foreground network for each player

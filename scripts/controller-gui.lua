@@ -81,8 +81,8 @@ local function update_main_tooltip(gui, player_table)
 
     tip = tooltips_helper.add_networkid_tip(tip,  player_table.network.network_id, player_table.fixed_network)
     tip = tooltips_helper.add_network_surface_tip(tip, player_table.network)
-    tip = tooltips_helper.add_bots_idle_and_total_tip(tip, player_table.network, idle_count, total_count)
-    tip = tooltips_helper.get_quality_tooltip_line(tip, player_table, networkdata.total_bot_qualities, false, "controller-gui.main_tooltip_quality")
+    tip = tooltips_helper.add_bots_idle_and_total_tip(tip, idle_count, total_count)
+    tip = tooltips_helper.get_quality_tooltip_line(tip, networkdata.total_bot_qualities, false, "controller-gui.main_tooltip_quality")
     tip = tooltips_helper.add_empty_line(tip)
 
     tip = { "", tip, { "controller-gui.main_tooltip_delivering", get_status_with_reason(player_table, "delivery", player_table.settings.show_delivering) } }

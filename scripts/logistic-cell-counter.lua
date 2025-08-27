@@ -14,6 +14,7 @@ local scheduler = require("scripts.scheduler")
 ---@field roboport_qualities QualityTable Quality counts of roboports
 ---@field charging_bot_qualities QualityTable Quality counts of charging bots
 ---@field waiting_bot_qualities QualityTable Quality counts of bots waiting to charge
+---@field total_cells number Total number of cells processed
 
 --- Initialize the cell network accumulator
 --- @param accumulator CellAccumulator The accumulator to initialize
@@ -24,6 +25,7 @@ local function initialise_cell_network_list(accumulator)
   accumulator.roboport_qualities = {} -- Gather quality of roboports
   accumulator.charging_bot_qualities = {} -- Gather quality of charging bots
   accumulator.waiting_bot_qualities = {} -- Gather quality of bots waiting to charge
+  accumulator.total_cells = 0 -- Total number of cells
 end
 
 --- Process one logistic cell to gather statistics
@@ -37,6 +39,7 @@ local function process_one_cell(cell, accumulator, gather, networkdata)
 
   accumulator.bots_charging = bots_charging + cell.charging_robot_count
   accumulator.bots_waiting_for_charge = bots_waiting + cell.to_charge_robot_count
+  accumulator.total_cells = accumulator.total_cells + 1
 
   -- Check the bots stationed at this roboport
   if cell.owner and cell.owner.valid and gather.quality then
@@ -92,6 +95,7 @@ local function all_chunks_done(accumulator, gather, networkdata)
     networkdata.roboport_qualities = accumulator.roboport_qualities or {}
     networkdata.charging_bot_qualities = accumulator.charging_bot_qualities or {}
     networkdata.waiting_bot_qualities = accumulator.waiting_bot_qualities or {}
+    networkdata.total_cells = accumulator.total_cells or 0
   end
 end
 

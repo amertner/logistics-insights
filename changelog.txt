@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.10.4
+Date: 2025-08-27
+  Changes:
+    - Several optimisations that makes it cheaper to update the UI for large networks
+  Bugfixes:
+    - Make sure robot qualities are counted even when nothing is being delivered
+---------------------------------------------------------------------------------------------------
 Version: 0.10.3
 Date: 2025-08-24
   Changes:

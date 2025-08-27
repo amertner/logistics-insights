@@ -30,16 +30,14 @@ function tooltips_helper.add_networkid_tip(tip, network_id, is_fixed)
   end
 end
 
---- Located on: (Planet)
----@param tip table<LocalisedString> Existing tooltip content
----@param network LuaLogisticNetwork|nil The logistics network to get surface info from
----@return table<LocalisedString> The formatted tooltip with surface information
-function tooltips_helper.add_network_surface_tip(tip, network)
-  if not network or not network.cells or #network.cells == 0 then
-    return tip
-  end
-
+--- Tooltip with surface sprite and name. Expensive to create, so cached.
+---@param network LuaLogisticNetwork The logistics network to get surface info from
+---@return table<LocalisedString>|nil The formatted tooltip with surface information
+local function get_network_surface_tip(network)
   -- If the network has cells, get the first cell's surface
+  if not network or not network.cells or #network.cells == 0 then 
+    return nil
+  end
   local cell = network.cells[1]
   if cell and cell.valid and cell.owner and cell.owner.valid then
     local surface = cell.owner.surface
@@ -52,10 +50,26 @@ function tooltips_helper.add_network_surface_tip(tip, network)
       else
         lname = surface.name
       end
-      tip = {"", tip, "\n", {"network-row.network-id-surface-tooltip-1icon-2name", sprite, lname}}
+      return {"network-row.network-id-surface-tooltip-1icon-2name", sprite, lname}
     end
   end
-  return tip
+  return nil
+end
+-- Cache for tooltips so we don't recreate them every update
+local network_surface_tip_cache = Cache.new(function(signature, network)
+  return get_network_surface_tip(network) end)
+
+--- Located on: (Planet)
+---@param tip table<LocalisedString> Existing tooltip content
+---@param network LuaLogisticNetwork The logistics network to get surface info from
+---@return table<LocalisedString> The formatted tooltip with surface information
+function tooltips_helper.add_network_surface_tip(tip, network)
+  local nwtip = network_surface_tip_cache:get(network.network_id, network)
+  if nwtip then
+    return {"", tip, "\n", nwtip}
+  else
+    return tip
+  end
 end
 
 -- Add an empty line to the tooltip
@@ -70,15 +84,10 @@ end
 
 -- Idle: X of Y [item=logistic-robot]
 ---@param tip table<LocalisedString> Existing tooltip content
----@param network LuaLogisticNetwork|nil The logistics network
 ---@param idle_count number Number of idle robots
 ---@param total_count number Total number of robots
 ---@return table<LocalisedString> The formatted tooltip
-function tooltips_helper.add_bots_idle_and_total_tip(tip, network, idle_count, total_count)
-  if not network or not network.cells or #network.cells == 0 then
-    return tip
-  end
-
+function tooltips_helper.add_bots_idle_and_total_tip(tip, idle_count, total_count)
   return {"", tip, "\n", {"controller-gui.idle-total-count-1idle-2total", idle_count, total_count}}
 end
 
@@ -110,16 +119,15 @@ function tooltips_helper.add_network_history_tip(tip, player_table, networkdata)
   return tip
 end
 
----@param player_table PlayerData The player's data table
 ---@param formatstr string The format string for the tooltip
 ---@param count number The count to display
 ---@param quality_table table<string, number> Table of quality names to counts
 ---@return table<LocalisedString> The formatted tooltip with count and quality information
-function tooltips_helper.create_count_with_qualities_tip(player_table, formatstr, count, quality_table)
+function tooltips_helper.create_count_with_qualities_tip(formatstr, count, quality_table)
   -- Line 1: Show count string
   local tip = { "", {formatstr, count}, "\n" }
   -- Line 2: Show quality counts
-  tip = tooltips_helper.get_quality_tooltip_line(tip, player_table, quality_table)
+  tip = tooltips_helper.get_quality_tooltip_line(tip, quality_table)
   return tip
 end
 
@@ -130,10 +138,8 @@ end
 -- if include_empty is true, the tip will include qualities with zero count
 ---@param formatname string The format string for individual quality entries
 ---@param quality_table table<string, number> Table of quality names to counts
----@param item_separator? string Separator between quality entries (default: ", ")
----@param include_empty? boolean Whether to include qualities with zero count
 ---@return table<LocalisedString> The formatted quality tooltip or {""} if no data
-local function getqualitytip(formatname, quality_table, item_separator, include_empty)
+local function getqualitytip(formatname, quality_table)
   local tip = {""}
   if not formatname or not quality_table or not prototypes.quality then
     return tip
@@ -144,28 +150,44 @@ local function getqualitytip(formatname, quality_table, item_separator, include_
   local quality = prototypes.quality.normal
   while quality do
     local amount = quality_table[quality.name] or 0
-    if include_empty or amount > 0 then
-      -- Use coloured quality names to show bot qualities
-      tip = {"", tip, separator, {formatname, quality.name, amount}}
-      separator = item_separator or ", "
-    end
+    -- Use coloured quality names to show bot qualities
+    tip = {"", tip, separator, {formatname, quality.name, amount}}
+    separator = "  " -- two spaces
+
     -- Make sure we iterate over the qualities in quality order
     quality = quality.next
   end
 
   return tip
 end
+-- Cache for tooltips so we don't recreate them every update
+-- Build a stable signature for a quality counts table so cache keys are immutable
+local function make_quality_signature(quality_table)
+  local parts = {}
+  local quality = prototypes.quality.normal
+  while quality do
+    parts[#parts+1] = tostring(quality_table[quality.name] or 0)
+    quality = quality.next
+  end
+  return table.concat(parts, "|")
+end
+
+-- Cache by signature; pass the actual table to generator for rendering
+local quality_tip_cache = Cache.new(function(signature, quality_table, formatname)
+  return getqualitytip(formatname, quality_table)
+end)
 
 -- Return a whole line for all qualities
 ---@param tip table<LocalisedString> Existing tooltip content
----@param player_table PlayerData The player's data table
 ---@param quality_table table<string, number> Table of quality names to counts
 ---@param newline? boolean Whether to add a newline at the end
 ---@param formatstr? string Optional format string to wrap the quality tip
 ---@return table<LocalisedString> The tooltip with quality information added
-function tooltips_helper.get_quality_tooltip_line(tip, player_table, quality_table, newline, formatstr)
+function tooltips_helper.get_quality_tooltip_line(tip, quality_table, newline, formatstr)
   if settings.global["li-gather-quality-data-global"].value and prototypes.quality then
-    local quality_tip = getqualitytip("network-row.quality-tooltip-1quality-2count", quality_table, "  ", true)
+    -- Use a string summarizing the counts as key
+    local sig = make_quality_signature(quality_table)
+    local quality_tip = quality_tip_cache:get(sig, quality_table, "network-row.quality-tooltip-1quality-2count")
     if formatstr then
       tip = {"", tip, {formatstr, quality_tip}}
     else
@@ -177,6 +199,13 @@ function tooltips_helper.get_quality_tooltip_line(tip, player_table, quality_tab
     end
   end
   return tip
+end
+
+--- Clear all caches occasionally to avoid memory bloat
+function tooltips_helper.clear_caches()
+  network_surface_tip_cache:clear()
+  quality_tip_cache:clear()
+  surface_cache:clear()
 end
 
 return tooltips_helper

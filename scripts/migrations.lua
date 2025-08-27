@@ -8,6 +8,7 @@ local chunker = require("scripts.chunker")
 local scheduler = require("scripts.scheduler")
 local capability_manager = require("scripts.capability-manager")
 local suggestions = require("scripts.suggestions")
+local logistic_cell_counter = require("scripts.logistic-cell-counter")
 
 local function init_storage_and_settings()
   player_data.init_storages()
@@ -262,6 +263,14 @@ local li_migrations = {
       -- Re-initialise the UI
       local player = game.get_player(player_index)
       reinitialise_ui(player, player_table)
+    end
+  end,
+
+  ["0.10.4"] = function() -- Optimise UI updates for large networks
+    -- Restart cell counting, since we added a new field
+    for _, nwd in pairs(storage.networks) do
+      nwd.total_cells = 0
+      logistic_cell_counter.restart_counting(nwd)
     end
   end,
 }

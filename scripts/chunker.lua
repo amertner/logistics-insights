@@ -118,7 +118,7 @@ end
 function chunker:process_chunk(on_process_entity, on_completion)
   local processing_list = self.processing_list
   if not processing_list or #processing_list == 0 then
-    on_completion(self.partial_data)
+    on_completion(self.partial_data, self.gather, self.networkdata)
     return
   end
 

@@ -28,6 +28,7 @@ local tick_counter = require("scripts.tick-counter")
 ---@field charging_bot_qualities QualityTable Quality of bots currently charging
 ---@field waiting_bot_qualities QualityTable Quality of bots waiting to charge
 ---@field roboport_qualities QualityTable Quality of roboports
+---@field total_cells number Total number of cells in the network
 ---@ -- Fields populated by bot_counter
 ---@field bot_deliveries table<string, DeliveryItem> A list of items being delivered right now
 ---@field bot_items table<string, number> Real time data about bots: Very cheap to keep track of
@@ -149,7 +150,8 @@ function network_data.create_networkdata(network)
       picking_bot_qualities = {},
       delivering_bot_qualities = {},
       other_bot_qualities = {},
-      total_bot_qualities = {}
+      total_bot_qualities = {},
+      total_cells = 0
     }
   end
   return storage.networks[network.network_id]
