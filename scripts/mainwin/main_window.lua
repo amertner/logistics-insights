@@ -282,6 +282,13 @@ function main_window.update_cells_progress(player_table, progress)
   progress_bars.update_progressbar(player_table, "activity", progress)
 end
 
+-- Update the Undersupply progress bar
+--- @param player_table PlayerData The player's data table
+--- @param progress Progress|nil The progress data with current and total values
+function main_window.update_undersupply_progress(player_table, progress)
+  progress_bars.update_progressbar(player_table, "undersupply-row", progress)
+end
+
 --- Destroy the main window
 --- @param player LuaPlayer The player whose window to destroy
 --- @param player_table PlayerData The player's data table

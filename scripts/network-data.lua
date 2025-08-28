@@ -11,9 +11,10 @@ local tick_counter = require("scripts.tick-counter")
 ---@field id number -- The unique ID of the network
 ---@field surface string -- The surface name where the network is located
 ---@field force_name string -- The force name of the network
----@field players_set table<uint, boolean> -- Set of player indexes active in this network (key = player index)
+---@field players_set table<number, boolean> -- Set of player indexes active in this network (key = player index)
 ---@field cell_chunker Chunker -- Chunker for processing logistic cells
 ---@field bot_chunker Chunker -- Chunker for processing logistic bots
+---@field undersupply_chunker Chunker -- Chunker for analysing undersupply items
 ---@field history_timer TickCounter -- Tracks time for collecting delivery history
 ---@field bg_paused boolean -- True if background processing is paused for this network
 ---@ -- Suggestions and undersupply data
@@ -132,6 +133,7 @@ function network_data.create_networkdata(network)
       players_set = {},
       cell_chunker = chunker.new(),
       bot_chunker = chunker.new(),
+      undersupply_chunker = chunker.new(),
       last_accessed_tick = game.tick,
       last_active_tick = game.tick,
       bg_paused = false,

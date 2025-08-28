@@ -16,7 +16,7 @@ local ROW_TITLE = "undersupply-row"
 function undersupply_row.add(player_table, gui_table)
   if player_table.settings.show_undersupply then
     -- Add a standard sorted item row, with pause/start button
-    sorted_item_row.add(player_table, gui_table, ROW_TITLE, "undersupply", false)
+    sorted_item_row.add(player_table, gui_table, ROW_TITLE, "undersupply", true)
   end
 end
 

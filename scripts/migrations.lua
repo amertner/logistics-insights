@@ -260,10 +260,6 @@ local li_migrations = {
 
       -- Don't say analysis is paused because the window is hidden any more
       capability_manager.set_reason(player_table, "window", "user", false)
-
-      -- Re-initialise the UI
-      local player = game.get_player(player_index)
-      reinitialise_ui(player, player_table)
     end
   end,
 
@@ -273,6 +269,18 @@ local li_migrations = {
       nwd.total_cells = 0
       logistic_cell_counter.restart_counting(nwd)
       bot_counter.restart_counting(nwd)
+    end
+  end,
+
+  ["0.10.5"] = function() -- Spread out undersupply calculation over multiple ticks
+    -- Initialise new chunker for undersupply processing
+    for _, nwd in pairs(storage.networks) do
+      nwd.undersupply_chunker = chunker.new()
+    end
+    -- Added progress indicators, so reinitialise the UI to ensure it's correct
+    for player_index, player_table in pairs(storage.players) do
+      local player = game.get_player(player_index)
+      reinitialise_ui(player, player_table)
     end
   end,
 }

@@ -31,15 +31,16 @@ function chunker.new()
   end
   self.current_index = 1
   self.processing_list = nil
+  self.processing_count = 0
   self.partial_data = {}
   self.networkdata = nil
   return self
 end
 
 --- Initialize chunking with a list of entities to process
+--- @param networkdata LINetworkData|nil The network data associated with this chunker
 --- @param list table|nil The list of entities to process in chunks
 --- @param initial_data any|nil Initial data to pass to the initialization function
---- @param networkdata LINetworkData|nil The network data associated with this chunker
 --- @param gather_options GatherOptions Options for what to gather during processing
 --- @param on_init function(partial_data, initial_data) 
 function chunker:initialise_chunking(networkdata, list, initial_data, gather_options, on_init)
@@ -74,6 +75,12 @@ function chunker:num_chunks()
   else
     return math.ceil(self.processing_count / self.CHUNK_SIZE)
   end
+end
+
+--- Check if there is or has been something to process
+--- @return boolean True if processing is complete
+function chunker:is_processing()
+  return self.processing_count > 0
 end
 
 --- Check if all chunks have been processed

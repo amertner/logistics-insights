@@ -8,10 +8,10 @@ local capability_manager = require("scripts.capability-manager")
 
 ---@class SchedulerTask
 ---@field name string Unique task name
----@field interval uint Interval in ticks
+---@field interval number Interval in ticks
 ---@field per_player boolean If true, runs once per player (fn(player, player_table)), else global (fn())
 ---@field fn function The function to execute
----@field last_run uint Last tick run (for global tasks)
+---@field last_run number Last tick run (for global tasks)
 ---@field capability string|nil Optional pause capability key. If set and the capability is paused for the player (per_player tasks) the task is skipped without updating last_run.
 
 local global_tasks = {}   ---@type table<string, SchedulerTask>
@@ -20,10 +20,10 @@ local player_tasks = {}   ---@type table<string, SchedulerTask>
 local global_task_order = {} ---@type string[]
 local player_task_order = {} ---@type string[]
 -- Per-player interval overrides: player_index -> task_name -> interval
-local player_intervals = {} ---@type table<uint, table<string, uint>>
+local player_intervals = {} ---@type table<number, table<string, number>>
 
 --- Register a periodic task.
----@param opts {name:string, interval:uint, per_player?:boolean, fn:function, capability?:string}
+---@param opts {name:string, interval:number, per_player?:boolean, fn:function, capability?:string}
 function scheduler.register(opts)
   if not opts or not opts.name or not opts.interval or not opts.fn then
     error("scheduler.register: missing required fields")
@@ -74,7 +74,7 @@ end
 
 --- Update interval for an existing task without resetting last_run state.
 --- @param name string
---- @param new_interval uint
+--- @param new_interval number
 function scheduler.update_interval(name, new_interval)
   local task = global_tasks[name]
   if task then
@@ -106,9 +106,9 @@ function scheduler.apply_all_player_intervals()
 end
 
 --- Set or update a per-player interval override for a task.
---- @param player_index uint
+--- @param player_index number
 --- @param task_name string
---- @param interval uint
+--- @param interval number
 function scheduler.update_player_interval(player_index, task_name, interval)
   local task = player_tasks[task_name] or global_tasks[task_name]
   if not task then
@@ -131,8 +131,8 @@ function scheduler.update_player_interval(player_index, task_name, interval)
 end
 
 --- Batch update per-player intervals.
---- @param player_index uint
---- @param intervals table<string,uint>
+--- @param player_index number
+--- @param intervals table<string,number>
 function scheduler.update_player_intervals(player_index, intervals)
   for name, interval in pairs(intervals) do
     scheduler.update_player_interval(player_index, name, interval)

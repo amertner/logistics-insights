@@ -5,6 +5,7 @@ local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
 local bot_counter = require("scripts.bot-counter")
 local logistic_cell_counter = require("scripts.logistic-cell-counter")
+local suggestions_calc = require("scripts.suggestions-calc")
 local controller_gui = require("scripts.controller-gui")
 local utils = require("scripts.utils")
 local li_migrations = require("scripts.migrations")
@@ -45,11 +46,11 @@ local function background_refresh()
           if network then
             local waiting_to_charge_count = (networkdata.bot_items and networkdata.bot_items["waiting-for-charge-robot"]) or 0
             -- Evaluate cells and bots for suggestions
-            networkdata.suggestions:evaluate_background_cells(network, waiting_to_charge_count)
-            networkdata.suggestions:evaluate_background_bots(network)
+            suggestions_calc.evaluate_background_cells(networkdata.suggestions, network, waiting_to_charge_count)
+            suggestions_calc.evaluate_background_bots(networkdata.suggestions, network)
 
             -- Evaluate undersupply as the final step
-            networkdata.suggestions:evaluate_background_undersupply(network, networkdata.bot_deliveries)
+            suggestions_calc.evaluate_background_undersupply(networkdata.suggestions, network, networkdata.bot_deliveries)
           end
           -- Signal that the background refresh is done
           storage.bg_refreshing_network_id = nil
@@ -121,7 +122,9 @@ scheduler.register({ name = "undersupply-bots", interval = 60, per_player = true
   local nwd = network_data.get_networkdata(player_table.network)
   if nwd then
     local bot_deliveries = nwd.bot_deliveries or {}
-    if nwd.suggestions:evaluate_player_undersupply(player_table, bot_deliveries, false) then
+    local us_progress = suggestions_calc.evaluate_player_undersupply(nwd, player_table, bot_deliveries, false)
+    main_window.update_undersupply_progress(player_table, us_progress)
+    if us_progress and us_progress.total > 0 and us_progress.current >= us_progress.total then
       network_data.finished_updating_network(nwd)
     end
   end
@@ -131,7 +134,7 @@ scheduler.register({ name = "suggestions-cells", interval = 60, per_player = tru
   if nwd then
     local waiting_to_charge_count = (nwd.bot_items and nwd.bot_items["waiting-for-charge-robot"]) or 0
     -- Evaluate cells and bots for suggestions
-    if nwd.suggestions:evaluate_player_cells(player_table, waiting_to_charge_count) then
+    if suggestions_calc.evaluate_player_cells(nwd.suggestions, player_table, waiting_to_charge_count) then
       network_data.finished_updating_network(nwd)
     end
   end
@@ -139,7 +142,7 @@ end })
 scheduler.register({ name = "suggestions-bots", interval = 60, per_player = true, capability = "suggestions", fn = function(player, player_table)
   local nwd = network_data.get_networkdata(player_table.network)
   if nwd then
-    if nwd.suggestions:evaluate_player_bots(player_table) then
+    if suggestions_calc.evaluate_player_bots(nwd.suggestions, player_table) then
       network_data.finished_updating_network(nwd)
     end
   end

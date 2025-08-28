@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.10.5
+Date: 2025-08-28
+  Changes:
+    - Spread out calculation of undersupply across multiple ticks to reduce performance impact
+---------------------------------------------------------------------------------------------------
 Version: 0.10.4
 Date: 2025-08-27
   Features:
