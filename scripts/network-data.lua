@@ -4,7 +4,6 @@ local network_data = {}
 local suggestions = require("scripts.suggestions")
 local capability_manager = require("scripts.capability-manager")
 local chunker = require("scripts.chunker")
-local player_data = require("scripts.player-data")
 local tick_counter = require("scripts.tick-counter")
 
 -- Data stored for each network
@@ -243,23 +242,16 @@ function network_data.check_network_changed(player, player_table)
     local new_network_id = network and network.valid and network.network_id or 0
     local old_network_id = player_table_network and player_table_network.valid and player_table_network.network_id or 0
 
+    local has_network = (network ~= nil)
+    capability_manager.set_reason(player_table, "delivery", "no_network", not has_network)
+    capability_manager.set_reason(player_table, "activity", "no_network", not has_network)
+    capability_manager.set_reason(player_table, "history", "no_network", not has_network)
+    capability_manager.set_reason(player_table, "suggestions", "no_network", not has_network)
+    capability_manager.set_reason(player_table, "undersupply", "no_network", not has_network)
     if new_network_id == old_network_id then
       -- Update no_network reason (still evaluate if network exists)
-      local has_network = (network ~= nil)
-      capability_manager.set_reason(player_table, "delivery", "no_network", not has_network)
-      capability_manager.set_reason(player_table, "activity", "no_network", not has_network)
-      capability_manager.set_reason(player_table, "history", "no_network", not has_network)
-      capability_manager.set_reason(player_table, "suggestions", "no_network", not has_network)
-      capability_manager.set_reason(player_table, "undersupply", "no_network", not has_network)
       return false
     else
-      local has_network = (network ~= nil)
-      capability_manager.set_reason(player_table, "delivery", "no_network", not has_network)
-      capability_manager.set_reason(player_table, "activity", "no_network", not has_network)
-      capability_manager.set_reason(player_table, "history", "no_network", not has_network)
-      capability_manager.set_reason(player_table, "suggestions", "no_network", not has_network)
-      capability_manager.set_reason(player_table, "undersupply", "no_network", not has_network)
-
       network_data.player_changed_networks(player_table, old_network_id, network)
       return true
     end

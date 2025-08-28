@@ -138,6 +138,19 @@ function Suggestions:evaluate_background_bots(network)
   self:analyse_too_many_bots(network)
 end
 
+---@class UndersupplyCalculation
+---@field networkid number The network ID
+---@field next_stage number
+--- --@field requester_list nil|Requester of requesters from stage 1
+--- --@field filter_list nil|LogisticFilter[] List of filters from stage 2
+---@field requesterfilter_list nil|table<{requester: LuaEntity, filter: LogisticFilter}> List of requester/filter pairs from stage 1
+---@field total_demand nil|table Table of item-quality keys to total demand counts from stage 3
+---@field total_supply nil|table Table of item-quality keys to total supply counts from stage 4
+---@field stage_data nil|table The data from the prior stage
+
+---@type table<number, UndersupplyCalculation>
+local undersupply_calculations = {}
+
 --- Evaluate undersupply based on latest bot data without consuming dirty flag (runs even if suggestions paused)
 --- @param player_table PlayerData
 --- @param bot_deliveries table<string, DeliveryItem> A list of items being delivered right now
@@ -145,15 +158,52 @@ end
 --- @return boolean True if something was evaluated, false if skipped due to not dirty
 function Suggestions:evaluate_player_undersupply(player_table, bot_deliveries, consume_flag)
   if not player_table then return false end
-  -- Only proceed if undersupply capability is dirty
-  local dirty = capability_manager.consume_dirty(player_table, "undersupply")
-  if not dirty then return false end
   local network = player_table.network
   if not network then return false end
 
-  local excessivedemand = undersupply.analyse_demand_and_supply(network, bot_deliveries)
-  self:set_cached_list("undersupply", excessivedemand)
-  self._current_tick = game.tick
+  if undersupply_calculations[network.network_id] then
+    -- Calculations are under way, continue
+    local calc = undersupply_calculations[network.network_id]
+    if calc.next_stage == 1 then
+      -- Stage 1: Get requester/filter list
+      calc.requesterfilter_list = undersupply.stage1_get_requesterfilters(network)
+      calc.next_stage = 3
+    -- elseif calc.next_stage == 2 then
+    --   -- Stage 2: Calculate total demand
+    --   calc.filter_list = undersupply.stage2_get_filters(calc.requester_list)
+    --   calc.next_stage = 3
+    elseif calc.next_stage == 3 then
+      -- Stage 2: Calculate total demand
+      calc.total_demand = undersupply.stage3_calculate_demand(calc.requesterfilter_list)
+      calc.next_stage = 4
+    elseif calc.next_stage == 4 then
+      -- Stage 3: Calculate total supply
+      calc.total_supply = undersupply.stage4_calculate_supply(network)
+      calc.next_stage = 5
+    elseif calc.next_stage == 5 then
+      -- Stage 4: Calculate net demand
+      local demand = calc.total_demand
+      local supply = calc.total_supply
+      if demand and supply then
+        local excessivedemand = undersupply.stage5_calculate_net_demand(demand, supply, bot_deliveries)
+        self:set_cached_list("undersupply", excessivedemand)
+      end
+      undersupply_calculations[network.network_id] = nil -- Done
+      self._current_tick = game.tick
+    end
+  else
+    -- Only proceed if undersupply capability is dirty
+    local dirty = capability_manager.consume_dirty(player_table, "undersupply")
+    if not dirty then return false end
+
+    undersupply_calculations[network.network_id] = {
+      networkid = network.network_id,
+      next_stage = 1,
+      stage_data = nil
+    }
+  end
+
+  --local excessivedemand = undersupply.analyse_demand_and_supply(network, bot_deliveries)
   return true
 end
 
