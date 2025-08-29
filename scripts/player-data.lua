@@ -2,6 +2,7 @@
 local player_data = {}
 
 local capability_manager = require("scripts.capability-manager")
+local network_data = require("scripts.network-data")
 
 -- Cache frequently used functions for performance
 local math_max = math.max
@@ -133,5 +134,22 @@ function player_data.register_ui(player_table, name)
   player_table.ui[name] = {}
 end
 
+
+function player_data.is_foreground_network_paused_for_capability(networkdata, capability, setting)
+  if not networkdata or not capability then
+    return false
+  end
+  local has_players = false
+  for player_index, _ in pairs(networkdata.players_set) do
+    has_players = true
+    local pt = player_data.get_player_table(player_index)
+    if pt and pt.settings and pt.settings[setting] then
+      if capability_manager.is_active(pt, capability) then
+        return false -- At least one player is not paused, so the network is not paused
+      end
+    end
+  end
+  return has_players -- If foreground for at least one player, all players are paused for this capability
+end
 
 return player_data
