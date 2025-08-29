@@ -15,6 +15,7 @@ local scheduler = require("scripts.scheduler")
 local capability_manager = require("scripts.capability-manager")
 local networks_window= require("scripts.networkswin.networks_window")
 local tooltips_helper = require("scripts.tooltips-helper")
+local analysis_coordinator = require("scripts.analysis-coordinator")
 
 ---@alias SurfaceName string
 
@@ -42,19 +43,9 @@ local function background_refresh()
       if bot_counter.is_background_done(networkdata) then        
         -- The bot counter is finished; process the logistic cells
         if logistic_cell_counter.is_background_done(networkdata) then
-          local network = network_data.get_LuaNetwork(networkdata)
-          if network then
-            local waiting_to_charge_count = (networkdata.bot_items and networkdata.bot_items["waiting-for-charge-robot"]) or 0
-            -- Evaluate cells and bots for suggestions
-            suggestions_calc.evaluate_background_cells(networkdata.suggestions, network, waiting_to_charge_count)
-            suggestions_calc.evaluate_background_bots(networkdata.suggestions, network)
-
-            -- Evaluate undersupply as the final step
-            suggestions_calc.evaluate_background_undersupply(networkdata.suggestions, network, networkdata.bot_deliveries)
-          end
           -- Signal that the background refresh is done
           storage.bg_refreshing_network_id = nil
-          network_data.finished_updating_network(networkdata)
+          network_data.finished_scanning_network(networkdata)
         else
           logistic_cell_counter.process_background_network(networkdata)
         end
@@ -79,17 +70,31 @@ local function background_refresh()
   end
 end
 
+local function full_UI_refresh(player, player_table)
+  main_window.ensure_ui_consistency(player, player_table)
+  controller_gui.update_window(player, player_table)
+  main_window.update(player, player_table, false)
+  networks_window.update(player)
+end
+
 -- SETTING UP AND HANDLING SCHEDULED EVENTS
+-- All schedules are running every N ticks, where N are distinct prime numbers to avoid processing more than one thing on a tick.
+-- 3: Bot chunk scanning. Fast, to reduce undercounting.
+-- 5: Run one step of the currently active derived analysis, if any.
+-- 11: Background network refresh
+-- 29: Check whether a player's active network has changed
+-- 59: Cell chunk scanning. Slower, as cells change less often
+-- 61: Check which derived analysis should run, if any
 
 -- Check whether a player's active network has changed
 scheduler.register({
-name = "network-check", interval = 30, per_player = true, fn = function(player, player_table)
+name = "network-check", interval = 29, per_player = true, fn = function(player, player_table)
   if network_data.check_network_changed(player, player_table) then
-    networks_window.update_network_count(player, table_size(storage.networks) or 0)
+    full_UI_refresh(player, player_table)
   end
 end })
 -- Scheduler for refreshing background networks that don't have an active player in them
-scheduler.register({ name = "background-refresh", interval = 10, per_player = false,
+scheduler.register({ name = "background-refresh", interval = 11, per_player = false,
   fn = background_refresh
 })
 -- Clear the tooltip caches every 10 minutes to avoid memory bloat
@@ -98,7 +103,7 @@ scheduler.register({ name = "clear-caches", interval = 60*10, per_player = false
 })
 
 -- Scheduler tasks for refreshing the foreground network for each player
-scheduler.register({ name = "player-bot-chunk", interval = 10, per_player = true, capability = "delivery", fn = function(player, player_table)
+scheduler.register({ name = "player-bot-chunk", interval = 3, per_player = true, capability = "delivery", fn = function(player, player_table)
   local bot_progress = bot_counter.gather_data_for_player_network(player, player_table)
   main_window.update_bot_progress(player_table, bot_progress)
   if bot_progress and bot_progress.total > 0 and bot_progress.current >= bot_progress.total  then
@@ -107,53 +112,46 @@ scheduler.register({ name = "player-bot-chunk", interval = 10, per_player = true
     capability_manager.mark_dirty(player_table, "undersupply")
   end
 end })
-scheduler.register({ name = "player-cell-chunk", interval = 60, per_player = true, capability = "activity", fn = function(player, player_table)
+scheduler.register({ name = "player-cell-chunk", interval = 59, per_player = true, capability = "activity", fn = function(player, player_table)
   local cells_progress = logistic_cell_counter.gather_data_for_player_network(player, player_table)
   main_window.update_cells_progress(player_table, cells_progress)
   if cells_progress and cells_progress.total > 0 and cells_progress.current >= cells_progress.total  then
     capability_manager.mark_dirty(player_table, "suggestions")
     local nwd = network_data.get_networkdata(player_table.network)
-    network_data.finished_updating_network(nwd)
+    network_data.finished_scanning_network(nwd)
   end
 end })
 
--- Scheduler tasks for undersupply and suggestions
-scheduler.register({ name = "undersupply-bots", interval = 60, per_player = true, capability = "undersupply", fn = function(player, player_table)
-  local nwd = network_data.get_networkdata(player_table.network)
+-- Scheduler task for analysis tasks that derive from bots and cells data
+scheduler.register({ name = "pick-network-to-analyse", interval = 29, per_player = false, capability = nil, fn = function()
+  local nwd = analysis_coordinator.find_network_to_analyse()
   if nwd then
-    local bot_deliveries = nwd.bot_deliveries or {}
-    local us_progress = suggestions_calc.evaluate_player_undersupply(nwd, player_table, bot_deliveries, false)
-    main_window.update_undersupply_progress(player_table, us_progress)
-    if us_progress and us_progress.total > 0 and us_progress.current >= us_progress.total then
-      network_data.finished_updating_network(nwd)
-    end
-  end
-end })
-scheduler.register({ name = "suggestions-cells", interval = 60, per_player = true, capability = "suggestions", fn = function(player, player_table)
-  local nwd = network_data.get_networkdata(player_table.network)
-  if nwd then
-    local waiting_to_charge_count = (nwd.bot_items and nwd.bot_items["waiting-for-charge-robot"]) or 0
-    -- Evaluate cells and bots for suggestions
-    if suggestions_calc.evaluate_player_cells(nwd.suggestions, player_table, waiting_to_charge_count) then
-      network_data.finished_updating_network(nwd)
-    end
-  end
-end })
-scheduler.register({ name = "suggestions-bots", interval = 60, per_player = true, capability = "suggestions", fn = function(player, player_table)
-  local nwd = network_data.get_networkdata(player_table.network)
-  if nwd then
-    if suggestions_calc.evaluate_player_bots(nwd.suggestions, player_table) then
-      network_data.finished_updating_network(nwd)
-    end
+    log("Analysing network ID " .. nwd.id)
+    analysis_coordinator.start_analysis(nwd)
   end
 end })
 
--- Scheduler for updating the UI
-scheduler.register({ name = "ui-update", interval = 60, per_player = true, fn = function(player, player_table)
-  main_window.ensure_ui_consistency(player, player_table)
-  controller_gui.update_window(player, player_table)
-  main_window.update(player, player_table, false)
-  networks_window.update(player)
+-- Scheduler task for running the currently active derived analysis, if any
+scheduler.register({ name = "run-derived-analysis", interval = 5, per_player = false, capability = nil,
+  fn = analysis_coordinator.run_analysis_step })
+
+-- Schedulers for updating the UI
+scheduler.register({ name = "ui-update", interval = 60, per_player = true,
+  fn = full_UI_refresh })
+
+-- Update just progress indicators for background scans
+scheduler.register({ name = "analysis-progress-update", interval = 5, per_player = true, fn = function(player, player_table)
+  if analysis_coordinator.is_analysing_player_network(player_table) then
+    local state = storage.analysis_state
+    if state and state.undersupply_chunker then
+      local progress = state.undersupply_chunker:get_progress()
+      main_window.update_undersupply_progress(player_table, progress)
+    end
+    if state and state.storage_chunker then
+      local progress = state.storage_chunker:get_progress()
+      main_window.update_suggestions_progress(player_table, progress)
+    end
+  end
 end })
 
 -- All actual timed dispatching handler in scheduler.lua
@@ -291,11 +289,16 @@ script.on_event(defines.events.on_gui_click,
   function(event)
   controller_gui.onclick(event)
   main_window.onclick(event)
-  if networks_window.on_gui_click(event) then
+  local action = networks_window.on_gui_click(event)
+  if action then
     local player = game.get_player(event.player_index)
     local player_table = player_data.get_player_table(event.player_index)
-    if player and player.valid and player_table then
-      main_window.set_window_visible(player, player_table, true)
+    if action == "refresh" then
+      full_UI_refresh(player, player_table)
+    elseif action == "openmain" then
+      if player and player.valid and player_table then
+        main_window.set_window_visible(player, player_table, true)
+      end
     end
   end
 end)

@@ -7,7 +7,7 @@
 ---@class GatherOptions
 ---@field quality? boolean
 ---@field history? boolean
----@
+
 ---@class Chunker
 ---@field CHUNK_SIZE number The size of each chunk to process
 ---@field gather GatherOptions
@@ -16,6 +16,7 @@
 ---@field processing_count number The total number of entities to process
 ---@field partial_data table Accumulator for partial data during processing
 ---@field networkdata LINetworkData|nil The network data associated with this chunker
+---@field is_finalised boolean Whether the chunker has completed processing
 local chunker = {}
 chunker.__index = chunker
 script.register_metatable("logistics-insights-Chunker", chunker)
@@ -34,6 +35,7 @@ function chunker.new()
   self.processing_count = 0
   self.partial_data = {}
   self.networkdata = nil
+  self.is_finalised = true
   return self
 end
 
@@ -46,6 +48,7 @@ end
 function chunker:initialise_chunking(networkdata, list, initial_data, gather_options, on_init)
   self.processing_list = list
   self.processing_count = list and #list or 0 -- Calculate once to avoid recounting
+  self.is_finalised = self.processing_count == 0 -- If nothing to process, mark as finalised
   self.current_index = 1
   self.CHUNK_SIZE = tonumber(settings.global["li-chunk-size-global"].value) or 208
   self.gather = gather_options or {}
@@ -62,7 +65,10 @@ end
 --- @param on_completion function(partial_data, player_table)
 function chunker:reset(networkdata, on_init, on_completion)
   -- Do whatever needs doing when the list is done
-  on_completion(self.partial_data, self.gather, self.networkdata)
+  if not self.is_finalised then
+    self.is_finalised = true
+    on_completion(self.partial_data, self.gather, self.networkdata)
+  end
   -- Reset the counter and claim completion
   self:initialise_chunking(nil, nil, networkdata, self.gather, on_init)
 end
@@ -85,18 +91,26 @@ end
 
 --- Check if all chunks have been processed
 --- @return boolean True if processing is complete
-function chunker:is_done()
-  return self.processing_count == 0 or self.current_index > self.processing_count
+function chunker:needs_data()
+  return self.is_finalised -- If data has been finalised, then we need new data
 end
 
---- Get the number of chunks remaining to be processed
---- @return number The number of chunks remaining
-function chunker:get_chunks_remaining()
-  if self:is_done() then
-    return 0
-  else
-    return math.ceil((self.processing_count - self.current_index + 1) / self.CHUNK_SIZE)
-  end
+--- Check if the run is done and needs finalisation
+--- @return boolean True if processing is complete
+function chunker:needs_finalisation()
+  return not self.is_finalised and self.current_index > self.processing_count
+end
+
+--- Check if the run needs more processing
+--- @return boolean True if processing is needed
+function chunker:needs_processing()
+  return not self.is_finalised and self.current_index <= self.processing_count
+end
+
+--- Check if the chunker has been finalised
+--- @return boolean True if the chunker has been finalised
+function chunker:is_done_processing()
+  return self.is_finalised
 end
 
 --- Get the current processing progress
@@ -121,16 +135,23 @@ function chunker:get_partial_data()
   return self.partial_data
 end
 
---- Process one chunk of entities from the current list
---- @param on_process_entity function(entity, partial_data, player_table)
+--- Finalise the run, if needed, then mark as done
 --- @param on_completion function(partial_data, player_table)
-function chunker:process_chunk(on_process_entity, on_completion)
-  local processing_list = self.processing_list
-  if self.processing_count == 0 or not processing_list then
+function chunker:finalise_run(on_completion)
+  if not self.is_finalised then
+    self.is_finalised = true
     on_completion(self.partial_data, self.gather, self.networkdata)
-    return
+  end
+end
+
+--- Process one chunk of entities from the current list
+--- @param on_process_entity function(entity, partial_data, gather_options, networkdata)
+function chunker:process_chunk(on_process_entity)
+  if self.is_finalised then
+    return -- Nothing to do
   end
 
+  local processing_list = self.processing_list or {}
   local list_size = self.processing_count
   local current_index = self.current_index
   local chunk_size = self.CHUNK_SIZE
@@ -144,10 +165,6 @@ function chunker:process_chunk(on_process_entity, on_completion)
   end
 
   self.current_index = end_index + 1
-
-  if end_index + 1 > list_size then
-    on_completion(self.partial_data, self.gather, self.networkdata)
-  end
 end
 
 return chunker

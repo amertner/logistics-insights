@@ -43,6 +43,14 @@ function suggestions_row.add(player_table, gui_table)
   local is_paused = not capability_manager.is_active(player_table, "suggestions")
   mini_button.add(player_table, hcell, "suggestions", tip, "pause", is_paused)
 
+  -- Add progress bar
+  local progressbar = cell.add {
+    type = "progressbar",
+    name = ROW_TITLE .. "_progressbar",
+  }
+  progressbar.style.horizontally_stretchable = true
+  player_table.ui[ROW_TITLE].progressbar = progressbar
+
   -- Remember the title cell so we can update the tooltip later
   player_table.ui[ROW_TITLE].titlecell = titlecell
   player_table.ui[ROW_TITLE].suggestion_buttons = {}

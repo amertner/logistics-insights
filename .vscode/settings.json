@@ -4,10 +4,17 @@
             "name": "spaceage",
             "factorio_version": "2.0.55",
             "factorioPath": "/Volumes/ExtData/SteamGames/steamapps/common/Factorio/factorio.app/Contents/MacOS/factorio"
+        },
+        {
+            "name": "Steam Windows",
+            "factorioPath": "d:\\SteamLibrary\\steamapps\\common\\Factorio\\bin\\x64\\factorio.exe"
         }
     ],
     "Lua.workspace.userThirdParty": [
-        "/Users/allan/Library/Application Support/Code/User/workspaceStorage/ab52545f8b40c61b79e7ae2e45b5f71a/justarandomgeek.factoriomod-debug/sumneko-3rd"
+        "c:\\Users\\allan\\AppData\\Roaming\\Code\\User\\workspaceStorage\\179209308ee3fac9cbf1bce2faaaf0ee\\justarandomgeek.factoriomod-debug\\sumneko-3rd"
     ],
-    "Lua.workspace.checkThirdParty": "ApplyInMemory"
+    "Lua.workspace.checkThirdParty": "ApplyInMemory",
+    "Lua.diagnostics.disable": [
+        "different-requires"
+    ]
 }

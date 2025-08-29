@@ -273,10 +273,15 @@ local li_migrations = {
   end,
 
   ["0.10.5"] = function() -- Spread out undersupply calculation over multiple ticks
-    -- Initialise new chunker for undersupply processing
+    storage.analysing_networkdata = nil -- New field, make sure it's clear
+    -- Add new fields and remove deprecated field
     for _, nwd in pairs(storage.networks) do
-      nwd.undersupply_chunker = chunker.new()
+      nwd.last_scanned_tick = nwd.last_active_tick or 0
+      nwd.last_analysed_tick = 0
+      ---@diagnostic disable-next-line: inject-field
+      nwd.last_active_tick = nil
     end
+
     -- Added progress indicators, so reinitialise the UI to ensure it's correct
     for player_index, player_table in pairs(storage.players) do
       local player = game.get_player(player_index)

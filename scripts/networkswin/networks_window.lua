@@ -183,7 +183,7 @@ local cell_setup = {
         el.caption = "*"
         el.tooltip = {"networks-window.updating-tooltip"}
       else
-        local last_tick = nw.last_active_tick or 0
+        local last_tick = nw.last_analysed_tick or 0
         local age_ticks = (game and game.tick or 0) - last_tick
         if age_ticks < 0 then age_ticks = 0 end
         local time_str = flib_format.time(age_ticks, false)
@@ -509,9 +509,9 @@ function networks_window.decrease_window_size(player)
 end
 
 --- Handle clicks on Networks window mini buttons (settings/trash).
---- Returns true if the event was handled.
+--- Returns "refresh", "openmain" or nil
 ---@param event EventData.on_gui_click
----@return boolean Returns true if the main window should be opened as a result
+---@return string|nil nil if no action, "refresh" is the UI needs refreshing, and "openmain" if the main window should be opened
 function networks_window.on_gui_click(event)
   local element = event.element
   if not (element and element.valid) then return false end
@@ -557,7 +557,7 @@ function networks_window.on_gui_click(event)
         )
       end
       -- Open the main window if not already open
-      return true
+      return "openmain"
     elseif col_key == "trash" and network_id then
       -- Remove the network from storage
       if network_data.remove_network(network_id) then
@@ -578,9 +578,10 @@ function networks_window.on_gui_click(event)
         -- If we just paused the network being refreshed, clear the refresh state
         storage.bg_refreshing_network_id = nil
       end
+      return "refresh"
     end
   end
-  return false
+  return nil
 end
 
 return networks_window

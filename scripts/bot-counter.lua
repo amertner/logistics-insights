@@ -316,14 +316,17 @@ function bot_counter.gather_data_for_player_network(player, player_table)
   if show_delivering or show_history then
     local bot_chunker = networkdata.bot_chunker
 
-    if bot_chunker:is_done() then
+    if bot_chunker:needs_data() then
       local gather_options = {}
       if player_table.settings.show_history then
         gather_options.history = true
       end
       bot_chunker:initialise_chunking(networkdata, network.logistic_robots, networkdata.last_pass_bots_seen, gather_options, bot_initialise_chunking)
     end
-    bot_chunker:process_chunk(process_one_bot, bot_chunks_done)
+    bot_chunker:process_chunk(process_one_bot)
+    if bot_chunker:needs_finalisation() then
+      bot_chunker:finalise_run(bot_chunks_done)
+    end
     progress = bot_chunker:get_progress()
   else
     networkdata.bot_items["delivering"] = nil
@@ -347,7 +350,7 @@ function bot_counter.is_background_done(networkdata)
     return true
   end
 
-  return bot_chunker:is_done()
+  return bot_chunker:is_done_processing()
 end
 
 -- Initialise background processing of a network
@@ -359,15 +362,24 @@ function bot_counter.init_background_processing(networkdata, network)
   if settings.global["li-gather-quality-data-global"].value then
     gather_options.quality = true
   end
-  bot_counter.restart_counting(networkdata)
-  networkdata.bot_chunker:initialise_chunking(networkdata, network.logistic_robots, networkdata.last_pass_bots_seen, gather_options, bot_initialise_chunking)
+  -- #FIXME: Do I need to "restart counting" here?
+  -- bot_counter.restart_counting(networkdata)
+  if networkdata.bot_chunker:needs_data() then
+    networkdata.bot_chunker:initialise_chunking(networkdata, network.logistic_robots, networkdata.last_pass_bots_seen, gather_options, bot_initialise_chunking)
+  else
+    -- #FIXME: Remove debug log messages
+    log("[bot-counter] Background processing for " .. networkdata.id .. " does not need new data? '")
+  end
 end
 
 -- Process a single chunk of background network data
 ---@param networkdata LINetworkData
 function bot_counter.process_background_network(networkdata)
   -- Process the background network data
-  networkdata.bot_chunker:process_chunk(process_one_bot, bot_chunks_done)
+  networkdata.bot_chunker:process_chunk(process_one_bot)
+  if networkdata.bot_chunker:needs_finalisation() then
+    networkdata.bot_chunker:finalise_run(bot_chunks_done)
+  end
   return true
 end
 

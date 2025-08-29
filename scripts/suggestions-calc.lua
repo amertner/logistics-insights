@@ -9,104 +9,6 @@ local network_data = require("scripts.network-data")
 local BOT_TREND_WINDOW_TICKS = 60 * 10 -- 10 seconds window for trend
 local MIN_TOTAL_BOTS_FOR_SUGGESTION = 100 -- Ignore small networks
 
--- Scheduler-driven evaluation helpers (dirty-flag + interval externalised)
---- Evaluate cell-related suggestions if needed (scheduler sets dirty flag and cadence)
---- @param suggestions Suggestions The suggestions manager
---- @param player_table PlayerData
---- @param waiting_to_charge_count number The number of bots waiting to charge
---- @return boolean True if something was evaluated, false if skipped due to not dirty
-function suggestions_calc.evaluate_player_cells(suggestions, player_table, waiting_to_charge_count)
-  if not player_table then return false end
-  -- Consume dirty flag from capability manager; if not dirty skip
-  if not capability_manager.consume_dirty(player_table, "suggestions") then return false end
-
-  suggestions:update_tick()
-  local network = player_table.network
-  suggestions_calc.analyse_waiting_to_charge(suggestions, waiting_to_charge_count)
-  suggestions_calc.analyse_storage(suggestions, network)
-  return true
-end
-
--- Scheduler-driven evaluation helpers (dirty-flag + interval externalised)
---- Evaluate cell-related suggestions if needed (scheduler sets dirty flag and cadence)
---- @param suggestions Suggestions The suggestions manager
---- @param network LuaLogisticNetwork The network to evaluate
---- @param waiting_to_charge_count number The number of bots waiting to charge
-function suggestions_calc.evaluate_background_cells(suggestions, network, waiting_to_charge_count)
-  suggestions_calc.analyse_waiting_to_charge(suggestions, waiting_to_charge_count)
-  suggestions_calc.analyse_storage(suggestions, network)
-end
-
---- Evaluate bot-related suggestions & undersupply if needed
---- @param suggestions Suggestions The suggestions manager
---- @param player_table PlayerData
---- @return boolean True if something was evaluated, false if skipped due to not dirty
-function suggestions_calc.evaluate_player_bots(suggestions, player_table)
-  if not player_table then return false end
-  if not capability_manager.consume_dirty(player_table, "suggestions") then return false end
-
-  suggestions:update_tick()
-  local network = player_table.network
-  if network then
-    suggestions_calc.analyse_too_many_bots(suggestions, network)
-    return true
-  end
-  return false
-end
-
---- Evaluate bot-related suggestions & undersupply if needed
---- @param suggestions Suggestions The suggestions manager
---- @param network LuaLogisticNetwork The network to evaluate
-function suggestions_calc.evaluate_background_bots(suggestions, network)
-  suggestions:update_tick()
-  suggestions_calc.analyse_too_many_bots(suggestions, network)
-end
-
---- Evaluate undersupply based on latest bot data without consuming dirty flag (runs even if suggestions paused)
---- @param networkdata LINetworkData The network data associated with this processing
---- @param player_table PlayerData
---- @param bot_deliveries table<string, DeliveryItem> A list of items being delivered right now
---- @param consume_flag boolean Whether to consume the dirty flag (default: false)
---- @return Progress Data for progress indicator
-function suggestions_calc.evaluate_player_undersupply(networkdata, player_table, bot_deliveries, consume_flag)
-  local progress = { current = 0, total = 0 } -- Use local variable to avoid global access
-  if not player_table then
-    return progress -- Ignore if no player_table is provided
-  end
-
-  local network = player_table.network
-  if not network then
-    return progress -- Ignore if no player_table is provided
-  end
-
-  if networkdata.undersupply_chunker:is_done() then
-    -- Pass was completed, so store results
-    networkdata.suggestions:set_cached_list("undersupply", networkdata.undersupply_chunker:get_partial_data().net_demand)
-    networkdata.suggestions:update_tick()
-
-    -- Only proceed to start a new run if undersupply capability is dirty
-    local dirty = capability_manager.consume_dirty(player_table, "undersupply")
-    if not dirty then
-      return progress
-    end
-    -- Prior pass was done, so start a new pass
-    networkdata.undersupply_chunker:initialise_chunking(networkdata, network.requesters, bot_deliveries, {}, undersupply.initialise_undersupply)
-  end
-  networkdata.undersupply_chunker:process_chunk(undersupply.process_one_requester, undersupply.all_chunks_done)
-
-  return networkdata.undersupply_chunker:get_progress()
-end
-
---- Evaluate undersupply for a background network
---- @param suggestions Suggestions The suggestions manager
---- @param network LuaLogisticNetwork The network to evaluate
---- @param bot_deliveries table<string, DeliveryItem> A list of items being delivered right now
-function suggestions_calc.evaluate_background_undersupply(suggestions, network, bot_deliveries)
-  local excessivedemand = undersupply.analyse_demand_and_supply(network, bot_deliveries)
-  suggestions:set_cached_list("undersupply", excessivedemand)
-  suggestions:update_tick()
-end
-
 -- Potential issue: Too many bots waiting to charge means we need more RPs
 ---@param suggestions Suggestions
 ---@param waiting_for_charge_count number The number of bots waiting to charge
@@ -144,77 +46,97 @@ function suggestions_calc.create_storage_capacity_suggestion(suggestions, sugges
   end
 end
 
--- Potential issue #1: Storage chests contain items that do not match the filter
--- Potential issue #2: There is not enough free unfiltered storage space
--- Potential issue #3: Storage chests overall are full, or not enough storage
---- @param suggestions Suggestions The suggestions manager
---- @param network? LuaLogisticNetwork The network being analysed
-function suggestions_calc.analyse_storage(suggestions, network)
-  if network and network.storages then
-    -- Maintain a list of mismatched storages
-    local mismatched = {}
-    -- Maintain a count of total and free stacks
-    local all_stacks, free_stacks = 0, 0
-    local unfiltered_stacks, unfiltered_free_stacks = 0, 0
-    for _, nstorage in pairs(network.storages) do
-      if nstorage.valid then
-        local inventory = nstorage.get_inventory(defines.inventory.chest)
-        -- Count total and free stacks
-        if inventory then
-          local capacity = #inventory
-          local free = inventory.count_empty_stacks()
-          all_stacks = all_stacks + capacity
-          free_stacks = free_stacks + free
+---@class StorageAccumulator
+---@field total_stacks number Total number of stacks in all storage chests
+---@field free_stacks number Total number of free stacks in all storage chests
+---@field unfiltered_total_stacks number Total number of stacks in unfiltered storage chests
+---@field unfiltered_free_stacks number Total number of free stacks in unfiltered storage chests
+---@field mismatched_storages LuaEntity[] List of storage chests that have items not
 
-          -- Iterate over filtered to find mismatches
-          if nstorage.filter_slot_count then
-            for finx = 1, nstorage.filter_slot_count do
-              -- Check if the filter matches the contents
-              local filter = nstorage.get_filter(finx)
-              if not filter then
-                -- There is no filter, count unfiltered capacity
-                if finx == 1 then -- If there are multiple filters, only count capacity once
-                  unfiltered_stacks = unfiltered_stacks + capacity
-                  unfiltered_free_stacks = unfiltered_free_stacks + free
-                end
-              else
-                if inventory and not inventory.is_empty() then
-                  -- Placeholder mismatch logic (unchanged)
-                  local stacks = inventory.get_contents()
-                  local index = 1
-                  while index <= #stacks do
-                    local stack = stacks[index]
-                    if stack then
-                      if stack.name ~= filter.name.name or stack.quality ~= filter.quality.name then
-                        -- There are items that do not match the filter
-                        table.insert(mismatched, nstorage)
-                        -- Don't check the rest of the stacks
-                        break
-                      end
-                    end
-                    index = index + 1
+-- Get ready to analyse storage in chunks
+--- @param accumulator StorageAccumulator The accumulator to store results in
+function suggestions_calc.initialise_storage_analysis(accumulator, context)
+  accumulator.total_stacks = 0
+  accumulator.free_stacks = 0
+  accumulator.unfiltered_total_stacks = 0
+  accumulator.unfiltered_free_stacks = 0
+  accumulator.mismatched_storages = {}
+end
+
+--- Process a storage chest for chunked storage analysis
+--- @param nstorage LuaEntity The storage chest entity
+--- @param accumulator StorageAccumulator The accumulator to store results in
+function suggestions_calc.process_storage_for_analysis(nstorage, accumulator)
+  if nstorage and nstorage.valid then
+    local inventory = nstorage.get_inventory(defines.inventory.chest)
+    -- Count total and free stacks
+    if inventory then
+      local capacity = #inventory
+      local free = inventory.count_empty_stacks()
+      accumulator.total_stacks = accumulator.total_stacks + capacity
+      accumulator.free_stacks = accumulator.free_stacks + free
+
+      -- Iterate over filtered to find mismatches
+      if nstorage.filter_slot_count then
+        for finx = 1, nstorage.filter_slot_count do
+          -- Check if the filter matches the contents
+          local filter = nstorage.get_filter(finx)
+          if not filter then
+            -- There is no filter, count unfiltered capacity
+            if finx == 1 then -- If there are multiple filters, only count capacity once
+              accumulator.unfiltered_total_stacks = accumulator.unfiltered_total_stacks + capacity
+              accumulator.unfiltered_free_stacks = accumulator.unfiltered_free_stacks + free
+            end
+          else
+            if inventory and not inventory.is_empty() then
+              -- Placeholder mismatch logic (unchanged)
+              local stacks = inventory.get_contents()
+              local index = 1
+              while index <= #stacks do
+                local stack = stacks[index]
+                if stack then
+                  if stack.name ~= filter.name.name or stack.quality ~= filter.quality.name then
+                    -- There are items that do not match the filter
+                    table.insert(accumulator.mismatched_storages, nstorage)
+                    -- Don't check the rest of the stacks
+                    break
                   end
                 end
+                index = index + 1
               end
             end
           end
         end
       end
     end
+  end
+end
 
-    -- Create storage capacity suggestions, if the numbers warrant it
-    suggestions_calc.create_storage_capacity_suggestion(suggestions, SuggestionsMgr.storage_low_key, all_stacks, free_stacks)
-    suggestions_calc.create_storage_capacity_suggestion(suggestions, SuggestionsMgr.unfiltered_storage_low_key, unfiltered_stacks, unfiltered_free_stacks)
+--- Called when all chunks have been processed
+--- @param accumulator StorageAccumulator The accumulator with gathered statistics
+--- @param gather GatherOptions Gathering options
+--- @param networkdata LINetworkData The network data associated with this processing
+function suggestions_calc.all_storage_chunks_done(accumulator, gather, networkdata)
+  if networkdata then
+    local suggestions = networkdata.suggestions
+    if accumulator then
+      -- Create storage capacity suggestions, if the numbers warrant it
+      suggestions_calc.create_storage_capacity_suggestion(
+        suggestions, SuggestionsMgr.storage_low_key, accumulator.total_stacks, accumulator.total_stacks)
+      suggestions_calc.create_storage_capacity_suggestion(
+        suggestions, SuggestionsMgr.unfiltered_storage_low_key, accumulator.unfiltered_total_stacks, accumulator.unfiltered_free_stacks)
 
-    -- Create Mismatched Storage suggestion
-    local mismatched_count = #mismatched
-    suggestions:create_or_clear_suggestion(SuggestionsMgr.mismatched_storage_key, mismatched_count, "entity/storage-chest", "low", true,
-      {"suggestions-row.mismatched-storage-action", mismatched_count})
-    suggestions:set_cached_list(SuggestionsMgr.mismatched_storage_key, mismatched) -- Store the list of mismatched storages
-  else
-    suggestions:clear_suggestion(SuggestionsMgr.mismatched_storage_key)
-    suggestions:clear_suggestion(SuggestionsMgr.unfiltered_storage_low_key)
-    suggestions:clear_suggestion(SuggestionsMgr.storage_low_key)
+      -- Create Mismatched Storage suggestion
+      local mismatched_count = table_size(accumulator.mismatched_storages)
+      suggestions:create_or_clear_suggestion(SuggestionsMgr.mismatched_storage_key, mismatched_count, "entity/storage-chest", "low", true,
+        {"suggestions-row.mismatched-storage-action", mismatched_count})
+      suggestions:set_cached_list(SuggestionsMgr.mismatched_storage_key, accumulator.mismatched_storages) -- Store the list of mismatched storages
+    else
+      -- Premature completion: We didn't get the data to figure out if there is anything wrong
+      suggestions:clear_suggestion(SuggestionsMgr.mismatched_storage_key)
+      suggestions:clear_suggestion(SuggestionsMgr.unfiltered_storage_low_key)
+      suggestions:clear_suggestion(SuggestionsMgr.storage_low_key)
+    end
   end
 end
 
@@ -239,7 +161,7 @@ function suggestions_calc.analyse_too_many_bots(suggestions, network)
   if not history or #history < 3 then
     return -- Need more samples
   end
-  local window_start = self._current_tick - BOT_TREND_WINDOW_TICKS
+  local window_start = suggestions._current_tick - BOT_TREND_WINDOW_TICKS
   local first, last
   for i = #history, 1, -1 do
     local entry = history[i]

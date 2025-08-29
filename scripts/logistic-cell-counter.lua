@@ -156,14 +156,17 @@ function logistic_cell_counter.gather_data_for_player_network(player, player_tab
 
   local cell_chunker = networkdata.cell_chunker
   -- Process cell data
-  if cell_chunker:is_done() then
+  if cell_chunker:needs_data() then
     -- Prior pass was done, so start a new pass
     cell_chunker:initialise_chunking(networkdata, network.cells, nil, {}, initialise_cell_network_list)
     -- Take into account number of chunks to minimize redundant counting
     player_data.set_logistic_cell_chunks(player_table, cell_chunker:num_chunks())
     scheduler.apply_player_intervals(player_table.player_index, player_table)
   end
-  cell_chunker:process_chunk(process_one_cell, all_chunks_done)
+  cell_chunker:process_chunk(process_one_cell)
+  if cell_chunker:needs_finalisation() then
+    cell_chunker:finalise_run(all_chunks_done)
+  end
 
   return cell_chunker:get_progress()
 end
@@ -173,16 +176,11 @@ end
 ---@param networkdata LINetworkData|nil
 ---@return boolean True if the network is fully processed, false if there is more data to process
 function logistic_cell_counter.is_background_done(networkdata)
-  if not networkdata then
+  if not networkdata or not networkdata.bot_chunker then
     return true
   end
 
-  local bot_chunker = networkdata.bot_chunker
-  if not bot_chunker then
-    return true
-  end
-
-  return bot_chunker:is_done()
+  return networkdata.bot_chunker:is_done_processing()
 end
 
 -- Initialise background processing of a network
@@ -200,15 +198,17 @@ function logistic_cell_counter.init_background_processing(networkdata, network)
   networkdata.bot_items["logistic-robot-available"] = network.available_logistic_robots
 
   logistic_cell_counter.restart_counting(networkdata)
-  networkdata.cell_chunker:initialise_chunking(networkdata, network.cells, nil, {}, initialise_cell_network_list)
+  networkdata.cell_chunker:initialise_chunking(networkdata, network.cells, gather_options, {}, initialise_cell_network_list)
 end
 
 -- Process a single chunk of background network data
 ---@param networkdata LINetworkData
 function logistic_cell_counter.process_background_network(networkdata)
   -- Process the background network data
-  networkdata.cell_chunker:process_chunk(process_one_cell, all_chunks_done)
-  return true
+  networkdata.cell_chunker:process_chunk(process_one_cell)
+  if networkdata.bot_chunker:needs_finalisation() then
+    networkdata.bot_chunker:finalise_run(all_chunks_done)
+  end
 end
 
 

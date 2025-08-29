@@ -14,13 +14,13 @@ local tick_counter = require("scripts.tick-counter")
 ---@field players_set table<number, boolean> -- Set of player indexes active in this network (key = player index)
 ---@field cell_chunker Chunker -- Chunker for processing logistic cells
 ---@field bot_chunker Chunker -- Chunker for processing logistic bots
----@field undersupply_chunker Chunker -- Chunker for analysing undersupply items
 ---@field history_timer TickCounter -- Tracks time for collecting delivery history
 ---@field bg_paused boolean -- True if background processing is paused for this network
 ---@ -- Suggestions and undersupply data
 ---@field suggestions Suggestions -- The list of suggestions associated with this network
 ---@ -- Data capture fields
----@field last_active_tick number -- The last tick this network's data was updated
+---@field last_scanned_tick number -- The last tick this network's cell and bot data was updated
+---@field last_analysed_tick number -- The last tick this network's suggestios and undersupply were analysed
 ---@field last_accessed_tick number -- The last tick this network's data was accessed
 ---@field last_pass_bots_seen table<number, number> -- A list of bots seen in the last full pass
 ---@ -- Fields populated by analysing cells
@@ -126,6 +126,7 @@ function network_data.create_networkdata(network)
 
   -- Create a new network data entry if it doesn't exist
   if not storage.networks[network.network_id] then
+    local game_tick = game.tick
     storage.networks[network.network_id] = {
       id = network.network_id,
       surface = network.cells[1].owner.surface.name or "",
@@ -133,9 +134,9 @@ function network_data.create_networkdata(network)
       players_set = {},
       cell_chunker = chunker.new(),
       bot_chunker = chunker.new(),
-      undersupply_chunker = chunker.new(),
-      last_accessed_tick = game.tick,
-      last_active_tick = game.tick,
+      last_accessed_tick = game_tick,
+      last_scanned_tick = game_tick,
+      last_analysed_tick = game_tick,
       bg_paused = false,
       history_timer = tick_counter.new(),
       suggestions = suggestions.new(),
@@ -363,7 +364,7 @@ function network_data.get_next_background_network()
         if not nw or not nw.valid then
           -- The network no longer exists, so remove it from storage
           network_data.remove_network(networkdata.id)
-        elseif table_size(networkdata.players_set) == 0 and networkdata.last_active_tick < last_tick then
+        elseif table_size(networkdata.players_set) == 0 and networkdata.last_scanned_tick < last_tick then
           -- This network has no active players, so it can be scanned in the background
           if not networkdata.bg_paused then
             -- As the network is not paused, add it to the candidate list
@@ -380,7 +381,7 @@ function network_data.get_next_background_network()
     return nil -- No networks need a background scan
   end
   -- Sort by last active tick, so the oldest networks are scanned first
-  table.sort(list, function(a,b) return (a.last_active_tick or 0) < (b.last_active_tick or 0) end)
+  table.sort(list, function(a,b) return (a.last_scanned_tick or 0) < (b.last_scanned_tick or 0) end)
 
   if #list > 0 then
     -- Return the first network in the sorted list
@@ -391,9 +392,9 @@ function network_data.get_next_background_network()
 end
 
 ---@param networkdata LINetworkData|nil The network data that has finished updating
-function network_data.finished_updating_network(networkdata)
+function network_data.finished_scanning_network(networkdata)
   if networkdata then
-    networkdata.last_active_tick = game.tick
+    networkdata.last_scanned_tick = game.tick
   end
 end
 
