@@ -13,7 +13,7 @@ local ROW_TITLE = "suggestions-row"
 ---@param gui_table LuaGuiElement The GUI table to add the row to
 function suggestions_row.add(player_table, gui_table)
   if not player_table.settings.show_suggestions then
-    return
+    return 0
   end
   player_data.register_ui(player_table, ROW_TITLE)
 
@@ -78,6 +78,7 @@ function suggestions_row.add(player_table, gui_table)
       visible = false
     }
   end
+  return 1
 end
 
 ---@param items LuaGuiElement The parent of cells and suggestion_buttons

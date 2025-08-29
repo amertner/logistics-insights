@@ -183,7 +183,7 @@ local cell_setup = {
         el.caption = "*"
         el.tooltip = {"networks-window.updating-tooltip"}
       else
-        local last_tick = nw.last_analysed_tick or 0
+        local last_tick = nw.last_scanned_tick or 0
         local age_ticks = (game and game.tick or 0) - last_tick
         if age_ticks < 0 then age_ticks = 0 end
         local time_str = flib_format.time(age_ticks, false)
@@ -514,30 +514,30 @@ end
 ---@return string|nil nil if no action, "refresh" is the UI needs refreshing, and "openmain" if the main window should be opened
 function networks_window.on_gui_click(event)
   local element = event.element
-  if not (element and element.valid) then return false end
+  if not (element and element.valid) then return nil end
   local name = element.name or ""
   local player = game.get_player(event.player_index)
 
   if player and (name == WINDOW_NAME .. "-close") then
     networks_window.toggle_window_visible(player)
-    return false
+    return nil
   end
   if player and (name == WINDOW_NAME .. "-bigger") then
     networks_window.increase_window_size(player)
-    return false
+    return nil
   end
   if player and (name == WINDOW_NAME .. "-smaller") then
     networks_window.decrease_window_size(player)
-    return false
+    return nil
   end
 
   -- Only handle Action buttons
-  if not name:find(WINDOW_NAME .. "-cell-", 1, true) then return false end
+  if not name:find(WINDOW_NAME .. "-cell-", 1, true) then return nil end
 
   -- Identify column from the control name
   local row_str, col_key = name:match(WINDOW_NAME .. "%-cell%-(%d+)%-actions%-(%w+)$")
   if not col_key or (col_key ~= "settings" and col_key ~= "trash" and col_key ~= "view" and col_key ~= "pause") then
-    return false
+    return nil
   end
 
   -- Resolve the network id: prefer tags; fallback to row index lookup

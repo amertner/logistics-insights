@@ -85,6 +85,7 @@ function network_row.add(player_table, gui_table)
     }
     count = count + 1
   end
+  return 1
 end
 
 --- Update the network information row with current statistics

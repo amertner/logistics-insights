@@ -61,7 +61,7 @@ function activity_row.add(player_table, gui_table)
   }
 
   if not player_table.settings.show_activity then
-    return
+    return 0
   end
   player_data.register_ui(player_table, "activity")
   local cell = gui_table.add {
@@ -120,6 +120,7 @@ function activity_row.add(player_table, gui_table)
     }
     count = count + 1
   end
+  return 1
 end
 
 --- Check if deliveries should be shown based on settings

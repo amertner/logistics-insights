@@ -180,7 +180,7 @@ function analysis_coordinator.run_undersupply_step()
   end
   if not storage.analysis_state.undersupply_chunker then
     -- If this is a foreground network, and all players watching it have paused undersupply, skip
-    if player_data.is_foreground_network_paused_for_capability(networkdata, "undersupply", "undersupply") then
+    if player_data.is_foreground_network_paused_for_capability(networkdata, "undersupply", "show_undersupply") then
       return true -- Skip undersupply analysis
     end
     storage.analysis_state.undersupply_chunker = chunker.new()

@@ -98,7 +98,9 @@ function main_window.create(player, player_table)
   }
 
   -- Add all of the data rows
-  main_window._add_all_rows(player_table, content_table)
+  local rows = main_window._add_all_rows(player_table, content_table)
+  -- I can't figure out how to make the frame autosize to content, so do it manually
+  subheader_frame.style.height = 48 + (rows - 1) * 40
 
   -- Ensure mini buttons are enabled/disabled according to capability deps
   main_window.refresh_mini_button_enabled_states(player_table)
@@ -224,17 +226,20 @@ end
 --- Add all row types to the content table
 --- @param player_table PlayerData The player's data table
 --- @param content_table LuaGuiElement The table to add rows to
+--- @return number Number of visible rows added
 function main_window._add_all_rows(player_table, content_table)
   -- First clear all existing UI elements
   content_table.clear()
+  local rows = 0
 
   -- Add all of possible rows: The routines check if they are enabled in settings
-  delivery_row.add(player_table, content_table)
-  history_rows.add(player_table, content_table)
-  activity_row.add(player_table, content_table)
-  network_row.add(player_table, content_table)
-  undersupply_row.add(player_table, content_table)
-  suggestions_row.add(player_table, content_table)
+  rows = rows + delivery_row.add(player_table, content_table)
+  rows = rows + history_rows.add(player_table, content_table)
+  rows = rows + activity_row.add(player_table, content_table)
+  rows = rows + network_row.add(player_table, content_table)
+  rows = rows + undersupply_row.add(player_table, content_table)
+  rows = rows + suggestions_row.add(player_table, content_table)
+  return rows
 end
 
 --- Update all rows with current data
@@ -360,6 +365,8 @@ function main_window.onclick(event)
       elseif event.element.name == "logistics-insights-sorted-clear" then
         -- Clear the delivery history and clear the timer
         network_data.clear_delivery_history(player_table.network)
+        main_window.destroy(player, player_table)
+        main_window.create(player, player_table)
         main_window.update(player, player_table, true)
         -- Also update the mini-button state. This is a workaround in case things get stuck.
         main_window.refresh_mini_button_enabled_states(player_table)

@@ -13,7 +13,9 @@ local sorted_item_row = require("scripts.mainwin.sorted_item_row")
 function delivery_row.add(player_table, gui_table)
   if player_table.settings.show_delivering then
     sorted_item_row.add(player_table, gui_table, "deliveries-row", "delivery", true)
+    return 1
   end
+  return 0
 end
 
 local function is_delivery_enabled(player_table)

@@ -204,6 +204,14 @@ function network_data.clear_delivery_history(network)
   end
 end
 
+--- Clear delivery history for a network, in response to user clicking the "Clear" button
+--- @param networkdata LINetworkData The network to clear delivery history for
+function network_data.clear_history_from_nwd(networkdata)
+  if networkdata then
+    networkdata.delivery_history = {} -- Clear the delivery history
+  end
+end
+
 --- Clear all bot deliveries for a network, to avoid filling up memory
 --- @param max_age_ticks number If a network hasn't been accessed for this many ticks, its data will be cleared
 function network_data.clear_old_network_data(max_age_ticks)
@@ -271,13 +279,17 @@ function network_data.player_changed_networks(player_table, old_network_id, new_
   if not player_table then
     return
   end
-  local old_nw = network_data.get_networkdata_fromid(old_network_id)
-  if old_nw and old_network_id then
-    network_data.remove_player_index_from_networkdata(old_nw, player_table.player_index)
-    -- If the old network has no players left, potentially remove it
-    if not settings.global["li-show-all-networks"].value then
-      local count = table_size(old_nw.players_set or {})
-      if count == 0 then
+  local old_nwd = network_data.get_networkdata_fromid(old_network_id)
+  if old_nwd and old_network_id then
+    network_data.remove_player_index_from_networkdata(old_nwd, player_table.player_index)
+    local count = table_size(old_nwd.players_set or {})
+
+    if count == 0 then
+      -- No more players observing this network, so clear its history and stop gathering history data
+      network_data.clear_history_from_nwd(old_nwd)
+
+      -- As the old network has no players left, potentially remove it
+      if not settings.global["li-show-all-networks"].value then
         storage.networks[old_network_id] = nil
       end
     end
@@ -290,6 +302,7 @@ function network_data.player_changed_networks(player_table, old_network_id, new_
     -- Add the player to the new network's player set
     new_nwd.players_set[player_table.player_index] = true
     player_table.network = new_network
+    new_nwd.history_timer:reset() -- Set history timer to 0
   end
 end
 

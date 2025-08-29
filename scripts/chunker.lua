@@ -48,7 +48,7 @@ end
 function chunker:initialise_chunking(networkdata, list, initial_data, gather_options, on_init)
   self.processing_list = list
   self.processing_count = list and #list or 0 -- Calculate once to avoid recounting
-  self.is_finalised = self.processing_count == 0 -- If nothing to process, mark as finalised
+  self.is_finalised = false
   self.current_index = 1
   self.CHUNK_SIZE = tonumber(settings.global["li-chunk-size-global"].value) or 208
   self.gather = gather_options or {}

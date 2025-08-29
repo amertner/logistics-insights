@@ -265,11 +265,8 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
         elseif e.setting == "li-show-history" then
           -- Show History was enabled or disabled
           player_data.update_settings(player, player_table)
-          if player_table.settings.show_history then
-            -- Show History was enabled, so resume the history timer if it was paused
-            -- #FIXME: Does show_history make sense as a per-player setting?
-            -- player_table.history_timer:resume()
-          end
+          main_window.destroy(player, player_table)
+          main_window.create(player, player_table)
         else
           -- For other settings, rebuild the main window
           player_data.update_settings(player, player_table)
