@@ -106,17 +106,12 @@ scheduler.register({ name = "clear-caches", interval = 60*10, per_player = false
 scheduler.register({ name = "player-bot-chunk", interval = 7, per_player = true, capability = "delivery", fn = function(player, player_table)
   local bot_progress = bot_counter.gather_data_for_player_network(player, player_table)
   main_window.update_bot_progress(player_table, bot_progress)
-  if bot_progress and bot_progress.total > 0 and bot_progress.current >= bot_progress.total  then
-    -- Mark suggestions & undersupply capabilities dirty (they both depend on bot data)
-    capability_manager.mark_dirty(player_table, "suggestions")
-    capability_manager.mark_dirty(player_table, "undersupply")
-  end
+
 end })
 scheduler.register({ name = "player-cell-chunk", interval = 59, per_player = true, capability = "activity", fn = function(player, player_table)
   local cells_progress = logistic_cell_counter.gather_data_for_player_network(player, player_table)
   main_window.update_cells_progress(player_table, cells_progress)
   if cells_progress and cells_progress.total > 0 and cells_progress.current >= cells_progress.total  then
-    capability_manager.mark_dirty(player_table, "suggestions")
     local nwd = network_data.get_networkdata(player_table.network)
     network_data.finished_scanning_network(nwd)
   end

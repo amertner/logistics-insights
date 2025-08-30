@@ -112,12 +112,6 @@ local li_migrations = {
           capability_manager.set_reason(player_table, name, "user", true)
         end
       end
-      -- Ensure dirty flags cleared but retain capability records
-      if player_table.capabilities then
-        for _, rec in pairs(player_table.capabilities) do
-          rec.dirty = false
-        end
-      end
       -- Clear legacy paused list contents
       ---@diagnostic disable-next-line: inject-field
       player_table.paused_items = nil

@@ -1,4 +1,4 @@
---- Unified capability manager: centralizes pause state, dependencies, dirty flags, intervals
+--- Unified capability manager: centralizes pause state, dependencies, intervals
 local capability_manager = {}
 
 ---@class CapabilityRecord
@@ -6,8 +6,7 @@ local capability_manager = {}
 ---@field deps string[] Dependency capability names
 ---@field last_run uint Last tick run (for interval gating)
 ---@field interval uint Base interval override (0 = use scheduler task interval)
----@field dirty boolean Dirty flag (consumption semantics defined by task)
----@field just_updated boolean Transient flag set after a task consumes dirty & runs (cleared next tick)
+ 
 
 -- Static registry of capability dependency graph (order-independent)
 local registry = {
@@ -60,7 +59,7 @@ function capability_manager.init_player(player_table)
   for name, meta in pairs(registry) do
     local rec = player_table.capabilities[name]
     if not rec then
-      rec = { reasons = {}, deps = meta.deps, last_run = game.tick, interval = 0, dirty = false, just_updated = false }
+      rec = { reasons = {}, deps = meta.deps, last_run = game.tick, interval = 0 }
       player_table.capabilities[name] = rec
     else
       rec.deps = meta.deps
@@ -70,9 +69,6 @@ function capability_manager.init_player(player_table)
       end
       if rec.interval == nil then
         rec.interval = 0
-      end
-      if rec.dirty == nil then
-        rec.dirty = false
       end
     end
   end
@@ -138,41 +134,6 @@ function capability_manager.set_reason(player_table, name, reason, active)
   end
 end
 
---- Mark a capability as dirty (work pending)
---- @param player_table PlayerData
---- @param name string Capability name
-function capability_manager.mark_dirty(player_table, name)
-  local rec = player_table.capabilities and player_table.capabilities[name]
-  if rec then
-    rec.dirty = true
-  end
-end
-
---- Consume (clear) the dirty flag if set
---- @param player_table PlayerData
---- @param name string Capability name
---- @return boolean was_dirty True if it was dirty and is now cleared
-function capability_manager.consume_dirty(player_table, name)
-  local rec = player_table.capabilities and player_table.capabilities[name]
-  if rec and rec.dirty then
-    rec.dirty = false
-    rec.just_updated = true
-    return true
-  end
-  return false
-end
-
---- Clear transient just_updated flags (call once per tick if needed by UI)
---- @param player_table PlayerData
-function capability_manager.clear_just_updated(player_table)
-  if not player_table.capabilities then
-    return
-  end
-  for _, rec in pairs(player_table.capabilities) do
-    rec.just_updated = false
-  end
-end
-
 --- Determine whether a per-player task for a capability should run this tick
 --- (Also updates last_run when returning true.)
 --- @param player_table PlayerData
@@ -202,27 +163,25 @@ end
 --- Build UI state object for a capability
 --- @param player_table PlayerData
 --- @param name string Capability name
---- @return {name:string,state:string,active:boolean,dirty:boolean,reasons:table<string,boolean>,deps:string[],just_updated:boolean} state Table for UI consumption
+--- @return {name:string,state:string,active:boolean,reasons:table<string,boolean>,deps:string[]} state Table for UI consumption
 function capability_manager.get_ui_state(player_table, name)
   local rec = player_table.capabilities and player_table.capabilities[name]
   if not rec then
-    return { name = name, state = "unknown", active = false, dirty = false, reasons = {}, deps = {}, just_updated = false }
+    return { name = name, state = "unknown", active = false, reasons = {}, deps = {} }
   end
   local state = derive_state(player_table, name, rec, {}, {})
   return {
     name = name,
     state = state,
     active = (state == "running"),
-    dirty = rec.dirty,
     reasons = rec.reasons,
     deps = rec.deps,
-    just_updated = rec.just_updated,
   }
 end
 
 --- Snapshot all capability UI states for a player
 --- @param player_table PlayerData
---- @return table<string, {name:string,state:string,active:boolean,dirty:boolean,reasons:table<string,boolean>,deps:string[],just_updated:boolean}> snapshot
+--- @return table<string, {name:string,state:string,active:boolean,reasons:table<string,boolean>,deps:string[]}> snapshot
 function capability_manager.snapshot(player_table)
   local snap = {}
   if player_table.capabilities then
