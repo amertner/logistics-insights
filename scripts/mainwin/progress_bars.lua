@@ -3,6 +3,7 @@
 local progress_bars = {}
 
 local player_data = require("scripts.player-data")
+local network_data = require("scripts.network-data")
 
 -- Cache frequently used constants
 local math_floor = math.floor
@@ -19,7 +20,21 @@ function progress_bars.update_progressbar(player_table, progressbar_name, progre
   if not progressbar or not progressbar.valid then
     return
   end
-  local chunk_size = settings.global["li-chunk-size-global"].value
+  -- Get the chunk size used for the specific action, if possible
+  local chunker = nil
+  local chunk_size
+  if storage.analysis_state then
+    if progressbar_name == "undersupply-row" then
+      chunker = storage.analysis_state.undersupply_chunker
+      if chunker then
+        chunk_size = chunker.CHUNK_SIZE
+      end
+    end
+  end
+  if not chunk_size then
+    -- Fallback to the global chunk size setting
+    chunk_size = settings.global["li-chunk-size-global"].value
+  end
 
   if not progress or progress.total == 0 then
     -- Only update if needed (value might already be 1)

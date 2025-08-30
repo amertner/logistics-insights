@@ -10,6 +10,7 @@
 
 ---@class Chunker
 ---@field CHUNK_SIZE number The size of each chunk to process
+---@field divisor number|nil The divisor used to adjust chunk size for heavy tasks
 ---@field gather GatherOptions
 ---@field current_index number The current index in the processing list
 ---@field processing_list LuaEntity[]|nil The list of entities to process in chunks
@@ -22,10 +23,12 @@ chunker.__index = chunker
 script.register_metatable("logistics-insights-Chunker", chunker)
 
 --- Create a new chunker instance for processing entities in chunks
+--- @param divisor number|nil Optional divisor to adjust chunk size for heavy tasks
 --- @return Chunker The new chunker instance
-function chunker.new()
+function chunker.new(divisor)
   local self = setmetatable({}, chunker)
-  self.CHUNK_SIZE = tonumber(settings.global["li-chunk-size-global"].value) or 207
+  self.divisor = math.max(divisor or 1, 1)
+  self:set_chunk_size()
   self.gather = {}
   if settings.global["li-gather-quality-data-global"].value then
     self.gather.quality = true
@@ -39,6 +42,12 @@ function chunker.new()
   return self
 end
 
+function chunker:set_chunk_size()
+  self.divisor = self.divisor or 1
+  local base_chunk_size = tonumber(settings.global["li-chunk-size-global"].value) or 208
+  self.CHUNK_SIZE = math.max(1, math.floor(base_chunk_size / self.divisor))
+end
+
 --- Initialize chunking with a list of entities to process
 --- @param networkdata LINetworkData|nil The network data associated with this chunker
 --- @param list table|nil The list of entities to process in chunks
@@ -50,7 +59,7 @@ function chunker:initialise_chunking(networkdata, list, initial_data, gather_opt
   self.processing_count = list and #list or 0 -- Calculate once to avoid recounting
   self.is_finalised = false
   self.current_index = 1
-  self.CHUNK_SIZE = tonumber(settings.global["li-chunk-size-global"].value) or 208
+  self:set_chunk_size() -- Update in case the setting changed since new()
   self.gather = gather_options or {}
   if settings.global["li-gather-quality-data-global"].value then
     self.gather.quality = true
