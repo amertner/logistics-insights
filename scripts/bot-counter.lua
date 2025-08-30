@@ -362,14 +362,8 @@ function bot_counter.init_background_processing(networkdata, network)
   if settings.global["li-gather-quality-data-global"].value then
     gather_options.quality = true
   end
-  -- #FIXME: Do I need to "restart counting" here?
-  -- bot_counter.restart_counting(networkdata)
-  if networkdata.bot_chunker:needs_data() then
-    networkdata.bot_chunker:initialise_chunking(networkdata, network.logistic_robots, networkdata.last_pass_bots_seen, gather_options, bot_initialise_chunking)
-  else
-    -- #FIXME: Remove debug log messages
-    log("[bot-counter] Background processing for " .. networkdata.id .. " does not need new data? '")
-  end
+  
+  networkdata.bot_chunker:initialise_chunking(networkdata, network.logistic_robots, networkdata.last_pass_bots_seen, gather_options, bot_initialise_chunking)
 end
 
 -- Process a single chunk of background network data
