@@ -107,9 +107,8 @@ data:extend(
       type = "int-setting",
       name = "li-chunk-processing-interval-ticks",
       setting_type = "runtime-global",
-      default_value = 10,
-      minimum_value = 1,
-      maximum_value = 120,
+      default_value = 3,
+      allowed_values  = {3, 7, 13, 23, 37, 53},
       order = "4"
     }
     ,

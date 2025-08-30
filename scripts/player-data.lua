@@ -108,8 +108,20 @@ function player_data.set_logistic_cell_chunks(player_table, chunks)
     -- The bot interval is the smallest interval we can allow, so don't go lower
     interval = bot_interval
   end
+  -- Pick a prime number that is close to the interval, and is not in use
+  local prime_intervals = {17, 37, 41, 53, 59, 71, 89}
+  if interval > 89 then
+    interval = 89 -- Cap at 89 ticks
+  else
+    for _, p in ipairs(prime_intervals) do
+      if p >= interval then
+        interval = p
+        break
+      end
+    end
+  end
 
-  player_table.current_logistic_cell_interval = math_ceil(interval)
+  player_table.current_logistic_cell_interval = interval
 end
 
 ---@param player_table PlayerData

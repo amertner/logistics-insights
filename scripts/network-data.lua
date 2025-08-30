@@ -302,6 +302,9 @@ function network_data.player_changed_networks(player_table, old_network_id, new_
     -- Add the player to the new network's player set
     new_nwd.players_set[player_table.player_index] = true
     player_table.network = new_network
+    if not new_nwd.history_timer then
+      new_nwd.history_timer = tick_counter.new()
+    end
     new_nwd.history_timer:reset() -- Set history timer to 0
   end
 end

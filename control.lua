@@ -79,11 +79,11 @@ end
 
 -- SETTING UP AND HANDLING SCHEDULED EVENTS
 -- All schedules are running every N ticks, where N are distinct prime numbers to avoid processing more than one thing on a tick.
--- 3: Bot chunk scanning. Fast, to reduce undercounting.
+-- 3: Bot chunk scanning. Fast, to reduce undercounting. (Can be 3, 7, 13, 23, 37, 53)
 -- 5: Run one step of the currently active derived analysis, if any.
 -- 11: Background network refresh
 -- 29: Check whether a player's active network has changed
--- 59: Cell chunk scanning. Slower, as cells change less often
+-- 59: Cell chunk scanning. Slower is ok, as cells change less often. (Can be 17, 37, 41, 53, 59, 71, 89)
 -- 61: Check which derived analysis should run, if any
 
 -- Check whether a player's active network has changed
@@ -103,7 +103,7 @@ scheduler.register({ name = "clear-caches", interval = 60*10, per_player = false
 })
 
 -- Scheduler tasks for refreshing the foreground network for each player
-scheduler.register({ name = "player-bot-chunk", interval = 3, per_player = true, capability = "delivery", fn = function(player, player_table)
+scheduler.register({ name = "player-bot-chunk", interval = 7, per_player = true, capability = "delivery", fn = function(player, player_table)
   local bot_progress = bot_counter.gather_data_for_player_network(player, player_table)
   main_window.update_bot_progress(player_table, bot_progress)
   if bot_progress and bot_progress.total > 0 and bot_progress.current >= bot_progress.total  then
