@@ -40,7 +40,9 @@ local cell_setup = {
     header = { type = "sprite", sprite = "space-location/nauvis", tooltip = {"networks-window.surface-tooltip"} },
     align = "center",
     add_cell = function(table_el, name)
-      return table_el.add{ type = "sprite", name = name, sprite = "utility/questionmark" }
+      local cell = table_el.add{ type = "sprite", name = name, sprite = "utility/questionmark" }
+      cell.style.stretch_image_to_widget_size = true
+      return cell
     end,
     populate = function(el, nw)
       if not (el and el.valid) then return end
@@ -274,6 +276,7 @@ function networks_window.create(player)
 
       local label = titlebar.add {
         type = "label",
+        name = WINDOW_NAME .. "-caption",
         caption = {"networks-window.window-title"},
         style = "frame_title",
         ignored_by_interaction = true,
@@ -466,6 +469,14 @@ function networks_window.update(player)
     networks_window.create(player)
     return -- Will update on the next call
   end
+  -- Debug
+  -- local win = player.gui.screen["li_networks_window"]
+  -- if win then
+  --   local lbl = win["li_networks_window-titlebar"].children[1]
+  --   if lbl then
+  --     lbl.caption = "(x,y) " .. tostring(win.location.x) .. ", " .. tostring(win.location.y)
+  --   end
+  -- end
 
   local table_el = player_table.ui.networks.table_elements
 

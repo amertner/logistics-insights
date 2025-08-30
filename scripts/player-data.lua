@@ -33,7 +33,7 @@ function player_data.init(player_index)
     network = nil,
     fixed_network = false,
     player_index = player_index,
-    window_location = {x = 200, y = 0},
+    window_location = {x = 300, y = 650},
     networks_window_location = {x = 300, y = 100},
     ui = {},
     current_logistic_cell_interval = 60,

@@ -214,7 +214,20 @@ script.on_event(
     end
     if storage.players then
       local player_table = storage.players[e.player_index]
-      main_window.update(player, player_table, false)
+
+      local center_if_offscreen = function(window)
+        if window and window.valid then
+          if window.location.x < -10 or window.location.x > player.display_resolution.width - 10 then
+            window.location.x = player.display_resolution.width / 2
+          end
+          if window.location.y < -10 or window.location.y > player.display_resolution.height - 10 then
+            window.location.y =(player.display_resolution.height) / 2
+          end
+        end
+      end
+      -- This shouldn't happen, but in case it does...
+      center_if_offscreen(player.gui.screen.logistics_insights_window)
+      center_if_offscreen(player.gui.screen.li_networks_window)
     end
   end
 )
