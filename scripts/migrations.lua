@@ -178,7 +178,7 @@ local li_migrations = {
         -- Set the new global settings
         if not got_settings then
           settings.global["li-chunk-size-global"] = {value = player_table.settings.chunk_size or 400}
-          settings.global["li-chunk-processing-interval-ticks"] = {value = player_table.settings.bot_chunk_interval or 10}
+          settings.global["li-chunk-processing-interval-ticks"] = {value = 3} -- New setting, default to 3 ticks
           settings.global["li-gather-quality-data-global"] = {value = player_table.settings.gather_quality_data or true}
           got_settings = true -- Only do this for the first player, who hopefully was the host
         end
