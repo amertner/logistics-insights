@@ -48,19 +48,35 @@ local function process_one_cell(cell, accumulator, gather, networkdata)
     local rp_quality = cell.owner.quality.name
     utils.accumulate_quality(accumulator.roboport_qualities, rp_quality, 1)
 
-    -- Count quality of charging bots
-    for _, bot in pairs(cell.charging_robots) do
-      if bot.valid and bot.quality then
-        local quality = bot.quality.name or "normal"
-        utils.accumulate_quality(accumulator.charging_bot_qualities, quality, 1)
+    -- Count quality of charging bots (fast path: numeric loop + cached locals)
+    do
+      local list = cell.charging_robots
+      if list then
+        local cq = accumulator.charging_bot_qualities
+        local accq = utils.accumulate_quality
+        for i = 1, #list do
+          local bot = list[i]
+          if bot and bot.valid and bot.quality then
+            local q = bot.quality.name
+            accq(cq, q, 1)
+          end
+        end
       end
     end
 
-    -- Count quality of bots waiting to charge
-    for _, bot in pairs(cell.to_charge_robots) do
-      if bot.valid and bot.quality then
-        local quality = bot.quality.name or "normal"
-        utils.accumulate_quality(accumulator.waiting_bot_qualities, quality, 1)
+    -- Count quality of bots waiting to charge (fast path: numeric loop + cached locals)
+    do
+      local list = cell.to_charge_robots
+      if list then
+        local wq = accumulator.waiting_bot_qualities
+        local accq = utils.accumulate_quality
+        for i = 1, #list do
+          local bot = list[i]
+          if bot and bot.valid and bot.quality then
+            local q = bot.quality.name
+            accq(wq, q, 1)
+          end
+        end
       end
     end
 

@@ -238,6 +238,7 @@ script.on_configuration_changed(
   function(e)
 
   -- Run migrations if the mod version has changed
+  global_data.init()
   flib_migration.on_config_changed(e, li_migrations)
 end)
 
