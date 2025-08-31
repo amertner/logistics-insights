@@ -5,6 +5,9 @@ local global_data = {}
 function global_data.init()
   storage.global = storage.global or {}
   global_data.settings_changed() -- Cache current settings
+
+  -- Current network being refreshed in the background
+  storage.bg_refreshing_network_id = nil ---@type number|nil
 end
 
 -- Called when global settings change so we can cache them and take necessary action

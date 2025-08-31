@@ -52,9 +52,6 @@ function player_data.init_storages()
     player_data.init(player.index)
     player_data.update_settings(player, storage.players[player.index])
   end
-
-  storage.bg_refreshing_network_id = nil ---@type number|nil
-  --network_data.init() -- Initialise network data storage
 end
 
 ---@param player LuaPlayer|nil
