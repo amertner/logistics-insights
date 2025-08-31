@@ -13,6 +13,7 @@ local capability_manager = require("scripts.capability-manager")
 ---@field interval number Interval in ticks
 ---@field per_player boolean If true, runs once per player (fn(player, player_table)), else global (fn())
 ---@field fn function The function to execute
+---@field is_heavy boolean If true, the task is considered heavy. We'll try to avoid running multiple heavy tasks in the same tick.
 ---@field last_run number Last tick run (for global tasks)
 ---@field capability string|nil Optional pause capability key. If set and the capability is paused for the player (per_player tasks) the task is skipped without updating last_run.
 
@@ -24,17 +25,25 @@ local player_task_order = {} ---@type string[]
 -- Per-player interval overrides: player_index -> task_name -> interval
 local player_intervals = {} ---@type table<number, table<string, number>>
 
+---@class TaskQueue
+---@field last_tick number The last tick the queue was built for
+---@field items table<number, {player_index: number|nil, task: SchedulerTask}[]> Tasks scheduled for each tick
+-- Tasks to run next
+local task_queue = {last_tick = 0, items = {}} --@type TaskQueue
+local TASK_QUEUE_TICKS = 60 -- How many ticks ahead to queue tasks
+
 --- Register a periodic task.
----@param opts {name:string, interval:number, per_player?:boolean, fn:function, capability?:string}
+---@param opts {name:string, interval:number, per_player?:boolean, fn:function, capability?:string, is_heavy?:boolean}
 function scheduler.register(opts)
   if not opts or not opts.name or not opts.interval or not opts.fn then
-    error("scheduler.register: missing required fields")
+    debugger.error("scheduler.register: missing required fields")
   end
   local task = {
     name = opts.name,
     interval = opts.interval,
     per_player = opts.per_player or false,
     fn = opts.fn,
+    is_heavy = opts.is_heavy,
     last_run = 0,
     capability = opts.capability,
   }
@@ -170,81 +179,126 @@ function scheduler.reregister(specs)
   end
 end
 
-local function run_global_tasks(tick)
-  for _, name in ipairs(global_task_order) do
-    local task = global_tasks[name]
-    if task and (tick - task.last_run) >= task.interval then
-      task.last_run = tick
-      local ok, err = pcall(task.fn)
-      if not ok then
-        debugger.error("[scheduler] Task '" .. task.name .. "' failed: " .. tostring(err))
+-- Build the task queue for the next TASK_QUEUE_TICKS ticks, starting at first_tick.
+-- Tries to avoid scheduling too many heavy tasks in the same tick.
+---@param first_tick number The first tick to build the queue for
+local function build_task_queue(first_tick)
+  task_queue.items = {}
+  task_queue.last_tick = first_tick + TASK_QUEUE_TICKS - 1
+  local heavy_task_count = 0
+  -- Initialise empty lists
+  for tick = first_tick, task_queue.last_tick do
+    task_queue.items[tick] = {}
+  end
+
+  -- Pass 1: Add all tasks to their default ticks
+  -- Add global tasks to the tick
+  for name, task in pairs(global_tasks) do
+    for tick = first_tick, task_queue.last_tick do
+      if tick % task.interval == 0 then
+        table.insert(task_queue.items[tick], {player_index = nil, task = task})
+        if task.is_heavy then
+          heavy_task_count = heavy_task_count + 1
+        end
       end
     end
   end
-end
 
-  -- Run up to one task for each player
-  local function run_player_task(player_index, player_table, player, tick)
-    local overrides = player_intervals[player_index] or {}
-    for _, name in ipairs(player_task_order) do
-      local task = player_tasks[name]
-      if task then
-        local effective_interval = overrides[task.name] or task.interval
-        local last = player_table.schedule_last_run[task.name] or 0
-        if effective_interval and (tick - last) >= effective_interval then
-          if task.capability then
-            if not capability_manager.is_active(player_table, task.capability) then
-              -- Skip while inactive (do not advance last_run)
-            else
-              player_table.schedule_last_run[task.name] = tick
-              local ok, err = pcall(task.fn, player, player_table)
-              if not ok then
-                debugger.error("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
-              end
-              return
+  -- Add player tasks
+  for player_index, player_table in pairs(storage.players) do
+    local player = game.get_player(player_index)
+    if player and player.valid and player.connected then
+      local overrides = player_intervals[player_index] or {}
+      for tick = first_tick, task_queue.last_tick do
+        for name, task in pairs(player_tasks) do
+          local effective_interval = overrides[name] or task.interval
+          if tick % effective_interval == 0 then
+            table.insert(task_queue.items[tick], {player_index = player_index, task = task})
+            if task.is_heavy then
+              heavy_task_count = heavy_task_count + 1
             end
-          else
-            player_table.schedule_last_run[task.name] = tick
-            local ok, err = pcall(task.fn, player, player_table)
-            if not ok then
-              debugger.error("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
-            end
-            return
           end
         end
       end
     end
   end
 
-  
---- Run due tasks for this tick.
-function scheduler.on_tick()
-  local tick = game.tick
-
-  if tick % 120 == 0 then
-    -- Check if there are tasks that have not run for too long
-    for _, name in ipairs(global_task_order) do
-      local task = global_tasks[name]
-      if task.last_run + task.interval +20 < tick then
-        debugger.error("[scheduler] GTask '" .. task.name .. "' has not run for too long")
+  -- Pass 2: Delay excess heavy tasks to a later tick
+  local max_heavy_per_tick = math.max(1, math.ceil(heavy_task_count / TASK_QUEUE_TICKS))
+  local excess_heavy_tasks = {}
+  for tick = first_tick, task_queue.last_tick do
+    local items = task_queue.items[tick]
+    local heavies = 0
+    for i = 1, #items do
+      if items[i].task.is_heavy then
+        heavies = heavies + 1
+        if heavies > max_heavy_per_tick then
+          excess_heavy_tasks[#excess_heavy_tasks + 1] = items[i]
+          items[i] = nil -- Mark for removal
+        end
+      end
+    end
+    if heavies < max_heavy_per_tick and #excess_heavy_tasks > 0 then
+      -- Move some excess heavy tasks to this tick
+      local can_take = max_heavy_per_tick - heavies
+      for i = 1, can_take do
+        if #excess_heavy_tasks > 0 then
+          local item = table.remove(excess_heavy_tasks, 1)
+          items[#items + 1] = item
+        end
       end
     end
   end
 
-  -- Global tasks in deterministic order
-  run_global_tasks(tick)
+  -- Pass 3: Add any excess heavy tasks to the last tick. Yuck, but what can we do? Hopefully rare.
+  local last_items = task_queue.items[task_queue.last_tick]
+  for _, item in pairs(excess_heavy_tasks) do
+    last_items[#last_items + 1] = item
+  end
+end
 
-  -- Per-player tasks
-  if storage.players then
-    for player_index, player_table in pairs(storage.players) do
-      local player = game.get_player(player_index)
-      if player and player.valid and player.connected then
-        -- Only run one task per player per tick to spread out load
-        run_player_task(player_index, player_table, player, tick)
+--- Run due tasks for this tick.
+function scheduler.on_tick()
+  local tick = game.tick
+  if tick > task_queue.last_tick then
+    build_task_queue(tick)
+  end
+  local tasks = task_queue.items[tick]
+  if tasks and table_size(tasks) > 0 then
+    -- Execute tasks queued for this tick
+    for _, taskjob in pairs(tasks) do
+      local player_index = taskjob.player_index
+      local task = taskjob.task
+      if player_index then
+        local player_table = storage.players[player_index]
+        local player = game.get_player(player_index)
+        if player and player.valid and player.connected and player_table then
+          local run_task = true
+          if task.capability then
+            if not capability_manager.is_active(player_table, task.capability) then
+              -- Skip while inactive (do not advance last_run)
+              run_task = false
+            end
+          end
+          if run_task then
+            task.last_run = tick
+            local ok, err = pcall(task.fn, player, player_table)
+            if not ok then
+              debugger.error("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
+            end
+          end
+        end
+      else
+        task.last_run = tick
+        local ok, err = pcall(task.fn)
+        if not ok then
+          debugger.error("[scheduler] Task '" .. task.name .. "' failed: " .. tostring(err))
+        end
       end
     end
   end
 end
+
 
 function scheduler.get_registered_tasks_by_tick()
   local tasks = { }

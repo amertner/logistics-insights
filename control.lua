@@ -32,6 +32,7 @@ script.on_init(
   --- @param e EventData
   function(e)
   -- Called when the mod is first added to a save
+  global_data.init()
   player_data.init_storages()
   network_data.init()
 end)
@@ -91,28 +92,27 @@ end
 -- 61: Check which derived analysis should run, if any
 
 -- Check whether a player's active network has changed
-scheduler.register({
-name = "network-check", interval = 29, per_player = true, fn = function(player, player_table)
+scheduler.register({ name = "network-check", interval = 29, per_player = true, is_heavy = false, fn = function(player, player_table)
   if network_data.check_network_changed(player, player_table) then
     full_UI_refresh(player, player_table)
   end
 end })
 -- Scheduler for refreshing background networks that don't have an active player in them
-scheduler.register({ name = "background-refresh", interval = 11, per_player = false,
+scheduler.register({ name = "background-refresh", interval = 11, is_heavy = true, per_player = false,
   fn = background_refresh
 })
 -- Clear the tooltip caches every 10 minutes to avoid memory bloat
-scheduler.register({ name = "clear-caches", interval = 60*10, per_player = false,
+scheduler.register({ name = "clear-caches", interval = 60*10, is_heavy = false, per_player = false,
   fn = tooltips_helper.clear_caches
 })
 
 -- Scheduler tasks for refreshing the foreground network for each player
-scheduler.register({ name = "player-bot-chunk", interval = 7, per_player = true, capability = "delivery", fn = function(player, player_table)
+scheduler.register({ name = "player-bot-chunk", interval = 7, per_player = true, capability = "delivery", is_heavy = true, fn = function(player, player_table)
   local bot_progress = bot_counter.gather_data_for_player_network(player, player_table)
   main_window.update_bot_progress(player_table, bot_progress)
 
 end })
-scheduler.register({ name = "player-cell-chunk", interval = 59, per_player = true, capability = "activity", fn = function(player, player_table)
+scheduler.register({ name = "player-cell-chunk", interval = 59, per_player = true, capability = "activity", is_heavy = true, fn = function(player, player_table)
   local cells_progress = logistic_cell_counter.gather_data_for_player_network(player, player_table)
   main_window.update_cells_progress(player_table, cells_progress)
   if cells_progress and cells_progress.total > 0 and cells_progress.current >= cells_progress.total  then
@@ -122,7 +122,7 @@ scheduler.register({ name = "player-cell-chunk", interval = 59, per_player = tru
 end })
 
 -- Scheduler task for analysis tasks that derive from bots and cells data
-scheduler.register({ name = "pick-network-to-analyse", interval = 31, per_player = false, capability = nil, fn = function()
+scheduler.register({ name = "pick-network-to-analyse", interval = 31, per_player = false, capability = nil, is_heavy = false, fn = function()
   local nwd = analysis_coordinator.find_network_to_analyse()
   if nwd then
     debugger.info("Analysing network ID " .. nwd.id)
@@ -131,15 +131,15 @@ scheduler.register({ name = "pick-network-to-analyse", interval = 31, per_player
 end })
 
 -- Scheduler task for running the currently active derived analysis, if any
-scheduler.register({ name = "run-derived-analysis", interval = 5, per_player = false, capability = nil,
+scheduler.register({ name = "run-derived-analysis", interval = 5, per_player = false, capability = nil, is_heavy = true,
   fn = analysis_coordinator.run_analysis_step })
 
 -- Schedulers for updating the UI
-scheduler.register({ name = "ui-update", interval = 60, per_player = true,
+scheduler.register({ name = "ui-update", interval = 60, per_player = true, is_heavy = false,
   fn = full_UI_refresh })
 
 -- Update just progress indicators for background scans
-scheduler.register({ name = "analysis-progress-update", interval = 7, per_player = true, fn = function(player, player_table)
+scheduler.register({ name = "analysis-progress-update", interval = 7, per_player = true, is_heavy = false, fn = function(player, player_table)
   if analysis_coordinator.is_analysing_player_network(player_table) then
     local state = storage.analysis_state
     if state and state.undersupply_chunker then
