@@ -7,6 +7,7 @@ local chunker = require("scripts.chunker")
 local tick_counter = require("scripts.tick-counter")
 local global_data = require("scripts.global-data")
 local player_data = require("scripts.player-data")
+local debugger = require("scripts.debugger")
 
 -- Data stored for each network
 ---@class LINetworkData
@@ -256,7 +257,6 @@ function network_data.check_network_changed(player, player_table)
     -- Get the network IDs, making sure the network references are still valid
     local new_network_id = network and network.valid and network.network_id or 0
     local old_network_id = player_table_network and player_table_network.valid and player_table_network.network_id or 0
-    log("[check_network_changed] Player " .. tostring(player.index) .. " old network ID " .. tostring(old_network_id) .. " new network ID " .. tostring(new_network_id))
 
     local has_network = (network ~= nil)
     capability_manager.set_reason(player_table, "delivery", "no_network", not has_network)
@@ -306,7 +306,7 @@ function network_data.player_changed_networks(player_table, old_network_id, new_
   if new_nwd then
     -- Add the player to the new network's player set
     new_nwd.players_set[player_table.player_index] = true
-    log("Added player index " .. tostring(player_table.player_index) .. " to network ID " .. tostring(new_nwd.id))
+    debugger.info("Added player index " .. tostring(player_table.player_index) .. " to network ID " .. tostring(new_nwd.id))
     player_table.network = new_network
     if not new_nwd.history_timer then
       new_nwd.history_timer = tick_counter.new()
@@ -333,9 +333,9 @@ function network_data.remove_player_index_from_networkdata(networkdata, player_t
       networkdata.players_set[player_table.player_index] = nil
     end
     player_table.network = nil
-    log("Removed player index " .. tostring(player_table.player_index) .. " from network ID " .. tostring(networkdata.id))
+    debugger.info("Removed player index " .. tostring(player_table.player_index) .. " from network ID " .. tostring(networkdata.id))
   else
-    log("[remove_player_index_from_networkdata] ERROR: Need both networkdata and player_table")
+    debugger.error("remove_player_index_from_networkdata: Need both networkdata and player_table")
   end
 end
 

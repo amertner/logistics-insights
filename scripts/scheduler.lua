@@ -5,6 +5,7 @@ local scheduler = {}
 
 local player_data = require("scripts.player-data")
 local global_data = require("scripts.global-data")
+local debugger = require("scripts.debugger")
 local capability_manager = require("scripts.capability-manager")
 
 ---@class SchedulerTask
@@ -176,9 +177,8 @@ local function run_global_tasks(tick)
       task.last_run = tick
       local ok, err = pcall(task.fn)
       if not ok then
-        log("[scheduler] Task '" .. task.name .. "' failed: " .. tostring(err))
+        debugger.error("[scheduler] Task '" .. task.name .. "' failed: " .. tostring(err))
       end
-      --log("[scheduler] Task '" .. task.name .. "' run: " .. tostring(tick))
     end
   end
 end
@@ -199,18 +199,16 @@ end
               player_table.schedule_last_run[task.name] = tick
               local ok, err = pcall(task.fn, player, player_table)
               if not ok then
-                log("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
+                debugger.error("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
               end
-              --log("[scheduler] P1-Task '" .. task.name .. "' run: " .. tostring(tick))
               return
             end
           else
             player_table.schedule_last_run[task.name] = tick
             local ok, err = pcall(task.fn, player, player_table)
             if not ok then
-              log("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
+              debugger.error("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
             end
-            --log("[scheduler] P2-Task '" .. task.name .. "' run: " .. tostring(tick))
             return
           end
         end
@@ -228,7 +226,7 @@ function scheduler.on_tick()
     for _, name in ipairs(global_task_order) do
       local task = global_tasks[name]
       if task.last_run + task.interval +20 < tick then
-        log("[scheduler] ERROR: GTask '" .. task.name .. "' has not run for too long")
+        debugger.error("[scheduler] GTask '" .. task.name .. "' has not run for too long")
       end
     end
   end

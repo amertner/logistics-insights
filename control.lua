@@ -3,6 +3,8 @@ local flib_migration = require("__flib__.migration")
 
 local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
+local global_data = require("scripts.global-data")
+local debugger = require("scripts.debugger")
 local bot_counter = require("scripts.bot-counter")
 local logistic_cell_counter = require("scripts.logistic-cell-counter")
 local suggestions_calc = require("scripts.suggestions-calc")
@@ -16,7 +18,6 @@ local capability_manager = require("scripts.capability-manager")
 local networks_window= require("scripts.networkswin.networks_window")
 local tooltips_helper = require("scripts.tooltips-helper")
 local analysis_coordinator = require("scripts.analysis-coordinator")
-local global_data = require("scripts.global-data")
 
 ---@alias SurfaceName string
 
@@ -124,7 +125,7 @@ end })
 scheduler.register({ name = "pick-network-to-analyse", interval = 31, per_player = false, capability = nil, fn = function()
   local nwd = analysis_coordinator.find_network_to_analyse()
   if nwd then
-    log("Analysing network ID " .. nwd.id)
+    debugger.info("Analysing network ID " .. nwd.id)
     analysis_coordinator.start_analysis(nwd)
   end
 end })
