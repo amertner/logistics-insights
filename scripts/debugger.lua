@@ -1,7 +1,8 @@
 --- A few files to help with debugging
 local debugger = {}
 
-local debug_level = 3 -- 0 = none, 1 = errors, 2 = warnings, 3 = info, 4 = debug
+-- This level of message will be added to the Factorio log
+local debug_level = 1 -- 0 = none, 1 = errors, 2 = warnings, 3 = info, 4 = debug
 
 local function message(level, msg)
   if debug_level >= level then
