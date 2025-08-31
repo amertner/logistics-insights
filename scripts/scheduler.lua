@@ -19,9 +19,6 @@ local capability_manager = require("scripts.capability-manager")
 
 local global_tasks = {}   ---@type table<string, SchedulerTask>
 local player_tasks = {}   ---@type table<string, SchedulerTask>
--- Deterministic execution order (arrays of task names)
-local global_task_order = {} ---@type string[]
-local player_task_order = {} ---@type string[]
 -- Per-player interval overrides: player_index -> task_name -> interval
 local player_intervals = {} ---@type table<number, table<string, number>>
 
@@ -48,14 +45,8 @@ function scheduler.register(opts)
     capability = opts.capability,
   }
   if task.per_player then
-    if not player_tasks[task.name] then
-      table.insert(player_task_order, task.name)
-    end
     player_tasks[task.name] = task
   else
-    if not global_tasks[task.name] then
-      table.insert(global_task_order, task.name)
-    end
     global_tasks[task.name] = task
   end
 end
@@ -65,21 +56,9 @@ end
 function scheduler.unregister(name)
   if global_tasks[name] then
     global_tasks[name] = nil
-    for i, n in ipairs(global_task_order) do
-      if n == name then
-        table.remove(global_task_order, i)
-        break
-      end
-    end
   end
   if player_tasks[name] then
     player_tasks[name] = nil
-    for i, n in ipairs(player_task_order) do
-      if n == name then
-        table.remove(player_task_order, i)
-        break
-      end
-    end
   end
 end
 
@@ -100,8 +79,6 @@ end
 
 -- Apply global settings to relevant schedules
 function scheduler.apply_global_settings()
-  -- All players' updates happen on the same schedule
-  scheduler.update_interval( "player-bot-chunk", global_data.chunk_interval_ticks() )
   -- On this schedule, update a background network, if applicable
   scheduler.update_interval( "background-refresh", global_data.background_refresh_interval_ticks() )
 end
@@ -298,32 +275,6 @@ function scheduler.on_tick()
       end
     end
   end
-end
-
-
-function scheduler.get_registered_tasks_by_tick()
-  local tasks = { }
-  for _, name in ipairs(global_task_order) do
-    local task = global_tasks[name]
-    if task then
-      tasks[#tasks + 1] = {
-        interval = task.interval,
-        name = task.name,
-        --type = "global"
-      }
-    end
-  end
-  for _, name in ipairs(player_task_order) do
-    local task = player_tasks[name]
-    if task then
-      tasks[#tasks + 1] = {
-        name = task.name,
-        interval = task.interval,
-        --type = "player"
-      }
-    end
-  end
-  return tasks
 end
 
 return scheduler
