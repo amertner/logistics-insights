@@ -9,6 +9,7 @@ local capability_manager = require("capability-manager")
 local chunker = require("chunker")
 local suggestions_calc = require("suggestions-calc")
 local undersupply = require("undersupply")
+local debugger = require("debugger")
 
 
 -- Find network to start analysing, if any
@@ -82,6 +83,7 @@ end
 function analysis_coordinator.start_analysis(networkdata)
   local network = network_data.get_LuaNetwork(networkdata)
   if network then
+    debugger.info("[analysis-coordinator] Starting analysis for network " .. tostring(networkdata.id))
     storage.analysing_network = network
     storage.analysing_networkdata = networkdata
     storage.analysis_start_tick = game.tick
@@ -111,6 +113,7 @@ function analysis_coordinator.run_analysis_step()
   if not storage.analysing_networkdata then
     return
   end
+  debugger.info("[analysis-coordinator] Running analysis step for network " .. tostring(storage.analysing_networkdata.id))
 
   local state = storage.analysis_state
   if state.free_suggestions_done == false then
@@ -121,6 +124,7 @@ function analysis_coordinator.run_analysis_step()
     state.storage_analysis_done = analysis_coordinator.run_storage_analysis_step()
   else
     -- All steps are done
+    debugger.info("[analysis-coordinator] Complete for network " .. tostring(storage.analysing_networkdata.id))
     analysis_coordinator.stop_analysis()
   end
 end
@@ -172,7 +176,6 @@ function analysis_coordinator.run_storage_analysis_step()
   end
 
   if the_chunker:is_done_processing() then
-    storage.analysis_state.storage_chunker = nil
     return true
   end
   return false
@@ -215,7 +218,6 @@ function analysis_coordinator.run_undersupply_step()
   end
 
   if the_chunker:is_done_processing() then
-    storage.analysis_state.undersupply_chunker = nil
     return true
   end
   return false

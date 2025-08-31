@@ -282,6 +282,7 @@ function scheduler.on_tick()
           end
           if run_task then
             task.last_run = tick
+            debugger.info("[scheduler] Running player task '" .. task.name .. "' for player " .. player_index)
             local ok, err = pcall(task.fn, player, player_table)
             if not ok then
               debugger.error("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
@@ -290,6 +291,7 @@ function scheduler.on_tick()
         end
       else
         task.last_run = tick
+        debugger.info("[scheduler] Running task " .. task.name)
         local ok, err = pcall(task.fn)
         if not ok then
           debugger.error("[scheduler] Task '" .. task.name .. "' failed: " .. tostring(err))

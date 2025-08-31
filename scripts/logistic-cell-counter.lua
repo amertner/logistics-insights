@@ -45,7 +45,7 @@ local function process_one_cell(cell, accumulator, gather, networkdata)
   -- Check the bots stationed at this roboport
   if cell.owner and cell.owner.valid and gather.quality then
     -- Count roboport quality
-    local rp_quality = cell.owner.quality.name
+    local rp_quality = (cell.owner.quality and cell.owner.quality.name) or "normal"
     utils.accumulate_quality(accumulator.roboport_qualities, rp_quality, 1)
 
     -- Count quality of charging bots (fast path: numeric loop + cached locals)
@@ -86,10 +86,10 @@ local function process_one_cell(cell, accumulator, gather, networkdata)
     if rp then
       local inventory = rp.get_inventory(defines.inventory.roboport_robot)
       if inventory and not inventory.is_empty() then
-        local stacks = inventory.get_contents()
-        for _, stack in pairs(stacks) do
-          if stack.name == "logistic-robot" then
-            local quality = stack.quality or "normal"
+        for i = 1, #inventory do
+          local stack = inventory[i]
+          if stack and stack.valid_for_read and stack.name == "logistic-robot" then
+            local quality = (stack.quality and stack.quality.name) or "normal"
             utils.accumulate_quality(bot_qualities, quality, stack.count)
           end
         end
@@ -193,11 +193,11 @@ end
 ---@param networkdata LINetworkData|nil
 ---@return boolean True if the network is fully processed, false if there is more data to process
 function logistic_cell_counter.is_background_done(networkdata)
-  if not networkdata or not networkdata.bot_chunker then
+  if not networkdata or not networkdata.cell_chunker then
     return true
   end
 
-  return networkdata.bot_chunker:is_done_processing()
+  return networkdata.cell_chunker:is_done_processing()
 end
 
 -- Initialise background processing of a network
@@ -215,7 +215,7 @@ function logistic_cell_counter.init_background_processing(networkdata, network)
   networkdata.bot_items["logistic-robot-available"] = network.available_logistic_robots
 
   logistic_cell_counter.restart_counting(networkdata)
-  networkdata.cell_chunker:initialise_chunking(networkdata, network.cells, gather_options, {}, initialise_cell_network_list)
+  networkdata.cell_chunker:initialise_chunking(networkdata, network.cells, nil, gather_options, initialise_cell_network_list)
 end
 
 -- Process a single chunk of background network data
@@ -223,8 +223,8 @@ end
 function logistic_cell_counter.process_background_network(networkdata)
   -- Process the background network data
   networkdata.cell_chunker:process_chunk(process_one_cell)
-  if networkdata.bot_chunker:needs_finalisation() then
-    networkdata.bot_chunker:finalise_run(all_chunks_done)
+  if networkdata.cell_chunker:needs_finalisation() then
+    networkdata.cell_chunker:finalise_run(all_chunks_done)
   end
 end
 

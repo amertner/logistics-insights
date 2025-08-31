@@ -139,7 +139,7 @@ scheduler.register({ name = "ui-update", interval = 60, per_player = true, is_he
   fn = full_UI_refresh })
 
 -- Update just progress indicators for background scans
-scheduler.register({ name = "analysis-progress-update", interval = 7, per_player = true, is_heavy = false, fn = function(player, player_table)
+scheduler.register({ name = "analysis-progress-update", interval = 5, per_player = true, is_heavy = false, fn = function(player, player_table)
   if analysis_coordinator.is_analysing_player_network(player_table) then
     local state = storage.analysis_state
     if state and state.undersupply_chunker then
