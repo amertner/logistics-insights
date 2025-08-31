@@ -4,6 +4,7 @@ local tooltips_helper = {}
 
 local flib_format = require("__flib__.format")
 local player_data = require("scripts.player-data")
+local global_data = require("scripts.global-data")
 local capability_manager = require("scripts.capability-manager")
 local Cache = require("scripts.cache")
 -- Cache for surface names to avoid repeated string concatenation
@@ -184,7 +185,7 @@ end)
 ---@param formatstr? string Optional format string to wrap the quality tip
 ---@return table<LocalisedString> The tooltip with quality information added
 function tooltips_helper.get_quality_tooltip_line(tip, quality_table, newline, formatstr)
-  if settings.global["li-gather-quality-data-global"].value and prototypes.quality then
+  if global_data.gather_quality_data() and prototypes.quality then
     -- Use a string summarizing the counts as key
     local sig = make_quality_signature(quality_table)
     local quality_tip = quality_tip_cache:get(sig, quality_table, "network-row.quality-tooltip-1quality-2count")

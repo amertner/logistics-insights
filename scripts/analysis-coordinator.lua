@@ -4,6 +4,7 @@ local analysis_coordinator = {}
 
 local network_data = require("network-data")
 local player_data = require("player-data")
+local global_data = require("global-data")
 local capability_manager = require("capability-manager")
 local chunker = require("chunker")
 local suggestions_calc = require("suggestions-calc")
@@ -17,7 +18,12 @@ function analysis_coordinator.find_network_to_analyse()
     return nil -- Already analysing a network
   end
   -- Only refresh non-player networks that have not been refreshed for at least refresh-interval
-  local last_bg_tick = game.tick - settings.global["li-background-refresh-interval"].value * 60
+  local last_bg_tick
+  if  global_data.background_refresh_interval_ticks() == 0 then
+    last_bg_tick = 0 -- Don't analyse any background networks
+  else
+    last_bg_tick = game.tick - global_data.background_refresh_interval_ticks()
+  end
   local last_fg_tick = game.tick - 2*60 -- At least 2 seconds between foreground analyses
 
   local last_tick

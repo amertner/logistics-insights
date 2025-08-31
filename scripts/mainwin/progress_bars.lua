@@ -4,6 +4,7 @@ local progress_bars = {}
 
 local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
+local global_data = require("scripts.global-data")
 
 -- Cache frequently used constants
 local math_floor = math.floor
@@ -33,7 +34,7 @@ function progress_bars.update_progressbar(player_table, progressbar_name, progre
   end
   if not chunk_size then
     -- Fallback to the global chunk size setting
-    chunk_size = settings.global["li-chunk-size-global"].value
+    chunk_size = global_data.chunk_size()
   end
 
   if not progress or progress.total == 0 then

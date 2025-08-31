@@ -3,6 +3,7 @@ local logistic_cell_counter = {}
 
 local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
+local global_data = require("scripts.global-data")
 local utils = require("scripts.utils")
 local chunker = require("scripts.chunker")
 local scheduler = require("scripts.scheduler")
@@ -189,7 +190,7 @@ end
 function logistic_cell_counter.init_background_processing(networkdata, network)
   -- Initialise the chunker for background processing
   local gather_options = {}
-  if settings.global["li-gather-quality-data-global"].value then
+  if global_data.gather_quality_data() then
     gather_options.quality = true
   end
 

@@ -1,5 +1,7 @@
 -- Process lists of entities in chunks to avoid performance issues
 
+local global_data = require("scripts.global-data")
+
 ---@class Progress
 ---@field current number The current progress index
 ---@field total number The total number of items to process
@@ -30,7 +32,7 @@ function chunker.new(divisor)
   self.divisor = math.max(divisor or 1, 1)
   self:set_chunk_size()
   self.gather = {}
-  if settings.global["li-gather-quality-data-global"].value then
+  if global_data.gather_quality_data() then
     self.gather.quality = true
   end
   self.current_index = 1
@@ -44,7 +46,7 @@ end
 
 function chunker:set_chunk_size()
   self.divisor = self.divisor or 1
-  local base_chunk_size = tonumber(settings.global["li-chunk-size-global"].value) or 208
+  local base_chunk_size = global_data.chunk_size()
   self.CHUNK_SIZE = math.max(1, math.floor(base_chunk_size / self.divisor))
 end
 
@@ -61,7 +63,7 @@ function chunker:initialise_chunking(networkdata, list, initial_data, gather_opt
   self.current_index = 1
   self:set_chunk_size() -- Update in case the setting changed since new()
   self.gather = gather_options or {}
-  if settings.global["li-gather-quality-data-global"].value then
+  if global_data.gather_quality_data() then
     self.gather.quality = true
   end
   self.networkdata = networkdata

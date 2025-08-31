@@ -3,6 +3,7 @@ local player_data = {}
 
 local capability_manager = require("scripts.capability-manager")
 local network_data = require("scripts.network-data")
+local global_data = require("scripts.global-data")
 
 -- Cache frequently used functions for performance
 local math_max = math.max
@@ -92,36 +93,19 @@ function player_data.get_player_table(player_index)
   return storage.players[player_index] or nil -- Return the player table if it exists
 end
 
----@return integer The global bot chunk interval setting
-function player_data.bot_chunk_interval()
-  return tonumber(settings.global["li-chunk-processing-interval-ticks"].value) or 10
-end
-
 -- Scale the update interval based on how often the UI updates, but not too often
 ---@param player_table PlayerData
 ---@param chunks number
 ---@return nil
 function player_data.set_logistic_cell_chunks(player_table, chunks)
   local interval = player_data.ui_update_interval(player_table) / math_max(1, chunks)
-  local bot_interval = player_data.bot_chunk_interval()
-  if interval < bot_interval then
-    -- The bot interval is the smallest interval we can allow, so don't go lower
-    interval = bot_interval
-  end
-  -- Pick a prime number that is close to the interval, and is not in use
-  local prime_intervals = {17, 37, 41, 53, 59, 71, 89}
-  if interval > 89 then
-    interval = 89 -- Cap at 89 ticks
-  else
-    for _, p in ipairs(prime_intervals) do
-      if p >= interval then
-        interval = p
-        break
-      end
-    end
+  local base_interval = global_data.chunk_interval_ticks()
+  if interval < base_interval then
+    -- The configured interval is the smallest interval we can allow, so don't go lower
+    interval = base_interval
   end
 
-  player_table.current_logistic_cell_interval = interval
+  player_table.current_logistic_cell_interval = math.ceil(interval)
 end
 
 ---@param player_table PlayerData

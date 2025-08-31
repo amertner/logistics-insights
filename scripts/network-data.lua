@@ -5,6 +5,7 @@ local suggestions = require("scripts.suggestions")
 local capability_manager = require("scripts.capability-manager")
 local chunker = require("scripts.chunker")
 local tick_counter = require("scripts.tick-counter")
+local global_data = require("scripts.global-data")
 
 -- Data stored for each network
 ---@class LINetworkData
@@ -289,7 +290,7 @@ function network_data.player_changed_networks(player_table, old_network_id, new_
       network_data.clear_history_from_nwd(old_nwd)
 
       -- As the old network has no players left, potentially remove it
-      if not settings.global["li-show-all-networks"].value then
+      if global_data.purge_nonplayer_networks() then
         storage.networks[old_network_id] = nil
       end
     end
@@ -336,7 +337,7 @@ end
 ---@return boolean True if any networks were purged, false otherwise
 function network_data.purge_unobserved_networks()
   local purged = false
-  if not settings.global["li-show-all-networks"].value then
+  if global_data.purge_nonplayer_networks() then
     for network_id, networkdata in pairs(storage.networks) do
       if not networkdata.players_set or table_size(networkdata.players_set) == 0 then
         -- Remove the network data if it has no players
@@ -369,8 +370,11 @@ end
 -- Return the next network to background scan, if any
 ---@return LINetworkData|nil The next network to scan, or nil if none available
 function network_data.get_next_background_network()
+  if global_data.background_refresh_interval_ticks() == 0 then
+    return nil -- Background refresh is disabled
+  end
   -- Only refresh networks that have not been refreshed for at least refresh-interval
-  local last_tick = game.tick - settings.global["li-background-refresh-interval"].value * 60
+  local last_tick = game.tick - global_data.background_refresh_interval_ticks()
   local list = {}
   if storage.networks then
     for _, networkdata in pairs(storage.networks) do

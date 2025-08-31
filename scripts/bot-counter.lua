@@ -1,6 +1,7 @@
 local bot_counter = {}
 
 local network_data = require("scripts.network-data")
+local global_data = require("scripts.global-data")
 local chunker = require("scripts.chunker")
 local utils = require("scripts.utils")
 local capability_manager = require("scripts.capability-manager")
@@ -359,10 +360,10 @@ end
 function bot_counter.init_background_processing(networkdata, network)
   -- Initialise the chunker for background processing
   local gather_options = {}
-  if settings.global["li-gather-quality-data-global"].value then
+  if global_data.gather_quality_data() then
     gather_options.quality = true
   end
-  
+
   networkdata.bot_chunker:initialise_chunking(networkdata, network.logistic_robots, networkdata.last_pass_bots_seen, gather_options, bot_initialise_chunking)
 end
 

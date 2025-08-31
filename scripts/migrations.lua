@@ -10,6 +10,7 @@ local capability_manager = require("scripts.capability-manager")
 local suggestions = require("scripts.suggestions")
 local logistic_cell_counter = require("scripts.logistic-cell-counter")
 local bot_counter = require("scripts.bot-counter")
+local global_data = require("scripts.global-data")
 
 local function init_storage_and_settings()
   player_data.init_storages()
@@ -64,6 +65,7 @@ local li_migrations = {
   end,
 
   ["0.9.8"] = function()
+    storage.global = {}
     -- Initialise new per-network storage
     network_data.init()
     -- Move all of the things that used to be global to per-player
@@ -282,6 +284,11 @@ local li_migrations = {
       reinitialise_ui(player, player_table)
     end
   end,
+
+  ["0.10.6"] = function() -- Cache per-map settings properly
+    global_data.init()
+  end,
+
 }
 
 return li_migrations

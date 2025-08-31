@@ -16,6 +16,7 @@ local capability_manager = require("scripts.capability-manager")
 local networks_window= require("scripts.networkswin.networks_window")
 local tooltips_helper = require("scripts.tooltips-helper")
 local analysis_coordinator = require("scripts.analysis-coordinator")
+local global_data = require("scripts.global-data")
 
 ---@alias SurfaceName string
 
@@ -78,11 +79,13 @@ local function full_UI_refresh(player, player_table)
 end
 
 -- SETTING UP AND HANDLING SCHEDULED EVENTS
--- All schedules are running every N ticks, where N are distinct prime numbers to avoid processing more than one thing on a tick.
+-- All schedules are running every N ticks, where they are spaced out. The scheduler ensures that mostly only one task runs per tick.
 -- 3: Bot chunk scanning. Fast, to reduce undercounting. (Can be 3, 7, 13, 23, 37, 53)
 -- 5: Run one step of the currently active derived analysis, if any.
+-- 7: "analysis-progress-update" to update progress bars
 -- 11: Background network refresh
 -- 29: Check whether a player's active network has changed
+-- 31: Pick next network to analyse for suggestions and undersupply
 -- 59: Cell chunk scanning. Slower is ok, as cells change less often. (Can be 17, 37, 41, 53, 59, 71, 89)
 -- 61: Check which derived analysis should run, if any
 
@@ -118,7 +121,7 @@ scheduler.register({ name = "player-cell-chunk", interval = 59, per_player = tru
 end })
 
 -- Scheduler task for analysis tasks that derive from bots and cells data
-scheduler.register({ name = "pick-network-to-analyse", interval = 29, per_player = false, capability = nil, fn = function()
+scheduler.register({ name = "pick-network-to-analyse", interval = 31, per_player = false, capability = nil, fn = function()
   local nwd = analysis_coordinator.find_network_to_analyse()
   if nwd then
     log("Analysing network ID " .. nwd.id)
@@ -135,7 +138,7 @@ scheduler.register({ name = "ui-update", interval = 60, per_player = true,
   fn = full_UI_refresh })
 
 -- Update just progress indicators for background scans
-scheduler.register({ name = "analysis-progress-update", interval = 5, per_player = true, fn = function(player, player_table)
+scheduler.register({ name = "analysis-progress-update", interval = 7, per_player = true, fn = function(player, player_table)
   if analysis_coordinator.is_analysing_player_network(player_table) then
     local state = storage.analysis_state
     if state and state.undersupply_chunker then
@@ -243,6 +246,7 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
   if utils.starts_with(e.setting, "li-") then
     if e.setting_type == "runtime-global" then
       -- Global setting change
+      global_data.settings_changed()
       if e.setting == "li-show-all-networks" then
         -- When this setting is changed, potentially purge unobserved networks and refresh the UI
         network_data.purge_unobserved_networks()
@@ -254,9 +258,10 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
         end
       elseif e.setting == "li-chunk-processing-interval-ticks" then
         -- Update the global bot chunk interval setting
+        scheduler.apply_global_settings()
         scheduler.apply_all_player_intervals()
-        scheduler.update_interval( "background-refresh", tonumber(settings.global[e.setting].value) or 401)
       elseif e.setting == "li-gather-quality-data-global" then
+        -- Nothing particular to do yet; will be used on next chunking cycle
       end
     else
       -- Per-player setting change

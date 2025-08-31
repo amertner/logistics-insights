@@ -4,6 +4,7 @@
 local scheduler = {}
 
 local player_data = require("scripts.player-data")
+local global_data = require("scripts.global-data")
 local capability_manager = require("scripts.capability-manager")
 
 ---@class SchedulerTask
@@ -87,11 +88,19 @@ function scheduler.update_interval(name, new_interval)
   end
 end
 
+-- Apply global settings to relevant schedules
+function scheduler.apply_global_settings()
+  -- All players' updates happen on the same schedule
+  scheduler.update_interval( "player-bot-chunk", global_data.chunk_interval_ticks() )
+  -- On this schedule, update a background network, if applicable
+  scheduler.update_interval( "background-refresh", global_data.background_refresh_interval_ticks() )
+end
+
 -- Apply player-specific intervals based on current settings.
 function scheduler.apply_player_intervals(player_index, player_table)
   assert(player_table.player_index == player_index, "Player table index mismatch")
   scheduler.update_player_intervals(player_index, {
-    ["player-bot-chunk"] = player_data.bot_chunk_interval(),
+    -- The player's cell update interval depends on how many chunks their network has
     ["player-cell-chunk"] = player_data.cells_chunk_interval(player_table),
     ["ui-update"] = player_data.ui_update_interval(player_table),
   })
@@ -160,10 +169,7 @@ function scheduler.reregister(specs)
   end
 end
 
---- Run due tasks for this tick.
-function scheduler.on_tick()
-  local tick = game.tick
-  -- Global tasks in deterministic order
+local function run_global_tasks(tick)
   for _, name in ipairs(global_task_order) do
     local task = global_tasks[name]
     if task and (tick - task.last_run) >= task.interval then
@@ -172,43 +178,99 @@ function scheduler.on_tick()
       if not ok then
         log("[scheduler] Task '" .. task.name .. "' failed: " .. tostring(err))
       end
+      --log("[scheduler] Task '" .. task.name .. "' run: " .. tostring(tick))
     end
   end
-  -- Per-player tasks
-  if storage.players then
-    for player_index, player_table in pairs(storage.players) do
-      local player = game.get_player(player_index)
-      if player and player.valid and player.connected then
-        local overrides = player_intervals[player_index] or {}
-        for _, name in ipairs(player_task_order) do
-          local task = player_tasks[name]
-          if task then
-            local effective_interval = overrides[task.name] or task.interval
-            local last = player_table.schedule_last_run[task.name] or 0
-            if effective_interval and (tick - last) >= effective_interval then
-              if task.capability then
-                if not capability_manager.is_active(player_table, task.capability) then
-                  -- Skip while inactive (do not advance last_run)
-                else
-                  player_table.schedule_last_run[task.name] = tick
-                  local ok, err = pcall(task.fn, player, player_table)
-                  if not ok then
-                    log("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
-                  end
-                end
-              else
-                player_table.schedule_last_run[task.name] = tick
-                local ok, err = pcall(task.fn, player, player_table)
-                if not ok then
-                  log("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
-                end
+end
+
+  -- Run up to one task for each player
+  local function run_player_task(player_index, player_table, player, tick)
+    local overrides = player_intervals[player_index] or {}
+    for _, name in ipairs(player_task_order) do
+      local task = player_tasks[name]
+      if task then
+        local effective_interval = overrides[task.name] or task.interval
+        local last = player_table.schedule_last_run[task.name] or 0
+        if effective_interval and (tick - last) >= effective_interval then
+          if task.capability then
+            if not capability_manager.is_active(player_table, task.capability) then
+              -- Skip while inactive (do not advance last_run)
+            else
+              player_table.schedule_last_run[task.name] = tick
+              local ok, err = pcall(task.fn, player, player_table)
+              if not ok then
+                log("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
               end
+              --log("[scheduler] P1-Task '" .. task.name .. "' run: " .. tostring(tick))
+              return
             end
+          else
+            player_table.schedule_last_run[task.name] = tick
+            local ok, err = pcall(task.fn, player, player_table)
+            if not ok then
+              log("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
+            end
+            --log("[scheduler] P2-Task '" .. task.name .. "' run: " .. tostring(tick))
+            return
           end
         end
       end
     end
   end
+
+  
+--- Run due tasks for this tick.
+function scheduler.on_tick()
+  local tick = game.tick
+
+  if tick % 120 == 0 then
+    -- Check if there are tasks that have not run for too long
+    for _, name in ipairs(global_task_order) do
+      local task = global_tasks[name]
+      if task.last_run + task.interval +20 < tick then
+        log("[scheduler] ERROR: GTask '" .. task.name .. "' has not run for too long")
+      end
+    end
+  end
+
+  -- Global tasks in deterministic order
+  run_global_tasks(tick)
+
+  -- Per-player tasks
+  if storage.players then
+    for player_index, player_table in pairs(storage.players) do
+      local player = game.get_player(player_index)
+      if player and player.valid and player.connected then
+        -- Only run one task per player per tick to spread out load
+        run_player_task(player_index, player_table, player, tick)
+      end
+    end
+  end
+end
+
+function scheduler.get_registered_tasks_by_tick()
+  local tasks = { }
+  for _, name in ipairs(global_task_order) do
+    local task = global_tasks[name]
+    if task then
+      tasks[#tasks + 1] = {
+        interval = task.interval,
+        name = task.name,
+        --type = "global"
+      }
+    end
+  end
+  for _, name in ipairs(player_task_order) do
+    local task = player_tasks[name]
+    if task then
+      tasks[#tasks + 1] = {
+        name = task.name,
+        interval = task.interval,
+        --type = "player"
+      }
+    end
+  end
+  return tasks
 end
 
 return scheduler
