@@ -7,6 +7,7 @@ local global_data = require("scripts.global-data")
 local utils = require("scripts.utils")
 local chunker = require("scripts.chunker")
 local scheduler = require("scripts.scheduler")
+local capability_manager = require("scripts.capability-manager")
 
 ---@class CellAccumulator
 ---@field bots_charging number Count of bots currently charging
@@ -144,61 +145,31 @@ function logistic_cell_counter.network_changed(player, player_table)
   end
 end
 
---- Gather activity data from all cells in this player's network
---- @param player? LuaPlayer The player to gather data for
---- @param player_table? PlayerData The player's data table containing network and settings
---- @return Progress A table with current and total progress values
-function logistic_cell_counter.gather_data_for_player_network(player, player_table)
-  -- First update and validate network
-  local progress = { current = 0, total = 0 } -- Use local variable to avoid global access
-  if not player_table then
-    return progress -- Ignore if no player_table is provided
-  end
-  if not player_table.settings.show_activity then
-    return progress -- Activity gathering is disabled in settings
-  end
+--- PROCESSING A PLAYER NETWORK, AKA FOREGROUND
 
-  local network = player_table.network
-  if not network or not network.valid then
-    return progress
+---@param networkdata LINetworkData
+---@param network LuaLogisticNetwork
+function logistic_cell_counter.init_foreground_processing(networkdata, network)
+  local gather_activity = false
+  -- If at least one players in the network has not disabled activity, gather it
+  for idx, _ in pairs(networkdata.players_set) do
+    local player_table = player_data.get_player_table(idx)
+    if player_table then
+      if capability_manager.is_active(player_table, "activity") then
+        gather_activity = true
+      end
+    end
   end
-  local networkdata = network_data.create_networkdata(network)
-  if not networkdata then
-    return progress -- No valid network data available
-  end
-
   -- Store basic network stats
   networkdata.bot_items["logistic-robot-total"] = network.all_logistic_robots
   networkdata.bot_items["logistic-robot-available"] = network.available_logistic_robots
 
-  local cell_chunker = networkdata.cell_chunker
-  -- Process cell data
-  if cell_chunker:needs_data() then
-    -- Prior pass was done, so start a new pass
-    cell_chunker:initialise_chunking(networkdata, network.cells, nil, {}, initialise_cell_network_list)
-    -- Take into account number of chunks to minimize redundant counting
-    player_data.set_logistic_cell_chunks(player_table, cell_chunker:num_chunks())
-    scheduler.apply_player_intervals(player_table.player_index, player_table)
+  if gather_activity then
+    networkdata.cell_chunker:initialise_chunking(networkdata, network.cells, nil, {}, initialise_cell_network_list)
   end
-  cell_chunker:process_chunk(process_one_cell)
-  if cell_chunker:needs_finalisation() then
-    cell_chunker:finalise_run(all_chunks_done)
-  end
-
-  return cell_chunker:get_progress()
 end
 
 --- BACKGROUND NETWORK PROCESSING
-
----@param networkdata LINetworkData|nil
----@return boolean True if the network is fully processed, false if there is more data to process
-function logistic_cell_counter.is_background_done(networkdata)
-  if not networkdata or not networkdata.cell_chunker then
-    return true
-  end
-
-  return networkdata.cell_chunker:is_done_processing()
-end
 
 -- Initialise background processing of a network
 ---@param networkdata LINetworkData
@@ -218,9 +189,21 @@ function logistic_cell_counter.init_background_processing(networkdata, network)
   networkdata.cell_chunker:initialise_chunking(networkdata, network.cells, nil, gather_options, initialise_cell_network_list)
 end
 
+--- NETWORK PROCESSING IN CHUNKS
+
+---@param networkdata LINetworkData|nil
+---@return boolean True if the network is fully processed, false if there is more data to process
+function logistic_cell_counter.is_scanning_done(networkdata)
+  if not networkdata or not networkdata.cell_chunker then
+    return true
+  end
+
+  return networkdata.cell_chunker:is_done_processing()
+end
+
 -- Process a single chunk of background network data
 ---@param networkdata LINetworkData
-function logistic_cell_counter.process_background_network(networkdata)
+function logistic_cell_counter.process_next_chunk(networkdata)
   -- Process the background network data
   networkdata.cell_chunker:process_chunk(process_one_cell)
   if networkdata.cell_chunker:needs_finalisation() then

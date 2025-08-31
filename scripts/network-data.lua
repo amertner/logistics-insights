@@ -335,7 +335,7 @@ function network_data.remove_player_index_from_networkdata(networkdata, player_t
     player_table.network = nil
     debugger.info("Removed player index " .. tostring(player_table.player_index) .. " from network ID " .. tostring(networkdata.id))
   else
-    debugger.error("remove_player_index_from_networkdata: Need both networkdata and player_table")
+    debugger.error("[remove_player_index_from_networkdata: Need both networkdata and player_table")
   end
 end
 
@@ -430,6 +430,42 @@ function network_data.get_next_background_network()
     return list[1]
   else
     return nil -- No background networks available
+  end
+end
+
+-- Return the next network to background scan, if any
+---@return LINetworkData|nil The next network to scan, or nil if none available
+function network_data.get_next_player_network()
+  local list = {}
+  if storage.networks then
+    for _, networkdata in pairs(storage.networks) do
+      if networkdata and networkdata.players_set then
+        -- Check if the network still exists - might have been removed!
+        local nw = network_data.get_LuaNetwork(networkdata)
+        if not nw or not nw.valid then
+          -- The network no longer exists, so remove it from storage
+          network_data.remove_network(networkdata.id)
+        elseif network_data.players_in_network(networkdata) > 0 then
+          -- As the network is not paused, add it to the candidate list
+          list[#list+1] = networkdata
+        end
+      end
+    end
+  else
+    return nil -- No networks available
+  end
+
+  if #list == 0 then
+    return nil -- No networks need a background scan
+  end
+  -- Sort by last active tick, so the oldest networks are scanned first
+  table.sort(list, function(a,b) return (a.last_scanned_tick or 0) < (b.last_scanned_tick or 0) end)
+
+  if #list > 0 then
+    -- Return the first network in the sorted list
+    return list[1]
+  else
+    return nil -- No player networks available
   end
 end
 

@@ -43,17 +43,17 @@ local function background_refresh()
     -- We're refreshing a network already
     local networkdata = network_data.get_networkdata_fromid(storage.bg_refreshing_network_id)
     if networkdata then
-      if bot_counter.is_background_done(networkdata) then        
+      if bot_counter.is_scanning_done(networkdata) then        
         -- The bot counter is finished; process the logistic cells
-        if logistic_cell_counter.is_background_done(networkdata) then
+        if logistic_cell_counter.is_scanning_done(networkdata) then
           -- Signal that the background refresh is done
           storage.bg_refreshing_network_id = nil
           network_data.finished_scanning_network(networkdata)
         else
-          logistic_cell_counter.process_background_network(networkdata)
+          logistic_cell_counter.process_next_chunk(networkdata)
         end
       else
-        bot_counter.process_background_network(networkdata)
+        bot_counter.process_next_chunk(networkdata)
       end
     else
       -- The network is no longer valid, so stop refreshing it
@@ -69,6 +69,54 @@ local function background_refresh()
         bot_counter.init_background_processing(networkdata, network)
         logistic_cell_counter.init_background_processing(networkdata, network)
       end
+    end
+  end
+end
+
+-- Update the progress bars for a chunker for all players observing it
+local function update_progressbars_for_network(networkdata, chunker, update_fn)
+  if not networkdata or not chunker or not update_fn then
+    return
+  end
+  for player_index, _ in pairs(networkdata.players_set) do
+    local player = game.get_player(player_index)
+    local player_table = player_data.get_player_table(player_index)
+    if player and player.valid and player_table then
+      update_fn(player_table, chunker:get_progress())
+    end
+  end
+end
+
+-- Called often to refresh foreground networks. Do at most one chunk of work per call.
+---@param network_id number
+local function foreground_bot_chunk(network_id)
+  if network_id then
+    local networkdata = network_data.get_networkdata_fromid(network_id)
+    if networkdata then
+      if not bot_counter.is_scanning_done(networkdata) then
+        bot_counter.process_next_chunk(networkdata)
+        update_progressbars_for_network(networkdata, networkdata.bot_chunker, main_window.update_bot_progress)
+      end
+    else
+      -- The network is no longer valid, so stop refreshing it
+      storage.fg_refreshing_network_id = nil
+    end
+  end
+end
+
+-- Called often to refresh foreground networks. Do at most one chunk of work per call.
+---@param network_id number
+local function foreground_cell_chunk(network_id)
+  if network_id then
+    local networkdata = network_data.get_networkdata_fromid(network_id)
+    if networkdata then
+      if not logistic_cell_counter.is_scanning_done(networkdata) then
+        logistic_cell_counter.process_next_chunk(networkdata)
+        update_progressbars_for_network(networkdata, networkdata.cell_chunker, main_window.update_cells_progress)
+      end
+    else
+      -- The network is no longer valid, so stop refreshing it
+      storage.fg_refreshing_network_id = nil
     end
   end
 end
@@ -106,20 +154,45 @@ scheduler.register({ name = "clear-caches", interval = 60*10, is_heavy = false, 
   fn = tooltips_helper.clear_caches
 })
 
--- Scheduler tasks for refreshing the foreground network for each player
-scheduler.register({ name = "player-bot-chunk", interval = 7, per_player = true, capability = "delivery", is_heavy = true, fn = function(player, player_table)
-  local bot_progress = bot_counter.gather_data_for_player_network(player, player_table)
-  main_window.update_bot_progress(player_table, bot_progress)
-
-end })
-scheduler.register({ name = "player-cell-chunk", interval = 59, per_player = true, capability = "activity", is_heavy = true, fn = function(player, player_table)
-  local cells_progress = logistic_cell_counter.gather_data_for_player_network(player, player_table)
-  main_window.update_cells_progress(player_table, cells_progress)
-  if cells_progress and cells_progress.total > 0 and cells_progress.current >= cells_progress.total  then
-    local nwd = network_data.get_networkdata(player_table.network)
-    network_data.finished_scanning_network(nwd)
+-- Scheduler tasks for refreshing the foreground networks
+scheduler.register({ name = "find-next-player-network", interval = 7, is_heavy = false, per_player = false, fn = function()
+  -- Check if currently processing network is done
+  if storage.fg_refreshing_network_id then
+    networkdata = network_data.get_networkdata_fromid(storage.fg_refreshing_network_id)
+    if networkdata then
+      if networkdata.bot_chunker:is_done_processing() and networkdata.cell_chunker:is_done_processing() then
+        -- The previous network is fully processed, so we can move to the next one
+        storage.fg_refreshing_network_id = nil
+        network_data.finished_scanning_network(networkdata)
+      else
+        return -- Still processing the current network, so don't switch yet
+      end
+    end
   end
-end })
+
+  -- Check what the next network should be
+  if not storage.fg_refreshing_network_id then
+    local networkdata = network_data.get_next_player_network()
+    if networkdata then
+      local network = network_data.get_LuaNetwork(networkdata)
+      if network then
+        storage.fg_refreshing_network_id = networkdata.id
+        bot_counter.init_foreground_processing(networkdata, network)
+        logistic_cell_counter.init_foreground_processing(networkdata, network)
+      end
+    end
+  end
+end})
+scheduler.register({ name = "player-network-bot-chunk", interval = 7, is_heavy = true, per_player = false, fn = function()
+  if storage.fg_refreshing_network_id then
+    foreground_bot_chunk(storage.fg_refreshing_network_id)
+  end
+end})
+scheduler.register({ name = "player-network-cell-chunk", interval = 7, is_heavy = true, per_player = false, fn = function()
+  if storage.fg_refreshing_network_id then
+    foreground_cell_chunk(storage.fg_refreshing_network_id)
+  end
+end})
 
 -- Scheduler task for analysis tasks that derive from bots and cells data
 scheduler.register({ name = "pick-network-to-analyse", interval = 31, per_player = false, capability = nil, is_heavy = false, fn = function()

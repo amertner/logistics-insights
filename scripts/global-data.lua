@@ -6,6 +6,8 @@ function global_data.init()
   storage.global = storage.global or {}
   global_data.settings_changed() -- Cache current settings
 
+  -- Current player network being refreshed
+  storage.fg_refreshing_network_id = nil ---@type number|nil
   -- Current network being refreshed in the background
   storage.bg_refreshing_network_id = nil ---@type number|nil
 end

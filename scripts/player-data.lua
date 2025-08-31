@@ -19,7 +19,6 @@ local math_ceil = math.ceil
 ---@field window_location {x: number, y: number} -- Saved Main window position
 ---@field networks_window_location {x: number, y: number} -- Saved Networks window position
 ---@field ui table<string, table> -- UI elements for the mod's GUI
----@field current_logistic_cell_interval number -- Dynamically calculated interval for logistic cell updates
 ---@field schedule_last_run table<string, uint>|nil -- Per-task last run ticks for scheduler
 ---@field capabilities table<string, CapabilityRecord>|nil -- Unified capability records
 ---@param player_index uint
@@ -36,7 +35,6 @@ function player_data.init(player_index)
     window_location = {x = 300, y = 650},
     networks_window_location = {x = 300, y = 100},
     ui = {},
-    current_logistic_cell_interval = 60,
     schedule_last_run = {}, -- Per-task last run ticks for scheduler
   }
   storage.players[player_index] = player_data_entry
@@ -87,27 +85,6 @@ function player_data.get_player_table(player_index)
     return nil -- No player index or storage available
   end
   return storage.players[player_index] or nil -- Return the player table if it exists
-end
-
--- Scale the update interval based on how often the UI updates, but not too often
----@param player_table PlayerData
----@param chunks number
----@return nil
-function player_data.set_logistic_cell_chunks(player_table, chunks)
-  local interval = player_data.ui_update_interval(player_table) / math_max(1, chunks)
-  local base_interval = global_data.chunk_interval_ticks()
-  if interval < base_interval then
-    -- The configured interval is the smallest interval we can allow, so don't go lower
-    interval = base_interval
-  end
-
-  player_table.current_logistic_cell_interval = math.ceil(interval)
-end
-
----@param player_table PlayerData
----@return integer
-function player_data.cells_chunk_interval(player_table)
-  return player_table.current_logistic_cell_interval or 60
 end
 
 ---@param player_table PlayerData

@@ -1,5 +1,6 @@
 local bot_counter = {}
 
+local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
 local global_data = require("scripts.global-data")
 local chunker = require("scripts.chunker")
@@ -290,69 +291,40 @@ function bot_counter.network_changed(player, player_table)
   end
 end
 
---- Gather bot delivery data for all bots, one chunk at a time
---- @param player? LuaPlayer The player to gather bot data for
---- @param player_table? PlayerData The player's data table containing network and settings
---- @return Progress progress A table with current and total progress values
-function bot_counter.gather_data_for_player_network(player, player_table)
-  local progress = { current = 0, total = 0 }
-  if not player_table then
-    return progress
-  end
+--- PROCESSING A PLAYER NETWORK, AKA FOREGROUND
 
-  local network = player_table.network
-  if not network or not network.valid then
-    return progress
-  end
+---@param networkdata LINetworkData
+---@param network LuaLogisticNetwork
+function bot_counter.init_foreground_processing(networkdata, network)
+  local gather_options = {}
 
-  local networkdata = network_data.create_networkdata(network)
-  if not networkdata then
-    -- No network data, so we can't gather bot data
-    return progress
-  end
-
-  local show_delivering = player_table.settings.show_delivering
-  local show_history = player_table.settings.show_history
-
-  if show_delivering or show_history then
-    local bot_chunker = networkdata.bot_chunker
-
-    if bot_chunker:needs_data() then
-      local gather_options = {}
-      if player_table.settings.show_history then
+  -- If at least one players in the network has not disabled delivery or history, gather it
+  for idx, _ in pairs(networkdata.players_set) do
+    local player_table = player_data.get_player_table(idx)
+    if player_table then
+      if capability_manager.is_active(player_table, "delivering") then
+        gather_options.delivering = true
+      end
+      if capability_manager.is_active(player_table, "history") then
         gather_options.history = true
       end
-      bot_chunker:initialise_chunking(networkdata, network.logistic_robots, networkdata.last_pass_bots_seen, gather_options, bot_initialise_chunking)
     end
-    bot_chunker:process_chunk(process_one_bot)
-    if bot_chunker:needs_finalisation() then
-      bot_chunker:finalise_run(bot_chunks_done)
+  end
+
+  if gather_options.delivery or gather_options.history then
+    if global_data.gather_quality_data() then
+      gather_options.quality = true
     end
-    progress = bot_chunker:get_progress()
+    local bot_chunker = networkdata.bot_chunker
+
+    networkdata.bot_chunker:initialise_chunking(networkdata, network.logistic_robots, networkdata.last_pass_bots_seen, gather_options, bot_initialise_chunking)
   else
     networkdata.bot_items["delivering"] = nil
     networkdata.bot_items["picking"] = nil
   end
-
-  return progress
 end
 
 --- BACKGROUND NETWORK PROCESSING
-
----@param networkdata LINetworkData|nil
----@return boolean True if the network is fully processed, false if there is more data to process
-function bot_counter.is_background_done(networkdata)
-  if not networkdata then
-    return true
-  end
-
-  local bot_chunker = networkdata.bot_chunker
-  if not bot_chunker then
-    return true
-  end
-
-  return bot_chunker:is_done_processing()
-end
 
 -- Initialise background processing of a network
 ---@param networkdata LINetworkData
@@ -367,9 +339,26 @@ function bot_counter.init_background_processing(networkdata, network)
   networkdata.bot_chunker:initialise_chunking(networkdata, network.logistic_robots, networkdata.last_pass_bots_seen, gather_options, bot_initialise_chunking)
 end
 
+--- NETWORK SCANNING IN CHUNKS ---
+
+---@param networkdata LINetworkData|nil
+---@return boolean True if the network is fully processed, false if there is more data to process
+function bot_counter.is_scanning_done(networkdata)
+  if not networkdata then
+    return true
+  end
+
+  local bot_chunker = networkdata.bot_chunker
+  if not bot_chunker then
+    return true
+  end
+
+  return bot_chunker:is_done_processing()
+end
+
 -- Process a single chunk of background network data
 ---@param networkdata LINetworkData
-function bot_counter.process_background_network(networkdata)
+function bot_counter.process_next_chunk(networkdata)
   -- Process the background network data
   networkdata.bot_chunker:process_chunk(process_one_bot)
   if networkdata.bot_chunker:needs_finalisation() then
