@@ -283,7 +283,7 @@ function network_data.player_changed_networks(player_table, old_network_id, new_
   local old_nwd = network_data.get_networkdata_fromid(old_network_id)
   if old_nwd and old_network_id then
     network_data.remove_player_index_from_networkdata(old_nwd, player_table.player_index)
-    local count = table_size(old_nwd.players_set or {})
+    local count = network_data.players_in_network(old_nwd)
 
     if count == 0 then
       -- No more players observing this network, so clear its history and stop gathering history data
@@ -302,6 +302,7 @@ function network_data.player_changed_networks(player_table, old_network_id, new_
   if new_nwd then
     -- Add the player to the new network's player set
     new_nwd.players_set[player_table.player_index] = true
+    log("Added player index " .. tostring(player_table.player_index) .. " to network ID " .. tostring(new_nwd.id))
     player_table.network = new_network
     if not new_nwd.history_timer then
       new_nwd.history_timer = tick_counter.new()
@@ -323,6 +324,7 @@ end
 function network_data.remove_player_index_from_networkdata(networkdata, player_index)
   if networkdata and networkdata.players_set then
     networkdata.players_set[player_index] = nil
+    log("Removed player index " .. tostring(player_index) .. " from network ID " .. tostring(networkdata.id))
   end
 end
 
@@ -339,7 +341,7 @@ function network_data.purge_unobserved_networks()
   local purged = false
   if global_data.purge_nonplayer_networks() then
     for network_id, networkdata in pairs(storage.networks) do
-      if not networkdata.players_set or table_size(networkdata.players_set) == 0 then
+      if network_data.players_in_network(networkdata) == 0 then
         -- Remove the network data if it has no players
         network_data.remove_network(network_id)
         purged = true
@@ -347,6 +349,15 @@ function network_data.purge_unobserved_networks()
     end
   end
   return purged
+end
+
+--- Return the number of players currently observing this network
+---@param networkdata LINetworkData|nil The network data to check
+function network_data.players_in_network(networkdata)
+  if not networkdata or not networkdata.players_set then
+    return 0
+  end
+  return table_size(networkdata.players_set)
 end
 
 -- Get the LuaLogisticNetwork object for a given network data
@@ -384,7 +395,7 @@ function network_data.get_next_background_network()
         if not nw or not nw.valid then
           -- The network no longer exists, so remove it from storage
           network_data.remove_network(networkdata.id)
-        elseif table_size(networkdata.players_set) == 0 and networkdata.last_scanned_tick < last_tick then
+        elseif network_data.players_in_network(networkdata) == 0 and networkdata.last_scanned_tick < last_tick then
           -- This network has no active players, so it can be scanned in the background
           if not networkdata.bg_paused then
             -- As the network is not paused, add it to the candidate list

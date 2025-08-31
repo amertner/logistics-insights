@@ -62,14 +62,14 @@ local cell_setup = {
       el.style.horizontal_align = "right"
       return el
     end,
-    populate = function(el, nw)
+    populate = function(el, nwd)
       if not (el and el.valid) then return end
-      local count = table_size(nw.players_set or {})
+      local count = network_data.players_in_network(nwd)
       el.caption = tostring(count)
       -- Build a tooltip with a list of players in the network
       local list = {}
-      if nw.players_set then
-        for idx, present in pairs(nw.players_set) do
+      if nwd.players_set then
+        for idx, present in pairs(nwd.players_set) do
           if present then
             local player = game.get_player(idx)
             if player and player.valid then
@@ -174,18 +174,18 @@ local cell_setup = {
       el.style.horizontal_align = "right"
       return el
     end,
-    populate = function(el, nw)
+    populate = function(el, nwd)
       if not (el and el.valid) then return end
-      if nw and table_size(nw.players_set) == 0 and nw.bg_paused then
+      if network_data.players_in_network(nwd) == 0 and nwd.bg_paused then
         el.caption = "||"
         el.tooltip = {"networks-window.paused-tooltip"}
         return
       end
-      if nw.id == storage.bg_refreshing_network_id then
+      if nwd.id == storage.bg_refreshing_network_id then
         el.caption = "*"
         el.tooltip = {"networks-window.updating-tooltip"}
       else
-        local last_tick = nw.last_scanned_tick or 0
+        local last_tick = nwd.last_scanned_tick or 0
         local age_ticks = (game and game.tick or 0) - last_tick
         if age_ticks < 0 then age_ticks = 0 end
         local time_str = flib_format.time(age_ticks, false)
@@ -215,19 +215,19 @@ local cell_setup = {
       btn.style.top_margin = 2
       return flow
     end,
-    populate = function(el, nw)
+    populate = function(el, nwd)
       if not (el and el.valid) then return end
       -- Tag the buttons so click handler can find the network
       for _, btn in ipairs(el.children) do
         if btn and btn.valid and btn.type == "sprite-button" then
-          local has_players = nw.players_set and table_size(nw.players_set) > 0
+          local has_players = network_data.players_in_network(nwd) > 0
           if btn.name:find("trash", 1, true) then
             btn.enabled = not has_players -- Disable if players are using it
           else
             btn.enabled = true -- Enable other buttons regardless
             -- Show the right icon and tooltip for pause button
             if btn.name:find("pause", 1, true) then
-              if nw.bg_paused then
+              if nwd.bg_paused then
                 btn.sprite = "li_play"
                 btn.tooltip = {"networks-window.unpause-tooltip"}
               else
@@ -236,7 +236,7 @@ local cell_setup = {
               end
             end
           end
-          btn.tags = { network_id = nw.id or 0 }
+          btn.tags = { network_id = nwd.id or 0 }
         end
       end
     end
