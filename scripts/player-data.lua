@@ -2,7 +2,6 @@
 local player_data = {}
 
 local capability_manager = require("scripts.capability-manager")
-local network_data = require("scripts.network-data")
 local global_data = require("scripts.global-data")
 
 -- Cache frequently used functions for performance

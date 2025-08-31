@@ -6,6 +6,7 @@ local capability_manager = require("scripts.capability-manager")
 local chunker = require("scripts.chunker")
 local tick_counter = require("scripts.tick-counter")
 local global_data = require("scripts.global-data")
+local player_data = require("scripts.player-data")
 
 -- Data stored for each network
 ---@class LINetworkData
@@ -241,6 +242,8 @@ function network_data.check_network_changed(player, player_table)
       return false
     else
       -- The fixed network is no longer valid, so make sure to clear it
+      local nwd = network_data.get_networkdata(player_table.network)
+      network_data.remove_player_index_from_networkdata(nwd, player_table)
       player_table.network = nil
       player_table.fixed_network = false
     end
@@ -253,6 +256,7 @@ function network_data.check_network_changed(player, player_table)
     -- Get the network IDs, making sure the network references are still valid
     local new_network_id = network and network.valid and network.network_id or 0
     local old_network_id = player_table_network and player_table_network.valid and player_table_network.network_id or 0
+    log("[check_network_changed] Player " .. tostring(player.index) .. " old network ID " .. tostring(old_network_id) .. " new network ID " .. tostring(new_network_id))
 
     local has_network = (network ~= nil)
     capability_manager.set_reason(player_table, "delivery", "no_network", not has_network)
@@ -282,7 +286,7 @@ function network_data.player_changed_networks(player_table, old_network_id, new_
   end
   local old_nwd = network_data.get_networkdata_fromid(old_network_id)
   if old_nwd and old_network_id then
-    network_data.remove_player_index_from_networkdata(old_nwd, player_table.player_index)
+    network_data.remove_player_index_from_networkdata(old_nwd, player_table)
     local count = network_data.players_in_network(old_nwd)
 
     if count == 0 then
@@ -315,16 +319,23 @@ end
 --- @param player_index uint The player index to remove
 function network_data.remove_player_index(player_index)
   for _, networkdata in pairs(storage.networks) do
-    network_data.remove_player_index_from_networkdata(networkdata, player_index)
+    local player_table = player_data.get_player_table(player_index)
+    network_data.remove_player_index_from_networkdata(networkdata, player_table)
   end
 end
 
 --- Remove all references to this player
---- @param player_index uint The player index to remove
-function network_data.remove_player_index_from_networkdata(networkdata, player_index)
-  if networkdata and networkdata.players_set then
-    networkdata.players_set[player_index] = nil
-    log("Removed player index " .. tostring(player_index) .. " from network ID " .. tostring(networkdata.id))
+--- @param networkdata LINetworkData|nil The network data to remove the player from
+--- @param player_table PlayerData|nil The player's data table, if any
+function network_data.remove_player_index_from_networkdata(networkdata, player_table)
+  if networkdata and player_table then
+    if networkdata.players_set then
+      networkdata.players_set[player_table.player_index] = nil
+    end
+    player_table.network = nil
+    log("Removed player index " .. tostring(player_table.player_index) .. " from network ID " .. tostring(networkdata.id))
+  else
+    log("[remove_player_index_from_networkdata] ERROR: Need both networkdata and player_table")
   end
 end
 
