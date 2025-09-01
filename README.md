@@ -6,6 +6,7 @@ Logistics Insights can help:
 
 - Shows suggestions for what to do to improve performance: Add roboports, add storage, review filtered storage, etc
 - Shows Undersupply: A list of the top things where demand outstrips supply
+- Shows all of the networks you've visited so you can keep an eye on them
 - Shows a list of the top items being carried in real time
 - Shows a sorted list of items that have been delivered the most
 - Shows a list showing the items that took the longest to deliver
@@ -19,7 +20,9 @@ Logistics Insights can help:
 - Hide and show the main window by clicking the "logistics bot icon window" that's always open, or use the shortcut icon
 - Either analyse the network you're looking at, or keep analysing a specific one
 
-Logistics Insights focuses on a single bot network at a time, whether it's the one where the player is located or one you're looking at via the map view. To keep the performance impact low, it does not gather info on all networks at the same time.
+The main Logistics Insights window focuses on a single bot network at a time, whether it's the one where you are or one you're looking at via the map view.
+
+The Logistics Networks window shows all of the networks you've visited, with a few highlights like number of bots, number of active suggestions and how many things are in short supply. You can also easily navigate between networks with this screen.
 
 ## How to use Undersupply information
 
@@ -75,6 +78,9 @@ If you have fewer bots or roboports than the chunk size, the data will be update
 
 On a powerful machine, you can easily have a chunk size of 1,000 or more, and process data every 5 ticks. On a less powerful machine, you may want to process fewer items at a time, less often.
 
+From v0.10, Logistics Insights uses a sophisticated scheduler that attempts to smoothe the load across many ticks, allowing you to get up to date
+information even with many networks, without suffering a noticeable performance impact.
+
 ## What's next?
 
 There are many ways in which this mod could become more useful, and I'll be looking for feedback on what you'd like to see. Here are some of my ideas:
@@ -90,11 +96,6 @@ There are many ways in which this mod could become more useful, and I'll be look
 - When highlighting bots, it might be useful to show info about where each bot is going. Maybe an arrow pointing to the destination?
 - When clicking on a category to highlight them, there is no limit to how many items are shown. It's possible that this needs to be limited to 1,000 or something so the game doesn't grind to a halt if you have a lot of items, so maybe an option is in order.
 - When highlighting a group of items, maybe it would be useful to set zoom level to include as many of them as possible, and focus somewhere around the middle?
-
-**Performance**
-
-- Is the performance impact too big when playing with 100,000 bots in a single network? I have tested it with 40,000 bots in a network, and since v0.9.3, the impact is relatively small.
-- Maybe there should be an option to automatically change the chunk size and update intervals to keep the performance impact of the mod in the right place. (Slider to favour accuracy or performance?)
 
 **Completely new functionality**
 

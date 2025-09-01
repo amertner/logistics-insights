@@ -293,7 +293,7 @@ local li_migrations = {
       if player_table and player_table.network then
         local nwd = network_data.create_networkdata(player_table.network)
         if nwd then
-          nwd.players_set[player_index] = true
+          nwd.players_set[player_table.player_index] = true
         end
       end
     end
