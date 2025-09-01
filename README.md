@@ -1,28 +1,19 @@
 # Logistics Insights
 
-When playing Factorio, have you ever wondered what all of your logistics bots are up to? Whether you have too many, or too few? Is your storage nearly full? Do you have enough roboports? Particularly in the mid game where everything is scaling up, I've found that the answers sometimes are quite surprising.
+When playing Factorio, have you ever wondered what all of your logistics bots are up to? Whether you have too many, or too few? Whether you have enough storage? Particularly in the mid game where everything is scaling up, I've found that the answers sometimes are quite surprising.
 
 Logistics Insights can help:
 
-- Shows suggestions for what to do to improve performance: Add roboports, add storage, review filtered storage, etc
-- Shows Undersupply: A list of the top things where demand outstrips supply
-- Shows all of the networks you've visited so you can keep an eye on them
-- Shows a list of the top items being carried in real time
-- Shows a sorted list of items that have been delivered the most
-- Shows a list showing the items that took the longest to deliver
-- Shows what your bots are doing: Idle, charging, waiting to charge, picking or delivering
-- Shows what entities you have in your bot network: roboports, requesters, providers, etc.
-- Shows the quality level of your bots and roboports.
-- With a click, can highlight all entities or bots doing a particular activity, making it easy to find them
-- When highlighting bots, the game temporarily freezes, allowing you to inspect the state of things
-- You can freeze and single-step the game manually as well
-- You can easily pause parts of the monitoring to reduce impact on game speed
-- Hide and show the main window by clicking the "logistics bot icon window" that's always open, or use the shortcut icon
-- Either analyse the network you're looking at, or keep analysing a specific one
+- Provides actionable insights on what to do to improve your network, based on how it's performing
+- Undersupply: Shows a list of the top things where demand consistently outstrips supply
+- Multi-network: Helps you keep an eye on your key networks and easily navigate between them
+- Multi-player: When you work together on a base, you can keep track of and help each other
+- Real-time: Shows what's happening in your networks real time
+- Interactive: Most things are clickable so you can easily get to the root of whatever the issue is
 
-The main Logistics Insights window focuses on a single bot network at a time, whether it's the one where you are or one you're looking at via the map view.
+The main Logistics Insights window focuses on showing everything you need to know about a single bot network at a time, whether it's the one where you are or one you're looking at via the map view.
 
-The Logistics Networks window shows all of the networks you've visited, with a few highlights like number of bots, number of active suggestions and how many things are in short supply. You can also easily navigate between networks with this screen.
+The Logistics Networks window shows all of the networks you've visited, with a few key highlights like number of bots, number of active suggestions and how many things are in short supply. You can also easily navigate between networks from here.
 
 ## How to use Undersupply information
 
@@ -34,16 +25,16 @@ If you click on an item, LI will highlight every place that requests the item, a
 
 There are several types of suggestions, depending on what is happening in your network:
 
-- **Build more roboports.** A common problem is that a lot of your bots are waiting to charge - and building more bots doesn't help. Instead, builid more roboports so the bots can quickly find a place to charge, without having to wait. LI will show this as a High priority suggestion if you need more than 100 additional roboports.
+- **Build more roboports.** A common problem is that a lot of your bots are waiting to charge, which means that fewer bots are free to do useful work. Building more bots doesn't help though! Instead, build more roboports so the bots can quickly find a place to charge, without having to wait. LI will show this as a High priority suggestion if you need more than 100 additional roboports.
 - **Build more storage.** If your storage is close to full, your network will work less efficiently as bots need to go further to find available storage. This suggestion shows up when your storage is 70% full, and becomes High priority when it's 90% full.
 - **Build more unfiltered storage.** Filtered storage is great, but you may be running out of storage that isn't filtered. LI uses same thresholds as for total storage here.
-- **Filtered storage issue.** If your filtered storage has items that don't match the filter, LI suggests you fix it. You can click/right-click on the suggestion to see which chests show the problem.
+- **Filtered storage mismatch.** If your filtered storage has items that don't match the filter, LI suggests you fix it. You can click/right-click on the suggestion to see which chests show the problem, which is otherwise hard to find.
 
 Note that "fullness" of storage is measured by stacks, so you may have more storage available than LI suggests as it only looks for empty stacks.
 
-## How else I started using the mod
+## How else I use the mod
 
-Before a base reaches megabase level, keep the LI window open to keep an eye on whether you have the right number of bots and roboports. If it gets in the way, just close it and occasionally open it to see what's going on.
+Before a base reaches megabase level, keep the Networks window open to keep an eye on whether there are a lot of things in Undersupply or Suggestions. Then, if there is an issue, click on the network to immediately move the map view there and see the main Insights window:
 
 **In the Delivering/Total/Ticks rows**
 
@@ -63,41 +54,41 @@ Before a base reaches megabase level, keep the LI window open to keep an eye on 
 - If I'm trying to update my bots to a higher quality level, this makes it easy to see how many are still at the lower level
 - If I've upgraded my bots to a higher level, but my roboports are low quality, charging will take much longer. Upgrade them asap!
 
-## Performance and chunking
+## How Logistics Insights minimises its overhead
 
-What Logistics Insights takes time, and for very large bot networks may cause the game to slow down. The mod is written to mitigate this by processing the bots and network items in chunks. The default chunk size is 400, but you can change this.
+What Logistics Insights does takes time, and for very large bot networks can cause the game to slow down. The mod is written to mitigate this by processing the bots, network items, etc. in chunks, so it only processes a small portion of the whole each tick. The default chunk size is 400, but you can change this.
 
 By lowering the chunk size, you reduce the performance impact of Logistics Insights, at the expense of getting results that are not entirely accurate.  This is because the mod copies the full list of items and processes it one chunk at a time, which means that the game state may have changed by the time it finishes processing the full list.
 
-A progress indicator shows the chunk processing in action, and the chunks apply to both bots and roboports. For example,
+A progress indicator shows the chunk processing in action, and the chunks apply both bots, roboports, undersupply and suggestions. For example,
 
-- If you have 1,800 bots and use the default chunk size of 400, it will take 5 passes before the bot data showing Delivering and History (Total and Ticks/Item) is updated. A pass is done every 10 ticks, or 6 times per second.
-- If you have 900 roboports with the default chunk size, it will take 3 passes before the Activity data about your bots is updated (showing Available, Charging, Waiting, Picking Up or Delivering). A pass is done every 10 ticks if Delivery or History is enabled, and every 60 ticks otherwise.
+- If you have 1,800 bots and use the default chunk size of 400, it will take 5 passes before the bot data showing Delivering and History (Total and Ticks/Item) is updated. A pass is done every 7 ticks, or around 10 times per second.
+- If you have 900 roboports with the default chunk size, it will take 3 passes before the Activity data about your bots is updated (showing Available, Charging, Waiting, Picking Up or Delivering).
+- Undersupply can expensive to calculate and therefore uses half the standard chunk size. If you have 1,100 requesters and a default chunk size of 400, it will use a chunk size of 200 and use 6 passes to complete the undersupply calculation.
 
-If you have fewer bots or roboports than the chunk size, the data will be updated on every pass, keeping the data more accurate.
+If you have fewer items than the chunk size, the data will be updated on every pass, keeping the data more accurate, though its polling-based nature means it will rarely be 100% accurate. Good enough though!
 
-On a powerful machine, you can easily have a chunk size of 1,000 or more, and process data every 5 ticks. On a less powerful machine, you may want to process fewer items at a time, less often.
+On a powerful machine, you can easily have a chunk size of 1,000 or more, and process data every 3 ticks. On a less powerful machine, you may want to process fewer items at a time, less often.
 
-From v0.10, Logistics Insights uses a sophisticated scheduler that attempts to smoothe the load across many ticks, allowing you to get up to date
-information even with many networks, without suffering a noticeable performance impact.
+From v0.10, Logistics Insights uses a sophisticated scheduler that smooths the load across many ticks, allowing you to get up to date information even with many networks and several players, without suffering a noticeable performance impact on the game.
 
 ## What's next?
 
 There are many ways in which this mod could become more useful, and I'll be looking for feedback on what you'd like to see. Here are some of my ideas:
 
-**Main window**
+### Main window
 
 - Maybe it would be useful to step forward more than one tick at a time. Should there be a "step 10-ticks" button, or maybe a config option?
 - The main window right now is floating, which means you can position it anywhere, but it also means it might open overlapping with something else. Should it instead stick to the top or left sides? Should it be an option?
 - The max number of items that can be shown in Delivering/history is 10. Would more be useful?
 
-**Highlighting items**
+### Highlighting items
 
 - When highlighting bots, it might be useful to show info about where each bot is going. Maybe an arrow pointing to the destination?
 - When clicking on a category to highlight them, there is no limit to how many items are shown. It's possible that this needs to be limited to 1,000 or something so the game doesn't grind to a halt if you have a lot of items, so maybe an option is in order.
 - When highlighting a group of items, maybe it would be useful to set zoom level to include as many of them as possible, and focus somewhere around the middle?
 
-**Completely new functionality**
+### Completely new functionality
 
 - When focusing on a single bot (with right-click in a cell like Delivering), it might be fun to have a "follow" window that allows you to see where it's going.
 - I'd love to show a heat map of activity on the mini map, but I can't see a way for a mod to do this. Do you know how?
@@ -105,7 +96,8 @@ There are many ways in which this mod could become more useful, and I'll be look
 
 ## Known issues
 
-- If you freeze the game, the mod does not pick up a new network (even if you change map position) until you unfreeze it.
+- The game may desync in multiplayer if players join the server while the Logistics Insights mod is upgrading to a new version. Please wait for this to complete and it should be good.
+- If you have many 10s of thousands of bots that are active and the option to gather bot quality is enabled, the game can occasionally stutter. I may work on this in the future; for now, you can make the issue go away by unchecking the option to gather quality data for bots.
 
 ## Want to contribute?
 
