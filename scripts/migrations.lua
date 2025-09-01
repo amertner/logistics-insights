@@ -288,8 +288,9 @@ local li_migrations = {
   ["0.10.6"] = function() -- Cache per-map settings properly
     global_data.init()
     -- Make sure the players' networks are registered correctly
-    for player_index, player_table in pairs(storage.players) do
-      if player_table and player_table.network then      
+    for _, player in pairs(game.connected_players) do
+      local player_table = player_data.get_player_table(player.index)
+      if player_table and player_table.network then
         local nwd = network_data.create_networkdata(player_table.network)
         if nwd then
           nwd.players_set[player_index] = true

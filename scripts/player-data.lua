@@ -32,7 +32,7 @@ function player_data.init(player_index)
     network = nil,
     fixed_network = false,
     player_index = player_index,
-    window_location = {x = 300, y = 650},
+    window_location = {x = 300, y = 444},
     networks_window_location = {x = 300, y = 100},
     ui = {},
     schedule_last_run = {}, -- Per-task last run ticks for scheduler
