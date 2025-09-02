@@ -196,7 +196,7 @@ local cell_setup = {
   },
   {
     key = "actions",
-    header = { type = "sprite", sprite = "item/iron-gear-wheel", tooltip = {"networks-window.actions-tooltip"} },
+    header = { type = "label", caption = "", tooltip = {"networks-window.actions-tooltip"} },
     align = "center",
     add_cell = function(table_el, name)
       local flow = table_el.add {
