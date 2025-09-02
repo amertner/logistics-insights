@@ -13,11 +13,11 @@ Logistics Insights can help:
 
 The main Logistics Insights window focuses on showing everything you need to know about a single bot network at a time, whether it's the one where you are or one you're looking at via the map view.
 
-![main-window](/Volumes/ExtData/SynologyDrive/Games/Factorio/mods/logistics-insights/main-window.png)
+![main-window](main-window.png)
 
 The Logistics Networks window shows all of the networks you've visited, with a few key highlights like number of bots, number of active suggestions and how many things are in short supply. You can also easily navigate between networks from here.
 
-![networks-window](/Volumes/ExtData/SynologyDrive/Games/Factorio/mods/logistics-insights/networks-window.png)
+![networks-window](networks-window.png)
 
 ## How to use Undersupply information
 
