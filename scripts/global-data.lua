@@ -16,7 +16,7 @@ end
 function global_data.settings_changed()
   storage.global.chunk_interval_ticks = tonumber(settings.global["li-chunk-processing-interval-ticks"].value) or 7
   storage.global.background_refresh_interval_secs = tonumber(settings.global["li-background-refresh-interval"].value) or 10
-  storage.global.chunk_size = tonumber(settings.global["li-chunk-size-global"]) or 400
+  storage.global.chunk_size = tonumber(settings.global["li-chunk-size-global"].value) or 400
   storage.global.gather_quality_data = settings.global["li-gather-quality-data-global"].value ~= false
   storage.global.show_all_networks = settings.global["li-show-all-networks"].value ~= false
 end
