@@ -38,37 +38,6 @@ function controller_gui.create_window(player)
   }
 end
 
--- Build a status string with reason details based on capability UI state
--- Returns a LocalisedString like: "Paused — Paused by you" or "Active" or "Disabled in settings"
---- @param player_table PlayerData The player's data table
---- @param capability string The capability to check (e.g., "delivery", "activity")
---- @param enabled_setting boolean Whether the capability is enabled in settings
----@return LocalisedString
-local function get_status_with_reason(player_table, capability, enabled_setting)
-  local ui = capability_manager.get_ui_state(player_table, capability)
-  -- If disabled in settings, show disabled regardless of other reasons
-  if not enabled_setting or ui.state == "setting-paused" then
-    return { "controller-gui.disabled" }
-  end
-  if ui.active then
-    return { "controller-gui.active" }
-  end
-  -- Map derived state to a reason string
-  local reason_key
-  if ui.state == "user-paused" then
-    reason_key = "controller-gui.reason-user"
-  elseif ui.state == "hidden-paused" then
-    reason_key = "controller-gui.reason-hidden"
-  elseif ui.state == "no_network-paused" then
-    reason_key = "controller-gui.reason-no-network"
-  elseif ui.state == "dep-paused" then
-    reason_key = "controller-gui.reason-dep"
-  else
-    reason_key = "controller-gui.reason-other"
-  end
-  return { reason_key }
-end
-
 ---@param gui LuaGuiElement The GUI element to update
 ---@param player_table PlayerData The player's data table containing network and settings
 local function update_main_tooltip(gui, player_table)
@@ -83,13 +52,6 @@ local function update_main_tooltip(gui, player_table)
     tip = tooltips_helper.add_network_surface_tip(tip, player_table.network)
     tip = tooltips_helper.add_bots_idle_and_total_tip(tip, idle_count, total_count)
     tip = tooltips_helper.get_quality_tooltip_line(tip, networkdata.total_bot_qualities, false, "controller-gui.main_tooltip_quality")
-    tip = tooltips_helper.add_empty_line(tip)
-
-    tip = { "", tip, { "controller-gui.main_tooltip_delivering", get_status_with_reason(player_table, "delivery", player_table.settings.show_delivering) } }
-    tip = { "", tip, { "controller-gui.main_tooltip_history", get_status_with_reason(player_table, "history", player_table.settings.show_history) } }
-    tip = { "", tip, { "controller-gui.main_tooltip_activity", get_status_with_reason(player_table, "activity", player_table.settings.show_activity) } }
-    tip = { "", tip, { "controller-gui.main_tooltip_undersupply", get_status_with_reason(player_table, "undersupply", player_table.settings.show_undersupply) } }
-    tip = { "", tip, { "controller-gui.main_tooltip_suggestions", get_status_with_reason(player_table, "suggestions", player_table.settings.show_suggestions) } }
   else
     gui.logistics_insights_toggle_main.number = nil
     tip = { "controller-gui.no-network" }
