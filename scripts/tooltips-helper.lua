@@ -5,7 +5,6 @@ local tooltips_helper = {}
 local flib_format = require("__flib__.format")
 local player_data = require("scripts.player-data")
 local global_data = require("scripts.global-data")
-local capability_manager = require("scripts.capability-manager")
 local Cache = require("scripts.cache")
 -- Cache for surface names to avoid repeated string concatenation
 local surface_cache = Cache.new(function(surface_name) return "[space-location=" .. surface_name .. "]" end)
@@ -104,16 +103,12 @@ function tooltips_helper.add_network_history_tip(tip, player_table, networkdata)
 
   if player_table.settings.show_history then
     local tickstr
-  if not capability_manager.is_active(player_table, "history") then
-      tip = {"", tip, "\n", {"network-row.network-id-history", {"network-row.paused"}}}
+    if networkdata.history_timer then
+      tickstr = flib_format.time(networkdata.history_timer:total_unpaused(), false)
     else
-      if networkdata.history_timer then
-        tickstr = flib_format.time(networkdata.history_timer:total_unpaused(), false)
-      else
-        tickstr = "n/a"
-      end
-      tip = {"", tip, "\n", {"network-row.network-id-history", {"network-row.network-id-history-collected-for", tickstr}}}
+      tickstr = "n/a"
     end
+    tip = {"", tip, "\n", {"network-row.network-id-history", {"network-row.network-id-history-collected-for", tickstr}}}
   else
     tip = {"", tip, "\n", {"network-row.network-id-history", {"network-row.network-id-history-disabled"}}}
   end

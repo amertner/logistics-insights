@@ -3,7 +3,6 @@
 local player_data = require("scripts.player-data")
 local sorted_item_row = require("scripts.mainwin.sorted_item_row")
 local mini_button = require("scripts.mainwin.mini_button")
-local capability_manager = require("scripts.capability-manager")
 local suggestions   = require("scripts.suggestions")
 local network_data = require("scripts.network-data")
 
@@ -37,7 +36,6 @@ function undersupply_row.update(player_table, clearing)
       function(a, b) return a.shortage > b.shortage end,
       "shortage",
       clearing or false,
-      function(pt) return capability_manager.is_active(player_table, "undersupply") end,
       {"undersupply-row.show-location-tooltip"}
     )
   else

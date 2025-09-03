@@ -3,7 +3,6 @@ local sorted_item_row = {}
 
 local player_data = require("scripts.player-data")
 local mini_button = require("scripts.mainwin.mini_button")
-local capability_manager = require("scripts.capability-manager")
 local progress_bars = require("scripts.mainwin.progress_bars")
 
 local pairs = pairs
@@ -71,9 +70,8 @@ end -- add
 --- @param sort_fn function(a, b): boolean Sorting function to determine order
 --- @param number_field string The field name to display as number ("count", "ticks", "avg")
 --- @param clearing boolean Whether this update is due to clearing history
---- @param enabled_fn function(player_table) Function to determine if the cells are enabled
 --- @param show_click_tip LocalisedString|nil String to show if the cell is clickable
-function sorted_item_row.update(player_table, title, all_entries, sort_fn, number_field, clearing, enabled_fn, show_click_tip)
+function sorted_item_row.update(player_table, title, all_entries, sort_fn, number_field, clearing, show_click_tip)
 
   --- Generate tooltip text for a cell based on the entry data and number field type
   --- @param entry DeliveryItem|DeliveredItems|UndersupplyItem The entry containing item data
@@ -100,20 +98,6 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
       tip = {"", tip, "\n", show_click_tip}
     end
     return tip
-  end
-
-  -- If paused, just disable all the fields, unless we just cleared history
-  if not enabled_fn(player_table) and not clearing then
-    if not player_table.ui[title] or not player_table.ui[title].cells then
-      return
-    end
-    for i = 1, player_table.settings.max_items do
-      local cell = player_table.ui[title].cells[i]
-      if cell and cell.valid then
-        cell.enabled = false
-      end
-    end
-    return
   end
 
   -- Pre-allocate array by counting entries first
@@ -178,11 +162,7 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
       cell.quality = entry.quality_name or "normal"
       cell.number = entry[number_field]
       cell.tooltip = getcelltooltip(entry)
-      if enabled_fn then
-        cell.enabled = enabled_fn(player_table)
-      else
-        cell.enabled = true -- Default to enabled if no function provided
-      end
+      cell.enabled = true
       if show_click_tip then
         -- Enables following click in main_window.
         cell.tags = { follow = true }

@@ -7,7 +7,6 @@ local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
 local tooltips_helper = require("scripts.tooltips-helper")
 local mini_button = require("scripts.mainwin.mini_button")
-local capability_manager = require("scripts.capability-manager")
 local progress_bars = require("scripts.mainwin.progress_bars")
 
 -- Cache frequently used functions
@@ -100,8 +99,6 @@ function activity_row.add(player_table, gui_table)
         sprite = icon.sprite,
         style = "slot_button",
         name = cellname,
-        -- These Activity Row cells are only available when Delivery info is gathered
-        -- enabled = icon.onwithpause or capability_manager.is_active(player_table, "delivery"),
         tags = { follow = true }
       },
     }
@@ -167,15 +164,6 @@ function activity_row.update(player_table)
   if player_table.network and networkdata then
     for key, window in pairs(player_table.ui.activity.cells) do
       if window.cell.valid then
-        local no_data = false
-        -- Even if paused, the Total and Available robot counts are available
-        local is_active = capability_manager.is_active(player_table, "activity") or
-                          key == "logistic-robot-total" or key == "logistic-robot-available"
-         -- If real time delivery is disabled, the Pickup/Delivery buttons should be inactive too
-        if is_active and (key == "picking" or key == "delivering") and not activity_row.should_show_deliveries(player_table) then
-          is_active = false -- Whether the cell is enabled or greyed out
-          no_data = true -- whether the tooltip needs to be empty and no number displayed
-        end
         local num = networkdata.bot_items[key] or 0
         window.cell.number = num
 
@@ -188,7 +176,7 @@ function activity_row.update(player_table)
           main_tip = {"", main_tip, "\n", qualities_tooltip}
         end
 
-        if window.clicktip and is_active then
+        if window.clicktip then
           -- Only show the "what happens if you click" tooltip if the button is active
           if window.onwithpause or not player_table.settings.pause_for_bots then
             window.cell.tooltip = {"", main_tip, "\n", {"bots-gui.show-location-tooltip"}}
@@ -196,14 +184,9 @@ function activity_row.update(player_table)
             window.cell.tooltip = {"", main_tip, "\n", {"bots-gui.show-location-and-pause-tooltip"}}
           end
         else
-          if no_data then
-            window.cell.tooltip = ""
-            window.cell.number = nil
-          else
-            window.cell.tooltip = main_tip
-          end
+          window.cell.tooltip = main_tip
         end
-        window.cell.enabled = is_active
+        window.cell.enabled = true
       end
     end
   else -- No network, reset all activity buttons

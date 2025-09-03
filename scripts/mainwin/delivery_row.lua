@@ -2,7 +2,6 @@
 -- Handles real-time delivery tracking and display
 
 local delivery_row = {}
-local capability_manager = require("scripts.capability-manager")
 local network_data = require("scripts.network-data")
 
 local sorted_item_row = require("scripts.mainwin.sorted_item_row")
@@ -16,10 +15,6 @@ function delivery_row.add(player_table, gui_table)
     return 1
   end
   return 0
-end
-
-local function is_delivery_enabled(player_table)
-  return capability_manager.is_active(player_table, "delivery")
 end
 
 --- Update the delivery row with current data
@@ -42,7 +37,6 @@ function delivery_row.update(player_table, clearing)
         function(a, b) return a.count > b.count end,
         "count",
         clearing,
-        is_delivery_enabled,
         clicktip
       )
     else

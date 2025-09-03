@@ -1,12 +1,11 @@
 --- Central scheduler for periodic per-player and global tasks.
---- Tasks can be registered with a fixed interval (in ticks) and optional pause capability key.
+--- Tasks can be registered with a fixed interval (in ticks)
 
 local scheduler = {}
 
 local player_data = require("scripts.player-data")
 local global_data = require("scripts.global-data")
 local debugger = require("scripts.debugger")
-local capability_manager = require("scripts.capability-manager")
 
 ---@class SchedulerTask
 ---@field name string Unique task name
@@ -15,7 +14,6 @@ local capability_manager = require("scripts.capability-manager")
 ---@field fn function The function to execute
 ---@field is_heavy boolean If true, the task is considered heavy. We'll try to avoid running multiple heavy tasks in the same tick.
 ---@field last_run number Last tick run (for global tasks)
----@field capability string|nil Optional pause capability key. If set and the capability is paused for the player (per_player tasks) the task is skipped without updating last_run.
 
 local global_tasks = {}   ---@type table<string, SchedulerTask>
 local player_tasks = {}   ---@type table<string, SchedulerTask>
@@ -30,7 +28,7 @@ local task_queue = {last_tick = 0, items = {}} --@type TaskQueue
 local TASK_QUEUE_TICKS = 60 -- How many ticks ahead to queue tasks
 
 --- Register a periodic task.
----@param opts {name:string, interval:number, per_player?:boolean, fn:function, capability?:string, is_heavy?:boolean}
+---@param opts {name:string, interval:number, per_player?:boolean, fn:function, is_heavy?:boolean}
 function scheduler.register(opts)
   if not opts or not opts.name or not opts.interval or not opts.fn then
     debugger.error("scheduler.register: missing required fields")
@@ -42,7 +40,6 @@ function scheduler.register(opts)
     fn = opts.fn,
     is_heavy = opts.is_heavy,
     last_run = 0,
-    capability = opts.capability,
   }
   if task.per_player then
     player_tasks[task.name] = task
@@ -134,7 +131,7 @@ function scheduler.update_player_intervals(player_index, intervals)
   end
 end
 --- Bulk re-register: given a list of task specs, register new ones and update intervals of existing ones.
---- @param specs table[] Each spec: {name, interval, per_player, fn, capability?}
+--- @param specs table[] Each spec: {name, interval, per_player, fn}
 function scheduler.reregister(specs)
   for _, spec in pairs(specs) do
     local existing = (spec.per_player and player_tasks[spec.name]) or (not spec.per_player and global_tasks[spec.name])
@@ -144,9 +141,6 @@ function scheduler.reregister(specs)
       end
       if spec.fn and existing.fn ~= spec.fn then
         existing.fn = spec.fn
-      end
-      if spec.capability and existing.capability ~= spec.capability then
-        existing.capability = spec.capability
       end
       -- Order unchanged for existing tasks
     else
@@ -250,12 +244,6 @@ function scheduler.on_tick()
         local player = game.get_player(player_index)
         if player and player.valid and player.connected and player_table then
           local run_task = true
-          if task.capability then
-            if not capability_manager.is_active(player_table, task.capability) then
-              -- Skip while inactive (do not advance last_run)
-              run_task = false
-            end
-          end
           if run_task then
             task.last_run = tick
             debugger.info("[scheduler] Running player task '" .. task.name .. "' for player " .. player_index)

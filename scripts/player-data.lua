@@ -1,7 +1,6 @@
 --- Central definition of player data and related functions for Logistics Insights mod
 local player_data = {}
 
-local capability_manager = require("scripts.capability-manager")
 local global_data = require("scripts.global-data")
 
 -- Cache frequently used functions for performance
@@ -21,7 +20,6 @@ local math_ceil = math.ceil
 ---@field networks_window_location {x: number, y: number} -- Saved Networks window position
 ---@field ui table<string, table> -- UI elements for the mod's GUI
 ---@field schedule_last_run table<string, uint>|nil -- Per-task last run ticks for scheduler
----@field capabilities table<string, CapabilityRecord>|nil -- Unified capability records
 ---@param player_index uint
 ---@return nil
 function player_data.init(player_index)
@@ -40,7 +38,6 @@ function player_data.init(player_index)
     schedule_last_run = {}, -- Per-task last run ticks for scheduler
   }
   storage.players[player_index] = player_data_entry
-  capability_manager.init_player(player_data_entry)
 end
 
 --- Initialise all storages
@@ -71,12 +68,6 @@ function player_data.update_settings(player, player_table)
     }
     player_table.settings = settings
     player_table.player_index = player.index
-    -- Update capability setting reasons (true = enabled => clear reason; false = disabled => set reason)
-    capability_manager.set_reason(player_table, "suggestions", "setting", not settings.show_suggestions)
-    capability_manager.set_reason(player_table, "undersupply", "setting", not settings.show_undersupply)
-    capability_manager.set_reason(player_table, "history", "setting", not settings.show_history)
-    capability_manager.set_reason(player_table, "activity", "setting", not settings.show_activity)
-    capability_manager.set_reason(player_table, "delivery", "setting", not settings.show_delivering)
   end
 end
 
@@ -103,23 +94,6 @@ function player_data.register_ui(player_table, name)
     player_table.ui = {}
   end
   player_table.ui[name] = {}
-end
-
-function player_data.is_foreground_network_paused_for_capability(networkdata, capability, setting)
-  if not networkdata or not capability then
-    return false
-  end
-  local has_players = false
-  for player_index, _ in pairs(networkdata.players_set) do
-    has_players = true
-    local pt = player_data.get_player_table(player_index)
-    if pt and pt.settings and pt.settings[setting] then
-      if capability_manager.is_active(pt, capability) then
-        return false -- At least one player is not paused, so the network is not paused
-      end
-    end
-  end
-  return has_players -- If foreground for at least one player, all players are paused for this capability
 end
 
 -- Check if any players in the set have their main window open

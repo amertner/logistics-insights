@@ -5,11 +5,6 @@ local history_rows = {}
 
 local network_data = require("scripts.network-data")
 local sorted_item_row = require("scripts.mainwin.sorted_item_row")
-local capability_manager = require("scripts.capability-manager")
-
-local function is_history_enabled(player_table)
-  return capability_manager.is_active(player_table, "history")
-end
 
 --- Add history rows to the GUI (totals and average ticks)
 --- @param player_table PlayerData The player's data table
@@ -34,7 +29,6 @@ function history_rows.update(player_table, clearing)
         function(a, b) return a.count > b.count end,
         "count",
         clearing,
-        is_history_enabled,
         nil
       )
 
@@ -45,7 +39,6 @@ function history_rows.update(player_table, clearing)
         function(a, b) return a.avg > b.avg end,
         "avg",
         clearing,
-        is_history_enabled,
         nil
       )
     else

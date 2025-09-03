@@ -5,7 +5,6 @@ local analysis_coordinator = {}
 local network_data = require("network-data")
 local player_data = require("player-data")
 local global_data = require("global-data")
-local capability_manager = require("capability-manager")
 local chunker = require("chunker")
 local suggestions_calc = require("suggestions-calc")
 local undersupply = require("undersupply")
@@ -149,10 +148,6 @@ function analysis_coordinator.run_storage_analysis_step()
     return true -- Nothing to do, so done
   end
   if not storage.analysis_state.storage_chunker then
-    -- If this is a foreground network, and all players watching it have paused undersupply, skip
-    if player_data.is_foreground_network_paused_for_capability(networkdata, "suggestions", "show_suggestions") then
-      return true -- Skip undersupply analysis
-    end
     storage.analysis_state.storage_chunker = chunker.new()
   end
   local the_chunker = storage.analysis_state.storage_chunker
@@ -189,10 +184,6 @@ function analysis_coordinator.run_undersupply_step()
     return true -- Nothing to do, so done
   end
   if not storage.analysis_state.undersupply_chunker then
-    -- If this is a foreground network, and all players watching it have paused undersupply, skip
-    if player_data.is_foreground_network_paused_for_capability(networkdata, "undersupply", "show_undersupply") then
-      return true -- Skip undersupply analysis
-    end
     -- Undersupply is expensive to run, so use half the normal chunks size
     storage.analysis_state.undersupply_chunker = chunker.new(2)
   end

@@ -6,7 +6,6 @@ local main_window = require("scripts.mainwin.main_window")
 local networks_window = require("scripts.networkswin.networks_window")
 local chunker = require("scripts.chunker")
 local scheduler = require("scripts.scheduler")
-local capability_manager = require("scripts.capability-manager")
 local suggestions = require("scripts.suggestions")
 local logistic_cell_counter = require("scripts.logistic-cell-counter")
 local bot_counter = require("scripts.bot-counter")
@@ -103,17 +102,6 @@ local li_migrations = {
     -- Initialise scheduler and player overrides on schedules
     for _, player_table in pairs(storage.players) do
       player_table.schedule_last_run = {}
-      -- Ensure capabilities structure exists
-      if not player_table.capabilities then
-        capability_manager.init_player(player_table)
-      end
-      -- Translate legacy paused_items into capability user reasons
-      local paused = player_table.paused_items
-      if paused and #paused > 0 then
-        for _, name in ipairs(paused) do
-          capability_manager.set_reason(player_table, name, "user", true)
-        end
-      end
       -- Clear legacy paused list contents
       ---@diagnostic disable-next-line: inject-field
       player_table.paused_items = nil
@@ -228,8 +216,6 @@ local li_migrations = {
       if player_table then
         ---@diagnostic disable-next-line: undefined-field, inject-field
         player_table.history_timer = nil -- Remove old field
-        -- Ensure the window does not appear to be hidden
-        capability_manager.set_reason(player_table, "window", "hidden", false)
       end
     end
     -- Make sure all networks have a history timer, unpaused, and that histories are cleared
@@ -252,9 +238,6 @@ local li_migrations = {
       if player_table and player_table.settings then
         player_table.settings.pause_for_bots = nil -- Remove old setting
       end
-
-      -- Don't say analysis is paused because the window is hidden any more
-      capability_manager.set_reason(player_table, "window", "user", false)
     end
   end,
 
@@ -296,9 +279,8 @@ local li_migrations = {
     -- Removed progress indicators and pause buttons, so make sure UIs are reinitialised
     for player_index, player_table in pairs(storage.players) do
       local player = game.get_player(player_index)
-      -- Unpause everything that may be user-paused
-      player_table.capabilities = {}
-      capability_manager.init_player(player_table)
+      ---@diagnostic disable-next-line: inject-field
+      player_table.capabilities = nil -- Deprecated field
       -- Hide Networks window by default
       player_table.networks_window_visible = false
       -- Reinitialise UIs

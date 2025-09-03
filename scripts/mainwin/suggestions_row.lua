@@ -3,7 +3,6 @@
 local player_data = require("scripts.player-data")
 local suggestions = require("scripts.suggestions")
 local mini_button = require("scripts.mainwin.mini_button")
-local capability_manager = require("scripts.capability-manager")
 local network_data = require("scripts.network-data")
 local progress_bars = require("scripts.mainwin.progress_bars")
 
@@ -166,9 +165,8 @@ function suggestions_row.update(player_table)
   local shown = 0
   local running = false
   if networkdata and networkdata.suggestions and networkdata.suggestions._historydata then
-    running = capability_manager.is_active(player_table, "suggestions")
     -- Show all suggestions
-    shown = suggestions_row.show_suggestions(player_table, networkdata.suggestions, running)
+    shown = suggestions_row.show_suggestions(player_table, networkdata.suggestions, true)
   end
   -- Clear any remaining cells
   local items = player_table.ui[ROW_TITLE]

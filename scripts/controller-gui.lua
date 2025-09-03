@@ -6,7 +6,6 @@ local network_data = require("scripts.network-data")
 local tooltips_helper = require("scripts.tooltips-helper")
 local main_window = require("scripts.mainwin.main_window")
 local networks_window = require("scripts.networkswin.networks_window")
-local capability_manager = require("scripts.capability-manager")
 
 --- Show the mini window (call this on player join or GUI update)
 --- @param player LuaPlayer The player to create the window for

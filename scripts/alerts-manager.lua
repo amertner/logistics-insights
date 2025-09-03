@@ -3,7 +3,6 @@ local alerts_manager = {}
 
 local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
-local capability_manager = require("scripts.capability-manager")
 local suggestions = require("scripts.suggestions")
 local utils = require("scripts.utils")
 
@@ -12,12 +11,6 @@ function alerts_manager.show_alerts(player, player_table)
   if not player or not player.valid or not player_table then
     return
   end
-  show_suggestions = capability_manager.is_active(player_table, "suggestions")
-  if not show_suggestions then
-    alerts_manager.clear_suggestions_alert(player)
-    return
-  end
-
   if storage.networks then
     -- Find all suggestions and add them as alerts
     for _, networkdata in pairs(storage.networks) do

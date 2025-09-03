@@ -31,17 +31,6 @@ local function get_button(player_table, name)
   return nil
 end
 
---- Update the paused state of a mini button by name
---- @param player_table PlayerData The player's data table
----@param name string The name of the button to update
----@param is_paused boolean Whether the button should show as paused
-function mini_button.update_paused_state(player_table, name, is_paused)
-  local button = get_button(player_table, name)
-  if button then
-    mini_button.update_paused(button, is_paused)
-  end
-end
-
 --- Enable/disable a mini button by name
 --- @param player_table PlayerData The player's data table
 ---@param name string The name of the button to update

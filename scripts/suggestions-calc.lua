@@ -2,7 +2,6 @@
 local suggestions_calc = {}
 
 local SuggestionsMgr = require("scripts.suggestions")
-local capability_manager = require("scripts.capability-manager")
 local undersupply = require("scripts.undersupply")
 local network_data = require("scripts.network-data")
 

@@ -5,7 +5,6 @@ local network_data = require("scripts.network-data")
 local global_data = require("scripts.global-data")
 local chunker = require("scripts.chunker")
 local utils = require("scripts.utils")
-local capability_manager = require("scripts.capability-manager")
 
 -- Cache frequently used functions and values for performance
 local pairs = pairs
@@ -250,8 +249,6 @@ local function bot_chunks_done(accumulator, gather, networkdata)
     networkdata.total_bot_qualities = total_bot_qualities
 
     if gather.history and table_size(networkdata.bot_active_deliveries) > 0 then
-      -- # FIXME: How to pass on this?
-      -- and capability_manager.is_active(player_table, "history") then
       -- Consider bots we saw last pass but not this chunk pass as delivered.
       -- They are either destroyed or parked in a roboport, no longer part of the network
       if accumulator.last_seen then
@@ -302,10 +299,9 @@ function bot_counter.init_foreground_processing(networkdata, network)
   for idx, _ in pairs(networkdata.players_set) do
     local player_table = player_data.get_player_table(idx)
     if player_table then
-      if capability_manager.is_active(player_table, "delivering") then
-        gather_options.delivering = true
-      end
-      if capability_manager.is_active(player_table, "history") then
+      gather_options.delivering = true
+      if player_table.settings.show_history then
+        -- At least one player in the network shows the history row
         gather_options.history = true
       end
     end
@@ -315,7 +311,6 @@ function bot_counter.init_foreground_processing(networkdata, network)
     if global_data.gather_quality_data() then
       gather_options.quality = true
     end
-    local bot_chunker = networkdata.bot_chunker
 
     networkdata.bot_chunker:initialise_chunking(networkdata, network.logistic_robots, networkdata.last_pass_bots_seen, gather_options, bot_initialise_chunking)
   else

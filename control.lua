@@ -91,7 +91,7 @@ end})
 -- end })
 
 -- Scheduler task for analysis tasks that derive from bots and cells data
-scheduler.register({ name = "pick-network-to-analyse", interval = 31, per_player = false, capability = nil, is_heavy = false, fn = function()
+scheduler.register({ name = "pick-network-to-analyse", interval = 31, per_player = false, is_heavy = false, fn = function()
   local nwd = analysis_coordinator.find_network_to_analyse()
   if nwd then
     debugger.info("Analysing network ID " .. nwd.id)
@@ -100,7 +100,7 @@ scheduler.register({ name = "pick-network-to-analyse", interval = 31, per_player
 end })
 
 -- Scheduler task for running the currently active derived analysis, if any
-scheduler.register({ name = "run-derived-analysis", interval = 5, per_player = false, capability = nil, is_heavy = true,
+scheduler.register({ name = "run-derived-analysis", interval = 5, per_player = false, is_heavy = true,
   fn = analysis_coordinator.run_analysis_step })
 
 -- Schedulers for updating the UI

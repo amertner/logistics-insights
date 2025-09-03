@@ -7,7 +7,6 @@ local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
 local utils = require("scripts.utils")
 local game_state = require("scripts.game-state")
-local capability_manager = require("scripts.capability-manager")
 local mini_button = require("scripts.mainwin.mini_button")
 local find_and_highlight = require("scripts.mainwin.find_and_highlight")
 local progress_bars = require("scripts.mainwin.progress_bars")
@@ -28,26 +27,6 @@ local networks_window = require("scripts.networkswin.networks_window")
 
 local WINDOW_NAME = "logistics_insights_window"
 local SHORTCUT_TOGGLE = "logistics-insights-toggle"
-
--- Enable/disable row mini pause buttons based on capability dependencies
-function main_window.refresh_mini_button_enabled_states(player_table)
-  local snap = capability_manager.snapshot(player_table)
-  if not snap then return end
-  for name, rec in pairs(snap) do
-    if rec then
-      local enabled = true
-      for _, dep in ipairs(rec.deps or {}) do
-        local dep_rec = snap[dep]
-        if not (dep_rec and dep_rec.active) then
-          enabled = false
-          break
-        end
-      end
-      -- This will be a no-op for capabilities without a corresponding mini button
-      mini_button.set_enabled(player_table, name, enabled)
-    end
-  end
-end
 
 --- Create the main Logistics Insights window
 --- @param player LuaPlayer The player to create the window for
@@ -102,9 +81,6 @@ function main_window.create(player, player_table)
   -- I can't figure out how to make the frame autosize to content, so do it manually
   subheader_frame.style.height = 48 + (rows - 1) * 42
 
-  -- Ensure mini buttons are enabled/disabled according to capability deps
-  main_window.refresh_mini_button_enabled_states(player_table)
-
   -- Restore the previous location, if it exists
   local gui = player.gui.screen
   if gui then
@@ -139,9 +115,6 @@ function main_window.ensure_ui_consistency(player, player_table)
       game_state.force_update_ui(player_table, false, false)
     end
   end
-
-  -- Keep mini-button enables in sync with current capability deps
-  -- refresh_mini_button_enables(player_table)
 
   -- Make sure the "Fixed network" toggle is set correctly. 
   -- It cannot be un-set in player_data if the fixed network is deleted
@@ -372,30 +345,6 @@ function main_window.onclick(event)
         main_window.destroy(player, player_table)
         main_window.create(player, player_table)
         main_window.update(player, player_table, true)
-        -- Also update the mini-button state. This is a workaround in case things get stuck.
-        main_window.refresh_mini_button_enabled_states(player_table)
-      elseif utils.starts_with(event.element.name, "logistics-insights-sorted-") then
-        -- Inline handling for mini pause buttons -> toggles capability "user" reason
-        local suffix = event.element.name:sub(string.len("logistics-insights-sorted-") + 1)
-        local valid = {
-          delivery = true, history = true, activity = true, undersupply = true, suggestions = true
-        }
-        if valid[suffix] then
-          local now_paused = not capability_manager.is_active(player_table, suffix)
-          -- Toggle
-          capability_manager.set_reason(player_table, suffix, "user", not now_paused)
-          -- Special side-effect for history timer: Update paused state
-          local networkdata = network_data.get_networkdata(player_table.network)
-          if suffix == "history" and networkdata and networkdata.history_timer then
-            networkdata.history_timer:set_paused(not now_paused)
-          end
-          -- Update UI mini-button state and dependent enable
-          mini_button.update_paused_state(player_table, suffix, not now_paused)
-          -- Enable/disable dependent buttons using capability snapshot
-          main_window.refresh_mini_button_enabled_states(player_table)
-          -- Now update window
-          main_window.update(player, player_table, false)
-        end
       else
         -- The click may require a highlight/freeze
         local handled = find_and_highlight.handle_click(

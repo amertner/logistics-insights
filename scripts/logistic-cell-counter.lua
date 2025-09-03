@@ -7,7 +7,6 @@ local global_data = require("scripts.global-data")
 local utils = require("scripts.utils")
 local chunker = require("scripts.chunker")
 local scheduler = require("scripts.scheduler")
-local capability_manager = require("scripts.capability-manager")
 
 ---@class CellAccumulator
 ---@field bots_charging number Count of bots currently charging
@@ -155,9 +154,7 @@ function logistic_cell_counter.init_foreground_processing(networkdata, network)
   for idx, _ in pairs(networkdata.players_set) do
     local player_table = player_data.get_player_table(idx)
     if player_table then
-      if capability_manager.is_active(player_table, "activity") then
-        gather_activity = true
-      end
+      gather_activity = true
     end
   end
   -- Store basic network stats
