@@ -8,6 +8,7 @@ local network_data = require("scripts.network-data")
 local tooltips_helper = require("scripts.tooltips-helper")
 local mini_button = require("scripts.mainwin.mini_button")
 local capability_manager = require("scripts.capability-manager")
+local progress_bars = require("scripts.mainwin.progress_bars")
 
 -- Cache frequently used functions
 local pairs = pairs
@@ -67,29 +68,23 @@ function activity_row.add(player_table, gui_table)
   local cell = gui_table.add {
     name = "bots_activity_row",
     type = "flow",
-    direction = "vertical"
+    direction = "vertical",
+    style = "li_row_vflow"
   }
   local hcell = cell.add {
     type = "flow",
-    direction = "horizontal"
+    direction = "horizontal",
+    style= "li_row_hflow"
   }
   hcell.style.horizontally_stretchable = true
   hcell.add {
     type = "label",
     caption = {"activity-row.header"},
-    style = "heading_2_label",
+    style = "li_row_label",
     tooltip = {"activity-row.header-tooltip"},
   }
-  local tip = {"activity-row.pause-tooltip"}
-  local is_paused = not capability_manager.is_active(player_table, "activity")
-  mini_button.add(player_table, hcell, "activity", tip, "pause", is_paused)
 
-  local progressbar = cell.add {
-    type = "progressbar",
-    name = "activity_progressbar",
-  }
-  progressbar.style.horizontally_stretchable = true
-  player_table.ui.activity.progressbar = progressbar
+  progress_bars.add_progress_indicator(player_table, cell, "activity")
 
   player_table.ui.activity.cells = {}
   for i, icon in ipairs(activity_icons) do
@@ -105,8 +100,8 @@ function activity_row.add(player_table, gui_table)
         sprite = icon.sprite,
         style = "slot_button",
         name = cellname,
-  -- These Activity Row cells are only available when Delivery info is gathered
-  enabled = icon.onwithpause or capability_manager.is_active(player_table, "delivery"),
+        -- These Activity Row cells are only available when Delivery info is gathered
+        -- enabled = icon.onwithpause or capability_manager.is_active(player_table, "delivery"),
         tags = { follow = true }
       },
     }

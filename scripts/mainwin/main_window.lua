@@ -100,7 +100,7 @@ function main_window.create(player, player_table)
   -- Add all of the data rows
   local rows = main_window._add_all_rows(player_table, content_table)
   -- I can't figure out how to make the frame autosize to content, so do it manually
-  subheader_frame.style.height = 48 + (rows - 1) * 40
+  subheader_frame.style.height = 48 + (rows - 1) * 42
 
   -- Ensure mini buttons are enabled/disabled according to capability deps
   main_window.refresh_mini_button_enabled_states(player_table)

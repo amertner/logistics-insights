@@ -5,6 +5,7 @@ local suggestions = require("scripts.suggestions")
 local mini_button = require("scripts.mainwin.mini_button")
 local capability_manager = require("scripts.capability-manager")
 local network_data = require("scripts.network-data")
+local progress_bars = require("scripts.mainwin.progress_bars")
 
 local suggestions_row = {}
 local ROW_TITLE = "suggestions-row"
@@ -21,12 +22,13 @@ function suggestions_row.add(player_table, gui_table)
     type = "flow",
     direction = "vertical",
     vertically_squashable = false,
+    style = "li_row_vflow"
   }
-  cell.style.vertically_stretchable = false
   local hcell = cell.add {
     type = "flow",
     direction = "horizontal",
     vertically_squashable = false,
+    style="li_row_hflow"
   }
   hcell.style.horizontally_stretchable = true
 
@@ -35,21 +37,11 @@ function suggestions_row.add(player_table, gui_table)
     type = "label",
     name = ROW_TITLE .. "-title",
     caption = {ROW_TITLE .. ".header"},
-    style = "heading_2_label",
+    style = "li_row_label",
     tooltip = {"", {ROW_TITLE .. ".header-tooltip"}}
   }
-  -- Add pause button and set its state
-  local tip = {"suggestions-row.pause-tooltip"}
-  local is_paused = not capability_manager.is_active(player_table, "suggestions")
-  mini_button.add(player_table, hcell, "suggestions", tip, "pause", is_paused)
 
-  -- Add progress bar
-  local progressbar = cell.add {
-    type = "progressbar",
-    name = ROW_TITLE .. "_progressbar",
-  }
-  progressbar.style.horizontally_stretchable = true
-  player_table.ui[ROW_TITLE].progressbar = progressbar
+  progress_bars.add_progress_indicator(player_table, cell, "suggestions-row")
 
   -- Remember the title cell so we can update the tooltip later
   player_table.ui[ROW_TITLE].titlecell = titlecell

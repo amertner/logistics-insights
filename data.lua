@@ -50,3 +50,36 @@ styles.fs_flib_titlebar_drag_handle = {
   height = 24,
   horizontally_stretchable = "on",
 }
+-- A tiny, dim label used to show progress information
+styles.li_progress_label = {
+  type = "label_style",
+  font = "default-small",
+  font_color = {r=0.5,g=0.5,b=0.5},
+  top_padding = 0,
+  bottom_padding = 0,
+  right_padding = 0,
+  top_margin = -6,
+}
+
+-- The style used for row titles in main window
+styles.li_row_label =
+{
+  type = "label_style",
+  parent = "heading_2_label",
+  top_padding = 4,
+  bottom_padding = 0,
+}
+
+-- The vertical flow used for rows of data
+styles.li_row_vflow = {
+  type = "vertical_flow_style",
+  vertical_spacing = 0,
+  padding = 0,
+}
+
+styles.li_row_hflow = {
+  type = "horizontal_flow_style",
+  horizontal_spacing = 4,
+  vertical_align = "center",
+  padding = 0,
+}

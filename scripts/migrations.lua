@@ -277,12 +277,6 @@ local li_migrations = {
       ---@diagnostic disable-next-line: inject-field
       nwd.last_active_tick = nil
     end
-
-    -- Added progress indicators, so reinitialise the UI to ensure it's correct
-    for player_index, player_table in pairs(storage.players) do
-      local player = game.get_player(player_index)
-      reinitialise_ui(player, player_table)
-    end
   end,
 
   ["0.10.6"] = function() -- Cache per-map settings properly
@@ -299,6 +293,18 @@ local li_migrations = {
     end
   end,
 
+  ["0.10.8"] = function()    
+    -- Removed progress indicators and pause buttons, so make sure UIs are reinitialised
+    for player_index, player_table in pairs(storage.players) do
+      local player = game.get_player(player_index)
+      -- Unpause everything that may be user-paused
+      player_table.capabilities = {}
+      capability_manager.init_player(player_table)
+      -- Reinitialise UIs
+      reinitialise_ui(player, player_table)
+    end
+
+  end,
 }
 
 return li_migrations

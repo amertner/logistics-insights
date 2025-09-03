@@ -4,6 +4,7 @@ local sorted_item_row = {}
 local player_data = require("scripts.player-data")
 local mini_button = require("scripts.mainwin.mini_button")
 local capability_manager = require("scripts.capability-manager")
+local progress_bars = require("scripts.mainwin.progress_bars")
 
 local pairs = pairs
 local table_sort = table.sort
@@ -22,47 +23,43 @@ function sorted_item_row.add(player_table, gui_table, title, button_title, need_
 
   local cell = gui_table.add {
     type = "flow",
-    direction = "vertical"
+    direction = "vertical",
+    style = "li_row_vflow"
   }
   local hcell = cell.add {
     type = "flow",
-    direction = "horizontal"
+    direction = "horizontal",
+    style= "li_row_hflow"
   }
-  hcell.style.horizontally_stretchable = true
 
   -- Add left-aligned label
   hcell.add {
     type = "label",
     caption = {"item-row." .. title .. "-title"},
-    style = "heading_2_label",
+    style = "li_row_label",
     tooltip = {"", {"item-row." .. title .. "-tooltip"}}
   }
 
-  local row_button, tip
+  local row_button, tip = nil, nil
   if button_title then
     if button_title == "clear" then
       tip = {"item-row.clear-history-tooltip"}
       row_button = mini_button.add(player_table, hcell, button_title, tip, "trash", false)
     else
-      if button_title == "delivery" then
-        tip = {"item-row.toggle-gathering-tooltip"}
-      elseif button_title == "history" then
-        tip = {"item-row.toggle-history-tooltip"}
-      elseif button_title == "undersupply" then
-        tip = {"undersupply-row.toggle-tooltip"}
-      end
-      local is_paused = not capability_manager.is_active(player_table, button_title)
-      row_button = mini_button.add(player_table, hcell, button_title, tip, "pause", is_paused)
+      -- if button_title == "delivery" then
+      --   tip = {"item-row.toggle-gathering-tooltip"}
+      -- elseif button_title == "history" then
+      --   tip = {"item-row.toggle-history-tooltip"}
+      -- elseif button_title == "undersupply" then
+      --   tip = {"undersupply-row.toggle-tooltip"}
+      -- end
+      -- local is_paused = not capability_manager.is_active(player_table, button_title)
+      -- row_button = mini_button.add(player_table, hcell, button_title, tip, "pause", is_paused)
     end
   end
 
   if need_progressbar then
-    local progressbar = cell.add {
-      type = "progressbar",
-      name = title .. "_progressbar",
-    }
-    progressbar.style.horizontally_stretchable = true
-    player_table.ui[title].progressbar = progressbar
+    progress_bars.add_progress_indicator(player_table, cell, title)
   end
 
   player_table.ui[title].cells = {}
