@@ -45,8 +45,7 @@ function analysis_coordinator.find_network_to_analyse()
           network_data.remove_network(networkdata.id)
         elseif networkdata.last_analysed_tick < last_tick then
           -- It's a network with players, or it's not been updated for a long time
-          if (has_players and player_data.players_show_main_window(networkdata.players_set)) or 
-            (global_data.background_scans_enabled() and not networkdata.bg_paused) then
+          if (has_players and player_data.players_show_main_window(networkdata.players_set)) or global_data.background_scans_enabled() then
             -- If it has players that show the window, or it's not paused for bg scan, add it to the candidate list
             list[#list+1] = networkdata
           end

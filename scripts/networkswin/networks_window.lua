@@ -176,11 +176,6 @@ local cell_setup = {
     end,
     populate = function(el, nwd)
       if not (el and el.valid) then return end
-      if network_data.players_in_network(nwd) == 0 and nwd.bg_paused then
-        el.caption = "||"
-        el.tooltip = {"networks-window.paused-tooltip"}
-        return
-      end
       if nwd.id == storage.bg_refreshing_network_id then
         el.caption = "*"
         el.tooltip = {"networks-window.updating-tooltip"}
@@ -206,8 +201,6 @@ local cell_setup = {
       }
       local btn = flow.add{ type = "sprite-button", name = name .. "-view", style = "mini_button", sprite = "virtual-signal/signal-map-marker", tooltip = {"networks-window.view-tooltip"} }
       btn.style.top_margin = 2
-      btn = flow.add{ type = "sprite-button", name = name .. "-pause", style = "mini_button", sprite = "li_pause", tooltip = {"networks-window.pause-tooltip"} }
-      btn.style.top_margin = 2
       -- #FEATURE: Add settings button once I know what it should do
       -- btn = flow.add{ type = "sprite-button", name = name .. "-settings", style = "mini_button", sprite = "utility/rename_icon", tooltip = {"networks-window.settings-tooltip"} }
       -- btn.style.top_margin = 2
@@ -223,18 +216,6 @@ local cell_setup = {
           local has_players = network_data.players_in_network(nwd) > 0
           if btn.name:find("trash", 1, true) then
             btn.enabled = not has_players -- Disable if players are using it
-          else
-            btn.enabled = true -- Enable other buttons regardless
-            -- Show the right icon and tooltip for pause button
-            if btn.name:find("pause", 1, true) then
-              if nwd.bg_paused then
-                btn.sprite = "li_play"
-                btn.tooltip = {"networks-window.unpause-tooltip"}
-              else
-                btn.sprite = "li_pause"
-                btn.tooltip = {"networks-window.pause-tooltip"}
-              end
-            end
           end
           btn.tags = { network_id = nwd.id or 0 }
         end
@@ -557,7 +538,7 @@ function networks_window.on_gui_click(event)
 
   -- Identify column from the control name
   local row_str, col_key = name:match(WINDOW_NAME .. "%-cell%-(%d+)%-actions%-(%w+)$")
-  if not col_key or (col_key ~= "settings" and col_key ~= "trash" and col_key ~= "view" and col_key ~= "pause") then
+  if not col_key or (col_key ~= "settings" and col_key ~= "trash" and col_key ~= "view") then
     return nil
   end
 
@@ -588,18 +569,6 @@ function networks_window.on_gui_click(event)
           networks_window.update(player)
         end
       end
-    elseif col_key == "pause" and networkdata then
-      -- Pause/unpause background refresh for this network
-      if networkdata.bg_paused then
-        networkdata.bg_paused = nil
-      else
-        networkdata.bg_paused = true
-      end
-      if networkdata.bg_paused and storage.bg_refreshing_network_id == network_id then
-        -- If we just paused the network being refreshed, clear the refresh state
-        storage.bg_refreshing_network_id = nil
-      end
-      return "refresh"
     end
   end
   return nil
