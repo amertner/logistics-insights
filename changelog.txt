@@ -4,9 +4,10 @@ Date: ????
   Features:
     - Added a new "Add more bots" suggestion when less than 2% of bots are idle over a period of time
   Changes:
-    - Removed distracting progress bars, replacing them with grey text in small font
-    - Removed pause buttons as they add unnecessary UI clutter
+    - Removed the distracting progress bars, replacing them with grey text in small font
+    - Removed pause buttons to reduce UI clutter
     - No longer foreground-scan the active network when the Logistics Insights window is hidden
+    - Removed per-player settings "show delivery" and "show activity" that are unnecessary
   Bugfixes:
     - Fixed a bug where the global chunk size setting was not being applied correctly
     - The suggestion stop adding more bots was never triggered, even when it should have been

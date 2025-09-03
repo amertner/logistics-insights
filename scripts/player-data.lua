@@ -60,10 +60,8 @@ function player_data.update_settings(player, player_table)
     local settings = {
       show_undersupply = mod_settings["li-show-undersupply"].value,
       show_suggestions = mod_settings["li-show-suggestions"].value,
-      show_delivering = mod_settings["li-show-bot-delivering"].value,
       max_items = mod_settings["li-max-items"].value,
       show_history = mod_settings["li-show-history"].value,
-      show_activity = mod_settings["li-show-activity"].value,
       ui_update_interval = mod_settings["li-ui-update-interval"].value,
     }
     player_table.settings = settings

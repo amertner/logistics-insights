@@ -60,9 +60,6 @@ function activity_row.add(player_table, gui_table)
       include_construction = false },
   }
 
-  if not player_table.settings.show_activity then
-    return 0
-  end
   player_data.register_ui(player_table, "activity")
   local cell = gui_table.add {
     name = "bots_activity_row",
@@ -115,14 +112,6 @@ function activity_row.add(player_table, gui_table)
   return 1
 end
 
---- Check if deliveries should be shown based on settings
---- @param player_table PlayerData The player's data table
---- @return boolean True if deliveries should be shown
-function activity_row.should_show_deliveries(player_table)
-  -- Show deliveries if the setting is enabled or if history is shown
-  return player_table.settings.show_delivering or player_table.settings.show_history
-end
-
 --- Update the bot activity row with current statistics
 --- @param player_table PlayerData The player's data table
 function activity_row.update(player_table)
@@ -154,10 +143,6 @@ function activity_row.update(player_table)
     else
       return "bots-gui.format-logistics-robots"
     end
-  end
-
-  if not player_table.settings.show_activity then
-    return
   end
 
   local networkdata = network_data.get_networkdata(player_table.network)

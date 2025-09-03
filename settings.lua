@@ -2,35 +2,21 @@ data:extend(
   {
     {
       type = "bool-setting",
-      name = "li-show-undersupply",
-      setting_type = "runtime-per-user",
-      default_value = true,
-      order = "0.4"
-    },
-    {
-      type = "bool-setting",
-      name = "li-show-suggestions",
-      setting_type = "runtime-per-user",
-      default_value = true,
-      order = "0.5"
-    },
-    {
-      type = "bool-setting",
-      name = "li-show-bot-delivering",
+      name = "li-show-history",
       setting_type = "runtime-per-user",
       default_value = true,
       order = "1"
     },
     {
       type = "bool-setting",
-      name = "li-show-history",
+      name = "li-show-undersupply",
       setting_type = "runtime-per-user",
       default_value = true,
       order = "2"
     },
     {
       type = "bool-setting",
-      name = "li-show-activity",
+      name = "li-show-suggestions",
       setting_type = "runtime-per-user",
       default_value = true,
       order = "3"
