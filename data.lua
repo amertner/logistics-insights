@@ -58,10 +58,9 @@ styles.li_progress_label = {
   top_padding = 0,
   bottom_padding = 0,
   right_padding = 0,
-  top_margin = -6,
 }
 
--- The style used for row titles in main window
+-- The style used for row titles in main
 styles.li_row_label =
 {
   type = "label_style",
