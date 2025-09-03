@@ -3,6 +3,7 @@ local controller_gui = {}
 
 local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
+local global_data = require("scripts.global-data")
 local tooltips_helper = require("scripts.tooltips-helper")
 local main_window = require("scripts.mainwin.main_window")
 local networks_window = require("scripts.networkswin.networks_window")
@@ -24,7 +25,7 @@ function controller_gui.create_window(player)
   mini.add {
     type = "sprite-button",
     name = "logistics_insights_toggle_networks",
-    sprite = "virtual-signal/signal-stack-size",
+    sprite = "li_suggestions_centered",
     style = "slot_button",
     tooltip = { "controller-gui.networks_tooltip_click" }
   }
@@ -62,12 +63,16 @@ end
 ---@param gui LuaGuiElement The GUI element to update
 ---@param player_table PlayerData The player's data table containing network and settings
 local function update_networks_tooltip(gui, player_table)
-  -- #TODO: Show count of networks being scanned, not all networks
-  local networkcount = table_size(storage.networks)
-  gui.logistics_insights_toggle_networks.number = networkcount
+  -- Get the number of suggestions across all networks
+  local total_counts = network_data.get_total_suggestions_and_undersupply()
+  gui.logistics_insights_toggle_networks.number = total_counts.suggestions
 
+  local networkcount = table_size(storage.networks)
   local tip
-  tip = { "", tip, { "controller-gui.network_count", networkcount } }
+  tip = { "", tip, { "controller-gui.networks_1suggestions_2_undersupplies_3networks", total_counts.suggestions, total_counts.undersupplies, networkcount } }
+  if global_data.background_scans_disabled() then
+    tip = { "", tip, "\n", { "controller-gui.background_scanning_paused" } }
+  end
   tip = { "", tip, { "controller-gui.networks_tooltip_click" } }
 
   gui.logistics_insights_toggle_networks.tooltip = tip

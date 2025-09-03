@@ -4,6 +4,7 @@ local network_data = require("scripts.network-data")
 local TickCounter = require("scripts.tick-counter")
 local main_window = require("scripts.mainwin.main_window")
 local networks_window = require("scripts.networkswin.networks_window")
+local controller_gui = require("scripts.controller-gui")
 local chunker = require("scripts.chunker")
 local scheduler = require("scripts.scheduler")
 local suggestions = require("scripts.suggestions")
@@ -18,6 +19,7 @@ end
 local function reinitialise_ui(player, player_table)
   if player and player_table then
     player_table.ui = nil -- Reset UI to force recreation
+    controller_gui.create_window(player)
     main_window.ensure_ui_consistency(player, player_table)
     networks_window.create(player)
   else

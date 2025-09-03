@@ -78,5 +78,13 @@ data:extend{
     size = 128,
     scale = 1.0,
     flags = {"gui-icon"},
+  },
+  {
+    type = "sprite",
+    name = "li_suggestions_centered",
+    filename = "__logistics-insights__/graphics/suggestions-icon-centered.png",
+    size = 128,
+    scale = 1.0,
+    flags = {"gui-icon"},
   }
 }

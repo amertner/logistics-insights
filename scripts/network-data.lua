@@ -467,5 +467,27 @@ function network_data.finished_scanning_network(networkdata)
   end
 end
 
+---@return {suggestions: number, undersupplies: number} The total number of suggestions across all networks
+function network_data.get_total_suggestions_and_undersupply()
+  local num_sug = 0
+  local num_us = 0
+  if storage.networks then
+    for _, networkdata in pairs(storage.networks) do
+      if networkdata and networkdata.suggestions then
+        local undersupply = networkdata.suggestions:get_cached_list("undersupply")
+        if undersupply then
+          num_us = num_us + table_size(undersupply)
+        end
+        for _, suggestion in pairs(networkdata.suggestions:get_suggestions()) do
+          if suggestion then
+            num_sug = num_sug + 1
+          end
+        end
+      end
+    end
+  end
+  return {suggestions = num_sug, undersupplies = num_us}
+end
+
 
 return network_data
