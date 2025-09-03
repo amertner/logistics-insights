@@ -7,6 +7,7 @@ Date: ????
     - No longer foreground-scan the active network when the Logistics Insights window is hidden
   Bugfixes:
     - Fixed a bug where the global chunk size setting was not being applied correctly
+    - The suggestion stop adding more bots was never triggered, even when it should have been
 ---------------------------------------------------------------------------------------------------
 Version: 0.10.7
 Date: 2025-09-02
