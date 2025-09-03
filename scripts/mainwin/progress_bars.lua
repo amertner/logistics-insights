@@ -19,10 +19,10 @@ function progress_bars.add_progress_indicator(player_table, parent, progressbar_
       style = "li_progress_label",
       tooltip = {"bots-gui.progress-tooltip"}
     }
-  if not player_table.ui[progressbar_name] then
-    player_table.ui[progressbar_name] = {}
+  if not player_table.ui.progress_labels then
+    player_table.ui.progress_labels = {}
   end
-  player_table.ui[progressbar_name].progress_label = lprogress
+  player_table.ui.progress_labels[progressbar_name] = lprogress
 end
 
 --- Update a progress bar with current progress information
@@ -30,13 +30,28 @@ end
 --- @param progressbar_name string The name of the UI element that has a progressbar
 --- @param progress Progress|nil The progress data with current and total values
 function progress_bars.update_progressbar(player_table, progressbar_name, progress)
-  if not player_table.ui or not player_table.ui[progressbar_name] then
+  if not player_table.ui or not player_table.ui.progress_labels then
     return
   end
-  local progress_label = player_table.ui[progressbar_name].progress_label
+  local progress_label = player_table.ui.progress_labels[progressbar_name]
   if progress_label and progress_label.valid then
     progress_label.caption = {"bots-gui.progress-label_1count_2total", (progress and progress.current - 1) or 0, (progress and progress.total) or 0}
     return
+  end
+end
+
+--- Clear a progress bar
+--- @param player_table PlayerData The player's data table
+function progress_bars.clear_all_progressbars(player_table)
+  if not player_table.ui then
+    return
+  end
+  local labels = player_table.ui.progress_labels
+  if not labels then
+    return
+  end
+  for _, label in pairs(labels) do
+    label.caption = ""
   end
 end
 

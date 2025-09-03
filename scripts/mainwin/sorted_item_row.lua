@@ -45,16 +45,6 @@ function sorted_item_row.add(player_table, gui_table, title, button_title, need_
     if button_title == "clear" then
       tip = {"item-row.clear-history-tooltip"}
       row_button = mini_button.add(player_table, hcell, button_title, tip, "trash", false)
-    else
-      -- if button_title == "delivery" then
-      --   tip = {"item-row.toggle-gathering-tooltip"}
-      -- elseif button_title == "history" then
-      --   tip = {"item-row.toggle-history-tooltip"}
-      -- elseif button_title == "undersupply" then
-      --   tip = {"undersupply-row.toggle-tooltip"}
-      -- end
-      -- local is_paused = not capability_manager.is_active(player_table, button_title)
-      -- row_button = mini_button.add(player_table, hcell, button_title, tip, "pause", is_paused)
     end
   end
 

@@ -16,8 +16,8 @@ end
 --- @param gui_table LuaGuiElement The GUI table to add the rows to
 function history_rows.add(player_table, gui_table)
   if player_table.settings.show_history then
-    sorted_item_row.add(player_table, gui_table, "totals-row", "history", false)
-    sorted_item_row.add(player_table, gui_table, "avgticks-row", "clear", false)
+    sorted_item_row.add(player_table, gui_table, "totals-row", "clear", false)
+    sorted_item_row.add(player_table, gui_table, "avgticks-row", "ticks", false)
     return 2
   end
   return 0

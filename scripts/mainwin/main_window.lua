@@ -273,6 +273,10 @@ function main_window.update(player, player_table, clearing)
   suggestions_row.update(player_table)
 end
 
+function main_window.clear_progress(player_table)
+  progress_bars.clear_all_progressbars(player_table)
+end
+
 -- Update the Delivery progress bar
 --- @param player_table PlayerData The player's data table
 --- @param progress Progress|nil The progress data with current and total values

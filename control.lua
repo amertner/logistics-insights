@@ -142,6 +142,7 @@ end
 -- Check whether a player's active network has changed
 scheduler.register({ name = "network-check", interval = 29, per_player = true, is_heavy = false, fn = function(player, player_table)
   if network_data.check_network_changed(player, player_table) then
+    main_window.clear_progress(player_table)
     full_UI_refresh(player, player_table)
   end
 end })
