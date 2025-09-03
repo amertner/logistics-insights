@@ -39,13 +39,15 @@ Suggestions.unfiltered_storage_low_key = "insufficient-unfiltered-storage"
 Suggestions.mismatched_storage_key = "mismatched-storage"
 Suggestions.undersupply_key = "supply-shortage"
 Suggestions.too_many_bots_key = "too-many-bots"
+Suggestions.too_few_bots_key = "too-few-bots"
 -- Order of suggestions in the UI: First by priority, then by this order:
 Suggestions.order = { 
   Suggestions.awaiting_charge_key,
   Suggestions.storage_low_key,
   Suggestions.unfiltered_storage_low_key,
   Suggestions.mismatched_storage_key,
-  Suggestions.too_many_bots_key
+  Suggestions.too_many_bots_key,
+  Suggestions.too_few_bots_key,
 }
 
 function Suggestions.new()
@@ -134,6 +136,7 @@ function Suggestions:clear_suggestions()
     [Suggestions.undersupply_key] = nil,
     [Suggestions.mismatched_storage_key] = nil,
     [Suggestions.too_many_bots_key] = nil,
+    [Suggestions.too_few_bots_key] = nil,
   }
   self._suggestions = {
     [Suggestions.awaiting_charge_key] = nil,
@@ -142,6 +145,7 @@ function Suggestions:clear_suggestions()
     [Suggestions.undersupply_key] = nil,
     [Suggestions.mismatched_storage_key] = nil,
     [Suggestions.too_many_bots_key] = nil,
+    [Suggestions.too_few_bots_key] = nil,
   }
   self._cached_data = {
     [Suggestions.awaiting_charge_key] = nil,
@@ -150,6 +154,7 @@ function Suggestions:clear_suggestions()
     [Suggestions.undersupply_key] = nil,
     [Suggestions.mismatched_storage_key] = nil,
     [Suggestions.too_many_bots_key] = nil,
+    [Suggestions.too_few_bots_key] = nil,
   }
 end
 

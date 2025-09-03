@@ -1,6 +1,8 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.10.8
 Date: ????
+  Features:
+    - Added a new "Add more bots" suggestion when less than 2% of bots are idle over a period of time
   Changes:
     - Removed distracting progress bars, replacing them with grey text in small font
     - Removed pause buttons as they add unnecessary UI clutter

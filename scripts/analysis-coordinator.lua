@@ -137,6 +137,7 @@ function analysis_coordinator.run_free_suggestions_step()
     suggestions_calc.analyse_waiting_to_charge(nwd.suggestions, waiting_to_charge_count)
 
     suggestions_calc.analyse_too_many_bots(nwd.suggestions, storage.analysing_network)
+    suggestions_calc.analyse_too_few_bots(nwd.suggestions, storage.analysing_network)
   end
   return true
 end

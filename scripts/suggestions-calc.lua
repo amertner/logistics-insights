@@ -7,7 +7,7 @@ local undersupply = require("scripts.undersupply")
 local network_data = require("scripts.network-data")
 
 local BOT_TREND_WINDOW_TICKS = 60 * 10 -- 10 seconds window for trend
-local MIN_TOTAL_BOTS_FOR_SUGGESTION = 100 -- Ignore small networks
+local MIN_TOTAL_BOTS_FOR_SUGGESTION = 100 -- Ignore small networks for suggesting too many bots
 
 -- Potential issue: Too many bots waiting to charge means we need more RPs
 ---@param suggestions Suggestions
@@ -194,6 +194,59 @@ function suggestions_calc.analyse_too_many_bots(suggestions, network)
     false,
     {"suggestions-row.too-many-bots-action", idle_rounded}
   )
+end
+
+-- Analyse the trend of idle bots:
+-- - whether the player is adding too many bots: rising total with many idle
+-- - whether the player needs more bots: all bots busy for a while
+---@param suggestions Suggestions The suggestions manager
+---@param network? LuaLogisticNetwork
+function suggestions_calc.analyse_too_few_bots(suggestions, network)
+  if not network then
+    suggestions:clear_suggestion(SuggestionsMgr.too_few_bots_key)
+    return
+  end
+  local total = network.all_logistic_robots or 0
+  local idle = network.available_logistic_robots or 0
+
+  -- Record idle for trend analysis
+  suggestions:remember(SuggestionsMgr.too_few_bots_key, idle)
+  -- Look for highest number of idle bots in the window
+  history = suggestions._historydata[SuggestionsMgr.too_few_bots_key]
+  if not history or #history < 3 then
+    return -- Need more samples
+  end
+  local window_start = suggestions._current_tick - BOT_TREND_WINDOW_TICKS
+  local highest_idle = idle
+  for i = #history, 1, -1 do
+    local entry = history[i]
+    if entry.tick < window_start then
+      -- Drop older entries outside window to keep history lean
+      table.remove(history, i)
+    else
+      if entry.data > highest_idle then
+        highest_idle = entry.data
+      end
+    end
+  end
+
+  local idle_ratio = (total > 0) and (idle / total) or 0
+  local highest_idle_ratio = (total > 0) and (highest_idle / total) or 0
+  if highest_idle_ratio <= 0.02 and total > 0 then
+    -- There are bots and 98%+ of them are busy, suggest getting more
+    local busy_rounded = math.floor((1-highest_idle_ratio) * 1000)/10
+    suggestions:create_or_clear_suggestion(
+      SuggestionsMgr.too_few_bots_key,
+      busy_rounded,
+      "entity/logistic-robot",
+      "low",
+      false,
+      {"suggestions-row.too-few-bots-action"}
+    )
+    return
+  else
+    suggestions:clear_suggestion(SuggestionsMgr.too_few_bots_key)
+  end
 end
 
 return suggestions_calc
