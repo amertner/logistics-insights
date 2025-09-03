@@ -16,6 +16,7 @@ local networks_window= require("scripts.networkswin.networks_window")
 local tooltips_helper = require("scripts.tooltips-helper")
 local analysis_coordinator = require("scripts.analysis-coordinator")
 local scan_coordinator = require("scripts.scan-coordinator")
+--local alerts_manager = require("scripts/alerts-manager")
 
 ---@alias SurfaceName string
 
@@ -84,6 +85,10 @@ scheduler.register({ name = "player-network-cell-chunk", interval = 7, is_heavy 
     scan_coordinator.foreground_cell_chunk(storage.fg_refreshing_network_id)
   end
 end})
+
+-- scheduler.register({ name="show-li-alerts", interval=61, is_heavy=false, per_player=true, fn=function(player, player_table)
+--   alerts_manager.show_alerts(player, player_table)
+-- end })
 
 -- Scheduler task for analysis tasks that derive from bots and cells data
 scheduler.register({ name = "pick-network-to-analyse", interval = 31, per_player = false, capability = nil, is_heavy = false, fn = function()
