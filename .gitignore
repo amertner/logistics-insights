@@ -1,4 +1,4 @@
 .DS_Store
 logistics-insights*.zip
 *.pxd
-
+.vscode/*
