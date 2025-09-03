@@ -56,4 +56,14 @@ function global_data.purge_nonplayer_networks()
   return not storage.global.show_all_networks
 end
 
+function global_data.background_scans_disabled()
+  -- Background scans are disabled if the refresh interval is zero
+  return global_data.background_refresh_interval_ticks() == 0
+end
+
+function global_data.background_scans_enabled()
+  -- Background scans are enabled if the refresh interval is greater than zero
+  return global_data.background_refresh_interval_ticks() > 0
+end
+
 return global_data

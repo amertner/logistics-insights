@@ -406,7 +406,7 @@ function network_data.get_next_background_network()
         if not nw or not nw.valid then
           -- The network no longer exists, so remove it from storage
           network_data.remove_network(networkdata.id)
-        elseif network_data.players_in_network(networkdata) == 0 and networkdata.last_scanned_tick < last_tick then
+        elseif networkdata.last_scanned_tick < last_tick then
           -- This network has no active players, so it can be scanned in the background
           if not networkdata.bg_paused then
             -- As the network is not paused, add it to the candidate list
@@ -446,8 +446,11 @@ function network_data.get_next_player_network()
           -- The network no longer exists, so remove it from storage
           network_data.remove_network(networkdata.id)
         elseif network_data.players_in_network(networkdata) > 0 then
-          -- As the network is not paused, add it to the candidate list
-          list[#list+1] = networkdata
+          -- Check if any of the players have their bots window open
+          if player_data.players_show_main_window(networkdata.players_set) then
+            -- Addadd it to the candidate list
+            list[#list+1] = networkdata
+          end
         end
       end
     end

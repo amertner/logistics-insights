@@ -105,7 +105,6 @@ function player_data.register_ui(player_table, name)
   player_table.ui[name] = {}
 end
 
-
 function player_data.is_foreground_network_paused_for_capability(networkdata, capability, setting)
   if not networkdata or not capability then
     return false
@@ -121,6 +120,22 @@ function player_data.is_foreground_network_paused_for_capability(networkdata, ca
     end
   end
   return has_players -- If foreground for at least one player, all players are paused for this capability
+end
+
+-- Check if any players in the set have their main window open
+---@param players table<uint, boolean>
+---@return boolean True if any players in the set have their main window open
+function player_data.players_show_main_window(players)
+  if not players then
+    return false
+  end
+  for player_index, _ in pairs(players) do
+    local pt = player_data.get_player_table(player_index)
+    if pt and pt.bots_window_visible then
+      return true
+    end
+  end
+  return false
 end
 
 return player_data

@@ -105,20 +105,21 @@ end
 -- If we're doing a background refresh, abandon it and start analysing this fg network instead
 ---@param player_table PlayerData The player's data table
 function scan_coordinator.prioritise_scanning_new_player_network(player_table)
-  if not player_table or not player_table.network then
-    -- Nothing to do if player is not in network
+  if not player_table or not player_table.network or not player_table.bots_window_visible then
+    -- Nothing to do if player is not in network or if window isn't visible
     return
   end
   local network_id = player_table.network.network_id
   if storage.bg_refreshing_network_id then
-    -- We're doing a background scan; abandon that and start on the player's network instead
-    local networkdata = network_data.get_networkdata(player_table.network)
-    if networkdata then
-      storage.bg_refreshing_network_id = nil
-      storage.fg_refreshing_network_id = networkdata.id
-      bot_counter.init_foreground_processing(networkdata, player_table.network)
-      logistic_cell_counter.init_foreground_processing(networkdata, player_table.network)
-    end
+    -- We're doing a background scan; abandon that
+    storage.bg_refreshing_network_id = nil
+  end
+  -- Start scanning this one, abandoning any current fg scan
+  local networkdata = network_data.get_networkdata(player_table.network)
+  if networkdata then
+    storage.fg_refreshing_network_id = networkdata.id
+    bot_counter.init_foreground_processing(networkdata, player_table.network)
+    logistic_cell_counter.init_foreground_processing(networkdata, player_table.network)
   end
 end
 

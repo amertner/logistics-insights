@@ -20,7 +20,7 @@ function analysis_coordinator.find_network_to_analyse()
   end
   -- Only refresh non-player networks that have not been refreshed for at least refresh-interval
   local last_bg_tick
-  if  global_data.background_refresh_interval_ticks() == 0 then
+  if global_data.background_scans_disabled() then
     last_bg_tick = 0 -- Don't analyse any background networks
   else
     last_bg_tick = game.tick - global_data.background_refresh_interval_ticks()
@@ -45,8 +45,9 @@ function analysis_coordinator.find_network_to_analyse()
           network_data.remove_network(networkdata.id)
         elseif networkdata.last_analysed_tick < last_tick then
           -- It's a network with players, or it's not been updated for a long time
-          if has_players or not networkdata.bg_paused then
-            -- If it has players or it's not paused for bg scan, add it to the candidate list
+          if (has_players and player_data.players_show_main_window(networkdata.players_set)) or 
+            (global_data.background_scans_enabled() and not networkdata.bg_paused) then
+            -- If it has players that show the window, or it's not paused for bg scan, add it to the candidate list
             list[#list+1] = networkdata
           end
         end
