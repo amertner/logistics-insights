@@ -263,7 +263,7 @@ function networks_window.create(player)
     name = WINDOW_NAME,
     direction = "vertical",
     style = "li_window_style",
-    visible = true,
+    visible = player_table.networks_window_visible,
   }
 
     -- Title bar with dragger and close
@@ -404,12 +404,15 @@ end
 --- @param player LuaPlayer
 function networks_window.toggle_window_visible(player)
   if not player or not player.valid then return end
+  local player_table = player_data.get_player_table(player.index)
   local w = player.gui.screen[WINDOW_NAME]
   if not w then
+    player_table.networks_window_visible = true
     networks_window.create(player)
     return
   end
   w.visible = not w.visible
+  player_table.networks_window_visible = w.visible
 end
 
 --- Ensure the Networks table has exactly `count` data rows (below the header).
@@ -419,6 +422,10 @@ end
 function networks_window.update_network_count(player, count)
   if not player or not player.valid then return end
   local player_table = player_data.get_player_table(player.index)
+  if not player_table.networks_window_visible then
+    return
+  end
+
   if not player_table or not player_table.ui or not player_table.ui.networks then return end
   if type(count) ~= "number" then return end
   if count < 0 then count = 0 end
@@ -465,6 +472,9 @@ function networks_window.update(player)
   if not player or not player.valid then return end
   local player_table = player_data.get_player_table(player.index)
   if not player_table then return end
+  if not player_table.networks_window_visible then
+    return
+  end
   if not player_table.ui or not player_table.ui.networks then
     networks_window.create(player)
     return -- Will update on the next call

@@ -247,6 +247,7 @@ script.on_event({ defines.events.on_player_created },
       end
       if player_table and player then
         main_window.set_window_visible(player, player_table, player_table.bots_window_visible)
+        networks_window.set_window_visible(player, player_table, player_table.networks_window_visible)
       end
     end
   end)

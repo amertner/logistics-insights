@@ -300,6 +300,8 @@ local li_migrations = {
       -- Unpause everything that may be user-paused
       player_table.capabilities = {}
       capability_manager.init_player(player_table)
+      -- Hide Networks window by default
+      player_table.networks_window_visible = false
       -- Reinitialise UIs
       reinitialise_ui(player, player_table)
     end

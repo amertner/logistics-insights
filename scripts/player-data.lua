@@ -13,6 +13,7 @@ local math_ceil = math.ceil
 ---@field settings table<string,any> -- Player mod settings cached for performance
 ---@field window LuaGuiElement|nil -- The main window element
 ---@field bots_window_visible boolean -- Whether the logistics insights window is visible
+---@field networks_window_visible boolean -- Whether the networks window is visible
 ---@field network LuaLogisticNetwork|nil -- The current logistics network being monitored
 ---@field fixed_network boolean -- Whether to keep watching the current network even if the player moves away
 ---@field player_index uint -- The player's index
@@ -29,6 +30,7 @@ function player_data.init(player_index)
     settings = {},
     window = nil, -- Will be created later
     bots_window_visible = false, -- Start invisible
+    networks_window_visible = false, -- Start invisible
     network = nil,
     fixed_network = false,
     player_index = player_index,

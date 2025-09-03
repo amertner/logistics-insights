@@ -2,6 +2,9 @@
 Version: 0.10.8
 Date: ????
   Changes:
+    - Removed distracting progress bars, replacing them with grey text in small font
+    - Removed pause buttons as they add unnecessary UI clutter
+    - No longer foreground-scan the active network when the Logistics Insights window is hidden
   Bugfixes:
     - Fixed a bug where the global chunk size setting was not being applied correctly
 ---------------------------------------------------------------------------------------------------
