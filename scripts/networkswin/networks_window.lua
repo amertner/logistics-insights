@@ -403,7 +403,7 @@ end
 function networks_window.update_network_count(player, count)
   if not player or not player.valid then return end
   local player_table = player_data.get_player_table(player.index)
-  if not player_table.networks_window_visible then
+  if not player_table or not player_table.networks_window_visible then
     return
   end
 
