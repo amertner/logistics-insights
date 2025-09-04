@@ -7,7 +7,7 @@ local network_data = require("scripts.network-data")
 local find_and_highlight = require("scripts.mainwin.find_and_highlight")
 
 local WINDOW_NAME = "li_networks_window"
-local WINDOW_MIN_HEIGHT = 110-2*24 -- Room for 1 network
+local WINDOW_MIN_HEIGHT = 110-3*24 -- Room for 0 networks
 local WINDOW_MAX_HEIGHT = 110+10*24 -- Room for 12 networks
 local WINDOW_HEIGHT_STEP = 24
 
@@ -376,6 +376,19 @@ function networks_window.destroy(player)
   local player_table = player_data.get_player_table(player.index)
   if player_table and player_table.ui and player_table.ui.networks then
     player_table.ui.networks.table_elements = nil
+  end
+end
+
+--- Set visibility of the Networks window
+--- @param player LuaPlayer The player whose window to toggle
+--- @param player_table PlayerData The player's data table
+--- @param visible boolean Whether the window should be visible
+function networks_window.set_window_visible(player, player_table, visible)
+  if not player or not player.valid or not player_table then return end
+  player_table.networks_window_visible = not visible
+  networks_window.toggle_window_visible(player)
+  if player_table.networks_window_visible ~= visible then
+    networks_window.toggle_window_visible(player)
   end
 end
 
