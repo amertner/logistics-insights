@@ -7,8 +7,8 @@ local network_data = require("scripts.network-data")
 local find_and_highlight = require("scripts.mainwin.find_and_highlight")
 
 local WINDOW_NAME = "li_networks_window"
-local WINDOW_MIN_HEIGHT = 110+5*24 -- Room for 8 networks
-local WINDOW_MAX_HEIGHT = 110+240 -- Room for 10 networks
+local WINDOW_MIN_HEIGHT = 110-2*24 -- Room for 1 network
+local WINDOW_MAX_HEIGHT = 110+10*24 -- Room for 12 networks
 local WINDOW_HEIGHT_STEP = 24
 
 -- Column configuration for Networks window
@@ -305,15 +305,13 @@ function networks_window.create(player)
       }
       subheader_frame.style.minimal_height = WINDOW_MIN_HEIGHT -- This dictates how much there is room for
       subheader_frame.style.maximal_height = WINDOW_MAX_HEIGHT -- This dictates how much there is room for
-        -- Scrollable area for the data table
+      -- Scrollable area for the data table
         local scroll = subheader_frame.add {
           type = "scroll-pane",
           style = "naked_scroll_pane",
           name = WINDOW_NAME .. "-scroll",
           horizontal_scroll_policy = "never",
-          vertical_scroll_policy = "auto-and-reserve-space",
         }
-        scroll.style.vertically_stretchable = true -- To fill the scroller
         scroll.style.padding = 2
 
         local col_count = #cell_setup
