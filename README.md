@@ -45,7 +45,7 @@ Before a base reaches megabase level, keep the Networks window open to keep an e
 - If some items take a disproportionate amount of time to deliver (i.e. they show up early in the Ticks/item list), consider transporting those using belts instead, or creating a source of items closer to where it's needed
 - If there is some item that's being transported unnecessarily (i.e. it shows up early in the Totals list), perhaps could belt that item instead. For example, in one case I found that my bots were transporting iron ore 90% of the time, filling up my storage chests, all because I accidentally put ore in an active provider chest.
 - Sometimes, a small number of items are delivered a long way, cluttering up the Ticks/item statistics. Right-click on one of the buttons to clear the history and start again.
-- If you don't need part of the display right now, click the pause button to temporarily pause collecting it. Or change the setting to remove the rows entirely, which also makes the window smaller.
+- If you don't need the History, Undersupply or Suggestions, change the setting to remove those rows entirely.
 
 **In the Activity row**
 

@@ -1,9 +1,10 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.10.8
-Date: ????
+Date: 2025-09-04
   Features:
     - Added a new "Add more bots" suggestion when less than 2% of bots are idle over a period of time
   Changes:
+    - Networks window now auto sizes up to around 10 networks, then adds a scrollbar
     - Removed the distracting progress bars, replacing them with grey text in small font
     - Removed pause buttons to reduce UI clutter
     - No longer foreground-scan the active network when the Logistics Insights window is hidden
