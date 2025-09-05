@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.10.10
+Date: 2025-09-05
+  Changes:
+    - Reduced performance impact on very large networks, by dynamically reducing the chunk size when needed
+  Bugfixes:
+    - Re-added a string that was removed in 0.10.8, causing one of the main tooltips to be incomplete
+---------------------------------------------------------------------------------------------------
 Version: 0.10.9
 Date: 2025-09-04
   Bugfixes:

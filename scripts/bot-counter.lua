@@ -148,13 +148,16 @@ end
 --- @param accumulator Accumulator The data accumulator containing counters and bot lists
 --- @param gather GatherOptions for what to gather
 --- @param networkdata LINetworkData The network data associated with this chunker
+--- @return number Return number of "processing units" consumed, default is 1
 local function process_one_bot(bot, accumulator, gather, networkdata)
+  local consumed = 0
   if bot and bot.valid then
     local unit_number = bot.unit_number
     if not unit_number then
       -- No unit number, so we can't track this bot
-      return
+      return 0
     end
+    consumed = 1
     if accumulator.last_seen[unit_number] then
       -- Mark bots seen in the last pass as seen again
       accumulator.last_seen[unit_number] = seen_bot_this_pass
@@ -203,6 +206,7 @@ local function process_one_bot(bot, accumulator, gather, networkdata)
       utils.accumulate_quality(accumulator.other_bot_qualities, quality, 1)
     end
   end
+  return consumed
 end
 
 --- Reset counters to be able to process a list of data in chunks

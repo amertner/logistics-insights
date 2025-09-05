@@ -277,7 +277,7 @@ local li_migrations = {
     end
   end,
 
-  ["0.10.8"] = function()    
+  ["0.10.8"] = function()
     -- Removed progress indicators and pause buttons, so make sure UIs are reinitialised
     for player_index, player_table in pairs(storage.players) do
       local player = game.get_player(player_index)

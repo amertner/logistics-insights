@@ -184,8 +184,7 @@ function analysis_coordinator.run_undersupply_step()
     return true -- Nothing to do, so done
   end
   if not storage.analysis_state.undersupply_chunker then
-    -- Undersupply is expensive to run, so use half the normal chunks size
-    storage.analysis_state.undersupply_chunker = chunker.new(2)
+    storage.analysis_state.undersupply_chunker = chunker.new(1)
   end
   local the_chunker = storage.analysis_state.undersupply_chunker
   if the_chunker == nil then

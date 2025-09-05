@@ -166,16 +166,18 @@ function chunker:process_chunk(on_process_entity)
   local list_size = self.processing_count
   local current_index = self.current_index
   local chunk_size = self.CHUNK_SIZE
-  local end_index = math.min(current_index + chunk_size - 1, list_size)
-  
-  for i = current_index, end_index do
-    local entity = processing_list[i]
+ 
+  local consumed = 0
+  while (consumed < chunk_size) and (current_index <= list_size) do
+    local entity = processing_list[current_index]
     if entity.valid then
-      on_process_entity(entity, self.partial_data, self.gather, self.networkdata)
+      local cost = on_process_entity(entity, self.partial_data, self.gather, self.networkdata)
+      consumed = consumed + cost
     end
+    current_index = current_index + 1
   end
 
-  self.current_index = end_index + 1
+  self.current_index = current_index
 end
 
 return chunker

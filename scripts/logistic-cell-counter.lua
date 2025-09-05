@@ -34,7 +34,9 @@ end
 --- @param accumulator CellAccumulator The accumulator for gathering statistics
 --- @param gather GatherOptions Whether to gather quality data
 --- @param networkdata LINetworkData The network data associated with this cell
+--- @return number Return number of "processing units" consumed, default is 1
 local function process_one_cell(cell, accumulator, gather, networkdata)
+  local consumed = 0
   local bots_charging = accumulator.bots_charging
   local bots_waiting = accumulator.bots_waiting_for_charge
 
@@ -44,6 +46,7 @@ local function process_one_cell(cell, accumulator, gather, networkdata)
 
   -- Check the bots stationed at this roboport
   if cell.owner and cell.owner.valid and gather.quality then
+    consumed = 1
     -- Count roboport quality
     local rp_quality = (cell.owner.quality and cell.owner.quality.name) or "normal"
     utils.accumulate_quality(accumulator.roboport_qualities, rp_quality, 1)
@@ -54,7 +57,9 @@ local function process_one_cell(cell, accumulator, gather, networkdata)
       if list then
         local cq = accumulator.charging_bot_qualities
         local accq = utils.accumulate_quality
-        for i = 1, #list do
+        local count = #list
+        consumed = consumed + count/50 -- Count 1 processing unit per 50 bots
+        for i = 1, count do
           local bot = list[i]
           if bot and bot.valid and bot.quality then
             local q = bot.quality.name
@@ -70,7 +75,9 @@ local function process_one_cell(cell, accumulator, gather, networkdata)
       if list then
         local wq = accumulator.waiting_bot_qualities
         local accq = utils.accumulate_quality
-        for i = 1, #list do
+        local count = #list
+        consumed = consumed + count/50 -- Count 1 processing unit per 50 bots
+        for i = 1, count do
           local bot = list[i]
           if bot and bot.valid and bot.quality then
             local q = bot.quality.name
@@ -86,7 +93,9 @@ local function process_one_cell(cell, accumulator, gather, networkdata)
     if rp then
       local inventory = rp.get_inventory(defines.inventory.roboport_robot)
       if inventory and not inventory.is_empty() then
-        for i = 1, #inventory do
+        local count = #inventory
+        consumed = consumed + count/30 -- Count 1 processing unit per 50 stacks
+        for i = 1, count do
           local stack = inventory[i]
           if stack and stack.valid_for_read and stack.name == "logistic-robot" then
             local quality = (stack.quality and stack.quality.name) or "normal"
@@ -96,6 +105,7 @@ local function process_one_cell(cell, accumulator, gather, networkdata)
       end
     end
   end
+  return math.floor(consumed)
 end
 
 --- Complete processing of all chunks and store results

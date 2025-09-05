@@ -65,8 +65,11 @@ end
 --- Process a storage chest for chunked storage analysis
 --- @param nstorage LuaEntity The storage chest entity
 --- @param accumulator StorageAccumulator The accumulator to store results in
+--- @return number Return number of "processing units" consumed, default is 1
 function suggestions_calc.process_storage_for_analysis(nstorage, accumulator)
+  local consumed = 0
   if nstorage and nstorage.valid then
+    consumed = 1
     local inventory = nstorage.get_inventory(defines.inventory.chest)
     -- Count total and free stacks
     if inventory then
@@ -109,6 +112,7 @@ function suggestions_calc.process_storage_for_analysis(nstorage, accumulator)
       end
     end
   end
+  return consumed
 end
 
 --- Called when all chunks have been processed
