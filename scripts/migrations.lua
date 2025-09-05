@@ -288,8 +288,18 @@ local li_migrations = {
       -- Reinitialise UIs
       reinitialise_ui(player, player_table)
     end
-
   end,
+
+  ["0.10.11"] = function()
+    -- Changed progress bars to single label showing %
+    for player_index, player_table in pairs(storage.players) do
+      local player = game.get_player(player_index)
+      if player_table.ui.progress_total then
+        player_table.ui.progress_total.caption = ""
+        player_table.ui.progress_total = nil
+      end
+    end
+  end
 }
 
 return li_migrations

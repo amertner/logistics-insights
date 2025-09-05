@@ -26,22 +26,10 @@ function progress_bars.add_progress_indicator(player_table, parent, progressbar_
       style = "li_progress_label",
       tooltip = {"bots-gui.progress-tooltip"}
     }
-  local spacer = hflow.add { type = "empty-widget", style = "draggable_space", }
-  spacer.style.horizontally_stretchable = true
-  local tprogress = hflow.add {
-      type = "label",
-      caption = nil,
-      style = "li_progress_label",
-      tooltip = {"bots-gui.progress-tooltip"}
-    }
   if not player_table.ui.progress_count then
     player_table.ui.progress_count = {}
   end
-  if not player_table.ui.progress_total then
-    player_table.ui.progress_total = {}
-  end
   player_table.ui.progress_count[progressbar_name] = lprogress
-  player_table.ui.progress_total[progressbar_name] = tprogress
 end
 
 --- Update a progress bar with current progress information
@@ -54,11 +42,9 @@ function progress_bars.update_progressbar(player_table, progressbar_name, progre
   end
   local lcount = player_table.ui.progress_count[progressbar_name]
   if lcount and lcount.valid then
-    lcount.caption = {"bots-gui.progress-number", progress.current - 1}
-  end
-  local tcount = player_table.ui.progress_total[progressbar_name]
-  if tcount and tcount.valid then
-    tcount.caption = {"bots-gui.progress-number", progress.total}
+    local total = math.max(progress.total, 1)
+    local percent = math_floor(((progress.current-1) / total) * 100)
+    lcount.caption = {"bots-gui.progress-percent", percent}
   end
 end
 
@@ -69,10 +55,6 @@ function progress_bars.clear_all_progressbars(player_table)
     return
   end
   local labels = player_table.ui.progress_count
-  for _, label in pairs(labels) do
-    label.caption = ""
-  end
-  labels = player_table.ui.progress_total
   for _, label in pairs(labels) do
     label.caption = ""
   end
