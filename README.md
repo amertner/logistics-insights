@@ -11,13 +11,18 @@ Logistics Insights can help:
 - Real-time: Shows what's happening in your networks real time
 - Interactive: Most things are clickable so you can easily get to the root of whatever the issue is
 
+## Quick info available
+
+In the top left corner of the screen, you'll see two icons:
+
+- The lightbulb shows how many Suggestions you have across all of the networks being analyzed. Click this button to open/close the Networks window where you can see more detail.
+- The logistics bot shows how many logistics bots are idle in your current network. If this gets to 0, you most likely don't have enough. Click this button to open the Logistics Insights window to see much more detail about the network.
+
+## The two main windows
+
 The main Logistics Insights window focuses on showing everything you need to know about a single bot network at a time, whether it's the one where you are or one you're looking at via the map view.
 
-![main-window](main-window.png)
-
 The Logistics Networks window shows all of the networks you've visited, with a few key highlights like number of bots, number of active suggestions and how many things are in short supply. You can also easily navigate between networks from here.
-
-![networks-window](networks-window.png)
 
 ## How to use Undersupply information
 
@@ -50,8 +55,8 @@ Before a base reaches megabase level, keep the Networks window open to keep an e
 **In the Activity row**
 
 - If too many bots are "waiting to charge", you'll get a "Build more Roboports" suggestion
-- If too few bots are "available", you'll need to add more bots
-- If most of the bots are "available", you can probably stop adding more bots
+- If too few bots are "available", you'll need to add more bots. A suggestion will show this.
+- If most of the bots are "available", you can probably stop adding more bots. If you continue adding bots to a network where most of them are idle, you'll get a suggestion that you stop adding more.
 
 **In the Network row**
 
@@ -84,7 +89,6 @@ There are many ways in which this mod could become more useful, and I'll be look
 
 - Maybe it would be useful to step forward more than one tick at a time. Should there be a "step 10-ticks" button, or maybe a config option?
 - The main window right now is floating, which means you can position it anywhere, but it also means it might open overlapping with something else. Should it instead stick to the top or left sides? Should it be an option?
-- The max number of items that can be shown in Delivering/history is 10. Would more be useful?
 
 ### Highlighting items
 
@@ -101,7 +105,6 @@ There are many ways in which this mod could become more useful, and I'll be look
 ## Known issues
 
 - The game may desync in multiplayer if players join the server while the Logistics Insights mod is upgrading to a new version. Please wait for this to complete and it should be good.
-- If you have many 10s of thousands of bots that are active and the option to gather bot quality is enabled, the game can occasionally stutter. I may work on this in the future; for now, you can make the issue go away by unchecking the option to gather quality data for bots.
 
 ## Want to contribute?
 
