@@ -6,7 +6,7 @@ local network_data = require("scripts.network-data")
 local global_data = require("scripts.global-data")
 local utils = require("scripts.utils")
 local chunker = require("scripts.chunker")
-local scheduler = require("scripts.scheduler")
+local ROBOPORT_INV = defines.inventory.roboport_robot
 
 ---@class CellAccumulator
 ---@field bots_charging number Count of bots currently charging
@@ -22,10 +22,14 @@ local scheduler = require("scripts.scheduler")
 local function initialise_cell_network_list(accumulator)
   accumulator.bots_charging = 0
   accumulator.bots_waiting_for_charge = 0
-  accumulator.idle_bot_qualities = {} -- Gather quality of idle bots
-  accumulator.roboport_qualities = {} -- Gather quality of roboports
-  accumulator.charging_bot_qualities = {} -- Gather quality of charging bots
-  accumulator.waiting_bot_qualities = {} -- Gather quality of bots waiting to charge
+  accumulator.idle_bot_qualities = accumulator.idle_bot_qualities or {}
+  utils.table_clear(accumulator.idle_bot_qualities)
+  accumulator.roboport_qualities = accumulator.roboport_qualities or {}
+  utils.table_clear(accumulator.roboport_qualities)
+  accumulator.charging_bot_qualities = accumulator.charging_bot_qualities or {}
+  utils.table_clear(accumulator.charging_bot_qualities)
+  accumulator.waiting_bot_qualities = accumulator.waiting_bot_qualities or {}
+  utils.table_clear(accumulator.waiting_bot_qualities)
   accumulator.total_cells = 0 -- Total number of cells
 end
 
@@ -36,7 +40,7 @@ end
 --- @param networkdata LINetworkData The network data associated with this cell
 --- @return number Return number of "processing units" consumed, default is 1
 local function process_one_cell(cell, accumulator, gather, networkdata)
-  local consumed = 0
+  local consumed = 1
   local bots_charging = accumulator.bots_charging
   local bots_waiting = accumulator.bots_waiting_for_charge
 
@@ -45,18 +49,19 @@ local function process_one_cell(cell, accumulator, gather, networkdata)
   accumulator.total_cells = accumulator.total_cells + 1
 
   -- Check the bots stationed at this roboport
-  if cell.owner and cell.owner.valid and gather.quality then
-    consumed = 1
+  local owner = cell.owner
+  if owner and owner.valid and gather.quality then
     -- Count roboport quality
-    local rp_quality = (cell.owner.quality and cell.owner.quality.name) or "normal"
-    utils.accumulate_quality(accumulator.roboport_qualities, rp_quality, 1)
+    local rp_quality = (owner.quality and owner.quality.name) or "normal"
+    local accq = utils.accumulate_quality
+    accq(accumulator.roboport_qualities, rp_quality, 1)
 
     -- Count quality of charging bots (fast path: numeric loop + cached locals)
     do
-      local list = cell.charging_robots
-      if list then
+      if cell.charging_robot_count > 0 then
+        local list = cell.charging_robots
+        if list then
         local cq = accumulator.charging_bot_qualities
-        local accq = utils.accumulate_quality
         local count = #list
         consumed = consumed + count/50 -- Count 1 processing unit per 50 bots
         for i = 1, count do
@@ -66,15 +71,16 @@ local function process_one_cell(cell, accumulator, gather, networkdata)
             accq(cq, q, 1)
           end
         end
+        end
       end
     end
 
     -- Count quality of bots waiting to charge (fast path: numeric loop + cached locals)
     do
-      local list = cell.to_charge_robots
-      if list then
+      if cell.to_charge_robot_count > 0 then
+        local list = cell.to_charge_robots
+        if list then
         local wq = accumulator.waiting_bot_qualities
-        local accq = utils.accumulate_quality
         local count = #list
         consumed = consumed + count/50 -- Count 1 processing unit per 50 bots
         for i = 1, count do
@@ -84,22 +90,23 @@ local function process_one_cell(cell, accumulator, gather, networkdata)
             accq(wq, q, 1)
           end
         end
+        end
       end
     end
 
     -- Count quality of bots inside roboports (i.e. idle ones)
-    local bot_qualities = accumulator.idle_bot_qualities
-    local rp = cell.owner
-    if rp then
-      local inventory = rp.get_inventory(defines.inventory.roboport_robot)
-      if inventory and not inventory.is_empty() then
-        local count = #inventory
-        consumed = consumed + count/30 -- Count 1 processing unit per 50 stacks
-        for i = 1, count do
+  local bot_qualities = accumulator.idle_bot_qualities
+    local inventory = owner.get_inventory(ROBOPORT_INV)
+    if inventory and not inventory.is_empty() then
+      -- If there are zero logistic-robot items, avoid scanning all slots
+      if inventory.get_item_count("logistic-robot") > 0 then
+        local slots = #inventory
+        consumed = consumed + slots/30 -- Approximate cost by slots scanned
+        for i = 1, slots do
           local stack = inventory[i]
           if stack and stack.valid_for_read and stack.name == "logistic-robot" then
             local quality = (stack.quality and stack.quality.name) or "normal"
-            utils.accumulate_quality(bot_qualities, quality, stack.count)
+            accq(bot_qualities, quality, stack.count)
           end
         end
       end

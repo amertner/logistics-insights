@@ -2,10 +2,10 @@
 local debugger = {}
 
 -- This level of message will be added to the Factorio log
-local debug_level = 1 -- 0 = none, 1 = errors, 2 = warnings, 3 = info, 4 = debug
+debugger.debug_level = 1 -- 0 = none, 1 = errors, 2 = warnings, 3 = info, 4 = debug
 
 local function message(level, msg)
-  if debug_level >= level then
+  if debugger.debug_level >= level then
     local tickstr = tostring(game.tick)
     local prefix = "DEBUG"
     if level == 1 then

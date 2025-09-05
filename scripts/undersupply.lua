@@ -14,9 +14,11 @@ local network_data = require("scripts.network-data")
 --- @param accumulator Undersupply_Accumulator The accumulator to initialize
 --- @param bot_deliveries table<string, DeliveryItem> A list of items being delivered right now
 function undersupply.initialise_undersupply(accumulator, bot_deliveries)
-  accumulator.demand = {}
+  accumulator.demand = accumulator.demand or {}
+  utils.table_clear(accumulator.demand)
   accumulator.bot_deliveries = bot_deliveries or {}
-  accumulator.net_demand = {}
+  accumulator.net_demand = accumulator.net_demand or {}
+  -- Do not clear net_demand here; it's rebuilt in all_chunks_done
 end
 
 --- Process one requester to gather demand statistics

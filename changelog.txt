@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.10.11
+Date: ????
+  Changes:
+    - Performance optimisations
+    - Changed progress indicators to be less distracting by just showing % complete
+---------------------------------------------------------------------------------------------------
 Version: 0.10.10
 Date: 2025-09-05
   Changes:

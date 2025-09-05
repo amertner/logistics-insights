@@ -6,6 +6,7 @@ local scheduler = {}
 local player_data = require("scripts.player-data")
 local global_data = require("scripts.global-data")
 local debugger = require("scripts.debugger")
+local DEBUG_ENABLED_INFO = debugger.debug_level > 1
 
 ---@class SchedulerTask
 ---@field name string Unique task name
@@ -246,7 +247,9 @@ function scheduler.on_tick()
           local run_task = true
           if run_task then
             task.last_run = tick
-            debugger.info("[scheduler] Running player task '" .. task.name .. "' for player " .. player_index)
+            if DEBUG_ENABLED_INFO then
+              debugger.info("[scheduler] Running player task '" .. task.name .. "' for player " .. player_index)
+            end
             local ok, err = pcall(task.fn, player, player_table)
             if not ok then
               debugger.error("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
@@ -255,7 +258,9 @@ function scheduler.on_tick()
         end
       else
         task.last_run = tick
-        debugger.info("[scheduler] Running task " .. task.name)
+        if DEBUG_ENABLED_INFO then
+          debugger.info("[scheduler] Running task " .. task.name)
+        end
         local ok, err = pcall(task.fn)
         if not ok then
           debugger.error("[scheduler] Task '" .. task.name .. "' failed: " .. tostring(err))

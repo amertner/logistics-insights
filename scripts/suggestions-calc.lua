@@ -4,6 +4,10 @@ local suggestions_calc = {}
 local SuggestionsMgr = require("scripts.suggestions")
 local undersupply = require("scripts.undersupply")
 local network_data = require("scripts.network-data")
+local utils = require("scripts.utils")
+
+-- Reusable table for per-chest filter allow-list to reduce allocations
+local __allowed_filters = {}
 
 local BOT_TREND_WINDOW_TICKS = 60 * 10 -- 10 seconds window for trend
 local MIN_TOTAL_BOTS_FOR_SUGGESTION = 100 -- Ignore small networks for suggesting too many bots
@@ -76,39 +80,60 @@ function suggestions_calc.process_storage_for_analysis(nstorage, accumulator)
       local capacity = #inventory
       local free = inventory.count_empty_stacks()
       accumulator.total_stacks = accumulator.total_stacks + capacity
-      accumulator.free_stacks = accumulator.free_stacks + free
 
-      -- Iterate over filtered to find mismatches
-      if nstorage.filter_slot_count then
-        for finx = 1, nstorage.filter_slot_count do
-          -- Check if the filter matches the contents
+      -- Build allowed filter set once (O(F))
+      local allowed = __allowed_filters
+      utils.table_clear(allowed)
+      local has_filters = false
+      local fcount = nstorage.filter_slot_count or 0
+      if fcount > 0 then
+        for finx = 1, fcount do
           local filter = nstorage.get_filter(finx)
-          if not filter then
-            -- There is no filter, count unfiltered capacity
-            if finx == 1 then -- If there are multiple filters, only count capacity once
-              accumulator.unfiltered_total_stacks = accumulator.unfiltered_total_stacks + capacity
-              accumulator.unfiltered_free_stacks = accumulator.unfiltered_free_stacks + free
-            end
-          else
-            if inventory and not inventory.is_empty() then
-              -- Placeholder mismatch logic (unchanged)
-              local stacks = inventory.get_contents()
-              local index = 1
-              while index <= #stacks do
-                local stack = stacks[index]
-                if stack then
-                  if stack.name ~= filter.name.name or stack.quality ~= filter.quality.name then
-                    -- There are items that do not match the filter
-                    table.insert(accumulator.mismatched_storages, nstorage)
-                    -- Don't check the rest of the stacks
-                    break
-                  end
+          if filter then
+            has_filters = true
+            local fname = filter.name and (filter.name.name or filter.name) or nil
+            if fname then
+              local fqual = filter.quality and (filter.quality.name or filter.quality) or nil
+              local current = allowed[fname]
+              if fqual then
+                if current ~= true then
+                  if not current then current = {}; allowed[fname] = current end
+                  current[fqual] = true
                 end
-                index = index + 1
+              else
+                allowed[fname] = true -- any quality allowed
               end
             end
           end
         end
+      end
+
+      -- Single pass over inventory for free count and mismatch detection (O(N))
+      if not inventory.is_empty() and fcount > 0 and has_filters then
+        for i = 1, capacity do
+          local stack = inventory[i]
+          if stack and stack.valid_for_read then
+            local sname = stack.name
+            local rule = allowed[sname]
+            if not rule then
+              table.insert(accumulator.mismatched_storages, nstorage)
+              break
+            end
+            if rule ~= true then
+              local sq = (stack.quality and stack.quality.name) or "normal"
+              if not rule[sq] then
+                table.insert(accumulator.mismatched_storages, nstorage)
+                break
+              end
+            end
+          end
+        end
+      end
+
+      accumulator.free_stacks = accumulator.free_stacks + free
+      if not has_filters then
+        accumulator.unfiltered_total_stacks = accumulator.unfiltered_total_stacks + capacity
+        accumulator.unfiltered_free_stacks = accumulator.unfiltered_free_stacks + free
       end
     end
   end

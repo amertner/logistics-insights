@@ -26,47 +26,40 @@ function analysis_coordinator.find_network_to_analyse()
   end
   local last_fg_tick = game.tick - 2*60 -- At least 2 seconds between foreground analyses
 
-  local last_tick
-  local list = {}
-  if storage.networks then
-    for _, networkdata in pairs(storage.networks) do
-      if networkdata then
-        local has_players = table_size(networkdata.players_set) > 0
-        if has_players then
-          last_tick = last_fg_tick
-        else
-          last_tick = last_bg_tick
-        end
-        -- Check if the network still exists - might have been removed!
-        local nw = network_data.get_LuaNetwork(networkdata)
-        if not nw or not nw.valid then
-          -- The network no longer exists, so remove it from storage
-          network_data.remove_network(networkdata.id)
-        elseif networkdata.last_analysed_tick < last_tick then
-          -- It's a network with players, or it's not been updated for a long time
+  if not storage.networks then
+    return nil -- No networks available
+  end
+
+  -- Single-pass selection of the oldest eligible network
+  local best_candidate = nil
+  local best_last_analysed = nil
+
+  for _, networkdata in pairs(storage.networks) do
+    if networkdata then
+      local has_players = table_size(networkdata.players_set) > 0
+      local threshold_tick = has_players and last_fg_tick or last_bg_tick
+
+      -- Validate the underlying network still exists
+      local nw = network_data.get_LuaNetwork(networkdata)
+      if not nw or not nw.valid then
+        -- The network no longer exists, so remove it from storage
+        network_data.remove_network(networkdata.id)
+      else
+        local last_analysed = networkdata.last_analysed_tick or 0
+        if last_analysed < threshold_tick then
+          -- Candidate must be visible to at least one player or allowed for background scans
           if (has_players and player_data.players_show_main_window(networkdata.players_set)) or global_data.background_scans_enabled() then
-            -- If it has players that show the window, or it's not paused for bg scan, add it to the candidate list
-            list[#list+1] = networkdata
+            if not best_candidate or last_analysed < best_last_analysed then
+              best_candidate = networkdata
+              best_last_analysed = last_analysed
+            end
           end
         end
       end
     end
-  else
-    return nil -- No networks available
   end
 
-  if #list == 0 then
-    return nil -- No networks need a background scan
-  end
-  -- Sort by last active tick, so the oldest networks are scanned first
-  table.sort(list, function(a,b) return (a.last_analysed_tick or 0) < (b.last_analysed_tick or 0) end)
-
-  if #list > 0 then
-    -- Return the first network in the sorted list
-    return list[1]
-  else
-    return nil -- No networks need analysis
-  end
+  return best_candidate
 end
 
 -- Check if we are currently analysing this player's network

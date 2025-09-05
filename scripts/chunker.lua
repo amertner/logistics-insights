@@ -41,6 +41,7 @@ function chunker.new(divisor)
   self.partial_data = {}
   self.networkdata = nil
   self.is_finalised = true
+  self._progress = { current = 0, total = 0 }
   return self
 end
 
@@ -127,17 +128,16 @@ end
 --- Get the current processing progress
 --- @return Progress A table with current and total progress values
 function chunker:get_progress()
+  local prog = self._progress or { current = 0, total = 0 }
+  self._progress = prog
   if not self.processing_list then
-    return {
-      current = 0,
-      total = 0,
-    }
+    prog.current = 0
+    prog.total = 0
   else
-    return {
-      current = self.current_index,
-      total = self.processing_count,
-    }
+    prog.current = self.current_index
+    prog.total = self.processing_count
   end
+  return prog
 end
 
 --- Get the partial data accumulator

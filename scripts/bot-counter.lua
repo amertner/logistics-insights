@@ -215,12 +215,20 @@ end
 local function bot_initialise_chunking(accumulator, last_seen)
   accumulator.delivering_bots = 0
   accumulator.picking_bots = 0
-  accumulator.item_deliveries = {} -- Reset deliveries
-  accumulator.last_seen = last_seen or {} -- The list of bots seen in the last pass
-  accumulator.just_seen = {} -- The list of bots first seen this pass
-  accumulator.delivering_bot_qualities = {}
-  accumulator.picking_bot_qualities = {}
-  accumulator.other_bot_qualities = {} -- Gather quality of bots doing anything else
+  -- Reuse tables to reduce allocations
+  accumulator.item_deliveries = accumulator.item_deliveries or {}
+  utils.table_clear(accumulator.item_deliveries)
+  -- Swap-buffer approach: use passed-in last_seen, reuse prior just_seen for this pass
+  local prev_just_seen = accumulator.just_seen or {}
+  accumulator.last_seen = last_seen or (accumulator.last_seen or {})
+  accumulator.just_seen = prev_just_seen
+  utils.table_clear(accumulator.just_seen)
+  accumulator.delivering_bot_qualities = accumulator.delivering_bot_qualities or {}
+  utils.table_clear(accumulator.delivering_bot_qualities)
+  accumulator.picking_bot_qualities = accumulator.picking_bot_qualities or {}
+  utils.table_clear(accumulator.picking_bot_qualities)
+  accumulator.other_bot_qualities = accumulator.other_bot_qualities or {}
+  utils.table_clear(accumulator.other_bot_qualities)
 end
 
 --- This function is called when all chunks are done processing, ready for a new chunk

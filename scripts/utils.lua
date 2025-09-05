@@ -40,6 +40,15 @@ function utils.accumulate_quality(quality_table, quality, count)
   quality_table[quality] = quality_table[quality] + count
 end
 
+--- Clear a table in place by removing all keys.
+--- @param t table
+function utils.table_clear(t)
+  if not t then return end
+  for k, _ in pairs(t) do
+    t[k] = nil
+  end
+end
+
 -- Create a table to store combined (name/quality) keys for reduced memory fragmentation
 --- Cache of combined item+quality keys to reduce temporary allocations.
 --- @type table<string, string> cache_key -> interned key (same string value)
