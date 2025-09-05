@@ -97,12 +97,14 @@ local function add_bot_to_active_deliveries(networkdata, bot, order, item_name, 
     return
   end
   local botorder = networkdata.bot_active_deliveries[unit_number]
+  -- Hoist target and position to avoid repeated table lookups
+  local target = order.target
+  local target_pos = target and target.position
 
   if botorder then
     -- We have an existing order for this bot
-    if botorder.targetpos and order.target and order.target.position and
-      (botorder.targetpos.x ~= order.target.position.x or
-        botorder.targetpos.y ~= order.target.position.y) then
+    if botorder.targetpos and target_pos and
+      (botorder.targetpos.x ~= target_pos.x or botorder.targetpos.y ~= target_pos.y) then
       -- New target position, so order has changed since last time
       add_delivered_order_to_history(networkdata.delivery_history, botorder)
       networkdata.bot_active_deliveries[unit_number] = nil
@@ -120,7 +122,7 @@ local function add_bot_to_active_deliveries(networkdata, bot, order, item_name, 
       count = count,
       first_seen = current_tick,
       last_seen = current_tick,
-      targetpos = order.target and order.target.position,
+      targetpos = target_pos,
     }
   end
 end
@@ -170,31 +172,35 @@ local function process_one_bot(bot, accumulator, gather, networkdata)
 
     local order = bot.robot_order_queue[1] or nil
     if order then
-      if order and order.type == defines_robot_order_type_deliver then
+      if order.type == defines_robot_order_type_deliver then
         accumulator.delivering_bots = accumulator.delivering_bots + 1
         utils.accumulate_quality(accumulator.delivering_bot_qualities, quality, 1)
-      elseif order and order.type == defines_robot_order_type_pickup then
+      elseif order.type == defines_robot_order_type_pickup then
         accumulator.picking_bots = accumulator.picking_bots + 1
         utils.accumulate_quality(accumulator.picking_bot_qualities, quality, 1)
       end
 
       if order.target_item and order.target_item.name then
-        local targetname = order.target_item.name
-        local item_name = targetname.name
-        -- For Deliveries, record the item
-        if order.type == defines_robot_order_type_deliver and item_name then
-          local item_count = order.target_count or 0
-          local item_quality = order.target_item.quality and order.target_item.quality.name or "normal"
-          local localised_name = targetname.localised_name
-          local localised_quality_name = order.target_item.quality and order.target_item.quality.localised_name or ""
+        -- Hoist target item and its quality fields to reduce repeated table indexing
+        local target_item = order.target_item
+        if target_item then
+          local item_name = target_item.name.name -- string item prototype name
+          -- For Deliveries, record the item
+          if order.type == defines_robot_order_type_deliver and item_name then
+            local item_count = order.target_count or 0
+            local qi = target_item.quality
+            local item_quality = (qi and qi.name) or "normal"
+            local localised_name = target_item.name.localised_name
+            local localised_quality_name = (qi and qi.localised_name) or ""
 
-          -- Record current deliveries
-          add_item_to_current_deliveries(item_name, localised_name, item_quality, localised_quality_name, item_count, accumulator.item_deliveries)
-          -- Record delivery for history purposes
-          add_bot_to_active_deliveries(networkdata, bot, order, item_name, localised_name, item_quality, localised_quality_name, item_count)
-        else
-          -- Check if the bot was delivering last time we saw it, and record the delivery
-          check_if_no_order_bot_finished_delivery(networkdata, unit_number, gather.history)
+            -- Record current deliveries
+            add_item_to_current_deliveries(item_name, localised_name, item_quality, localised_quality_name, item_count, accumulator.item_deliveries)
+            -- Record delivery for history purposes
+            add_bot_to_active_deliveries(networkdata, bot, order, item_name, localised_name, item_quality, localised_quality_name, item_count)
+          else
+            -- Check if the bot was delivering last time we saw it, and record the delivery
+            check_if_no_order_bot_finished_delivery(networkdata, unit_number, gather.history)
+          end
         end
       else
         -- This is a situation that should not occur: we haver an order but no target item. Clear it.

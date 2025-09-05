@@ -285,8 +285,6 @@ local li_migrations = {
       player_table.capabilities = nil -- Deprecated field
       -- Hide Networks window by default
       player_table.networks_window_visible = false
-      -- Reinitialise UIs
-      reinitialise_ui(player, player_table)
     end
   end,
 
@@ -294,10 +292,8 @@ local li_migrations = {
     -- Changed progress bars to single label showing %
     for player_index, player_table in pairs(storage.players) do
       local player = game.get_player(player_index)
-      if player_table.ui.progress_total then
-        player_table.ui.progress_total.caption = ""
-        player_table.ui.progress_total = nil
-      end
+      -- Reinitialise UIs
+      reinitialise_ui(player, player_table)
     end
   end
 }
