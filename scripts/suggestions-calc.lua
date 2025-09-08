@@ -109,10 +109,12 @@ function suggestions_calc.process_storage_for_analysis(nstorage, accumulator)
       end
 
       -- Single pass over inventory for free count and mismatch detection (O(N))
-      if not inventory.is_empty() and fcount > 0 and has_filters then
-        for i = 1, capacity do
-          local stack = inventory[i]
-          if stack and stack.valid_for_read then
+      if has_filters and not inventory.is_empty() and fcount > 0 then
+        -- Get everything in inventory, without iterating over each slot
+        local stacks = inventory.get_contents()
+        for i = 1, #stacks do
+          local stack = stacks[i]
+          if stack then
             local sname = stack.name
             local rule = allowed[sname]
             if not rule then
@@ -120,8 +122,7 @@ function suggestions_calc.process_storage_for_analysis(nstorage, accumulator)
               break
             end
             if rule ~= true then
-              local sq = (stack.quality and stack.quality.name) or "normal"
-              if not rule[sq] then
+              if not rule[stack.quality] then
                 table.insert(accumulator.mismatched_storages, nstorage)
                 break
               end
