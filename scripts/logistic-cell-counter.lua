@@ -22,14 +22,10 @@ local ROBOPORT_INV = defines.inventory.roboport_robot
 local function initialise_cell_network_list(accumulator)
   accumulator.bots_charging = 0
   accumulator.bots_waiting_for_charge = 0
-  accumulator.idle_bot_qualities = accumulator.idle_bot_qualities or {}
-  utils.table_clear(accumulator.idle_bot_qualities)
-  accumulator.roboport_qualities = accumulator.roboport_qualities or {}
-  utils.table_clear(accumulator.roboport_qualities)
-  accumulator.charging_bot_qualities = accumulator.charging_bot_qualities or {}
-  utils.table_clear(accumulator.charging_bot_qualities)
-  accumulator.waiting_bot_qualities = accumulator.waiting_bot_qualities or {}
-  utils.table_clear(accumulator.waiting_bot_qualities)
+  accumulator.idle_bot_qualities = {} -- Gather quality of idle bots
+  accumulator.roboport_qualities = {} -- Gather quality of roboports
+  accumulator.charging_bot_qualities = {} -- Gather quality of charging bots
+  accumulator.waiting_bot_qualities = {} -- Gather quality of bots waiting to charge
   accumulator.total_cells = 0 -- Total number of cells
 end
 
@@ -61,16 +57,16 @@ local function process_one_cell(cell, accumulator, gather, networkdata)
       if cell.charging_robot_count > 0 then
         local list = cell.charging_robots
         if list then
-        local cq = accumulator.charging_bot_qualities
-        local count = #list
-        consumed = consumed + count/50 -- Count 1 processing unit per 50 bots
-        for i = 1, count do
-          local bot = list[i]
-          if bot and bot.valid and bot.quality then
-            local q = bot.quality.name
-            accq(cq, q, 1)
+          local cq = accumulator.charging_bot_qualities
+          local count = #list
+          consumed = consumed + count/50 -- Count 1 processing unit per 50 bots
+          for i = 1, count do
+            local bot = list[i]
+            if bot and bot.valid and bot.quality then
+              local q = bot.quality.name
+              accq(cq, q, 1)
+            end
           end
-        end
         end
       end
     end
@@ -80,34 +76,32 @@ local function process_one_cell(cell, accumulator, gather, networkdata)
       if cell.to_charge_robot_count > 0 then
         local list = cell.to_charge_robots
         if list then
-        local wq = accumulator.waiting_bot_qualities
-        local count = #list
-        consumed = consumed + count/50 -- Count 1 processing unit per 50 bots
-        for i = 1, count do
-          local bot = list[i]
-          if bot and bot.valid and bot.quality then
-            local q = bot.quality.name
-            accq(wq, q, 1)
+          local wq = accumulator.waiting_bot_qualities
+          local count = #list
+          consumed = consumed + count/50 -- Count 1 processing unit per 50 bots
+          for i = 1, count do
+            local bot = list[i]
+            if bot and bot.valid and bot.quality then
+              local q = bot.quality.name
+              accq(wq, q, 1)
+            end
           end
-        end
         end
       end
     end
 
     -- Count quality of bots inside roboports (i.e. idle ones)
-  local bot_qualities = accumulator.idle_bot_qualities
+    local bot_qualities = accumulator.idle_bot_qualities
     local inventory = owner.get_inventory(ROBOPORT_INV)
     if inventory and not inventory.is_empty() then
-      -- If there are zero logistic-robot items, avoid scanning all slots
-      if inventory.get_item_count("logistic-robot") > 0 then
-        local slots = #inventory
-        consumed = consumed + slots/30 -- Approximate cost by slots scanned
-        for i = 1, slots do
-          local stack = inventory[i]
-          if stack and stack.valid_for_read and stack.name == "logistic-robot" then
-            local quality = (stack.quality and stack.quality.name) or "normal"
-            accq(bot_qualities, quality, stack.count)
-          end
+      local stacks = inventory.get_contents()
+      local count = #stacks
+      consumed = consumed + count/10
+      for i = 1, count do
+        local stack = stacks[i]
+        if stack and stack.name == "logistic-robot" then
+          local quality = stack.quality or "normal"
+          accq(bot_qualities, quality, stack.count)
         end
       end
     end
