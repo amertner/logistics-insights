@@ -137,7 +137,7 @@ end
 function analysis_coordinator.run_storage_analysis_step()
   local networkdata = storage.analysing_networkdata
   local network = storage.analysing_network
-  if not networkdata or not network then
+  if not networkdata or not network or not network.valid then
     return true -- Nothing to do, so done
   end
   if not storage.analysis_state.storage_chunker then
@@ -173,7 +173,7 @@ end
 function analysis_coordinator.run_undersupply_step()
   local networkdata = storage.analysing_networkdata
   local network = storage.analysing_network
-  if not networkdata or not network then
+  if not networkdata or not network or not network.valid then
     return true -- Nothing to do, so done
   end
   if not storage.analysis_state.undersupply_chunker then

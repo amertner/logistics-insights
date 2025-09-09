@@ -158,6 +158,7 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
     if not player_table.ui[title] or not player_table.ui[title].cells then break end
     local cell = player_table.ui[title].cells[count + 1]
     if cell and cell.valid then
+      -- #FIXME: Check if the sprite is a valid one
       cell.sprite = "item/" .. entry.item_name
       cell.quality = entry.quality_name or "normal"
       cell.number = entry[number_field]

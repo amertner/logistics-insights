@@ -1,9 +1,11 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.10.11
-Date: ????
+Date: 2025-09-09
   Changes:
-    - Performance optimisations
+    - Performance optimisations that amount to around 10% less CPU usage overall
     - Changed progress indicators to be less distracting by just showing % complete
+  Bugfixes:
+    - Fixed a bug where Undersupply and Suggestions analysis would not complete if the network no longer existed
 ---------------------------------------------------------------------------------------------------
 Version: 0.10.10
 Date: 2025-09-05
