@@ -91,7 +91,7 @@ end
 
 -- Stop ongoing analysis
 function analysis_coordinator.stop_analysis()
-  if storage.analysis_state and storage.analysing_networkdata then
+  if storage.analysis_state and storage.analysing_networkdata and storage.analysing_network and storage.analysing_network.valid then
     storage.analysing_networkdata.last_analysed_tick = game.tick
   end
   storage.analysing_networkdata = nil
@@ -102,7 +102,11 @@ end
 
 -- Run a step of the analysing the current network
 function analysis_coordinator.run_analysis_step()
-  if not storage.analysing_networkdata then
+  if not storage.analysing_networkdata or not storage.analysing_network or not storage.analysing_network.valid then
+    if storage.analysing_networkdata then
+      debugger.info("[analysis-coordinator] Stopping for nil or invalid network " .. tostring(storage.analysing_networkdata.id))
+    end
+    analysis_coordinator.stop_analysis()
     return
   end
   debugger.info("[analysis-coordinator] Running analysis step for network " .. tostring(storage.analysing_networkdata.id))
