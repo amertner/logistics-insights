@@ -5,6 +5,7 @@ local flib_format = require("__flib__.format")
 local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
 local find_and_highlight = require("scripts.mainwin.find_and_highlight")
+local utils = require("scripts.utils")
 
 local WINDOW_NAME = "li_networks_window"
 local WINDOW_MIN_HEIGHT = 110-3*24 -- Room for 0 networks
@@ -48,7 +49,7 @@ local cell_setup = {
       if not (el and el.valid) then return end
       local surface = nw.surface
       if not surface or surface == "" then surface = "space-location-unknown" end
-      el.sprite = "space-location/" .. surface
+      el.sprite = utils.get_valid_sprite_path("space-location/", surface)
       el.tooltip = surface
     end
   },

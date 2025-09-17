@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.10.13
+Date: 2025-09-17
+  Bugfixes:
+    - Fixed a crash when a sprite could not be found, for example if a mod was unloaded between saves
+---------------------------------------------------------------------------------------------------
 Version: 0.10.12
 Date: 2025-09-13
   Bugfixes:

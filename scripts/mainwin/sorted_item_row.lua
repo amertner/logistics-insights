@@ -4,6 +4,7 @@ local sorted_item_row = {}
 local player_data = require("scripts.player-data")
 local mini_button = require("scripts.mainwin.mini_button")
 local progress_bars = require("scripts.mainwin.progress_bars")
+local utils         = require("scripts.utils")
 
 local pairs = pairs
 local table_sort = table.sort
@@ -158,8 +159,7 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
     if not player_table.ui[title] or not player_table.ui[title].cells then break end
     local cell = player_table.ui[title].cells[count + 1]
     if cell and cell.valid then
-      -- #FIXME: Check if the sprite is a valid one
-      cell.sprite = "item/" .. entry.item_name
+      cell.sprite = utils.get_valid_sprite_path("item/", entry.item_name)
       cell.quality = entry.quality_name or "normal"
       cell.number = entry[number_field]
       cell.tooltip = getcelltooltip(entry)
