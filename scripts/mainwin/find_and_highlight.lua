@@ -7,6 +7,7 @@ local network_data = require("scripts.network-data")
 local utils = require("scripts.utils")
 local game_state = require("scripts.game-state")
 local ResultLocation = require("scripts.result-location")
+local suggestions = require("scripts.suggestions")
 
 ---@class ViewData
 ---@field items LuaEntity[]|nil List of entities to highlight
@@ -424,8 +425,10 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
     if clickname and networkdata and networkdata.suggestions then
       local list = networkdata.suggestions:get_cached_list(clickname)
       if list then
-        if is_shift_click and clickname == "mismatched-storage" then
+        if is_shift_click and clickname == suggestions.mismatched_storage_key then
           network_data.add_storages_to_ignorelist_for_filter_mismatch(networkdata, list)
+          -- Immediately clear the suggestion to provide visual feedback
+          networkdata.suggestions:clear_suggestion(suggestions.mismatched_storage_key)
         else
           find_and_highlight.highlight_list_locations_on_map(player, list, is_right_click)
         end
