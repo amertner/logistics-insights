@@ -295,6 +295,12 @@ local li_migrations = {
       -- Reinitialise UIs
       reinitialise_ui(player, player_table)
     end
+  end,
+
+  ["0.11.0"] = function()
+    for _, nwd in pairs(storage.networks) do
+      nwd.ignored_storages_for_mismatch = {}
+    end
   end
 }
 

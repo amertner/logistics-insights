@@ -55,6 +55,7 @@ end
 ---@field unfiltered_total_stacks number Total number of stacks in unfiltered storage chests
 ---@field unfiltered_free_stacks number Total number of free stacks in unfiltered storage chests
 ---@field mismatched_storages LuaEntity[] List of storage chests that have items not
+---@field ignored_storages_for_mismatch table<number> Set of storage unit IDs to ignore for mismatch detection
 
 -- Get ready to analyse storage in chunks
 --- @param accumulator StorageAccumulator The accumulator to store results in
@@ -64,6 +65,7 @@ function suggestions_calc.initialise_storage_analysis(accumulator, context)
   accumulator.unfiltered_total_stacks = 0
   accumulator.unfiltered_free_stacks = 0
   accumulator.mismatched_storages = {}
+  accumulator.ignored_storages_for_mismatch = context.ignored_storages_for_mismatch or {}
 end
 
 --- Process a storage chest for chunked storage analysis
@@ -74,6 +76,7 @@ function suggestions_calc.process_storage_for_analysis(nstorage, accumulator)
   local consumed = 0
   if nstorage and nstorage.valid then
     consumed = 1
+    local ignore_mismatch = nstorage.unit_number and accumulator.ignored_storages_for_mismatch[nstorage.unit_number]
     local inventory = nstorage.get_inventory(defines.inventory.chest)
     -- Count total and free stacks
     if inventory then
@@ -108,28 +111,30 @@ function suggestions_calc.process_storage_for_analysis(nstorage, accumulator)
         end
       end
 
-      -- Single pass over inventory for free count and mismatch detection (O(N))
-      if has_filters and not inventory.is_empty() and fcount > 0 then
-        -- Get everything in inventory, without iterating over each slot
-        local stacks = inventory.get_contents()
-        for i = 1, #stacks do
-          local stack = stacks[i]
-          if stack then
-            local sname = stack.name
-            local rule = allowed[sname]
-            if not rule then
-              table.insert(accumulator.mismatched_storages, nstorage)
-              break
-            end
-            if rule ~= true then
-              if not rule[stack.quality] then
+      if not ignore_mismatch then
+        -- Single pass over inventory for free count and mismatch detection (O(N))
+        if has_filters and not inventory.is_empty() and fcount > 0 then
+          -- Get everything in inventory, without iterating over each slot
+          local stacks = inventory.get_contents()
+          for i = 1, #stacks do
+            local stack = stacks[i]
+            if stack then
+              local sname = stack.name
+              local rule = allowed[sname]
+              if not rule then
                 table.insert(accumulator.mismatched_storages, nstorage)
                 break
+              end
+              if rule ~= true then
+                if not rule[stack.quality] then
+                  table.insert(accumulator.mismatched_storages, nstorage)
+                  break
+                end
               end
             end
           end
         end
-      end
+      end -- not ignore_mismatch
 
       accumulator.free_stacks = accumulator.free_stacks + free
       if not has_filters then

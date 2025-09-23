@@ -19,6 +19,7 @@ local debugger = require("scripts.debugger")
 ---@field history_timer TickCounter -- Tracks time for collecting delivery history
 ---@ -- Suggestions and undersupply data
 ---@field suggestions Suggestions -- The list of suggestions associated with this network
+---@field ignored_storages_for_mismatch table<number> -- A list of storage IDs to ignore for mismatched storage suggestion
 ---@ -- Data capture fields
 ---@field last_scanned_tick number -- The last tick this network's cell and bot data was updated
 ---@field last_analysed_tick number -- The last tick this network's suggestios and undersupply were analysed
@@ -140,6 +141,7 @@ function network_data.create_networkdata(network)
       last_analysed_tick = game_tick,
       history_timer = tick_counter.new(),
       suggestions = suggestions.new(),
+      ignored_storages_for_mismatch = {},
       last_pass_bots_seen = {},
       idle_bot_qualities = {},
       charging_bot_qualities = {},
@@ -487,6 +489,22 @@ function network_data.get_total_suggestions_and_undersupply()
     end
   end
   return {suggestions = num_sug, undersupplies = num_us}
+end
+
+---@param networkdata LINetworkData The network 
+---@param storages LuaEntity[] -- The list of storage entities to add to the ignore list
+function network_data.add_storages_to_ignorelist_for_filter_mismatch(networkdata, storages)
+  if not networkdata or not storages or type(storages) ~= "table" then
+    return
+  end
+  for _, item in pairs(storages) do
+    if item and item.valid then
+      local ID = item.unit_number
+      if ID then
+        networkdata.ignored_storages_for_mismatch[ID] = true
+      end
+    end
+  end
 end
 
 

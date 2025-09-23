@@ -351,7 +351,8 @@ function main_window.onclick(event)
           player,
           player_table,
           event.element,
-          event.button == defines.mouse_button_type.right
+          event.button == defines.mouse_button_type.right,
+          event.shift
         )
       end
     end

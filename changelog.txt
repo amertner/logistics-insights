@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.11.0
+Date: ????
+  Changes:
+    - You can now shift-click on a mismatched storage suggestion to ignore those mismatches in future analyses
+---------------------------------------------------------------------------------------------------
 Version: 0.10.13
 Date: 2025-09-17
   Bugfixes:

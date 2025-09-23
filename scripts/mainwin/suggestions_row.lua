@@ -11,6 +11,7 @@ local ROW_TITLE = "suggestions-row"
 
 ---@param player_table PlayerData The player's data table
 ---@param gui_table LuaGuiElement The GUI table to add the row to
+---@return number The number of GUI rows added (0 or 1)
 function suggestions_row.add(player_table, gui_table)
   if not player_table.settings.show_suggestions then
     return 0
@@ -91,7 +92,11 @@ function suggestions_row.set_suggestion_cell(items, index, suggestion, enabled)
       if suggestion.clickname then
         -- This is a clickable suggestion, so update the tooltip
         button.tags = {clickname = suggestion.clickname}
-        button.tooltip = {"", button.tooltip, "\n", {"suggestions-row." .. suggestion.clickname .. "-tooltip"}}
+        if suggestion.alt_action then
+          button.tooltip = {"", button.tooltip, "\n", suggestion.alt_action}
+        else
+          button.tooltip = {"", button.tooltip, "\n", {"suggestions-row." .. suggestion.clickname .. "-tooltip"}}
+        end
       else
         button.tags = {} -- Clear tags if not clickable
       end

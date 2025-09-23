@@ -371,8 +371,9 @@ end
 --- @param player_table PlayerData
 --- @param element LuaGuiElement
 --- @param is_right_click boolean
+--- @param is_shift_click boolean
 --- @return boolean handled Whether the element was a highlight element
-function find_and_highlight.handle_click(player, player_table, element, is_right_click)
+function find_and_highlight.handle_click(player, player_table, element, is_right_click, is_shift_click)
   if not (player and player.valid and player_table and element and element.valid) then
     return false
   end
@@ -423,7 +424,11 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
     if clickname and networkdata and networkdata.suggestions then
       local list = networkdata.suggestions:get_cached_list(clickname)
       if list then
-        find_and_highlight.highlight_list_locations_on_map(player, list, is_right_click)
+        if is_shift_click and clickname == "mismatched-storage" then
+          network_data.add_storages_to_ignorelist_for_filter_mismatch(networkdata, list)
+        else
+          find_and_highlight.highlight_list_locations_on_map(player, list, is_right_click)
+        end
         return true
       end
     end
