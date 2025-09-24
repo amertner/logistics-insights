@@ -2,7 +2,7 @@
 Version: 0.10.14
 Date: 2025-09-24
   Bugfixes:
-    - The UI failed to show that the current network was "fixed" by clicking the network ID button
+    - The UI failed to show that the current network had been "fixed" by clicking the network ID button
 ---------------------------------------------------------------------------------------------------
 Version: 0.10.13
 Date: 2025-09-17
