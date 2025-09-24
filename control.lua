@@ -13,6 +13,7 @@ local li_migrations = require("scripts.migrations")
 local main_window = require("scripts.mainwin.main_window")
 local scheduler = require("scripts.scheduler")
 local networks_window= require("scripts.networkswin.networks_window")
+local network_settings = require("scripts.networkswin.network_settings")
 local tooltips_helper = require("scripts.tooltips-helper")
 local analysis_coordinator = require("scripts.analysis-coordinator")
 local scan_coordinator = require("scripts.scan-coordinator")
@@ -271,6 +272,7 @@ script.on_event(defines.events.on_gui_click,
   function(event)
   controller_gui.onclick(event)
   main_window.onclick(event)
+  if network_settings.on_gui_click(event) then return end
   local action = networks_window.on_gui_click(event)
   if action then
     local player = game.get_player(event.player_index)

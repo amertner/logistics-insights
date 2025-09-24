@@ -290,16 +290,17 @@ local li_migrations = {
 
   ["0.10.11"] = function()
     -- Changed progress bars to single label showing %
-    for player_index, player_table in pairs(storage.players) do
-      local player = game.get_player(player_index)
-      -- Reinitialise UIs
-      reinitialise_ui(player, player_table)
-    end
   end,
 
   ["0.11.0"] = function()
     for _, nwd in pairs(storage.networks) do
       nwd.ignored_storages_for_mismatch = {}
+    end
+
+    -- Added new settings button, so reinitialise UIs
+    for player_index, player_table in pairs(storage.players) do
+      local player = game.get_player(player_index)
+      reinitialise_ui(player, player_table)
     end
   end
 }

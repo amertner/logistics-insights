@@ -6,6 +6,7 @@ local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
 local find_and_highlight = require("scripts.mainwin.find_and_highlight")
 local utils = require("scripts.utils")
+local network_settings = require("scripts.networkswin.network_settings")
 
 local WINDOW_NAME = "li_networks_window"
 local WINDOW_MIN_HEIGHT = 110-3*24 -- Room for 0 networks
@@ -202,9 +203,8 @@ local cell_setup = {
       }
       local btn = flow.add{ type = "sprite-button", name = name .. "-view", style = "mini_button", sprite = "virtual-signal/signal-map-marker", tooltip = {"networks-window.view-tooltip"} }
       btn.style.top_margin = 2
-      -- #FEATURE: Add settings button once I know what it should do
-      -- btn = flow.add{ type = "sprite-button", name = name .. "-settings", style = "mini_button", sprite = "utility/rename_icon", tooltip = {"networks-window.settings-tooltip"} }
-      -- btn.style.top_margin = 2
+      btn = flow.add{ type = "sprite-button", name = name .. "-settings", style = "mini_button", sprite = "utility/rename_icon", tooltip = {"networks-window.settings-tooltip"} }
+      btn.style.top_margin = 2
       btn = flow.add{ type = "sprite-button", name = name .. "-trash", style = "mini_button", sprite = "utility/trash", tooltip = {"networks-window.trash-tooltip"} }
       btn.style.top_margin = 2
       return flow
@@ -572,6 +572,10 @@ function networks_window.on_gui_click(event)
       end
       -- Open the main window if not already open
       return "openmain"
+    elseif col_key == "settings" and network_id then
+      -- Open model settings dialog for this network
+      network_settings.create_window(player, networkdata)
+      return nil
     elseif col_key == "trash" and network_id then
       -- Remove the network from storage
       if network_data.remove_network(network_id) then
