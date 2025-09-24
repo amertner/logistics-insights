@@ -118,9 +118,8 @@ function main_window.ensure_ui_consistency(player, player_table)
 
   -- Make sure the "Fixed network" toggle is set correctly. 
   -- It cannot be un-set in player_data if the fixed network is deleted
-  local network_id_cell = window.bots_table["logistics-insights-network-id"]
-  if network_id_cell then
-    network_id_cell.toggled = player_table and player_table.fixed_network or false
+  if window and player_table and player_table.ui and player_table.ui.network and player_table.ui.network.id then
+    player_table.ui.network.id.toggled = player_table and player_table.fixed_network or false
   end
 end
 
