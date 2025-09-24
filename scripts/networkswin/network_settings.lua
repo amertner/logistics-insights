@@ -8,14 +8,68 @@ local network_data = require "scripts.network-data"
 local WINDOW_NAME = "li_network_settings_window"
 local WINDOW_MIN_HEIGHT = 110-3*24 -- Room for 0 networks
 local WINDOW_MAX_HEIGHT = 110+10*24 -- Room for 12 networks
+local clear_mismatched_storage_action="clear-mismatch-storage-list"
+local clear_undersupply_ignore_list_action="clear-undersupply-ignore-list"
 
-local function add_settings(settings_flow, default_name, gui_index)
-  if not settings_flow or not settings_flow.valid then return end
+---@returns LuaGuiElement|nil
+local function add_settings_header(ui, caption)
+  if not ui or not ui.valid then return nil end
 
-  -- Example setting: A checkbox to enable/disable something
-  local checkbox = settings_flow.add{type="checkbox", name="li_example_checkbox_"..gui_index, caption={"network-settings.example-checkbox", default_name}, state=true}
-  checkbox.style.top_margin = 8
-  checkbox.style.left_margin = 8
+  local header = ui.add{type="label", caption=caption, style="caption_label"}
+  return header
+end
+
+local function add_checkbox_setting(ui, setting_name, default_state)
+  if not ui or not ui.valid or not setting_name then return end
+
+  local checkbox = ui.add{type="checkbox", name="li_"..setting_name, 
+    caption={"network-settings."..setting_name}, tooltip={"network-settings."..setting_name.."-tooltip"}, state=default_state}
+  return checkbox
+end
+
+---@param ui LuaGuiElement The parent UI element to add the setting to
+---@param nwid string The network ID to associate with the setting
+---@param caption LocalisedString The caption for the setting
+---@param action string The action tag to associate with the Clear button
+---@param count number The number of items in the list (to enable/disable the Clear button
+-- Add a setting that has a descriptive name and a Clear button
+local function add_setting_with_clear_button(ui, nwid, caption, action, count)
+  if not ui or not ui.valid or not caption then return end
+
+  local setting_flow = ui.add{type="flow", direction="horizontal"}
+  setting_flow.style.horizontal_spacing = 8
+  local label = setting_flow.add{type="label", style="label", caption=caption}
+  label.style.top_margin = 4
+  local space = setting_flow.add {type = "empty-widget", style = "draggable_space"}
+  space.style.horizontally_stretchable = true
+  local button = setting_flow.add{type="button", style="other_settings_gui_button", tags={action=action, network_id=nwid}, caption={"network-settings.clear-list-button"}}
+  button.enabled = (count and count > 0) or false
+  return setting_flow
+end
+
+---@returns LuaGuiElement|nil
+local function add_suggestions_settings(ui, networkdata)
+  if not ui or not ui.valid or not networkdata then return end
+
+  local setting_flow = ui.add{type="flow", direction="horizontal"}
+  local vflow = setting_flow.add {type = "flow", direction = "vertical"}
+
+  add_settings_header(vflow, {"network-settings.mismatched-storage-header"})
+  add_checkbox_setting(vflow, "ignore-higher-quality-mismatches", false)
+  local count = table_size(networkdata.ignored_storages_for_mismatch)
+  add_setting_with_clear_button(vflow, networkdata.id, {"network-settings.chests-on-ignore-list", count }, clear_mismatched_storage_action, count)
+end
+
+---@returns LuaGuiElement|nil
+local function add_undersupply_settings(ui, networkdata)
+  if not ui or not ui.valid or not networkdata then return end
+
+  local setting_flow = ui.add{type="flow", direction="horizontal", name="undersupply_h"}
+  local vflow = setting_flow.add {type = "flow", direction = "vertical", name="undersupply_v"}
+
+  add_settings_header(vflow, {"network-settings.undersupply-header"})
+  local count = 0 --table_size(networkdata.ignored_storages_for_mismatch)
+  add_setting_with_clear_button(vflow, networkdata.id, {"network-settings.items-on-undersupply-ignore-list", 0 }, clear_undersupply_ignore_list_action, 0)
 end
 
 ---@param player? LuaPlayer
@@ -34,19 +88,28 @@ function network_settings.create_window(player, networkdata)
 
   -- The main Networks window
   local window = player.gui.screen.add {type = "frame", name = WINDOW_NAME, direction = "vertical", style = "li_window_style", dialog = true}
+  --window.style.vertically_stretchable = true
+  --window.style.minimal_height = 300
 
-    -- Title bar with dragger and close
+    -- Title bar with dragger
     local titlebar = window.add {type = "flow", style = "fs_flib_titlebar_flow", name = WINDOW_NAME .. "-titlebar", drag_target = window}
       local label = titlebar.add {type = "label", name = WINDOW_NAME .. "-caption", style = "frame_title", ignored_by_interaction = true,
         caption = {"network-settings.window-title", networkdata.id}}
       label.style.top_margin = -4
       titlebar.drag_target = window
+      titlebar.add {type = "empty-widget", style = "fs_flib_titlebar_drag_handle", ignored_by_interaction = true }
 
     -- Content: Area to host settings for the network
-    local inside_frame = window.add{type = "frame", name = WINDOW_NAME.."-inside", style = "inside_shallow_frame", direction = "vertical"}
-      local subheader_frame = inside_frame.add{type = "frame", name = WINDOW_NAME.."-subheader", style = "subheader_frame", direction = "horizontal"}
+    local inside_frame = window.add{type = "frame", name = WINDOW_NAME.."-inside", style = "inside_deep_frame", direction = "vertical"}
+      inside_frame.style.vertically_stretchable = true
+      inside_frame.style.horizontally_stretchable = true
+      local subheader_frame = inside_frame.add{type = "frame", name = WINDOW_NAME.."-subheader", style = "subheader_frame", direction = "vertical"}
       subheader_frame.style.minimal_height = WINDOW_MIN_HEIGHT -- This dictates how much there is room for
       subheader_frame.style.maximal_height = WINDOW_MAX_HEIGHT -- This dictates how much there is room for
+      subheader_frame.style.vertically_stretchable = true
+    -- Add actual settings
+    add_suggestions_settings(subheader_frame, networkdata)
+    add_undersupply_settings(subheader_frame, networkdata)
 
     -- Footer: Back and Confirm buttons
     local dialog_buttons_bar = window.add{type="flow", style="dialog_buttons_horizontal_flow", name="network_settings_buttons", direction="horizontal"}
@@ -57,14 +120,6 @@ function network_settings.create_window(player, networkdata)
 
   window.location = { x = 600, y = 100 }
 end
-
--- Override `Escape` on the settings page
-script.on_event("li_cancel_settings", function(event)
-    -- if is_settings_page_visible(event.player_index) then
-    --     cancel_settings_page(event.player_index)
-    --     storage.players[event.player_index].one_time_prevent_close = true
-    -- end
-end)
 
 local function close_settings_page(player_index)
   local player = game.get_player(player_index)
@@ -94,12 +149,21 @@ function network_settings.on_gui_click(event)
 
   if event.element.tags.action == "li_cancel_settings" then
     cancel_settings_page(event.player_index)
-    return true
   elseif event.element.tags.action == "li_confirm_settings" then
     confirm_settings_page(event.player_index)
-    return true
+  elseif event.element.tags.action == clear_mismatched_storage_action then
+    local network_id = event.element.tags.network_id
+    local networkdata = network_data.get_networkdata_fromid(network_id)
+    if not networkdata then return false end
+    -- Clear the list of ignored storages for mismatched storage suggestion
+    networkdata.ignored_storages_for_mismatch = {}
+
+    local player = game.get_player(event.player_index)
+    network_settings.create_window(player, networkdata) -- Refresh the window to update the button state
+  else
+    return false
   end
-  return false
+  return true
 end
 
 
