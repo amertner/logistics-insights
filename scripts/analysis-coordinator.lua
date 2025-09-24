@@ -191,7 +191,8 @@ function analysis_coordinator.run_undersupply_step()
   end
 
   if the_chunker:needs_data() then
-    the_chunker:initialise_chunking(networkdata, network.requesters, networkdata.bot_deliveries, {}, undersupply.initialise_undersupply)
+    the_chunker:initialise_chunking(networkdata, network.requesters, 
+    {deliveries=networkdata.bot_deliveries, ignored_items=networkdata.ignored_items_for_undersupply}, {}, undersupply.initialise_undersupply)
     return false -- Not done yet
   end
 

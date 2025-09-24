@@ -69,8 +69,8 @@ local function add_undersupply_settings(ui, player_table, networkdata)
   local vflow = setting_flow.add {type = "flow", direction = "vertical", name="undersupply_v"}
 
   add_settings_header(vflow, {"network-settings.undersupply-header"})
-  local count = 0 --table_size(networkdata.ignored_storages_for_mismatch)
-  add_setting_with_clear_button(vflow, networkdata.id, {"network-settings.items-on-undersupply-ignore-list", 0 }, clear_undersupply_ignore_list_action, 0)
+  local count = table_size(networkdata.ignored_items_for_undersupply)
+  add_setting_with_clear_button(vflow, networkdata.id, {"network-settings.items-on-undersupply-ignore-list", count}, clear_undersupply_ignore_list_action, count)
 end
 
 ---@param player? LuaPlayer
@@ -151,6 +151,24 @@ local function confirm_settings_page(event)
   close_settings_page(event.player_index)
 end
 
+-- Clear the relevant list and refresh the window to show the effect
+function clear_list_and_refresh(event)
+  local network_id = event.element.tags.network_id
+  local networkdata = network_data.get_networkdata_fromid(network_id)
+  if not networkdata then return false end
+
+  if event.element.tags.action == clear_mismatched_storage_action then
+    -- Clear the list of ignored storages for mismatched storage suggestion
+    networkdata.ignored_storages_for_mismatch = {}
+  elseif event.element.tags.action == clear_undersupply_ignore_list_action then
+    -- Clear the list of ignored storages for undersupply
+    networkdata.ignored_items_for_undersupply = {}
+  end
+
+  local player = game.get_player(event.player_index)
+  network_settings.create_window(player, networkdata) -- Refresh the window to update the button state
+end
+
 ---@returns boolean true if the click was handled
 function network_settings.on_gui_click(event)
   if not event.element or not event.element.valid then return false end
@@ -160,15 +178,8 @@ function network_settings.on_gui_click(event)
     cancel_settings_page(event.player_index)
   elseif event.element.tags.action == "li_confirm_settings" then
     confirm_settings_page(event)
-  elseif event.element.tags.action == clear_mismatched_storage_action then
-    local network_id = event.element.tags.network_id
-    local networkdata = network_data.get_networkdata_fromid(network_id)
-    if not networkdata then return false end
-    -- Clear the list of ignored storages for mismatched storage suggestion
-    networkdata.ignored_storages_for_mismatch = {}
-
-    local player = game.get_player(event.player_index)
-    network_settings.create_window(player, networkdata) -- Refresh the window to update the button state
+  elseif event.element.tags.action == clear_mismatched_storage_action or event.element.tags.action == clear_undersupply_ignore_list_action then
+    clear_list_and_refresh(event)
   else
     return false
   end

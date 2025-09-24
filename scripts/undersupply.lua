@@ -9,14 +9,24 @@ local network_data = require("scripts.network-data")
 ---@field demand table<string, number> Table of item-quality keys to total demand counts
 ---@field bot_deliveries table<string, DeliveryItem> A list of items being delivered right now
 ---@field net_demand UndersupplyItem[] An unsorted array of items with shortages
+---@field ignored_items_for_undersupply table<string, boolean> A list of "item name:quality" to ignore for undersupply suggestion
 
 --- Initialize the cell network accumulator
 --- @param accumulator Undersupply_Accumulator The accumulator to initialize
---- @param bot_deliveries table<string, DeliveryItem> A list of items being delivered right now
-function undersupply.initialise_undersupply(accumulator, bot_deliveries)
+--- @param context table Context data for the initialization
+function undersupply.initialise_undersupply(accumulator, context)
   accumulator.demand = {}
-  accumulator.bot_deliveries = bot_deliveries or {}
+  accumulator.bot_deliveries = context.bot_deliveries
   accumulator.net_demand = {}
+  accumulator.ignored_items_for_undersupply = context.ignored_items
+end
+
+local function is_ignored_for_undersupply(ignored_items, item_name, quality_name)
+  if ignored_items and item_name and quality_name then
+    local key = utils.get_item_quality_key(item_name, quality_name)
+    return ignored_items[key] or false
+  end
+  return false
 end
 
 --- Process one requester to gather demand statistics
@@ -47,7 +57,7 @@ function undersupply.process_one_requester(requester, accumulator)
                 ---@diagnostic disable-next-line: assign-type-mismatch
                 local quality_name = filter.value.quality or "normal"
                 local requested_count = filter.min or 0
-                if requested_count > 0 then
+                if requested_count > 0 and not is_ignored_for_undersupply(accumulator.ignored_items_for_undersupply, item_name, quality_name) then
                   local inventory = requester.get_inventory(defines.inventory.chest)
                   if inventory then
                     local item_quality = {name = item_name, quality = quality_name}

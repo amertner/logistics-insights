@@ -408,12 +408,17 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
   if rowname == "logistics-insights-undersupply" then
     local iq = extract_item_quality()
     if not iq then return false end
-    find_and_highlight.highlight_locations_with_filter_on_map(
-      player, player_table, rowname,
-      find_and_highlight.is_requester_of_item,
-      iq,
-      is_right_click
-    )
+    if is_shift_click and not is_right_click then
+      local networkdata = network_data.get_networkdata(player_table.network)
+      network_data.add_item_to_ignorelist_for_undersupply(networkdata, iq)
+    else
+      find_and_highlight.highlight_locations_with_filter_on_map(
+        player, player_table, rowname,
+        find_and_highlight.is_requester_of_item,
+        iq,
+        is_right_click
+      )
+    end
     return true
   end
 

@@ -7,6 +7,7 @@ local tick_counter = require("scripts.tick-counter")
 local global_data = require("scripts.global-data")
 local player_data = require("scripts.player-data")
 local debugger = require("scripts.debugger")
+local utils = require("scripts.utils")
 
 -- Data stored for each network
 ---@class LINetworkData
@@ -22,7 +23,7 @@ local debugger = require("scripts.debugger")
 ---@ -- Per-network settings
 ---@field ignored_storages_for_mismatch table<number, boolean> -- A list of storage IDs to ignore for mismatched storage suggestion
 ---@field ignore_higher_quality_mismatches boolean -- Whether to ignore higher quality mismatches
----@field ignored_items_for_undersupply table<string> -- A list of item names to ignore for undersupply suggestion
+---@field ignored_items_for_undersupply table<string, boolean> -- A list of "item name:quality" to ignore for undersupply suggestion
 ---@ -- Data capture fields
 ---@field last_scanned_tick number -- The last tick this network's cell and bot data was updated
 ---@field last_analysed_tick number -- The last tick this network's suggestios and undersupply were analysed
@@ -510,6 +511,16 @@ function network_data.add_storages_to_ignorelist_for_filter_mismatch(networkdata
       end
     end
   end
+end
+
+---@param networkdata? LINetworkData The network
+---@param iq ItemQuality The item quality to add to the ignore list
+function network_data.add_item_to_ignorelist_for_undersupply(networkdata, iq)
+  if not networkdata or not iq then
+    return
+  end
+  -- The list is a table<string>, which allows O(1) lookups
+  networkdata.ignored_items_for_undersupply[utils.get_ItemQuality_key(iq)] = true
 end
 
 
