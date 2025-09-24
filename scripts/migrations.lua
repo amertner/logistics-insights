@@ -293,8 +293,11 @@ local li_migrations = {
   end,
 
   ["0.11.0"] = function()
+    -- Initialise new per-network settings
     for _, nwd in pairs(storage.networks) do
       nwd.ignored_storages_for_mismatch = {}
+      nwd.ignore_higher_quality_mismatches = false
+      nwd.ignored_items_for_undersupply = {}
     end
 
     -- Added new settings button, so reinitialise UIs

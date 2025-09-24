@@ -56,6 +56,7 @@ end
 ---@field unfiltered_free_stacks number Total number of free stacks in unfiltered storage chests
 ---@field mismatched_storages LuaEntity[] List of storage chests that have items not
 ---@field ignored_storages_for_mismatch table<number> Set of storage unit IDs to ignore for mismatch detection
+---@field ignore_higher_quality_mismatches boolean Whether to ignore higher quality mismatches
 
 -- Get ready to analyse storage in chunks
 --- @param accumulator StorageAccumulator The accumulator to store results in
@@ -66,6 +67,7 @@ function suggestions_calc.initialise_storage_analysis(accumulator, context)
   accumulator.unfiltered_free_stacks = 0
   accumulator.mismatched_storages = {}
   accumulator.ignored_storages_for_mismatch = context.ignored_storages_for_mismatch or {}
+  accumulator.ignore_higher_quality_mismatches = context.ignore_higher_quality_mismatches or false
 end
 
 --- Process a storage chest for chunked storage analysis
@@ -102,6 +104,14 @@ function suggestions_calc.process_storage_for_analysis(nstorage, accumulator)
                 if current ~= true then
                   if not current then current = {}; allowed[fname] = current end
                   current[fqual] = true
+                  if accumulator.ignore_higher_quality_mismatches then
+                    -- If ignoring higher quality mismatches, allow all qualities up to and including this one
+                    quality = filter.quality
+                    while quality do
+                      current[quality.name] = true
+                      quality = quality.next
+                    end
+                  end
                 end
               else
                 allowed[fname] = true -- any quality allowed

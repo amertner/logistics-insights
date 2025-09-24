@@ -19,7 +19,10 @@ local debugger = require("scripts.debugger")
 ---@field history_timer TickCounter -- Tracks time for collecting delivery history
 ---@ -- Suggestions and undersupply data
 ---@field suggestions Suggestions -- The list of suggestions associated with this network
----@field ignored_storages_for_mismatch table<number> -- A list of storage IDs to ignore for mismatched storage suggestion
+---@ -- Per-network settings
+---@field ignored_storages_for_mismatch table<number, boolean> -- A list of storage IDs to ignore for mismatched storage suggestion
+---@field ignore_higher_quality_mismatches boolean -- Whether to ignore higher quality mismatches
+---@field ignored_items_for_undersupply table<string> -- A list of item names to ignore for undersupply suggestion
 ---@ -- Data capture fields
 ---@field last_scanned_tick number -- The last tick this network's cell and bot data was updated
 ---@field last_analysed_tick number -- The last tick this network's suggestios and undersupply were analysed
@@ -142,6 +145,8 @@ function network_data.create_networkdata(network)
       history_timer = tick_counter.new(),
       suggestions = suggestions.new(),
       ignored_storages_for_mismatch = {},
+      ignore_higher_quality_mismatches = false,
+      ignored_items_for_undersupply = {},
       last_pass_bots_seen = {},
       idle_bot_qualities = {},
       charging_bot_qualities = {},

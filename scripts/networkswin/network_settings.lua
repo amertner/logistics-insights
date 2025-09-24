@@ -48,20 +48,21 @@ local function add_setting_with_clear_button(ui, nwid, caption, action, count)
 end
 
 ---@returns LuaGuiElement|nil
-local function add_suggestions_settings(ui, networkdata)
+local function add_suggestions_settings(ui, player_table, networkdata)
   if not ui or not ui.valid or not networkdata then return end
 
   local setting_flow = ui.add{type="flow", direction="horizontal"}
   local vflow = setting_flow.add {type = "flow", direction = "vertical"}
 
   add_settings_header(vflow, {"network-settings.mismatched-storage-header"})
-  add_checkbox_setting(vflow, "ignore-higher-quality-mismatches", false)
+  local checkbox = add_checkbox_setting(vflow, "ignore-higher-quality-mismatches", networkdata.ignore_higher_quality_mismatches)
+  player_table.ui.network_settings.ignore_higher_quality_mismatches = checkbox
   local count = table_size(networkdata.ignored_storages_for_mismatch)
   add_setting_with_clear_button(vflow, networkdata.id, {"network-settings.chests-on-ignore-list", count }, clear_mismatched_storage_action, count)
 end
 
 ---@returns LuaGuiElement|nil
-local function add_undersupply_settings(ui, networkdata)
+local function add_undersupply_settings(ui, player_table, networkdata)
   if not ui or not ui.valid or not networkdata then return end
 
   local setting_flow = ui.add{type="flow", direction="horizontal", name="undersupply_h"}
@@ -108,14 +109,14 @@ function network_settings.create_window(player, networkdata)
       subheader_frame.style.maximal_height = WINDOW_MAX_HEIGHT -- This dictates how much there is room for
       subheader_frame.style.vertically_stretchable = true
     -- Add actual settings
-    add_suggestions_settings(subheader_frame, networkdata)
-    add_undersupply_settings(subheader_frame, networkdata)
+    add_suggestions_settings(subheader_frame,player_table, networkdata)
+    add_undersupply_settings(subheader_frame, player_table, networkdata)
 
     -- Footer: Back and Confirm buttons
     local dialog_buttons_bar = window.add{type="flow", style="dialog_buttons_horizontal_flow", name="network_settings_buttons", direction="horizontal"}
     dialog_buttons_bar.add{type="button", style="back_button", caption={"network-settings.back-button"}, tags={action="li_cancel_settings"}}
     dialog_buttons_bar.add{type="empty-widget", style="flib_dialog_footer_drag_handle", ignored_by_interaction=true}
-    dialog_buttons_bar.add{type="button", style="confirm_button", caption={"network-settings.confirm-button"}, tags={action="li_confirm_settings"}}
+    dialog_buttons_bar.add{type="button", style="confirm_button", caption={"network-settings.confirm-button"}, tags={action="li_confirm_settings", network_id=networkdata.id}}
     dialog_buttons_bar.drag_target = window
 
   window.location = { x = 600, y = 100 }
@@ -137,9 +138,17 @@ local function cancel_settings_page(player_index)
   close_settings_page(player_index)
 end
 
-local function confirm_settings_page(player_index)
+local function confirm_settings_page(event)
   -- Grab the updated settings
-  close_settings_page(player_index)
+  local network_id = event.element.tags.network_id
+  local networkdata = network_data.get_networkdata_fromid(network_id)
+  if not networkdata then return false end
+
+  local player_table = player_data.get_player_table(event.player_index)
+  if player_table then
+    networkdata.ignore_higher_quality_mismatches = player_table.ui.network_settings.ignore_higher_quality_mismatches.state
+  end
+  close_settings_page(event.player_index)
 end
 
 ---@returns boolean true if the click was handled
@@ -150,7 +159,7 @@ function network_settings.on_gui_click(event)
   if event.element.tags.action == "li_cancel_settings" then
     cancel_settings_page(event.player_index)
   elseif event.element.tags.action == "li_confirm_settings" then
-    confirm_settings_page(event.player_index)
+    confirm_settings_page(event)
   elseif event.element.tags.action == clear_mismatched_storage_action then
     local network_id = event.element.tags.network_id
     local networkdata = network_data.get_networkdata_fromid(network_id)

@@ -153,7 +153,9 @@ function analysis_coordinator.run_storage_analysis_step()
   end
 
   if the_chunker:needs_data() then
-    the_chunker:initialise_chunking(networkdata, network.storages, {ignored_storages_for_mismatch = networkdata.ignored_storages_for_mismatch}, {}, suggestions_calc.initialise_storage_analysis)
+    the_chunker:initialise_chunking(networkdata, network.storages, 
+      {ignored_storages_for_mismatch = networkdata.ignored_storages_for_mismatch, ignore_higher_quality_mismatches=networkdata.ignore_higher_quality_mismatches}, 
+      {}, suggestions_calc.initialise_storage_analysis)
     return false -- Not done yet
   end
 
