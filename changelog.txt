@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.11.0
-Date: ????
+Date: 2025-09-25
   Features:
     - Each network now has settings that allows you to fine tune how it is analysed
     - Shift-click on a "mismatched storage" suggestion to ignore those chests in future analyses
