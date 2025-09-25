@@ -13,6 +13,14 @@ local clear_undersupply_ignore_list_action="clear-undersupply-ignore-list"
 local ignore_higher_quality_matches_setting="ignore-higher-quality-mismatches"
 
 ---@returns LuaGuiElement|nil
+local function add_network_id_header(ui, player_table)
+  if not ui or not ui.valid then return nil end
+
+  local header = ui.add{type="label", caption={"network-settings.window-title", 0}, style="bold_label"}
+  player_table.ui.network_settings.network_id_header = header
+end
+
+---@returns LuaGuiElement|nil
 local function add_settings_header(ui, caption)
   if not ui or not ui.valid then return nil end
 
@@ -37,7 +45,7 @@ local function add_setting_with_clear_button(ui, caption, action_name)
 
   local setting_flow = ui.add{type="flow", direction="horizontal"}
   setting_flow.style.horizontal_spacing = 8
-  local label = setting_flow.add{type="label", style="label", name=action_name.."-label", caption={caption, 0}}
+  local label = setting_flow.add{type="label", style="label", name=action_name.."-label", caption={caption, 0}, tooltip={caption.."-tooltip"}}
   label.style.top_margin = 4
   local space = setting_flow.add {type = "empty-widget", style = "draggable_space"}
   space.style.horizontally_stretchable = true
@@ -66,7 +74,7 @@ end
 ---@param player_table PlayerData The player's data table
 ---@returns LuaGuiElement|nil
 local function add_undersupply_settings(ui, player_table)
-  if not ui or not ui.valid or not networkdata then return end
+  if not ui or not ui.valid then return end
 
   local setting_flow = ui.add{type="flow", direction="horizontal", name="undersupply_h"}
   local vflow = setting_flow.add {type = "flow", direction = "vertical", name="undersupply_v"}
@@ -98,6 +106,7 @@ function network_settings.create_frame(parent, player)
       subheader_frame.style.vertically_stretchable = true
 
     -- Add actual settings
+    add_network_id_header(subheader_frame, player_table)
     add_suggestions_settings(subheader_frame, player_table)
     add_undersupply_settings(subheader_frame, player_table)
 end
@@ -127,13 +136,21 @@ function network_settings.update(player, player_table)
   local networkdata = network_data.get_networkdata_fromid(network_id)
   if not networkdata then return end
 
+  -- Update network ID in title
+  local header = player_table.ui.network_settings.network_id_header
+  if header then
+    header.caption = {"network-settings.window-title", network_id or 0}
+  end
+
+  -- Update Suggestions settings
   player_table.ui.network_settings.ignore_higher_quality_mismatches.state = networkdata.ignore_higher_quality_mismatches
   local flow = player_table.ui.network_settings.mismatched_storage_flow
   local count = networkdata and table_size(networkdata.ignored_storages_for_mismatch) or 0
   update_setting_with_clear_button(flow, clear_mismatched_storage_action, count)
-  
+
+  -- Update Undersupply settings
   flow = player_table.ui.network_settings.ignored_undersupply_items
-  local count = networkdata and table_size(networkdata.ignored_items_for_undersupply) or 0
+  count = networkdata and table_size(networkdata.ignored_items_for_undersupply) or 0
   update_setting_with_clear_button(flow, clear_undersupply_ignore_list_action, count)
 end
 

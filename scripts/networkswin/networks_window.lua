@@ -29,7 +29,7 @@ local cell_setup = {
       el.style.horizontal_align = "right"
       return el
     end,
-    populate = function(el, nw)
+    populate = function(el, nw, pt)
       local idstr = tostring(nw.id or "")
       if el and el.valid then 
         el.caption = idstr 
@@ -46,7 +46,7 @@ local cell_setup = {
       cell.style.stretch_image_to_widget_size = true
       return cell
     end,
-    populate = function(el, nw)
+    populate = function(el, nw, pt)
       if not (el and el.valid) then return end
       local surface = nw.surface
       if not surface or surface == "" then surface = "space-location-unknown" end
@@ -64,7 +64,7 @@ local cell_setup = {
       el.style.horizontal_align = "right"
       return el
     end,
-    populate = function(el, nwd)
+    populate = function(el, nwd, pt)
       if not (el and el.valid) then return end
       local count = network_data.players_in_network(nwd)
       el.caption = tostring(count)
@@ -95,7 +95,7 @@ local cell_setup = {
       el.style.horizontal_align = "right"
       return el
     end,
-    populate = function(el, nw)
+    populate = function(el, nw, pt)
       if not (el and el.valid) then return end
       local bots = 0
       if nw.bot_items and nw.bot_items["logistic-robot-total"] then
@@ -115,7 +115,7 @@ local cell_setup = {
       el.style.horizontal_align = "right"
       return el
     end,
-    populate = function(el, nw)
+    populate = function(el, nw, pt)
       if not (el and el.valid) then return end
       local bots = 0
       if nw.bot_items and nw.bot_items[ "logistic-robot-available"] then
@@ -134,7 +134,7 @@ local cell_setup = {
       el.style.horizontal_align = "right"
       return el
     end,
-    populate = function(el, nw)
+    populate = function(el, nw, pt)
       if not (el and el.valid) then return end
       local count = 0
       if nw.suggestions and nw.suggestions.get_cached_list then
@@ -156,7 +156,7 @@ local cell_setup = {
       el.style.horizontal_align = "right"
       return el
     end,
-    populate = function(el, nw)
+    populate = function(el, nw, pt)
       if not (el and el.valid) then return end
       local count = 0
       if nw.suggestions then
@@ -176,7 +176,7 @@ local cell_setup = {
       el.style.horizontal_align = "right"
       return el
     end,
-    populate = function(el, nwd)
+    populate = function(el, nwd, pt)
       if not (el and el.valid) then return end
       if nwd.id == storage.bg_refreshing_network_id then
         el.caption = "*"
@@ -209,7 +209,7 @@ local cell_setup = {
       btn.style.top_margin = 2
       return flow
     end,
-    populate = function(el, nwd)
+    populate = function(el, nwd, pt)
       if not (el and el.valid) then return end
       -- Tag the buttons so click handler can find the network
       for _, btn in ipairs(el.children) do
@@ -219,6 +219,9 @@ local cell_setup = {
             btn.enabled = not has_players -- Disable if players are using it
           end
           btn.tags = { network_id = nwd.id or 0 }
+          if btn.name:find("settings", 1, true) then
+            btn.toggled = nwd.id and (nwd.id == pt.settings_network_id) -- Highlight if this is the settings network
+          end
         end
       end
     end
@@ -248,8 +251,6 @@ function networks_window.create(player)
       local label = titlebar.add{ type = "label", name = WINDOW_NAME .. "-caption", caption = {"networks-window.window-title"}, style = "frame_title", ignored_by_interaction = true }
       label.style.top_margin = -4
       titlebar.add {type = "empty-widget", style = "fs_flib_titlebar_drag_handle", ignored_by_interaction = true }
-      titlebar.add({ type = "sprite-button", style = "frame_action_button", sprite = "utility/close", name = WINDOW_NAME .. "-bigger", tooltip = {"networks-window.bigger-window-tooltip"}, visible = false })
-      titlebar.add({ type = "sprite-button", style = "frame_action_button", sprite = "utility/close", name = WINDOW_NAME .. "-smaller", tooltip = {"networks-window.smaller-window-tooltip"}, visible = false })
       titlebar.add({ type = "sprite-button", style = "frame_action_button", sprite = "utility/close", name = WINDOW_NAME .. "-close", tooltip = {"networks-window.close-window-tooltip"}, drag_target = window })
       titlebar.drag_target = window
 
@@ -287,10 +288,11 @@ function networks_window.create(player)
             end
           end
 
-      -- Settings: Placeholder for future expansion
+      -- Settings: Frame for settings to be shown
       local settings_frame = outside_flow.add{ type = "frame", name = WINDOW_NAME.."-settings", style = "inside_shallow_frame", direction = "vertical" }
       network_settings.create_frame(settings_frame, player)
       settings_frame.visible = false
+      player_table.settings_network_id = nil
 
   -- Remember this for easy access
   player_table.ui.networks.subheader_frame = subheader_frame -- To resize
@@ -450,29 +452,13 @@ function networks_window.update(player)
       local name = string.format("%s-cell-%d-%s", WINDOW_NAME, i, col.key)
       local el = table_el[name]
       if col.populate then
-        col.populate(el, nw)
+        col.populate(el, nw, player_table)
       end
     end
   end
 
   -- Update settings frame
   network_settings.update(player, player_table)
-end
-
-function networks_window.increase_window_size(player)
-  local player_table = player_data.get_player_table(player.index)
-  if not player_table or not player_table.ui or not player_table.ui.networks then return end
-  local frame = player_table.ui.networks.subheader_frame
-
-  frame.style.minimal_height = math.min(WINDOW_MAX_HEIGHT, frame.style.minimal_height + WINDOW_HEIGHT_STEP)
-end
-
-function networks_window.decrease_window_size(player)
-  local player_table = player_data.get_player_table(player.index)
-  if not player_table or not player_table.ui or not player_table.ui.networks then return end
-  local frame = player_table.ui.networks.subheader_frame
-
-  frame.style.minimal_height = math.max(WINDOW_MIN_HEIGHT, frame.style.minimal_height - WINDOW_HEIGHT_STEP)
 end
 
 --- Handle clicks on Networks window mini buttons (settings/trash).
@@ -484,17 +470,10 @@ function networks_window.on_gui_click(event)
   if not (element and element.valid) then return nil end
   local name = element.name or ""
   local player = game.get_player(event.player_index)
+  if not player or not player.valid then return nil end
 
   if player and (name == WINDOW_NAME .. "-close") then
     networks_window.toggle_window_visible(player)
-    return nil
-  end
-  if player and (name == WINDOW_NAME .. "-bigger") then
-    networks_window.increase_window_size(player)
-    return nil
-  end
-  if player and (name == WINDOW_NAME .. "-smaller") then
-    networks_window.decrease_window_size(player)
     return nil
   end
 
@@ -529,19 +508,29 @@ function networks_window.on_gui_click(event)
       -- Show/hide settings for this network
       local player_table = player_data.get_player_table(event.player_index)
       if player_table then
-        player_table.settings_network_id = network_id
-        player_table.ui.networks.settings_frame.visible = not player_table.ui.networks.settings_frame.visible
-        network_settings.update(player, player_table)
+        local is_open = player_table.ui.networks.settings_frame.visible
+        if is_open then
+          if player_table.settings_network_id == network_id then
+            -- Close the currently open settings
+            player_table.ui.networks.settings_frame.visible = false
+            player_table.settings_network_id = nil
+          else
+            -- Opening settings for this (new) network
+            player_table.settings_network_id = network_id
+          end
+        else
+          -- Open the window on the selected network
+          player_table.settings_network_id = network_id
+          player_table.ui.networks.settings_frame.visible = true
+        end
+        networks_window.update(player)
       end
       return nil
     elseif col_key == "trash" and network_id then
       -- Remove the network from storage
       if network_data.remove_network(network_id) then
-        local player = game.get_player(event.player_index)
-        if player and player.valid then
-          -- Update the window after removal
-          networks_window.update(player)
-        end
+        -- Update the window after removal
+        networks_window.update(player)
       end
     end
   end
