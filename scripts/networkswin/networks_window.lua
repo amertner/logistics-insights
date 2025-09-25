@@ -203,9 +203,9 @@ local cell_setup = {
       }
       local btn = flow.add{ type = "sprite-button", name = name .. "-view", style = "mini_button", sprite = "virtual-signal/signal-map-marker", tooltip = {"networks-window.view-tooltip"} }
       btn.style.top_margin = 2
-      btn = flow.add{ type = "sprite-button", name = name .. "-settings", style = "mini_button", sprite = "utility/rename_icon", tooltip = {"networks-window.settings-tooltip"} }
-      btn.style.top_margin = 2
       btn = flow.add{ type = "sprite-button", name = name .. "-trash", style = "mini_button", sprite = "utility/trash", tooltip = {"networks-window.trash-tooltip"} }
+      btn.style.top_margin = 2
+      btn = flow.add{ type = "sprite-button", name = name .. "-settings", style = "mini_button", sprite = "utility/rename_icon", tooltip = {"networks-window.settings-tooltip"} }
       btn.style.top_margin = 2
       return flow
     end,
@@ -240,112 +240,62 @@ function networks_window.create(player)
   end
 
   -- The main Networks window
-  local window = player.gui.screen.add {
-    type = "frame",
-    name = WINDOW_NAME,
-    direction = "vertical",
-    style = "li_window_style",
-    visible = player_table.networks_window_visible,
-  }
+  local window = player.gui.screen.add{ type = "frame", name = WINDOW_NAME, direction = "vertical", style = "li_window_style", visible = player_table.networks_window_visible }
 
     -- Title bar with dragger and close
-    local titlebar = window.add {
-      type = "flow",
-      style = "fs_flib_titlebar_flow",
-      name = WINDOW_NAME .. "-titlebar",
-      drag_target = window,
-    }
+    local titlebar = window.add{ type = "flow", style = "fs_flib_titlebar_flow", name = WINDOW_NAME .. "-titlebar", drag_target = window }
 
-      local label = titlebar.add {
-        type = "label",
-        name = WINDOW_NAME .. "-caption",
-        caption = {"networks-window.window-title"},
-        style = "frame_title",
-        ignored_by_interaction = true,
-      }
+      local label = titlebar.add{ type = "label", name = WINDOW_NAME .. "-caption", caption = {"networks-window.window-title"}, style = "frame_title", ignored_by_interaction = true }
       label.style.top_margin = -4
       titlebar.add {type = "empty-widget", style = "fs_flib_titlebar_drag_handle", ignored_by_interaction = true }
-      titlebar.add({
-        type = "sprite-button",
-        style = "frame_action_button",
-        sprite = "utility/close",
-        name = WINDOW_NAME .. "-bigger",
-        tooltip = {"networks-window.bigger-window-tooltip"},
-        visible = false, -- Not ready yet
-      })
-      titlebar.add({
-        type = "sprite-button",
-        style = "frame_action_button",
-        sprite = "utility/close",
-        name = WINDOW_NAME .. "-smaller",
-        tooltip = {"networks-window.smaller-window-tooltip"},
-        visible = false, -- Not ready yet
-      })
-      titlebar.add({
-        type = "sprite-button",
-        style = "frame_action_button",
-        sprite = "utility/close",
-        name = WINDOW_NAME .. "-close",
-        tooltip = {"networks-window.close-window-tooltip"},
-        drag_target = window,
-      })
+      titlebar.add({ type = "sprite-button", style = "frame_action_button", sprite = "utility/close", name = WINDOW_NAME .. "-bigger", tooltip = {"networks-window.bigger-window-tooltip"}, visible = false })
+      titlebar.add({ type = "sprite-button", style = "frame_action_button", sprite = "utility/close", name = WINDOW_NAME .. "-smaller", tooltip = {"networks-window.smaller-window-tooltip"}, visible = false })
+      titlebar.add({ type = "sprite-button", style = "frame_action_button", sprite = "utility/close", name = WINDOW_NAME .. "-close", tooltip = {"networks-window.close-window-tooltip"}, drag_target = window })
       titlebar.drag_target = window
 
-    -- Content: scrollable table to align uneven-width data
-    local inside_frame = window.add{
-      type = "frame",
-      name = WINDOW_NAME.."-inside",
-      style = "inside_shallow_frame",
-      direction = "vertical",
-    }
-      local subheader_frame = inside_frame.add{
-        type = "frame",
-        name = WINDOW_NAME.."-subheader",
-        style = "subheader_frame",
-        direction = "horizontal",
-      }
-      subheader_frame.style.minimal_height = WINDOW_MIN_HEIGHT -- This dictates how much there is room for
-      subheader_frame.style.maximal_height = WINDOW_MAX_HEIGHT -- This dictates how much there is room for
-      -- Scrollable area for the data table
-        local scroll = subheader_frame.add {
-          type = "scroll-pane",
-          style = "naked_scroll_pane",
-          name = WINDOW_NAME .. "-scroll",
-          horizontal_scroll_policy = "never",
-        }
-        scroll.style.padding = 2
+    -- Split: Content and settings, with settings being invisible until player asks for them
+    local outside_flow = window.add{ type = "flow", name = WINDOW_NAME.."-outside", direction = "horizontal" }
 
-        local col_count = #cell_setup
-        local table_el = scroll.add {
-          type = "table",
-          name = WINDOW_NAME .. "-table",
-          column_count = col_count,
-          draw_horizontal_lines = true,
-          draw_horizontal_line_after_headers = true,
-          draw_vertical_lines = false,
-        }
-        table_el.style.horizontal_spacing = 6
-        table_el.style.vertical_spacing = 4
-        -- Set column alignments as configured
-        for idx, col in ipairs(cell_setup) do
-          if col.align then
-            table_el.style.column_alignments[idx] = col.align
-          end
-        end
+      -- Content: scrollable table to align uneven-width data
+      local content_frame = outside_flow.add{ type = "frame", name = WINDOW_NAME.."-inside", style = "inside_shallow_frame", direction = "vertical" }
+        local subheader_frame = content_frame.add{ type = "frame", name = WINDOW_NAME.."-subheader", style = "subheader_frame", direction = "horizontal" }
+        subheader_frame.style.minimal_height = WINDOW_MIN_HEIGHT -- This dictates how much there is room for
+        subheader_frame.style.maximal_height = WINDOW_MAX_HEIGHT -- This dictates how much there is room for
+        -- Scrollable area for the data table
+          local scroll = subheader_frame.add{ type = "scroll-pane", style = "naked_scroll_pane", name = WINDOW_NAME .. "-scroll", horizontal_scroll_policy = "never" }
+          scroll.style.padding = 2
 
-        for _, col in ipairs(cell_setup) do
-          if col.header.type == "sprite" then
-            local e = table_el.add{ type = "sprite", sprite = col.header.sprite, tooltip = col.header.tooltip }
-            e.style.width = 26
-            e.style.height = 26
-            e.style.stretch_image_to_widget_size = true
-          else
-            table_el.add{ type = "label", caption = col.header.caption or "", style = "bold_label" }
+          local col_count = #cell_setup
+          local table_el = scroll.add{ type = "table", name = WINDOW_NAME .. "-table", column_count = col_count, draw_horizontal_lines = true, draw_horizontal_line_after_headers = true, draw_vertical_lines = false }
+          table_el.style.horizontal_spacing = 6
+          table_el.style.vertical_spacing = 4
+          -- Set column alignments as configured
+          for idx, col in ipairs(cell_setup) do
+            if col.align then
+              table_el.style.column_alignments[idx] = col.align
+            end
           end
-        end
+
+          for _, col in ipairs(cell_setup) do
+            if col.header.type == "sprite" then
+              local e = table_el.add{ type = "sprite", sprite = col.header.sprite, tooltip = col.header.tooltip }
+              e.style.width = 26
+              e.style.height = 26
+              e.style.stretch_image_to_widget_size = true
+            else
+              table_el.add{ type = "label", caption = col.header.caption or "", style = "bold_label" }
+            end
+          end
+
+      -- Settings: Placeholder for future expansion
+      local settings_frame = outside_flow.add{ type = "frame", name = WINDOW_NAME.."-settings", style = "inside_shallow_frame", direction = "vertical" }
+      network_settings.create_frame(settings_frame, player)
+      settings_frame.visible = false
+
   -- Remember this for easy access
   player_table.ui.networks.subheader_frame = subheader_frame -- To resize
   player_table.ui.networks.table_elements = table_el -- To update content
+  player_table.ui.networks.settings_frame = settings_frame -- For settings
 
   if player_table and player_table.networks_window_location then
     window.location = player_table.networks_window_location
@@ -504,6 +454,9 @@ function networks_window.update(player)
       end
     end
   end
+
+  -- Update settings frame
+  network_settings.update(player, player_table)
 end
 
 function networks_window.increase_window_size(player)
@@ -573,8 +526,13 @@ function networks_window.on_gui_click(event)
       -- Open the main window if not already open
       return "openmain"
     elseif col_key == "settings" and network_id then
-      -- Open model settings dialog for this network
-      network_settings.create_window(player, networkdata)
+      -- Show/hide settings for this network
+      local player_table = player_data.get_player_table(event.player_index)
+      if player_table then
+        player_table.settings_network_id = network_id
+        player_table.ui.networks.settings_frame.visible = not player_table.ui.networks.settings_frame.visible
+        network_settings.update(player, player_table)
+      end
       return nil
     elseif col_key == "trash" and network_id then
       -- Remove the network from storage

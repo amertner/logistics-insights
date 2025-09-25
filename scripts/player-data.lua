@@ -20,6 +20,7 @@ local math_ceil = math.ceil
 ---@field networks_window_location {x: number, y: number} -- Saved Networks window position
 ---@field ui table<string, table> -- UI elements for the mod's GUI
 ---@field schedule_last_run table<string, uint>|nil -- Per-task last run ticks for scheduler
+---@field settings_network_id number|nil -- The network ID currently being shown in the settings window
 ---@param player_index uint
 ---@return nil
 function player_data.init(player_index)
@@ -36,6 +37,7 @@ function player_data.init(player_index)
     networks_window_location = {x = 300, y = 100},
     ui = {},
     schedule_last_run = {}, -- Per-task last run ticks for scheduler
+    settings_network_id = nil,
   }
   storage.players[player_index] = player_data_entry
 end
