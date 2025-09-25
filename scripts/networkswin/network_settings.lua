@@ -12,7 +12,9 @@ local clear_mismatched_storage_action="clear-mismatch-storage-list"
 local clear_undersupply_ignore_list_action="clear-undersupply-ignore-list"
 local ignore_higher_quality_matches_setting="ignore-higher-quality-mismatches"
 
----@returns LuaGuiElement|nil
+-- Add a Network ID header line
+---@param ui LuaGuiElement The parent UI element to add the header to
+---@param player_table PlayerData The player's data table
 local function add_network_id_header(ui, player_table)
   if not ui or not ui.valid then return nil end
 
@@ -20,6 +22,7 @@ local function add_network_id_header(ui, player_table)
   player_table.ui.network_settings.network_id_header = header
 end
 
+-- Add a header line to indicate a section of settings beginning
 ---@returns LuaGuiElement|nil
 local function add_settings_header(ui, caption)
   if not ui or not ui.valid then return nil end
@@ -28,6 +31,10 @@ local function add_settings_header(ui, caption)
   return header
 end
 
+-- Add a checkbox setting
+---@param ui LuaGuiElement The parent UI element to add the header to
+---@param setting_name string The name of the setting (used for localization keys and element names)
+---@param default_state boolean The default state of the checkbox
 local function add_checkbox_setting(ui, setting_name, default_state)
   if not ui or not ui.valid or not setting_name then return end
 
@@ -36,6 +43,7 @@ local function add_checkbox_setting(ui, setting_name, default_state)
   return checkbox
 end
 
+-- Add a setting that has a text label and a Clear button, referring to a list of things
 ---@param ui LuaGuiElement The parent UI element to add the setting to
 ---@param caption LocalisedString The caption for the setting
 ---@param action_name string The action tag to associate with the Clear button
@@ -54,9 +62,9 @@ local function add_setting_with_clear_button(ui, caption, action_name)
   return setting_flow
 end
 
+-- Add all suggestions-related settings
 ---@param ui LuaGuiElement The parent UI element to add the settings to
 ---@param player_table PlayerData The player's data table
----@returns LuaGuiElement|nil
 local function add_suggestions_settings(ui, player_table)
   if not ui or not ui.valid then return end
 
@@ -70,9 +78,9 @@ local function add_suggestions_settings(ui, player_table)
   player_table.ui.network_settings.mismatched_storage_flow = flow
 end
 
+-- Add all Undersupply-related settings
 ---@param ui LuaGuiElement The parent UI element to add the settings to
 ---@param player_table PlayerData The player's data table
----@returns LuaGuiElement|nil
 local function add_undersupply_settings(ui, player_table)
   if not ui or not ui.valid then return end
 
@@ -94,7 +102,7 @@ function network_settings.create_frame(parent, player)
 
   player_data.register_ui(player_table, "network_settings")
 
-  local window = parent.add {type = "frame", name = WINDOW_NAME, direction = "vertical", style = "li_window_style", dialog = true}
+  local window = parent.add {type = "frame", name = WINDOW_NAME, direction = "vertical", style = "li_window_style"}
 
     -- Content: Area to host settings for the network
     local inside_frame = window.add{type = "frame", name = WINDOW_NAME.."-inside", style = "inside_deep_frame", direction = "vertical"}
@@ -154,7 +162,7 @@ function network_settings.update(player, player_table)
   update_setting_with_clear_button(flow, clear_undersupply_ignore_list_action, count)
 end
 
-function adopt_checkbox_state(event)
+local function adopt_checkbox_state(event)
   local player_table = player_data.get_player_table(event.player_index)
   if not player_table then return false end
 
@@ -172,7 +180,7 @@ function adopt_checkbox_state(event)
 end
 
 -- Clear the relevant list and refresh the window to show the effect
-function clear_list_and_refresh(event)
+local function clear_list_and_refresh(event)
   local player_table = player_data.get_player_table(event.player_index)
   if not player_table then return false end
 

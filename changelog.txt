@@ -1,8 +1,13 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.11.0
 Date: ????
+  Features:
+    - Each network now has settings that allows you to fine tune how it is analysed
+    - Shift-click on a "mismatched storage" suggestion to ignore those chests in future analyses
+    - Shift-click on an "undersupply" item to ignore that item in future analyses
+    - To ignore filter mismatches for higher-quality items, check the new per-network setting
   Changes:
-    - You can now shift-click on a mismatched storage suggestion to ignore those mismatches in future analyses
+    - The mini button on the Network row now opens the Networks window with the settings pane open to current network
 ---------------------------------------------------------------------------------------------------
 Version: 0.10.14
 Date: 2025-09-24
