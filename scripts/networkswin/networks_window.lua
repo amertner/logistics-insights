@@ -360,19 +360,26 @@ function networks_window.toggle_window_visible(player)
   player_table.networks_window_visible = w.visible
 end
 
+---@param player_table? PlayerData
+local function close_settings_pane(player_table)
+  if not player_table or not player_table.ui or not player_table.ui.networks then return end
+  player_table.settings_network_id = nil
+  player_table.ui.networks.settings_frame.visible = false
+end
+
 --- Ensure the Networks table has exactly `count` data rows (below the header).
 --- Rows are created with placeholder cells so they can be filled later without resizing.
 --- @param player LuaPlayer
---- @param count integer Expected range 0-100
+--- @param count integer Number of networks to show data for
 function networks_window.update_network_count(player, count)
   if not player or not player.valid then return end
   local player_table = player_data.get_player_table(player.index)
   if not player_table or not player_table.networks_window_visible then
+    close_settings_pane(player_table)
     return
   end
 
   if not player_table or not player_table.ui or not player_table.ui.networks then return end
-  if type(count) ~= "number" then return end
   if count < 0 then count = 0 end
 
   local table_el = player_table.ui.networks.table_elements
@@ -447,6 +454,7 @@ function networks_window.update(player)
   -- Ensure row count matches
   networks_window.update_network_count(player, #list)
 
+  local seen_settings_network = false
   for i, nw in ipairs(list) do
     for _, col in ipairs(cell_setup) do
       local name = string.format("%s-cell-%d-%s", WINDOW_NAME, i, col.key)
@@ -455,10 +463,17 @@ function networks_window.update(player)
         col.populate(el, nw, player_table)
       end
     end
+    if nw.id == player_table.settings_network_id then
+      seen_settings_network = true
+    end
   end
 
   -- Update settings frame
-  network_settings.update(player, player_table)
+  if seen_settings_network then
+    network_settings.update(player, player_table)
+  elseif player_table.settings_network_id then
+    close_settings_pane(player_table)
+  end
 end
 
 --- Handle clicks on Networks window mini buttons (settings/trash).
@@ -491,6 +506,7 @@ function networks_window.on_gui_click(event)
     local network_id = tonumber(element.tags.network_id)
     local networkdata = network_data.get_networkdata_fromid(network_id)
     local network = networkdata and network_data.get_LuaNetwork(networkdata)
+    local player_table = player_data.get_player_table(event.player_index)
 
     if col_key == "view" and network then
       -- In map view, focus on a random roboport in the network
@@ -504,31 +520,29 @@ function networks_window.on_gui_click(event)
       end
       -- Open the main window if not already open
       return "openmain"
-    elseif col_key == "settings" and network_id then
+    elseif col_key == "settings" and network_id and player_table then
       -- Show/hide settings for this network
-      local player_table = player_data.get_player_table(event.player_index)
-      if player_table then
-        local is_open = player_table.ui.networks.settings_frame.visible
-        if is_open then
-          if player_table.settings_network_id == network_id then
-            -- Close the currently open settings
-            player_table.ui.networks.settings_frame.visible = false
-            player_table.settings_network_id = nil
-          else
-            -- Opening settings for this (new) network
-            player_table.settings_network_id = network_id
-          end
+      local is_open = player_table.ui.networks.settings_frame.visible
+      if is_open then
+        if player_table.settings_network_id == network_id then
+          close_settings_pane(player_table)
         else
-          -- Open the window on the selected network
+          -- Opening settings for this (new) network
           player_table.settings_network_id = network_id
-          player_table.ui.networks.settings_frame.visible = true
         end
-        networks_window.update(player)
+      else
+        -- Open the window on the selected network
+        player_table.settings_network_id = network_id
+        player_table.ui.networks.settings_frame.visible = true
       end
+      networks_window.update(player)
       return nil
-    elseif col_key == "trash" and network_id then
+    elseif col_key == "trash" and network_id and player_table then
       -- Remove the network from storage
       if network_data.remove_network(network_id) then
+        if player_table.settings_network_id == network_id then
+          close_settings_pane(player_table)
+        end
         -- Update the window after removal
         networks_window.update(player)
       end

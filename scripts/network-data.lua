@@ -343,6 +343,7 @@ end
 function network_data.remove_network(network_id)
   -- Remove the network from storage
   storage.networks[network_id] = nil
+  return true
 end
 
 -- If the setting "li-show-all-networks" is false, purge networks that are not currently observed by any player
