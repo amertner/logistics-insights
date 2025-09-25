@@ -53,7 +53,7 @@ local function add_setting_with_clear_button(ui, caption, action_name)
 
   local setting_flow = ui.add{type="flow", direction="horizontal"}
   setting_flow.style.horizontal_spacing = 8
-  local label = setting_flow.add{type="label", style="label", name=action_name.."-label", caption={caption, 0}, tooltip={caption.."-tooltip"}}
+  local label = setting_flow.add{type="label", style="label", name=action_name.."-label", caption={caption, 0}, tooltip={caption.."-tooltip"}, tags={caption_key=caption}}
   label.style.top_margin = 4
   local space = setting_flow.add {type = "empty-widget", style = "draggable_space"}
   space.style.horizontally_stretchable = true
@@ -124,7 +124,8 @@ local function update_setting_with_clear_button(setting_flow, action_name, count
 
   local label = setting_flow[action_name.."-label"]
   if label and label.valid then
-    label.caption = {label.caption[1], count}
+    local key = label.tags and label.tags.caption_key or (label.caption and label.caption[1])
+    label.caption = { key, count }
   end
 
   local button = setting_flow[action_name.."-clear"]
