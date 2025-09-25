@@ -334,8 +334,8 @@ function main_window.onclick(event)
         event.element.toggled = not event.element.toggled
         player_table.fixed_network = event.element.toggled
       elseif event.element.name == "logistics-insights-sorted-network" then
-        -- Show/Hide Networks window
-        networks_window.toggle_window_visible(player)
+        -- Open networks window and show settings for current network
+        networks_window.open_with_settings(player, player_table)
       elseif event.element.name == "logistics-insights-sorted-clear" then
         -- Clear the delivery history and clear the timer
         network_data.clear_delivery_history(player_table.network)

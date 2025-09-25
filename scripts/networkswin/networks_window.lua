@@ -334,7 +334,7 @@ end
 
 --- Set visibility of the Networks window
 --- @param player LuaPlayer The player whose window to toggle
---- @param player_table PlayerData The player's data table
+--- @param player_table? PlayerData The player's data table
 --- @param visible boolean Whether the window should be visible
 function networks_window.set_window_visible(player, player_table, visible)
   if not player or not player.valid or not player_table then return end
@@ -360,11 +360,33 @@ function networks_window.toggle_window_visible(player)
   player_table.networks_window_visible = w.visible
 end
 
+--- Open the Networks window and show settings for the given network ID
+---@param player_table PlayerData
+---@param network_id number
+local function open_settings_pane(player_table, network_id)
+    -- Open the window on the selected network
+  player_table.settings_network_id = network_id
+  player_table.ui.networks.settings_frame.visible = true
+end
+
 ---@param player_table? PlayerData
 local function close_settings_pane(player_table)
   if not player_table or not player_table.ui or not player_table.ui.networks then return end
   player_table.settings_network_id = nil
   player_table.ui.networks.settings_frame.visible = false
+end
+
+--- Open the Networks window and show settings for the current network (if any)
+---@param player LuaPlayer
+---@param player_table? PlayerData
+function networks_window.open_with_settings(player, player_table)
+  networks_window.set_window_visible(player, player_table, true)
+  if player_table and player_table.network then
+    open_settings_pane(player_table, player_table.network.network_id)
+  else
+    close_settings_pane(player_table)
+  end
+  networks_window.update(player)
 end
 
 --- Ensure the Networks table has exactly `count` data rows (below the header).
@@ -531,9 +553,7 @@ function networks_window.on_gui_click(event)
           player_table.settings_network_id = network_id
         end
       else
-        -- Open the window on the selected network
-        player_table.settings_network_id = network_id
-        player_table.ui.networks.settings_frame.visible = true
+        open_settings_pane(player_table, network_id)
       end
       networks_window.update(player)
       return nil
