@@ -201,11 +201,11 @@ local cell_setup = {
         name = name,
         direction = "horizontal",
       }
-      local btn = flow.add{ type = "sprite-button", name = name .. "-view", style = "mini_button", sprite = "virtual-signal/signal-map-marker", tooltip = {"networks-window.view-tooltip"} }
+      local btn = flow.add{ type = "sprite-button", name = name .. "-view", style = "mini_button", sprite = "li-map-marker", tooltip = {"networks-window.view-tooltip"} }
       btn.style.top_margin = 2
       btn = flow.add{ type = "sprite-button", name = name .. "-trash", style = "mini_button", sprite = "utility/trash", tooltip = {"networks-window.trash-tooltip"} }
       btn.style.top_margin = 2
-      btn = flow.add{ type = "sprite-button", name = name .. "-settings", style = "mini_button", sprite = "utility/rename_icon", tooltip = {"networks-window.settings-tooltip"} }
+      btn = flow.add{ type = "sprite-button", name = name .. "-settings", style = "mini_button", sprite = "li-settings", tooltip = {"networks-window.settings-tooltip"} }
       btn.style.top_margin = 2
       return flow
     end,

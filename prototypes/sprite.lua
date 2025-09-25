@@ -86,5 +86,21 @@ data:extend{
     size = 128,
     scale = 1.0,
     flags = {"gui-icon"},
-  }
+  },
+  {
+    type = "sprite",
+    name = "li-settings",
+    filename = "__logistics-insights__/graphics/gear-icon.png",
+    size = 64,
+    scale = 1.0,
+    flags = {"gui-icon"},
+  },
+  {
+    type = "sprite",
+    name = "li-map-marker",
+    filename = "__logistics-insights__/graphics/map-marker.png",
+    size = 64,
+    scale = 1.0,
+    flags = {"gui-icon"},
+  },
 }
