@@ -94,8 +94,9 @@ end
 --- Called when all chunks have been processed
 --- @param accumulator Undersupply_Accumulator The accumulator with gathered statistics
 --- @param gather GatherOptions Gathering options
---- @param networkdata LINetworkData The network data associated with this processing
-function undersupply.all_chunks_done(accumulator, gather, networkdata)
+--- @param network_id number The network data associated with this processing
+function undersupply.all_chunks_done(accumulator, gather, network_id)
+  local networkdata = network_data.get_networkdata_fromid(network_id)
   if networkdata then
     -- We've finished processing all requesters, so calculate supply and net demand
     local network = network_data.get_LuaNetwork(networkdata)

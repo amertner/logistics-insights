@@ -159,8 +159,9 @@ end
 --- Called when all chunks have been processed
 --- @param accumulator StorageAccumulator The accumulator with gathered statistics
 --- @param gather GatherOptions Gathering options
---- @param networkdata LINetworkData The network data associated with this processing
-function suggestions_calc.all_storage_chunks_done(accumulator, gather, networkdata)
+--- @param network_id number The network data associated with this processing
+function suggestions_calc.all_storage_chunks_done(accumulator, gather, network_id)
+  local networkdata = network_data.get_networkdata_fromid(network_id)
   if networkdata then
     local suggestions = networkdata.suggestions
     if accumulator then

@@ -18,7 +18,7 @@ local global_data = require("scripts.global-data")
 ---@field processing_list LuaEntity[]|nil The list of entities to process in chunks
 ---@field processing_count number The total number of entities to process
 ---@field partial_data table Accumulator for partial data during processing
----@field networkdata LINetworkData|nil The network data associated with this chunker
+---@field network_id number|nil The network data associated with this chunker
 ---@field is_finalised boolean Whether the chunker has completed processing
 local chunker = {}
 chunker.__index = chunker
@@ -39,7 +39,7 @@ function chunker.new(divisor)
   self.processing_list = nil
   self.processing_count = 0
   self.partial_data = {}
-  self.networkdata = nil
+  self.network_id = nil
   self.is_finalised = true
   self._progress = { current = 0, total = 0 }
   return self
@@ -52,12 +52,12 @@ function chunker:set_chunk_size()
 end
 
 --- Initialize chunking with a list of entities to process
---- @param networkdata LINetworkData|nil The network data associated with this chunker
+--- @param network_id number The network data associated with this chunker
 --- @param list table|nil The list of entities to process in chunks
 --- @param initial_data any|nil Initial data to pass to the initialization function
 --- @param gather_options GatherOptions Options for what to gather during processing
 --- @param on_init function(partial_data, initial_data) 
-function chunker:initialise_chunking(networkdata, list, initial_data, gather_options, on_init)
+function chunker:initialise_chunking(network_id, list, initial_data, gather_options, on_init)
   self.processing_list = list
   self.processing_count = list and #list or 0 -- Calculate once to avoid recounting
   self.is_finalised = false
@@ -67,22 +67,22 @@ function chunker:initialise_chunking(networkdata, list, initial_data, gather_opt
   if global_data.gather_quality_data() then
     self.gather.quality = true
   end
-  self.networkdata = networkdata
+  self.network_id = network_id
   on_init(self.partial_data, initial_data)
 end
 
 --- Reset the chunker and complete current processing
---- @param networkdata LINetworkData The network data associated with this chunker
+--- @param network_id number The network data associated with this chunker
 --- @param on_init function(partial_data, initial_data) 
---- @param on_completion function(partial_data, player_table)
-function chunker:reset(networkdata, on_init, on_completion)
+--- @param on_completion function(partial_data, player_table, network_id)
+function chunker:reset(network_id, on_init, on_completion)
   -- Do whatever needs doing when the list is done
   if not self.is_finalised then
     self.is_finalised = true
-    on_completion(self.partial_data, self.gather, self.networkdata)
+    on_completion(self.partial_data, self.gather, self.network_id)
   end
   -- Reset the counter and claim completion
-  self:initialise_chunking(nil, nil, networkdata, self.gather, on_init)
+  self:initialise_chunking(0, nil, network_id, self.gather, on_init)
 end
 
 --- Get the total number of chunks needed to process the current list
@@ -151,12 +151,12 @@ end
 function chunker:finalise_run(on_completion)
   if not self.is_finalised then
     self.is_finalised = true
-    on_completion(self.partial_data, self.gather, self.networkdata)
+    on_completion(self.partial_data, self.gather, self.network_id)
   end
 end
 
 --- Process one chunk of entities from the current list
---- @param on_process_entity function(entity, partial_data, gather_options, networkdata)
+--- @param on_process_entity function(entity, partial_data, gather_options, network_id)
 function chunker:process_chunk(on_process_entity)
   if self.is_finalised then
     return -- Nothing to do
@@ -171,7 +171,7 @@ function chunker:process_chunk(on_process_entity)
   while (consumed < chunk_size) and (current_index <= list_size) do
     local entity = processing_list[current_index]
     if entity.valid then
-      local cost = on_process_entity(entity, self.partial_data, self.gather, self.networkdata)
+      local cost = on_process_entity(entity, self.partial_data, self.gather, self.network_id)
       consumed = consumed + cost
     end
     current_index = current_index + 1

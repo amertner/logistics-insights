@@ -11,6 +11,8 @@ local suggestions = require("scripts.suggestions")
 local logistic_cell_counter = require("scripts.logistic-cell-counter")
 local bot_counter = require("scripts.bot-counter")
 local global_data = require("scripts.global-data")
+local debugger = require("scripts.debugger")
+local json = require("scripts.json")
 
 local function init_storage_and_settings()
   player_data.init_storages()
@@ -306,7 +308,34 @@ local li_migrations = {
       player_table.settings_network_id = nil
       reinitialise_ui(player, player_table)
     end
-  end
+  end,
+
+  ["0.11.1"] = function()    
+    -- No longer store the networkdata in the chunkers, causes recursion during save!
+    for _, nwd in pairs(storage.networks) do
+      nwd.cell_chunker.network_id = nwd.id
+      nwd.cell_chunker.networkdata = nil
+      nwd.bot_chunker.network_id = nwd.id
+      nwd.bot_chunker.networkdata = nil
+    end
+    local analysis_chunker = storage.analysis_state.storage_chunker
+    if analysis_chunker then
+      analysis_chunker.network_id = analysis_chunker.networkdata.id
+      analysis_chunker.networkdata = nil
+    end
+    analysis_chunker = storage.analysis_state.undersupply_chunker
+    if analysis_chunker then
+      analysis_chunker.network_id = analysis_chunker.networkdata.id
+      analysis_chunker.networkdata = nil
+    end
+
+    -- helpers.write_file("player.json", helpers.table_to_json(storage.players))
+    -- for _, nwd in pairs(storage.networks) do
+    --   local name = "network-"..nwd.id..".json"
+    --   helpers.write_file(name, helpers.table_to_json(nwd))
+    -- end
+    -- helpers.write_file("analysis_state.json", helpers.table_to_json(storage.analysis_state))
+  end,
 }
 
 return li_migrations

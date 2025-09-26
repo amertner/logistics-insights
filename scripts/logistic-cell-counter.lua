@@ -33,9 +33,9 @@ end
 --- @param cell LuaLogisticCell The logistic cell to process
 --- @param accumulator CellAccumulator The accumulator for gathering statistics
 --- @param gather GatherOptions Whether to gather quality data
---- @param networkdata LINetworkData The network data associated with this cell
+--- @param network_id number The network data associated with this cell
 --- @return number Return number of "processing units" consumed, default is 1
-local function process_one_cell(cell, accumulator, gather, networkdata)
+local function process_one_cell(cell, accumulator, gather, network_id)
   local consumed = 1
   local bots_charging = accumulator.bots_charging
   local bots_waiting = accumulator.bots_waiting_for_charge
@@ -112,9 +112,10 @@ end
 --- Complete processing of all chunks and store results
 --- @param accumulator CellAccumulator The accumulator containing gathered statistics
 --- @param gather GatherOptions for what to gather
---- @param networkdata LINetworkData The network data to update with results
-local function all_chunks_done(accumulator, gather, networkdata)
-  if networkdata then
+--- @param network_id number The network data to update with results
+local function all_chunks_done(accumulator, gather, network_id)
+  local networkdata = network_data.get_networkdata_fromid(network_id)
+  if networkdata then    
     local bot_items = networkdata.bot_items
     bot_items["charging-robot"] = accumulator.bots_charging
     bot_items["waiting-for-charge-robot"] = accumulator.bots_waiting_for_charge
@@ -131,7 +132,7 @@ end
 --- @param networkdata LINetworkData|nil The network data to reset
 function logistic_cell_counter.restart_counting(networkdata)
   if networkdata then
-    networkdata.cell_chunker:reset(networkdata, initialise_cell_network_list, all_chunks_done)
+    networkdata.cell_chunker:reset(networkdata.id, initialise_cell_network_list, all_chunks_done)
   end
 end
 
@@ -149,7 +150,7 @@ function logistic_cell_counter.network_changed(player, player_table)
       return
     end
 
-    networkdata.cell_chunker:reset(networkdata, initialise_cell_network_list, all_chunks_done)
+    networkdata.cell_chunker:reset(networkdata.id, initialise_cell_network_list, all_chunks_done)
     network_data.init_logistic_cell_counter_storage(player_table.network)
     networkdata.suggestions:clear_suggestions()
   end
@@ -173,7 +174,7 @@ function logistic_cell_counter.init_foreground_processing(networkdata, network)
   networkdata.bot_items["logistic-robot-available"] = network.available_logistic_robots
 
   if gather_activity then
-    networkdata.cell_chunker:initialise_chunking(networkdata, network.cells, nil, {}, initialise_cell_network_list)
+    networkdata.cell_chunker:initialise_chunking(networkdata.id, network.cells, nil, {}, initialise_cell_network_list)
   end
 end
 
@@ -194,7 +195,7 @@ function logistic_cell_counter.init_background_processing(networkdata, network)
   networkdata.bot_items["logistic-robot-available"] = network.available_logistic_robots
 
   logistic_cell_counter.restart_counting(networkdata)
-  networkdata.cell_chunker:initialise_chunking(networkdata, network.cells, nil, gather_options, initialise_cell_network_list)
+  networkdata.cell_chunker:initialise_chunking(networkdata.id, network.cells, nil, gather_options, initialise_cell_network_list)
 end
 
 --- NETWORK PROCESSING IN CHUNKS

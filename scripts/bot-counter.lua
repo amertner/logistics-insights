@@ -149,14 +149,18 @@ end
 --- @param bot LuaEntity The robot entity to process
 --- @param accumulator Accumulator The data accumulator containing counters and bot lists
 --- @param gather GatherOptions for what to gather
---- @param networkdata LINetworkData The network data associated with this chunker
+--- @param network_id number The network data associated with this chunker
 --- @return number Return number of "processing units" consumed, default is 1
-local function process_one_bot(bot, accumulator, gather, networkdata)
+local function process_one_bot(bot, accumulator, gather, network_id)
   local consumed = 0
   if bot and bot.valid then
     local unit_number = bot.unit_number
     if not unit_number then
       -- No unit number, so we can't track this bot
+      return 0
+    end
+    local networkdata = network_data.get_networkdata_fromid(network_id)
+    if not networkdata then
       return 0
     end
     consumed = 1
@@ -232,8 +236,9 @@ end
 --- This function is called when all chunks are done processing, ready for a new chunk
 --- @param accumulator Accumulator The data accumulator containing all gathered statistics
 --- @param gather GatherOptions for what to gather
---- @param networkdata LINetworkData The network data to update with results
-local function bot_chunks_done(accumulator, gather, networkdata)
+--- @param network_id number The network data to update with results
+local function bot_chunks_done(accumulator, gather, network_id)
+  local networkdata = network_data.get_networkdata_fromid(network_id)
   if networkdata then
     networkdata.bot_items["delivering"] = accumulator.delivering_bots or nil
     networkdata.bot_items["picking"] = accumulator.picking_bots or nil
@@ -282,7 +287,7 @@ end
 --- @param networkdata LINetworkData|nil
 function bot_counter.restart_counting(networkdata)
   if networkdata then
-    networkdata.bot_chunker:reset(networkdata, bot_initialise_chunking, bot_chunks_done)
+    networkdata.bot_chunker:reset(networkdata.id, bot_initialise_chunking, bot_chunks_done)
   end
 end
 
@@ -322,7 +327,7 @@ function bot_counter.init_foreground_processing(networkdata, network)
       gather_options.quality = true
     end
 
-    networkdata.bot_chunker:initialise_chunking(networkdata, network.logistic_robots, networkdata.last_pass_bots_seen, gather_options, bot_initialise_chunking)
+    networkdata.bot_chunker:initialise_chunking(networkdata.id, network.logistic_robots, networkdata.last_pass_bots_seen, gather_options, bot_initialise_chunking)
   else
     networkdata.bot_items["delivering"] = nil
     networkdata.bot_items["picking"] = nil
@@ -341,7 +346,7 @@ function bot_counter.init_background_processing(networkdata, network)
     gather_options.quality = true
   end
 
-  networkdata.bot_chunker:initialise_chunking(networkdata, network.logistic_robots, networkdata.last_pass_bots_seen, gather_options, bot_initialise_chunking)
+  networkdata.bot_chunker:initialise_chunking(networkdata.id, network.logistic_robots, networkdata.last_pass_bots_seen, gather_options, bot_initialise_chunking)
 end
 
 --- NETWORK SCANNING IN CHUNKS ---
