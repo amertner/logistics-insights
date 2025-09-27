@@ -174,6 +174,8 @@ local li_migrations = {
         player_table.settings.chunk_size = nil
         player_table.settings.bot_chunk_interval = nil
         player_table.settings.gather_quality_data = nil
+        player_table.bot_chunker = nil
+        player_table.cell_chunker = nil
       end
     end
 
@@ -310,31 +312,38 @@ local li_migrations = {
     end
   end,
 
-  ["0.11.1"] = function()    
-    -- No longer store the networkdata in the chunkers, causes recursion during save!
-    for _, nwd in pairs(storage.networks) do
-      nwd.cell_chunker.network_id = nwd.id
-      nwd.cell_chunker.networkdata = nil
-      nwd.bot_chunker.network_id = nwd.id
-      nwd.bot_chunker.networkdata = nil
+  ["0.11.1"] = function()
+    ---@param achunker Chunker
+    local function migrate_chunker(achunker)
+      if achunker then
+        if achunker.networkdata then
+          achunker.network_id = achunker.networkdata.id
+        else
+          achunker.network_id = 0
+        end
+        ---@diagnostic disable-next-line: inject-field
+        achunker.networkdata = nil
+      end
     end
-    local analysis_chunker = storage.analysis_state.storage_chunker
-    if analysis_chunker then
-      analysis_chunker.network_id = analysis_chunker.networkdata.id
-      analysis_chunker.networkdata = nil
-    end
-    analysis_chunker = storage.analysis_state.undersupply_chunker
-    if analysis_chunker then
-      analysis_chunker.network_id = analysis_chunker.networkdata.id
-      analysis_chunker.networkdata = nil
+    -- Chunkers do not belong in the player table
+    for player_index, player_table in pairs(storage.players) do
+      ---@diagnostic disable-next-line: inject-field
+      player_table.bot_chunker = nil
+      ---@diagnostic disable-next-line: inject-field
+      player_table.cell_chunker = nil
     end
 
-    -- helpers.write_file("player.json", helpers.table_to_json(storage.players))
-    -- for _, nwd in pairs(storage.networks) do
-    --   local name = "network-"..nwd.id..".json"
-    --   helpers.write_file(name, helpers.table_to_json(nwd))
-    -- end
-    -- helpers.write_file("analysis_state.json", helpers.table_to_json(storage.analysis_state))
+    -- No longer store the networkdata in the chunkers, causes recursion during save!
+    for _, nwd in pairs(storage.networks) do
+      migrate_chunker(nwd.cell_chunker)
+      migrate_chunker(nwd.bot_chunker)
+      network_data.prune_old_data(nwd, true)
+    end
+    local state = storage.analysis_state
+    if state then
+      migrate_chunker(state.storage_chunker)
+      migrate_chunker(state.undersupply_chunker)
+    end
   end,
 }
 

@@ -80,6 +80,7 @@ function chunker:reset(network_id, on_init, on_completion)
   if not self.is_finalised then
     self.is_finalised = true
     on_completion(self.partial_data, self.gather, self.network_id)
+    self.processing_list = nil -- Save memory by clearing this
   end
   -- Reset the counter and claim completion
   self:initialise_chunking(0, nil, network_id, self.gather, on_init)

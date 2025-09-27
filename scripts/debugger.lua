@@ -39,5 +39,16 @@ function debugger.set_level(level)
   debug_level = level
 end
 
+-- Dump key storages to files for debugging
+function debugger.dump_storage_to_disk()
+  helpers.write_file("player.json", helpers.table_to_json(storage.players))
+  for _, nwd in pairs(storage.networks) do
+    local name = "network-"..nwd.id..".json"
+    helpers.write_file(name, helpers.table_to_json(nwd))
+  end
+  if storage.analysis_state then
+    helpers.write_file("analysis_state.json", helpers.table_to_json(storage.analysis_state))
+  end
+end
 
 return debugger

@@ -17,6 +17,7 @@ local network_row = require("scripts.mainwin.network_row")
 local undersupply_row = require("scripts.mainwin.undersupply_row")
 local suggestions_row = require("scripts.mainwin.suggestions_row")
 local networks_window = require("scripts.networkswin.networks_window")
+local debugger = require("scripts.debugger")
 
 -- Control action dispatch (freeze / unfreeze / step)
 -- Control button handling moved to game_state.handle_control_button for centralization

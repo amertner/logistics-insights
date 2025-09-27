@@ -524,5 +524,43 @@ function network_data.add_item_to_ignorelist_for_undersupply(networkdata, iq)
   networkdata.ignored_items_for_undersupply[utils.get_ItemQuality_key(iq)] = true
 end
 
+-- Remove all data that should not be there as it's too old
+---@param networkdata LINetworkData|nil The network data to prune
+---@param is_migration boolean True if this is being called as part of a migration, false
+function network_data.prune_old_data(networkdata, is_migration)
+  if not networkdata then return end
+  local last_scan_tick = networkdata.last_scanned_tick
+  local removed = 0
+
+  -- Check bot_active_deliveries for bots that didn't show ip in the last scan
+  if is_migration then
+    -- If it's a migration, we're likely to remove a lot of entries, so create new table
+    local new_deliveries = {}
+    for unit_number, bot in pairs(networkdata.bot_active_deliveries) do
+      if bot.last_seen >= last_scan_tick then
+        new_deliveries[unit_number] = bot
+      else
+        removed = removed + 1
+      end
+    end
+    networkdata.bot_active_deliveries = new_deliveries
+  else
+    -- In-place removal for normal use (few removals)
+    for unit_number, bot in pairs(networkdata.bot_active_deliveries) do
+      if bot.last_seen < last_scan_tick then
+        networkdata.bot_active_deliveries[unit_number] = nil
+        removed = removed + 1
+      end
+    end
+  end
+
+  if removed > 0 then
+    if is_migration then
+      debugger.warn("[Migration]: Pruned " .. tostring(removed) .. " old bot deliveries from network ID " .. tostring(networkdata.id))
+    else
+      debugger.info("Pruned " .. tostring(removed) .. " old bot deliveries from network ID " .. tostring(networkdata.id))
+    end
+  end
+end
 
 return network_data

@@ -3,6 +3,8 @@ Version: 0.11.1
 Date: ????
   Changes:
     - Optimised save file size and save time
+  Bugfixes:
+    - Fixed a memory leak where the bot history would grow indefinitely when background scanning large networks
 ---------------------------------------------------------------------------------------------------
 Version: 0.11.0
 Date: 2025-09-25

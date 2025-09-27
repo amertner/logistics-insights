@@ -133,15 +133,15 @@ end
 --- @param unit_number number The unique identifier of the robot
 --- @param show_history boolean Whether history tracking is enabled
 local function check_if_no_order_bot_finished_delivery(networkdata, unit_number, show_history)
-  if show_history then
-    -- The bot has a delivery interval but no delivery, so it's finished
-    local delivered_order = networkdata.bot_active_deliveries[unit_number]
-    if delivered_order then
+  -- The bot has a delivery interval but no delivery, so it's finished or just gone
+  local delivered_order = networkdata.bot_active_deliveries[unit_number]
+  if delivered_order then
+    if show_history then
       add_delivered_order_to_history(networkdata.delivery_history, delivered_order)
-
-      -- Remove from active deliveries being tracked
-      networkdata.bot_active_deliveries[unit_number] = nil
     end
+
+    -- Remove from active deliveries being tracked
+    networkdata.bot_active_deliveries[unit_number] = nil
   end
 end
 
@@ -207,7 +207,7 @@ local function process_one_bot(bot, accumulator, gather, network_id)
           end
         end
       else
-        -- This is a situation that should not occur: we haver an order but no target item. Clear it.
+        -- This is a situation that should not occur: we have an order but no target item. Clear it.
         check_if_no_order_bot_finished_delivery(networkdata, unit_number, gather.history)
       end
     else
@@ -263,7 +263,7 @@ local function bot_chunks_done(accumulator, gather, network_id)
     end
     networkdata.total_bot_qualities = total_bot_qualities
 
-    if gather.history and table_size(networkdata.bot_active_deliveries) > 0 then
+    if table_size(networkdata.bot_active_deliveries) > 0 then
       -- Consider bots we saw last pass but not this chunk pass as delivered.
       -- They are either destroyed or parked in a roboport, no longer part of the network
       if accumulator.last_seen then
@@ -273,13 +273,14 @@ local function bot_chunks_done(accumulator, gather, network_id)
             accumulator.just_seen[unit_number] = seen_bot_last_pass
           else
             -- We did not see this bot in the last pass, so it probably finished its delivery
-            check_if_no_order_bot_finished_delivery(networkdata, unit_number, true)
+            check_if_no_order_bot_finished_delivery(networkdata, unit_number, gather.history)
           end
         end
       end
     end
     -- Save the last-seen list so it can be used in the next pass
     networkdata.last_pass_bots_seen = accumulator.just_seen or {}
+    network_data.prune_old_data(networkdata, false)
   end
 end
 
