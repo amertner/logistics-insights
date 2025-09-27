@@ -27,7 +27,6 @@ local utils = require("scripts.utils")
 ---@ -- Data capture fields
 ---@field last_scanned_tick number -- The last tick this network's cell and bot data was updated
 ---@field last_analysed_tick number -- The last tick this network's suggestios and undersupply were analysed
----@field last_accessed_tick number -- The last tick this network's data was accessed
 ---@field last_pass_bots_seen table<number, number> -- A list of bots seen in the last full pass
 ---@ -- Fields populated by analysing cells
 ---@field idle_bot_qualities QualityTable Quality of idle bots in roboports
@@ -88,14 +87,7 @@ function network_data.get_networkdata(network)
   if not network or not network.valid or not network.network_id or not storage.networks then
     return nil -- No network ID or storage available
   end
-  local networkdata = storage.networks[network.network_id]
-  if not networkdata then
-    return nil -- No data for this network
-  else
-    -- Update last-accessed
-    networkdata.last_accessed_tick = game.tick
-    return networkdata
-  end
+  return storage.networks[network.network_id]
 end
 
 ---@param network_id number|nil The network to get data for
@@ -104,14 +96,7 @@ function network_data.get_networkdata_fromid(network_id)
   if not network_id or not storage.networks then
     return nil -- No network ID or storage available
   end
-  local networkdata = storage.networks[network_id]
-  if not networkdata then
-    return nil -- No data for this network
-  else
-    -- Update last-accessed
-    networkdata.last_accessed_tick = game.tick
-    return networkdata
-  end
+  return storage.networks[network_id]
 end
 
 ---@param network LuaLogisticNetwork|nil The network to create storage for
@@ -213,20 +198,6 @@ function network_data.clear_history_from_nwd(networkdata)
     networkdata.delivery_history = {} -- Clear the delivery history
   end
 end
-
---- Clear all bot deliveries for a network, to avoid filling up memory
---- @param max_age_ticks number If a network hasn't been accessed for this many ticks, its data will be cleared
-function network_data.clear_old_network_data(max_age_ticks)
-  -- Clear old network data that is no longer needed
-  local tick_limit = game.tick - max_age_ticks
-  for network_id, networkdata in pairs(storage.networks) do
-    if networkdata.last_accessed_tick < tick_limit then
-      -- Remove the network data if it hasn't been accessed for a long time
-      storage.networks[network_id] = nil
-    end
-  end
-end
-
 
 ---@param player LuaPlayer|nil
 ---@param player_table PlayerData|nil

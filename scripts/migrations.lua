@@ -343,6 +343,9 @@ local li_migrations = {
       remove_localised_strings(nwd.bot_deliveries)
       remove_localised_strings(nwd.bot_active_deliveries)
       remove_localised_strings(nwd.delivery_history)
+
+      ---@diagnostic disable-next-line: inject-field
+      nwd.last_accessed_tick = nil -- Remove obsolete field
     end
   end,
 }
