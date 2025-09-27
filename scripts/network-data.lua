@@ -49,16 +49,12 @@ local utils = require("scripts.utils")
 ---@class DeliveryItem
 ---@field item_name string -- The name of the item being delivered
 ---@field quality_name? string -- The quality of the item, if applicable
----@field localised_name? LocalisedString -- The localised name of the item
----@field localised_quality_name? LocalisedString -- The localised name of the quality
 ---@field count number -- How many are being delivered
 
 -- Record used to show historically delivered items
 ---@class DeliveredItems
 ---@field item_name string -- The name of the item being delivered
 ---@field quality_name? string -- The quality of the item, if applicable
----@field localised_name? LocalisedString -- The localised name of the item
----@field localised_quality_name? LocalisedString -- The localised name of the quality
 ---@field count number -- How many of this item have been delivered
 ---@field ticks number -- Total ticks for all deliveries of this item
 ---@field avg number -- Average ticks per delivery, equal to ticks/count
@@ -67,8 +63,6 @@ local utils = require("scripts.utils")
 ---@class BotDeliveringInFlight
 ---@field item_name string -- The name of the item being delivered
 ---@field quality_name? string -- The quality of the item, if applicable
----@field localised_name? LocalisedString -- The localised name of the item
----@field localised_quality_name? LocalisedString -- The localised name of the quality
 ---@field count number -- How many of this item it is delivering
 ---@field targetpos MapPosition -- The target position for the delivery
 ---@field first_seen number -- The first tick this bot was seen delivering it

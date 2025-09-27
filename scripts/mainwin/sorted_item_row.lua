@@ -73,26 +73,24 @@ end -- add
 --- @param clearing boolean Whether this update is due to clearing history
 --- @param show_click_tip LocalisedString|nil String to show if the cell is clickable
 function sorted_item_row.update(player_table, title, all_entries, sort_fn, number_field, clearing, show_click_tip)
-
   --- Generate tooltip text for a cell based on the entry data and number field type
   --- @param entry DeliveryItem|DeliveredItems|UndersupplyItem The entry containing item data
   --- @return LocalisedString The formatted tooltip for the cell
   local function getcelltooltip(entry)
     local tip
-    local quality = entry.localised_quality_name or entry.quality_name or "?"
-    local name = entry.localised_name or entry.item_name or "?"
+    local localised = utils.get_localised_names(entry)
     if number_field == "count" then
-      tip = {"", {"item-row.count-field-tooltip-1count-2quality-3itemname", entry.count, quality, name}}
+      tip = {"", {"item-row.count-field-tooltip-1count-2quality-3itemname", entry.count, localised.qname, localised.iname}}
     elseif number_field == "ticks" then
-      tip = {"", {"item-row.ticks-field-tooltip-1ticks-2count-3quality-4itemname", entry.ticks, entry.count, quality, name}}
+      tip = {"", {"item-row.ticks-field-tooltip-1ticks-2count-3quality-4itemname", entry.ticks, entry.count, localised.qname, localised.iname}}
     elseif number_field == "avg" then
       local int_part = math_floor(entry.avg)
       local decimal_part = math_floor((entry.avg - int_part) * 10 + 0.5)
       local ticks_formatted = int_part .. "." .. decimal_part
-      tip = {"", {"item-row.avg-field-tooltip-1ticks-2count-3quality-4itemname", ticks_formatted, entry.count, quality, name}}
+      tip = {"", {"item-row.avg-field-tooltip-1ticks-2count-3quality-4itemname", ticks_formatted, entry.count, localised.qname, localised.iname}}
     elseif number_field == "shortage" then
       tip = {"", {"undersupply-row.shortage-tooltip-1shortage_2item_3quality_4requested_5storage_6underway",
-        entry.shortage, name, quality, entry.request, entry.supply, entry.under_way}}
+        entry.shortage, localised.iname, localised.qname, entry.request, entry.supply, entry.under_way}}
     end
     if show_click_tip then
       -- Add a click tip if provided

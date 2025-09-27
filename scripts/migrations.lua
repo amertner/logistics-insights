@@ -32,26 +32,6 @@ end
 
 -- All migrations. MUST BE SORTED BY VERSION NUMBER!
 local li_migrations = {
-  ["0.9.3"] = function()
-    local function add_localised_names_to(list)
-      for key, entry in pairs(list) do
-        if entry.item_name and entry.quality_name then
-          if prototypes.item[entry.item_name] then
-            entry.localised_name = prototypes.item[entry.item_name].localised_name
-          elseif prototypes.entity[entry.item_name] then
-            entry.localised_name = prototypes.entity[entry.item_name].localised_name
-          end
-          entry.localised_quality_name = prototypes.quality[entry.quality_name].localised_name
-        end
-      end
-    end
-
-    -- Stored state now needs to hold localised names too
-    add_localised_names_to(storage.delivery_history)
-    add_localised_names_to(storage.bot_active_deliveries)
-    add_localised_names_to(storage.bot_deliveries)
-  end,
-
   ["0.9.7"] = function()
     for player_index, player_table in pairs(storage.players) do
       local player = game.get_player(player_index)
@@ -174,7 +154,10 @@ local li_migrations = {
         player_table.settings.chunk_size = nil
         player_table.settings.bot_chunk_interval = nil
         player_table.settings.gather_quality_data = nil
+
+        ---@diagnostic disable-next-line: inject-field
         player_table.bot_chunker = nil
+        ---@diagnostic disable-next-line: inject-field
         player_table.cell_chunker = nil
       end
     end
@@ -325,6 +308,16 @@ local li_migrations = {
         achunker.networkdata = nil
       end
     end
+
+    local function remove_localised_strings(table)
+      for _, item_record in pairs(table) do
+        if item_record then
+          item_record.localised_name = nil
+          item_record.localised_quality_name = nil
+        end
+      end
+    end
+
     -- Chunkers do not belong in the player table
     for player_index, player_table in pairs(storage.players) do
       ---@diagnostic disable-next-line: inject-field
@@ -343,6 +336,13 @@ local li_migrations = {
     if state then
       migrate_chunker(state.storage_chunker)
       migrate_chunker(state.undersupply_chunker)
+    end
+
+    -- Remove localised names from item records to save space and time
+    for _, nwd in pairs(storage.networks) do
+      remove_localised_strings(nwd.bot_deliveries)
+      remove_localised_strings(nwd.bot_active_deliveries)
+      remove_localised_strings(nwd.delivery_history)
     end
   end,
 }

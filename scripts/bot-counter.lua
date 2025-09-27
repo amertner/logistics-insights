@@ -34,8 +34,6 @@ local function add_delivered_order_to_history(delivery_history, order)
     delivery_history[key] = {
       item_name = order.item_name,
       quality_name = order.quality_name,
-      localised_name = order.localised_name,
-      localised_quality_name = order.localised_quality_name,
       count = 0,
       ticks = 0,
       avg = 0,
@@ -56,20 +54,16 @@ end
 
 --- Keep track of how many items of each type is being delivered right now
 --- @param item_name string The name of the item being delivered
---- @param localised_name LocalisedString The localised display name of the item
 --- @param quality string The quality name of the item
---- @param localised_quality_name LocalisedString The localised display name of the quality
 --- @param count number The number of items being delivered
 --- @param item_deliveries table<string, DeliveryItem> The list of current deliveries
-local function add_item_to_current_deliveries(item_name, localised_name, quality, localised_quality_name, count, item_deliveries)
+local function add_item_to_current_deliveries(item_name, quality, count, item_deliveries)
   local key = utils.get_item_quality_key(item_name, quality)
   if item_deliveries[key] == nil then
     -- Order not seen before
     item_deliveries[key] = {
       item_name = item_name,
       quality_name = quality,
-      localised_name = localised_name,
-      localised_quality_name = localised_quality_name,
       count = count,
     }
   else -- This item is already being delivered by another bot
@@ -82,11 +76,9 @@ end
 --- @param bot LuaEntity The robot entity
 --- @param order table The robot's delivery order
 --- @param item_name string The name of the item being delivered
---- @param localised_name LocalisedString The localised display name of the item
 --- @param quality string The quality name of the item
---- @param localised_quality_name LocalisedString The localised display name of the quality
 --- @param count number The number of items being delivered
-local function add_bot_to_active_deliveries(networkdata, bot, order, item_name, localised_name, quality, localised_quality_name, count)
+local function add_bot_to_active_deliveries(networkdata, bot, order, item_name, quality, count)
   if not bot.valid or not order then
     return
   end
@@ -116,9 +108,7 @@ local function add_bot_to_active_deliveries(networkdata, bot, order, item_name, 
     -- No order for this bot, so add it
     networkdata.bot_active_deliveries[unit_number] = {
       item_name = item_name,
-      localised_name = localised_name,
       quality_name = quality,
-      localised_quality_name = localised_quality_name,
       count = count,
       first_seen = current_tick,
       last_seen = current_tick,
@@ -194,13 +184,11 @@ local function process_one_bot(bot, accumulator, gather, network_id)
             local item_count = order.target_count or 0
             local qi = target_item.quality
             local item_quality = (qi and qi.name) or "normal"
-            local localised_name = target_item.name.localised_name
-            local localised_quality_name = (qi and qi.localised_name) or ""
 
             -- Record current deliveries
-            add_item_to_current_deliveries(item_name, localised_name, item_quality, localised_quality_name, item_count, accumulator.item_deliveries)
+            add_item_to_current_deliveries(item_name, item_quality, item_count, accumulator.item_deliveries)
             -- Record delivery for history purposes
-            add_bot_to_active_deliveries(networkdata, bot, order, item_name, localised_name, item_quality, localised_quality_name, item_count)
+            add_bot_to_active_deliveries(networkdata, bot, order, item_name, item_quality, item_count)
           else
             -- Check if the bot was delivering last time we saw it, and record the delivery
             check_if_no_order_bot_finished_delivery(networkdata, unit_number, gather.history)

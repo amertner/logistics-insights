@@ -90,4 +90,20 @@ function utils.get_valid_sprite_path(prefix, name)
   return nil
 end
 
+-- Get the localised item and quality names
+---@param entry DeliveryItem|DeliveredItems|UndersupplyItem
+---@return { iname: LocalisedString, qname: LocalisedString }
+function utils.get_localised_names(entry)
+  if entry.item_name and entry.quality_name then
+    if prototypes.item[entry.item_name] then
+      localised_name = prototypes.item[entry.item_name].localised_name
+    elseif prototypes.entity[entry.item_name] then
+      localised_name = prototypes.entity[entry.item_name].localised_name
+    end
+    localised_quality_name = prototypes.quality[entry.quality_name].localised_name
+    return { iname = localised_name, qname = localised_quality_name }
+  end
+  return { iname = entry.item_name, qname = entry.quality_name }
+end
+
 return utils
