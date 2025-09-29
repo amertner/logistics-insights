@@ -233,7 +233,7 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
         -- Update the global bot chunk interval setting
         scheduler.apply_global_settings()
         scheduler.apply_all_player_intervals()
-      elseif e.setting == "li-gather-quality-data-global" then
+      elseif e.setting == "li-gather-quality-data-global" or e.setting == "li-ignore-player-demands-in-undersupply" then
         -- Nothing particular to do yet; will be used on next chunking cycle
       end
     else

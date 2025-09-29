@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.11.2
+Date: 2025-09-29
+  Features:
+    - Added a setting to exclude player logistics requests when calculating undersupply, useful when focusing on factory needs. The default is ON, which is a change in behaviour from earlier versions.
+---------------------------------------------------------------------------------------------------
 Version: 0.11.1
 Date: 2025-09-27
   Changes:

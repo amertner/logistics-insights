@@ -19,6 +19,7 @@ function global_data.settings_changed()
   storage.global.chunk_size = tonumber(settings.global["li-chunk-size-global"].value) or 400
   storage.global.gather_quality_data = settings.global["li-gather-quality-data-global"].value ~= false
   storage.global.show_all_networks = settings.global["li-show-all-networks"].value ~= false
+  storage.global.ignore_player_demands_in_undersupply = settings.global["li-ignore-player-demands-in-undersupply"].value ~= false
 end
 
 ---@return integer The global bot chunk interval setting
@@ -64,6 +65,11 @@ end
 function global_data.background_scans_enabled()
   -- Background scans are enabled if the refresh interval is greater than zero
   return global_data.background_refresh_interval_ticks() > 0
+end
+
+function global_data.ignore_player_demands_in_undersupply()
+  -- Undersupply includes Player demands unless the setting is disabled
+  return storage.global.ignore_player_demands_in_undersupply
 end
 
 return global_data

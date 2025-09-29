@@ -80,6 +80,13 @@ data:extend(
       order = "2.5"
     },
     {
+      type = "bool-setting",
+      name = "li-ignore-player-demands-in-undersupply",
+      setting_type = "runtime-global",
+      default_value = true,
+      order = "2.8"
+    },
+    {
       type = "int-setting",
       name = "li-chunk-size-global",
       setting_type = "runtime-global",

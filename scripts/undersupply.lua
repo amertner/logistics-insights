@@ -10,6 +10,7 @@ local network_data = require("scripts.network-data")
 ---@field bot_deliveries table<string, DeliveryItem> A list of items being delivered right now
 ---@field net_demand UndersupplyItem[] An unsorted array of items with shortages
 ---@field ignored_items_for_undersupply table<string, boolean> A list of "item name:quality" to ignore for undersupply suggestion
+---@field ignore_player_demands boolean True to ignore player demands when calculating undersupply
 
 --- Initialize the cell network accumulator
 --- @param accumulator Undersupply_Accumulator The accumulator to initialize
@@ -19,6 +20,7 @@ function undersupply.initialise_undersupply(accumulator, context)
   accumulator.bot_deliveries = context.bot_deliveries
   accumulator.net_demand = {}
   accumulator.ignored_items_for_undersupply = context.ignored_items
+  accumulator.ignore_player_demands = context.ignore_player_demands
 end
 
 local function is_ignored_for_undersupply(ignored_items, item_name, quality_name)
@@ -36,6 +38,9 @@ end
 function undersupply.process_one_requester(requester, accumulator)
   local consumed = 0
   if requester.valid then
+    if accumulator.ignore_player_demands and requester.name == "character" then
+      return consumed -- Ignore player demands
+    end
     consumed = 1
     -- Get the logistic point (the actual requester interface)
     local logistic_point = requester.get_logistic_point(defines.logistic_member_index.logistic_container)
