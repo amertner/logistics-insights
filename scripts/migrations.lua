@@ -287,11 +287,10 @@ local li_migrations = {
       nwd.ignored_items_for_undersupply = {}
     end
 
-    -- Added new settings button, so reinitialise UIs
+    -- Initialise new per-player setting
     for player_index, player_table in pairs(storage.players) do
       local player = game.get_player(player_index)
       player_table.settings_network_id = nil
-      reinitialise_ui(player, player_table)
     end
   end,
 
@@ -346,6 +345,19 @@ local li_migrations = {
 
       ---@diagnostic disable-next-line: inject-field
       nwd.last_accessed_tick = nil -- Remove obsolete field
+    end
+  end,
+
+  ["0.11.3"] = function()
+    -- Added per-network setting to ignore buffer chests for undersupply calculations
+    for _, nwd in pairs(storage.networks) do
+      nwd.ignore_buffer_chests_for_undersupply = false
+    end
+
+    -- Added new per-network setting, so reinitialise UIs
+    for player_index, player_table in pairs(storage.players) do
+      local player = game.get_player(player_index)
+      reinitialise_ui(player, player_table)
     end
   end,
 }

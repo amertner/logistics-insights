@@ -11,6 +11,7 @@ local WINDOW_MAX_HEIGHT = 110+10*24
 local clear_mismatched_storage_action="clear-mismatch-storage-list"
 local clear_undersupply_ignore_list_action="clear-undersupply-ignore-list"
 local ignore_higher_quality_matches_setting="ignore-higher-quality-mismatches"
+local ignore_buffer_chests_setting="ignore-buffer-chests"
 
 -- Add a Network ID header line
 ---@param ui LuaGuiElement The parent UI element to add the header to
@@ -88,6 +89,9 @@ local function add_undersupply_settings(ui, player_table)
   local vflow = setting_flow.add {type = "flow", direction = "vertical", name="undersupply_v"}
 
   add_settings_header(vflow, {"network-settings.undersupply-header"})
+  -- Add ignore buffer chests setting
+  local ignore_buffer_checkbox = add_checkbox_setting(vflow, ignore_buffer_chests_setting, false)
+  player_table.ui.network_settings.ignore_buffer_chests = ignore_buffer_checkbox
   local flow = add_setting_with_clear_button(vflow, "network-settings.items-on-undersupply-ignore-list", clear_undersupply_ignore_list_action)
   player_table.ui.network_settings.ignored_undersupply_items = flow
 end
@@ -158,6 +162,10 @@ function network_settings.update(player, player_table)
   update_setting_with_clear_button(flow, clear_mismatched_storage_action, count)
 
   -- Update Undersupply settings
+  -- Update ignore buffer chests setting
+  if player_table.ui.network_settings.ignore_buffer_chests then
+    player_table.ui.network_settings.ignore_buffer_chests.state = networkdata.ignore_buffer_chests_for_undersupply or false
+  end
   flow = player_table.ui.network_settings.ignored_undersupply_items
   count = networkdata and table_size(networkdata.ignored_items_for_undersupply) or 0
   update_setting_with_clear_button(flow, clear_undersupply_ignore_list_action, count)
@@ -173,6 +181,8 @@ local function adopt_checkbox_state(event)
 
   if event.element.tags.action == ignore_higher_quality_matches_setting then
     networkdata.ignore_higher_quality_mismatches = player_table.ui.network_settings.ignore_higher_quality_mismatches.state
+  elseif event.element.tags.action == ignore_buffer_chests_setting then
+    networkdata.ignore_buffer_chests_for_undersupply = player_table.ui.network_settings.ignore_buffer_chests.state
   end
 
   -- Update UI
@@ -207,7 +217,7 @@ function network_settings.on_gui_click(event)
   if not event.element or not event.element.valid then return false end
   if not event.element.tags then return false end
 
-  if event.element.tags.action == ignore_higher_quality_matches_setting then
+  if event.element.tags.action == ignore_higher_quality_matches_setting or event.element.tags.action == ignore_buffer_chests_setting then
     adopt_checkbox_state(event)
   elseif event.element.tags.action == clear_mismatched_storage_action or event.element.tags.action == clear_undersupply_ignore_list_action then
     clear_list_and_refresh(event)

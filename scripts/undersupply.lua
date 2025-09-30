@@ -11,6 +11,7 @@ local network_data = require("scripts.network-data")
 ---@field net_demand UndersupplyItem[] An unsorted array of items with shortages
 ---@field ignored_items_for_undersupply table<string, boolean> A list of "item name:quality" to ignore for undersupply suggestion
 ---@field ignore_player_demands boolean True to ignore player demands when calculating undersupply
+---@field ignore_buffer_chests_for_undersupply boolean True to ignore buffer chests when calculating undersupply
 
 --- Initialize the cell network accumulator
 --- @param accumulator Undersupply_Accumulator The accumulator to initialize
@@ -21,6 +22,7 @@ function undersupply.initialise_undersupply(accumulator, context)
   accumulator.net_demand = {}
   accumulator.ignored_items_for_undersupply = context.ignored_items
   accumulator.ignore_player_demands = context.ignore_player_demands
+  accumulator.ignore_buffer_chests_for_undersupply = context.ignore_buffer_chests_for_undersupply
 end
 
 local function is_ignored_for_undersupply(ignored_items, item_name, quality_name)
@@ -40,6 +42,10 @@ function undersupply.process_one_requester(requester, accumulator)
   if requester.valid then
     if accumulator.ignore_player_demands and requester.name == "character" then
       return consumed -- Ignore player demands
+    end
+    -- Ignore buffer chests if setting is enabled
+    if accumulator.ignore_buffer_chests_for_undersupply and requester.name == "buffer-chest" then
+      return consumed
     end
     consumed = 1
     -- Get the logistic point (the actual requester interface)
