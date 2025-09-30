@@ -12,6 +12,7 @@ local clear_mismatched_storage_action="clear-mismatch-storage-list"
 local clear_undersupply_ignore_list_action="clear-undersupply-ignore-list"
 local ignore_higher_quality_matches_setting="ignore-higher-quality-mismatches"
 local ignore_buffer_chests_setting="ignore-buffer-chests"
+local revert_to_defaults_button_name="li_network_settings_revert_to_defaults"
 
 -- Add a Network ID header line
 ---@param ui LuaGuiElement The parent UI element to add the header to
@@ -108,6 +109,14 @@ function network_settings.create_frame(parent, player)
 
   local window = parent.add {type = "frame", name = WINDOW_NAME, direction = "vertical", style = "li_window_style"}
 
+    -- Header: Revert to defaults button
+      local header_frame = window.add{type = "frame", name = WINDOW_NAME.."-subheader", style = "inside_deep_frame"}
+      local header_flow = header_frame.add{type="flow", direction="horizontal"}
+      local space = header_flow.add {type = "empty-widget"}
+      space.style.horizontally_stretchable = true
+      local default_settings = header_flow.add{type="sprite-button", style="tool_button_red", name=revert_to_defaults_button_name, sprite="utility/reset", tooltip={"network-settings.all-options-default-tooltip"}}
+      player_table.ui.network_settings.defaults_button = default_settings
+
     -- Content: Area to host settings for the network
     local inside_frame = window.add{type = "frame", name = WINDOW_NAME.."-inside", style = "inside_deep_frame", direction = "vertical"}
       inside_frame.style.vertically_stretchable = true
@@ -145,6 +154,8 @@ function network_settings.update(player, player_table)
   if not player or not player.valid or not player_table then return end
   if not player_table.ui or not player_table.ui.network_settings then return end
 
+  local num_changed = 0 -- Number of settings that are not the default
+
   local network_id = player_table.settings_network_id
   local networkdata = network_data.get_networkdata_fromid(network_id)
   if not networkdata then return end
@@ -169,6 +180,19 @@ function network_settings.update(player, player_table)
   flow = player_table.ui.network_settings.ignored_undersupply_items
   count = networkdata and table_size(networkdata.ignored_items_for_undersupply) or 0
   update_setting_with_clear_button(flow, clear_undersupply_ignore_list_action, count)
+
+  if networkdata.ignore_higher_quality_mismatches then num_changed = num_changed + 1 end
+  if networkdata.ignore_buffer_chests_for_undersupply then num_changed = num_changed + 1 end
+  local defaults_button = player_table.ui.network_settings.defaults_button
+  if defaults_button and defaults_button.valid then
+    if num_changed == 0 then
+      defaults_button.enabled = false
+      defaults_button.tooltip = {"network-settings.all-options-default-tooltip"}
+    else
+      defaults_button.enabled = true
+      defaults_button.tooltip = {"network-settings.revert-N-options-to-defaults-tooltip", num_changed}
+    end
+  end
 end
 
 local function adopt_checkbox_state(event)
@@ -212,6 +236,24 @@ local function clear_list_and_refresh(event)
   network_settings.update(player, player_table)
 end
 
+local function revert_to_defaults(event)
+  local player_table = player_data.get_player_table(event.player_index)
+  if not player_table then return false end
+
+  local network_id = player_table.settings_network_id
+  local networkdata = network_data.get_networkdata_fromid(network_id)
+  if not networkdata then return false end
+
+  if networkdata then
+    networkdata.ignore_higher_quality_mismatches = false
+    networkdata.ignore_buffer_chests_for_undersupply = false
+    networkdata.ignored_storages_for_mismatch = {}
+    networkdata.ignored_items_for_undersupply = {}
+    local player = game.get_player(player_table.player_index)
+    network_settings.update(player, player_table)
+  end
+end
+
 ---@returns boolean true if the click was handled
 function network_settings.on_gui_click(event)
   if not event.element or not event.element.valid then return false end
@@ -221,6 +263,8 @@ function network_settings.on_gui_click(event)
     adopt_checkbox_state(event)
   elseif event.element.tags.action == clear_mismatched_storage_action or event.element.tags.action == clear_undersupply_ignore_list_action then
     clear_list_and_refresh(event)
+  elseif event.element.name == revert_to_defaults_button_name then
+    revert_to_defaults(event)
   else
     return false
   end

@@ -360,6 +360,14 @@ local li_migrations = {
       reinitialise_ui(player, player_table)
     end
   end,
+
+  ["0.11.4"] = function()
+    -- Added new button to per-network settings
+    for player_index, player_table in pairs(storage.players) do
+      local player = game.get_player(player_index)
+      reinitialise_ui(player, player_table)
+    end
+  end,
 }
 
 return li_migrations
