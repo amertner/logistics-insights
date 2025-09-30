@@ -6,8 +6,8 @@ local player_data = require "scripts.player-data"
 local network_data = require "scripts.network-data"
 
 local WINDOW_NAME = "li_network_settings_window"
-local WINDOW_MIN_HEIGHT = 110-3*24 
-local WINDOW_MAX_HEIGHT = 110+10*24 
+local WINDOW_MIN_HEIGHT = 110-3*24
+local WINDOW_MAX_HEIGHT = 110+10*24
 local clear_mismatched_storage_action="chests-on-ignore-list"
 local clear_undersupply_ignore_list_action="items-on-undersupply-ignore-list"
 local ignore_higher_quality_matches_setting="ignore-higher-quality-mismatches"
@@ -133,6 +133,26 @@ function network_settings.create_frame(parent, player)
 end
 
 ---@param control NetworkSettingControls
+---@param is_changed boolean True if the setting is changed from default
+---@param changed_tooltip LocalizedString|nil Optional tooltip to use when setting is changed
+local function update_revert_button(control, is_changed, changed_tooltip)
+  if control.revert and control.revert.valid then
+    control.revert.enabled = is_changed
+    if is_changed then
+      if changed_tooltip then
+        control.revert.tooltip = changed_tooltip
+      else
+        control.revert.tooltip = {"network-settings.reset-setting-to-default-tooltip", control.default}
+      end
+      control.revert.sprite = "utility/reset"
+    else
+      control.revert.tooltip = {"network-settings.setting-has-default-value"}
+      control.revert.sprite = "utility/reset_white"
+    end
+  end
+end
+
+---@param control NetworkSettingControls
 ---@param count number The number of items in the list this setting refers to
 local function update_list_setting(control, count)
   local changed = 0
@@ -140,14 +160,7 @@ local function update_list_setting(control, count)
     changed = 1
   end
 
-  if control.revert and control.revert.valid then
-    control.revert.enabled = changed > 0
-    if changed > 0 then
-      control.revert.tooltip = {"network-settings.reset-list-setting"}
-    else
-      control.revert.tooltip = {"network-settings.setting-has-default-value"}
-    end
-  end
+  update_revert_button(control, changed > 0, {"network-settings.reset-list-setting"})
   control.control.caption = tostring(count)
   return changed
 end
@@ -160,14 +173,7 @@ function update_checkbox_setting(control, state)
   if state ~= control.default then
     changed = 1
   end
-  if control.revert and control.revert.valid then
-    control.revert.enabled = changed > 0
-    if changed > 0 then
-      control.revert.tooltip = {"network-settings.reset-setting-to-default-tooltip", control.default}
-    else
-      control.revert.tooltip = {"network-settings.setting-has-default-value"}
-    end
-  end
+  update_revert_button(control, changed > 0)
   if control.control and control.control.valid then
     control.control.state = state
   end
