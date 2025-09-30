@@ -134,7 +134,7 @@ end
 
 ---@param control NetworkSettingControls
 ---@param is_changed boolean True if the setting is changed from default
----@param changed_tooltip LocalizedString|nil Optional tooltip to use when setting is changed
+---@param changed_tooltip LocalisedString|nil Optional tooltip to use when setting is changed
 local function update_revert_button(control, is_changed, changed_tooltip)
   if control.revert and control.revert.valid then
     control.revert.enabled = is_changed
