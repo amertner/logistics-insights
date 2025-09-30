@@ -21,6 +21,8 @@ local function add_network_id_header(ui, player_table)
   if not ui or not ui.valid then return nil end
 
   local header = ui.add{type="label", caption={"network-settings.window-title", 0}, style="bold_label"}
+  header.style.left_margin = 4
+  header.style.top_margin = 4
   player_table.ui.network_settings.network_id_header = header
 end
 
@@ -109,9 +111,10 @@ function network_settings.create_frame(parent, player)
 
   local window = parent.add {type = "frame", name = WINDOW_NAME, direction = "vertical", style = "li_window_style"}
 
-    -- Header: Revert to defaults button
+    -- Header: Network ID and Revert to defaults button
       local header_frame = window.add{type = "frame", name = WINDOW_NAME.."-subheader", style = "inside_deep_frame"}
       local header_flow = header_frame.add{type="flow", direction="horizontal"}
+      add_network_id_header(header_flow, player_table)
       local space = header_flow.add {type = "empty-widget"}
       space.style.horizontally_stretchable = true
       local default_settings = header_flow.add{type="sprite-button", style="tool_button_red", name=revert_to_defaults_button_name, sprite="utility/reset", tooltip={"network-settings.all-options-default-tooltip"}}
@@ -127,7 +130,6 @@ function network_settings.create_frame(parent, player)
       subheader_frame.style.vertically_stretchable = true
 
     -- Add actual settings
-    add_network_id_header(subheader_frame, player_table)
     add_suggestions_settings(subheader_frame, player_table)
     add_undersupply_settings(subheader_frame, player_table)
 end
