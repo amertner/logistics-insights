@@ -21,6 +21,7 @@ local math_ceil = math.ceil
 ---@field ui table<string, table> -- UI elements for the mod's GUI
 ---@field schedule_last_run table<string, uint>|nil -- Per-task last run ticks for scheduler
 ---@field settings_network_id number|nil -- The network ID currently being shown in the settings window
+---@field exclusion_list_shown string|nil -- The name of the exclusion list currently shown, or nil if none
 ---@param player_index uint
 ---@return nil
 function player_data.init(player_index)
@@ -38,6 +39,7 @@ function player_data.init(player_index)
     ui = {},
     schedule_last_run = {}, -- Per-task last run ticks for scheduler
     settings_network_id = nil,
+    exclusion_list_shown = nil,
   }
   storage.players[player_index] = player_data_entry
 end

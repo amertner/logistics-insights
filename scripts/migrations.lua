@@ -361,8 +361,10 @@ local li_migrations = {
     end
   end,
 
-  ["0.11.4"] = function()
-    -- Added new buttons to revert per-network settings
+  -- 0.11.4: Added new buttons to revert per-network settings
+
+  ["0.11.5"] = function()
+    -- Added new settings panel for managing exclusions
     for player_index, player_table in pairs(storage.players) do
       local player = game.get_player(player_index)
       reinitialise_ui(player, player_table)

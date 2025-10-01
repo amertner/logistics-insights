@@ -4,12 +4,13 @@ local network_settings = {}
 
 local player_data = require "scripts.player-data"
 local network_data = require "scripts.network-data"
+local exclusions_window = require "scripts.networkswin.exclusions_window"
 
 local WINDOW_NAME = "li_network_settings_window"
 local WINDOW_MIN_HEIGHT = 110-3*24
 local WINDOW_MAX_HEIGHT = 110+10*24
-local clear_mismatched_storage_action="chests-on-ignore-list"
-local clear_undersupply_ignore_list_action="items-on-undersupply-ignore-list"
+local mismatched_storage_setting=exclusions_window.chests_on_ignore_list_setting
+local undersupply_ignore_list_setting=exclusions_window.undersupply_ignore_list_setting
 local ignore_higher_quality_matches_setting="ignore-higher-quality-mismatches"
 local ignore_buffer_chests_setting="ignore-buffer-chests"
 local revert_to_defaults_button_name="network-settings-revert-to-defaults"
@@ -18,6 +19,7 @@ local revert_to_defaults_button_name="network-settings-revert-to-defaults"
 ---@field revert LuaGuiElement The revert button for this setting
 ---@field control LuaGuiElement The main control (checkbox, button, etc)
 ---@field default any The default value for this setting
+---@field manage LuaGuiElement|nil The manage button for list settings
 
 -- Add a Network ID header line
 ---@param ui LuaGuiElement The parent UI element to add the header to
@@ -45,6 +47,7 @@ local function add_label_with_revert_button(table, setting_name)
   local hflow = table.add{type="flow", direction="horizontal"}
   local revert_button = hflow.add {type="sprite-button", style="mini_tool_button_red", sprite="utility/reset_white", tooltip={"network-settings.setting-has-default-value"}, tags={name=setting_name, action="revert"}}
   revert_button.enabled = false
+  revert_button.style.top_margin = 4
   hflow.add{type="label", style="label", caption={"network-settings."..setting_name}, tooltip={"network-settings."..setting_name.."-tooltip"}}
   return revert_button
 end
@@ -66,9 +69,16 @@ end
 ---@returns NetworkSetting
 local function add_setting_with_list(table, setting_name)
   local revert = add_label_with_revert_button(table, setting_name)
-  local label = table.add{type="label", style="label", caption="0"}
 
-  return {revert = revert, control = label, default=0}
+  local hflow = table.add{type="flow", direction="horizontal"}
+  local label = hflow.add{type="label", style="label", caption="0"}
+  local space = hflow.add {type = "empty-widget"}
+  space.style.horizontally_stretchable = true
+  local manage = hflow.add{type="sprite-button", style="mini_button", name="li_manage_"..setting_name, sprite="li_list", tooltip={"network-settings.manage-list-tooltip"}, 
+    tags={name=setting_name, action="manage"}}
+  manage.style.top_margin = 4
+
+  return {revert = revert, control = label, manage = manage, default=0}
 end
 
 -- Add all suggestions-related settings
@@ -80,8 +90,8 @@ local function add_suggestions_settings(ui, player_table)
   local setting = add_checkbox_setting(settings_table, ignore_higher_quality_matches_setting, false)
   player_table.ui.network_settings[ignore_higher_quality_matches_setting] = setting
 
-  setting = add_setting_with_list(settings_table, clear_mismatched_storage_action)
-  player_table.ui.network_settings[clear_mismatched_storage_action] = setting
+  setting = add_setting_with_list(settings_table, mismatched_storage_setting)
+  player_table.ui.network_settings[mismatched_storage_setting] = setting
 end
 
 -- Add all Undersupply-related settings
@@ -93,8 +103,8 @@ local function add_undersupply_settings(ui, player_table)
   -- Add ignore buffer chests setting
   local setting = add_checkbox_setting(settings_table, ignore_buffer_chests_setting, false)
   player_table.ui.network_settings[ignore_buffer_chests_setting] = setting
-  setting = add_setting_with_list(settings_table, clear_undersupply_ignore_list_action)
-  player_table.ui.network_settings[clear_undersupply_ignore_list_action] = setting
+  setting = add_setting_with_list(settings_table, undersupply_ignore_list_setting)
+  player_table.ui.network_settings[undersupply_ignore_list_setting] = setting
 end
 
 --- Create settings window
@@ -107,7 +117,8 @@ function network_settings.create_frame(parent, player)
 
   player_data.register_ui(player_table, "network_settings")
 
-  local window = parent.add {type = "frame", name = WINDOW_NAME, direction = "vertical", style = "li_window_style"}
+  local outer_flow = parent.add{type="flow", direction="horizontal"}
+  local window = outer_flow.add {type = "frame", name = WINDOW_NAME, direction = "vertical", style = "li_window_style"}
 
     -- Header: Network ID and Revert to defaults button
       local header_frame = window.add{type = "frame", name = WINDOW_NAME.."-subheader", style = "inside_deep_frame"}
@@ -130,6 +141,11 @@ function network_settings.create_frame(parent, player)
     -- Add actual settings
     add_suggestions_settings(subheader_frame, player_table)
     add_undersupply_settings(subheader_frame, player_table)
+
+  local exclusions_frame = outer_flow.add{ type = "frame", name = WINDOW_NAME.."-exclusions", style = "inside_shallow_frame", direction = "vertical" }
+  exclusions_window.create_frame(exclusions_frame, player)
+  player_table.ui.networks.exclusions_frame = exclusions_frame
+  exclusions_frame.visible = false
 end
 
 ---@param control NetworkSettingControls
@@ -162,6 +178,10 @@ local function update_list_setting(control, count)
 
   update_revert_button(control, changed > 0, {"network-settings.reset-list-setting"})
   control.control.caption = tostring(count)
+
+  if control.manage and control.manage.valid then
+    control.manage.enabled = count > 0
+  end
   return changed
 end
 
@@ -178,6 +198,20 @@ function update_checkbox_setting(control, state)
     control.control.state = state
   end
   return changed
+end
+
+--- Open the Networks window and show settings for the given network ID
+---@param player_table PlayerData
+---@param controls NetworkSettingControls
+local function open_exclusions_window(player_table, setting_name, controls)
+  exclusions_window.show_exclusions(player_table, setting_name)
+  player_table.ui.networks.exclusions_frame.visible = true
+end
+
+---@param player_table? PlayerData
+local function close_exclusions_window(player_table)
+  if not player_table or not player_table.ui or not player_table.ui.networks then return end
+  player_table.ui.networks.exclusions_frame.visible = false
 end
 
 --- Update the settings UI to reflect current settings
@@ -204,9 +238,9 @@ function network_settings.update(player, player_table)
       num_changed = num_changed + update_checkbox_setting(control, networkdata.ignore_higher_quality_mismatches)
     elseif name == ignore_buffer_chests_setting then
       num_changed = num_changed + update_checkbox_setting(control, networkdata.ignore_buffer_chests_for_undersupply)
-    elseif name == clear_mismatched_storage_action then
+    elseif name == mismatched_storage_setting then
       num_changed = num_changed + update_list_setting(control, table_size(networkdata.ignored_storages_for_mismatch))
-    elseif name == clear_undersupply_ignore_list_action then
+    elseif name == undersupply_ignore_list_setting then
       num_changed = num_changed + update_list_setting(control, table_size(networkdata.ignored_items_for_undersupply))
     end
   end
@@ -215,11 +249,14 @@ function network_settings.update(player, player_table)
     if num_changed == 0 then
       defaults_button.enabled = false
       defaults_button.tooltip = {"network-settings.all-options-default-tooltip"}
+      close_exclusions_window(player_table)
     else
       defaults_button.enabled = true
       defaults_button.tooltip = {"network-settings.revert-N-options-to-defaults-tooltip", num_changed}
     end
   end
+  -- Finally, update the exclusions window if it's open
+  exclusions_window.update(player_table)
 end
 
 ---@param player_table PlayerData
@@ -251,10 +288,10 @@ local function clear_list_and_refresh(player_table, event)
   local networkdata = network_data.get_networkdata_fromid(network_id)
   if not networkdata then return false end
 
-  if event.element.tags.name == clear_mismatched_storage_action then
+  if event.element.tags.name == mismatched_storage_setting then
     -- Clear the list of ignored storages for mismatched storage suggestion
     networkdata.ignored_storages_for_mismatch = {}
-  elseif event.element.tags.name == clear_undersupply_ignore_list_action then
+  elseif event.element.tags.name == undersupply_ignore_list_setting then
     -- Clear the list of ignored storages for undersupply
     networkdata.ignored_items_for_undersupply = {}
   end
@@ -293,10 +330,22 @@ function network_settings.on_gui_click(event)
         end
         if action == "revert" and controls.control.type == "label" then
           -- Revert button for a list setting
-          if setting_name == clear_mismatched_storage_action or setting_name == clear_undersupply_ignore_list_action then
+          if setting_name == mismatched_storage_setting or setting_name == undersupply_ignore_list_setting then
             clear_list_and_refresh(player_table, event)
             handled = true
           end
+        end
+        if action == "manage" and controls.manage and controls.manage.valid then
+          -- Open/close the exclusions window for this list
+          local is_open = player_table.ui.networks.exclusions_frame.visible
+          local current_list = exclusions_window.current_setting(player_table)
+          if is_open and current_list == setting_name then
+            -- Close the window if it's the same list
+            close_exclusions_window(player_table)
+          else
+            open_exclusions_window(player_table, setting_name, controls)
+          end
+          handled = true
         end
       end
     end

@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.11.5
+Date: ????
+  Changes:
+    - Added a settings panel to show and manage the items that are excluded from undersupply and mismatched storage analyses
+---------------------------------------------------------------------------------------------------
 Version: 0.11.4
 Date: 2025-09-30
   Changes:
