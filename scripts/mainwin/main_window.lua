@@ -17,6 +17,7 @@ local network_row = require("scripts.mainwin.network_row")
 local undersupply_row = require("scripts.mainwin.undersupply_row")
 local suggestions_row = require("scripts.mainwin.suggestions_row")
 local networks_window = require("scripts.networkswin.networks_window")
+local network_settings = require("scripts.networkswin.network_settings")
 local debugger = require("scripts.debugger")
 
 -- Control action dispatch (freeze / unfreeze / step)
@@ -82,6 +83,13 @@ function main_window.create(player, player_table)
   -- I can't figure out how to make the frame autosize to content, so do it manually
   subheader_frame.style.height = 48 + (rows - 1) * 42
 
+  -- Settings: Frame for settings to be shown underneath the main content
+  local settings_frame = window.add{ type = "frame", name = WINDOW_NAME.."-mainsettings", style = "inside_deep_frame", direction = "vertical" }
+  network_settings.create_frame(settings_frame, player)
+  player_table.settings_network_id = nil
+  settings_frame.visible = false
+  player_table.ui.network_settings.settings_frame = settings_frame
+
   -- Restore the previous location, if it exists
   local gui = player.gui.screen
   if gui then
@@ -117,6 +125,7 @@ function main_window.ensure_ui_consistency(player, player_table)
     end
   end
 
+  main_window.ensure_settings_network_correct(player_table)
   -- Make sure the "Fixed network" toggle is set correctly. 
   -- It cannot be un-set in player_data if the fixed network is deleted
   if window and player_table and player_table.ui and player_table.ui.network and player_table.ui.network.id then
@@ -242,6 +251,12 @@ function main_window.update(player, player_table, clearing)
   network_row.update(player_table)
   undersupply_row.update(player_table)
   suggestions_row.update(player_table)
+
+  btn = player_table.ui.network.settings_button
+  if btn then
+    btn.toggled = player_table.ui.network_settings.settings_frame.visible
+  end
+  network_settings.update(player, player_table)
 end
 
 function main_window.clear_progress(player_table)
@@ -274,6 +289,40 @@ end
 --- @param progress Progress|nil The progress data with current and total values
 function main_window.update_suggestions_progress(player_table, progress)
   progress_bars.update_progressbar(player_table, "suggestions-row", progress)
+end
+
+--- Ensure the settings pane shows the right network
+---@param player_table PlayerData
+function main_window.ensure_settings_network_correct(player_table)
+  local network_id
+  if player_table and player_table.network then
+    network_id = player_table.network.network_id
+  else
+    network_id = nil
+  end
+  player_table.settings_network_id = network_id
+end
+
+---@param player LuaPlayer
+---@param player_table PlayerData
+function main_window.open_or_close_settings(player, player_table)
+  if not player_table.ui or not player_table.ui.network_settings then return end
+
+  local frame = player_table.ui.network_settings.settings_frame
+  if not frame then return end
+
+  if player_table.network and player_table.network.valid then
+    frame.visible = not frame.visible
+  else
+    frame.visible = false
+  end
+  if frame.visible then
+    main_window.ensure_settings_network_correct(player_table)
+    networks_window.update(player)
+  else
+    player_table.settings_network_id = nil
+  end
+  main_window.update(player, player_table, false)
 end
 
 --- Destroy the main window
@@ -336,7 +385,7 @@ function main_window.onclick(event)
         player_table.fixed_network = event.element.toggled
       elseif event.element.name == "logistics-insights-sorted-network" then
         -- Open networks window and show settings for current network
-        networks_window.open_with_settings(player, player_table)
+        main_window.open_or_close_settings(player, player_table)
       elseif event.element.name == "logistics-insights-sorted-clear" then
         -- Clear the delivery history and clear the timer
         network_data.clear_delivery_history(player_table.network)

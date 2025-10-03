@@ -32,7 +32,7 @@ function network_row.add(player_table, gui_table)
     tooltip = {"network-row.header-tooltip"},
   }
   hcell.style.horizontally_stretchable = true
-  mini_button.add(player_table, hcell, "network", {"network-row.networks-tooltip"}, "settings", false)
+  player_table.ui.network.settings_button = mini_button.add(player_table, hcell, "network", {"network-row.networks-tooltip"}, "settings", false)
 
   player_table.ui.network.id = gui_table.add {
     type = "sprite-button",

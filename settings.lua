@@ -26,7 +26,7 @@ data:extend(
       name = "li-max-items",
       setting_type = "runtime-per-user",
       default_value = 8,
-      minimum_value = 6,
+      minimum_value = 7,
       maximum_value = 10,
       order = "4"
     },

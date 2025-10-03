@@ -14,12 +14,12 @@ local undersupply_ignore_list_setting=exclusions_window.undersupply_ignore_list_
 local ignore_higher_quality_matches_setting="ignore-higher-quality-mismatches"
 local ignore_buffer_chests_setting="ignore-buffer-chests"
 local revert_to_defaults_button_name="network-settings-revert-to-defaults"
+local default_list_shown = mismatched_storage_setting
 
 ---@class NetworkSettingControls
 ---@field revert LuaGuiElement The revert button for this setting
 ---@field control LuaGuiElement The main control (checkbox, button, etc)
 ---@field default any The default value for this setting
----@field manage LuaGuiElement|nil The manage button for list settings
 
 -- Add a Network ID header line
 ---@param ui LuaGuiElement The parent UI element to add the header to
@@ -36,6 +36,7 @@ end
 local function add_settings_header(ui, caption)
   ui.add{type="label", caption=caption, style="caption_label"}
   local settings_table = ui.add{type="table", column_count=2}
+  settings_table.style.column_alignments[2] = "center"
   return settings_table
 end
 
@@ -67,18 +68,13 @@ end
 ---@param table LuaGuiElement The parent table element to add the setting to
 ---@param setting_name string The caption for the setting
 ---@returns NetworkSetting
-local function add_setting_with_list(table, setting_name)
+local function add_setting_with_list(table, setting_name, sprite_name)
   local revert = add_label_with_revert_button(table, setting_name)
 
-  local hflow = table.add{type="flow", direction="horizontal"}
-  local label = hflow.add{type="label", style="label", caption="0"}
-  local space = hflow.add {type = "empty-widget"}
-  space.style.horizontally_stretchable = true
-  local manage = hflow.add{type="sprite-button", style="mini_button", name="li_manage_"..setting_name, sprite="li_list", tooltip={"network-settings.manage-list-tooltip"}, 
+  local button = table.add{type="sprite-button", style="frame_action_button", name="li_manage_"..setting_name, sprite=sprite_name, tooltip={"network-settings.manage-list-tooltip"}, 
     tags={name=setting_name, action="manage"}}
-  manage.style.top_margin = 4
 
-  return {revert = revert, control = label, manage = manage, default=0}
+  return {revert = revert, control = button, default=0}
 end
 
 -- Add all suggestions-related settings
@@ -90,7 +86,7 @@ local function add_suggestions_settings(ui, player_table)
   local setting = add_checkbox_setting(settings_table, ignore_higher_quality_matches_setting, false)
   player_table.ui.network_settings[ignore_higher_quality_matches_setting] = setting
 
-  setting = add_setting_with_list(settings_table, mismatched_storage_setting)
+  setting = add_setting_with_list(settings_table, mismatched_storage_setting, "item/storage-chest")
   player_table.ui.network_settings[mismatched_storage_setting] = setting
 end
 
@@ -103,7 +99,7 @@ local function add_undersupply_settings(ui, player_table)
   -- Add ignore buffer chests setting
   local setting = add_checkbox_setting(settings_table, ignore_buffer_chests_setting, false)
   player_table.ui.network_settings[ignore_buffer_chests_setting] = setting
-  setting = add_setting_with_list(settings_table, undersupply_ignore_list_setting)
+  setting = add_setting_with_list(settings_table, undersupply_ignore_list_setting, "li_undersupply")
   player_table.ui.network_settings[undersupply_ignore_list_setting] = setting
 end
 
@@ -117,8 +113,8 @@ function network_settings.create_frame(parent, player)
 
   player_data.register_ui(player_table, "network_settings")
 
-  local outer_flow = parent.add{type="flow", direction="horizontal"}
-  local window = outer_flow.add {type = "frame", name = WINDOW_NAME, direction = "vertical", style = "li_window_style"}
+  local window = parent.add {type = "flow", name = WINDOW_NAME, direction = "vertical"} --, style = "li_window_style"}
+  window.style.padding = 0
 
     -- Header: Network ID and Revert to defaults button
       local header_frame = window.add{type = "frame", name = WINDOW_NAME.."-subheader", style = "inside_deep_frame"}
@@ -127,10 +123,15 @@ function network_settings.create_frame(parent, player)
       local space = header_flow.add {type = "empty-widget"}
       space.style.horizontally_stretchable = true
       local default_settings = header_flow.add{type="sprite-button", style="tool_button_red", name=revert_to_defaults_button_name, sprite="utility/reset", tooltip={"network-settings.all-options-default-tooltip"}}
+      local close_button = header_flow.add({ type = "sprite-button", style="tool_button", sprite = "utility/close", name = WINDOW_NAME .. "-close", tooltip = {"networks-window.close-window-tooltip"}})
+      close_button.enabled = true
+      --close_button.style.top_margin = 2
       player_table.ui.network_settings.defaults_button = default_settings
 
     -- Content: Area to host settings for the network
-    local inside_frame = window.add{type = "frame", name = WINDOW_NAME.."-inside", style = "inside_deep_frame", direction = "vertical"}
+    local outer_flow = window.add{type="flow", direction="horizontal"}
+    outer_flow.style.padding = 0
+    local inside_frame = outer_flow.add{type = "frame", name = WINDOW_NAME.."-inside", style = "inside_deep_frame", direction = "vertical"}
       inside_frame.style.vertically_stretchable = true
       inside_frame.style.horizontally_stretchable = true
       local subheader_frame = inside_frame.add{type = "frame", name = WINDOW_NAME.."-subheader", style = "subheader_frame", direction = "vertical"}
@@ -142,10 +143,12 @@ function network_settings.create_frame(parent, player)
     add_suggestions_settings(subheader_frame, player_table)
     add_undersupply_settings(subheader_frame, player_table)
 
-  local exclusions_frame = outer_flow.add{ type = "frame", name = WINDOW_NAME.."-exclusions", style = "inside_shallow_frame", direction = "vertical" }
-  exclusions_window.create_frame(exclusions_frame, player)
-  player_table.ui.networks.exclusions_frame = exclusions_frame
-  exclusions_frame.visible = false
+    -- Exclusions frame
+    local exclusions_frame = outer_flow.add{ type = "flow", name = WINDOW_NAME.."-exclusions", direction = "vertical" }
+    exclusions_window.create_frame(exclusions_frame, player)
+    player_table.ui.network_settings.exclusions_frame = exclusions_frame
+    exclusions_window.show_exclusions(player_table, default_list_shown)
+    exclusions_frame.visible = true
 end
 
 ---@param control NetworkSettingControls
@@ -169,27 +172,37 @@ local function update_revert_button(control, is_changed, changed_tooltip)
 end
 
 ---@param control NetworkSettingControls
----@param count number The number of items in the list this setting refers to
-local function update_list_setting(control, count)
+---@param use_default boolean True if resetting to default
+---@param count? number The number of items in the list this setting refers to
+local function update_list_setting(control, use_default, count)
   local changed = 0
+  if use_default then
+    count = control.default
+  end
   if count > 0 then
     changed = 1
   end
 
   update_revert_button(control, changed > 0, {"network-settings.reset-list-setting"})
-  control.control.caption = tostring(count)
-
-  if control.manage and control.manage.valid then
-    control.manage.enabled = count > 0
+  if count > 0 then
+    control.control.number = count
+  else
+    control.control.number = nil
   end
+  control.control.enabled = count > 0
+
   return changed
 end
 
 ---@param control NetworkSettingControls
----@param state boolean
+---@param use_default boolean True if resetting to default
+---@param state? boolean The new state, if not resetting it
 ---@return number Return number of settings changed (0 or 1)
-function update_checkbox_setting(control, state)
+function update_checkbox_setting(control, use_default, state)
   local changed = 0
+  if use_default then
+    state = control.default
+  end
   if state ~= control.default then
     changed = 1
   end
@@ -198,20 +211,6 @@ function update_checkbox_setting(control, state)
     control.control.state = state
   end
   return changed
-end
-
---- Open the Networks window and show settings for the given network ID
----@param player_table PlayerData
----@param controls NetworkSettingControls
-local function open_exclusions_window(player_table, setting_name, controls)
-  exclusions_window.show_exclusions(player_table, setting_name)
-  player_table.ui.networks.exclusions_frame.visible = true
-end
-
----@param player_table? PlayerData
-local function close_exclusions_window(player_table)
-  if not player_table or not player_table.ui or not player_table.ui.networks then return end
-  player_table.ui.networks.exclusions_frame.visible = false
 end
 
 --- Update the settings UI to reflect current settings
@@ -223,33 +222,38 @@ function network_settings.update(player, player_table)
 
   local network_id = player_table.settings_network_id
   local networkdata = network_data.get_networkdata_fromid(network_id)
-  if not networkdata then return end
 
   -- Update network ID in title
   local header = player_table.ui.network_settings.network_id_header
   if header then
-    header.caption = {"network-settings.window-title", network_id or 0}
+    if networkdata then
+      header.caption = {"network-settings.window-title", network_id or 0}
+    else
+      header.caption = {"network-settings.no-network-title"}
+    end
   end
 
+  -- If there is no networkdata, show defaults
+  local defaults = not networkdata
   -- Iterate over all settings and update them
   local num_changed = 0 -- Number of settings that are not the default
   for name, control in pairs(player_table.ui.network_settings) do
     if name == ignore_higher_quality_matches_setting then
-      num_changed = num_changed + update_checkbox_setting(control, networkdata.ignore_higher_quality_mismatches)
+      num_changed = num_changed + update_checkbox_setting(control, defaults, networkdata and networkdata.ignore_higher_quality_mismatches)
     elseif name == ignore_buffer_chests_setting then
-      num_changed = num_changed + update_checkbox_setting(control, networkdata.ignore_buffer_chests_for_undersupply)
+      num_changed = num_changed + update_checkbox_setting(control, defaults, networkdata and networkdata.ignore_buffer_chests_for_undersupply)
     elseif name == mismatched_storage_setting then
-      num_changed = num_changed + update_list_setting(control, table_size(networkdata.ignored_storages_for_mismatch))
+      num_changed = num_changed + update_list_setting(control, defaults, networkdata and table_size(networkdata.ignored_storages_for_mismatch))
     elseif name == undersupply_ignore_list_setting then
-      num_changed = num_changed + update_list_setting(control, table_size(networkdata.ignored_items_for_undersupply))
+      num_changed = num_changed + update_list_setting(control, defaults, networkdata and table_size(networkdata.ignored_items_for_undersupply))
     end
   end
+
   local defaults_button = player_table.ui.network_settings.defaults_button
   if defaults_button and defaults_button.valid then
     if num_changed == 0 then
       defaults_button.enabled = false
       defaults_button.tooltip = {"network-settings.all-options-default-tooltip"}
-      close_exclusions_window(player_table)
     else
       defaults_button.enabled = true
       defaults_button.tooltip = {"network-settings.revert-N-options-to-defaults-tooltip", num_changed}
@@ -335,16 +339,9 @@ function network_settings.on_gui_click(event)
             handled = true
           end
         end
-        if action == "manage" and controls.manage and controls.manage.valid then
-          -- Open/close the exclusions window for this list
-          local is_open = player_table.ui.networks.exclusions_frame.visible
-          local current_list = exclusions_window.current_setting(player_table)
-          if is_open and current_list == setting_name then
-            -- Close the window if it's the same list
-            close_exclusions_window(player_table)
-          else
-            open_exclusions_window(player_table, setting_name, controls)
-          end
+        if action == "manage" then
+          -- Change which exclusion list is shown
+          exclusions_window.show_exclusions(player_table, setting_name)
           handled = true
         end
       end

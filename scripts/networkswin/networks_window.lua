@@ -205,7 +205,7 @@ local cell_setup = {
       btn.style.top_margin = 2
       btn = flow.add{ type = "sprite-button", name = name .. "-trash", style = "mini_button", sprite = "utility/trash", tooltip = {"networks-window.trash-tooltip"} }
       btn.style.top_margin = 2
-      btn = flow.add{ type = "sprite-button", name = name .. "-settings", style = "mini_button", sprite = "li-settings", tooltip = {"networks-window.settings-tooltip"} }
+      --btn = flow.add{ type = "sprite-button", name = name .. "-settings", style = "mini_button", sprite = "li-settings", tooltip = {"networks-window.settings-tooltip"} }
       btn.style.top_margin = 2
       return flow
     end,
@@ -288,16 +288,9 @@ function networks_window.create(player)
             end
           end
 
-      -- Settings: Frame for settings to be shown
-      local settings_frame = outside_flow.add{ type = "frame", name = WINDOW_NAME.."-settings", style = "inside_shallow_frame", direction = "vertical" }
-      network_settings.create_frame(settings_frame, player)
-      settings_frame.visible = false
-      player_table.settings_network_id = nil
-
   -- Remember this for easy access
   player_table.ui.networks.subheader_frame = subheader_frame -- To resize
   player_table.ui.networks.table_elements = table_el -- To update content
-  player_table.ui.networks.settings_frame = settings_frame -- For settings
 
   if player_table and player_table.networks_window_location then
     window.location = player_table.networks_window_location
@@ -365,28 +358,15 @@ end
 ---@param network_id number
 local function open_settings_pane(player_table, network_id)
     -- Open the window on the selected network
-  player_table.settings_network_id = network_id
-  player_table.ui.networks.settings_frame.visible = true
+  --player_table.settings_network_id = network_id
+  --player_table.ui.networks.settings_frame.visible = true
 end
 
 ---@param player_table? PlayerData
 local function close_settings_pane(player_table)
   if not player_table or not player_table.ui or not player_table.ui.networks then return end
-  player_table.settings_network_id = nil
-  player_table.ui.networks.settings_frame.visible = false
-end
-
---- Open the Networks window and show settings for the current network (if any)
----@param player LuaPlayer
----@param player_table? PlayerData
-function networks_window.open_with_settings(player, player_table)
-  networks_window.set_window_visible(player, player_table, true)
-  if player_table and player_table.network then
-    open_settings_pane(player_table, player_table.network.network_id)
-  else
-    close_settings_pane(player_table)
-  end
-  networks_window.update(player)
+  --player_table.settings_network_id = nil
+  --player_table.ui.networks.settings_frame.visible = false
 end
 
 --- Ensure the Networks table has exactly `count` data rows (below the header).

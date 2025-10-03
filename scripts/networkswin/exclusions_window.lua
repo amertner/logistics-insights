@@ -5,9 +5,8 @@ local player_data = require "scripts.player-data"
 local network_data = require "scripts.network-data"
 local utils = require "scripts.utils"
 
-local WINDOW_NAME = "li_exclusions_list_window"
-local WINDOW_MIN_HEIGHT = 110-3*24
-local WINDOW_MAX_HEIGHT = 110+10*24
+local WINDOW_NAME = "li-exclusions-frame"
+local WINDOW_HEIGHT = 170
 
 exclusions_window.chests_on_ignore_list_setting = "chests-on-ignore-list"
 exclusions_window.undersupply_ignore_list_setting = "items-on-undersupply-ignore-list"
@@ -18,7 +17,6 @@ exclusions_window.undersupply_ignore_list_setting = "items-on-undersupply-ignore
 local function add_list_header(ui, player_table)
   local header = ui.add{type="label", caption={"exclusions-window.window-title"}, style="bold_label"}
   header.style.left_margin = 4
-  header.style.top_margin = 4
   player_table.ui.exclusions_pane.header = header
 end
 
@@ -32,26 +30,28 @@ function exclusions_window.create_frame(parent, player)
 
   player_data.register_ui(player_table, "exclusions_pane")
 
-  local window = parent.add {type = "frame", name = WINDOW_NAME, direction = "vertical", style = "li_window_style"}
+  local window = parent.add {type = "frame", name = WINDOW_NAME, direction = "vertical", style = "inside_shallow_frame"}
+  local column_count = player_table.settings.max_items - 4
 
-    -- Header: Network ID and Revert to defaults button
-      local header_frame = window.add{type = "frame", name = WINDOW_NAME.."-subheader", style = "inside_deep_frame"}
-      local header_flow = header_frame.add{type="flow", direction="horizontal"}
-      add_list_header(header_flow, player_table)
+  local subheader_frame = window.add{type = "frame", name = WINDOW_NAME.."-subheader", style = "subheader_frame", direction = "vertical"}
+  subheader_frame.style.minimal_width = 40 * column_count + 16 + 8
+  subheader_frame.style.height = WINDOW_HEIGHT
 
-    -- Content: Area to host settings for the network
-    local inside_frame = window.add{type = "frame", name = WINDOW_NAME.."-inside", style = "inside_deep_frame", direction = "vertical"}
-      inside_frame.style.vertically_stretchable = true
-      inside_frame.style.horizontally_stretchable = true
-      local subheader_frame = inside_frame.add{type = "frame", name = WINDOW_NAME.."-subheader", style = "subheader_frame", direction = "vertical"}
-      subheader_frame.style.minimal_height = WINDOW_MIN_HEIGHT -- This dictates how much there is room for
-      subheader_frame.style.maximal_height = WINDOW_MAX_HEIGHT -- This dictates how much there is room for
-      subheader_frame.style.vertically_stretchable = true
+    --local header_frame = window.add{type = "frame", name = WINDOW_NAME.."-subheader", style = "inside_deep_frame"}
+    local header_flow = subheader_frame.add{type="flow", direction="horizontal",  name = WINDOW_NAME.."-header-flow"}
+    add_list_header(header_flow, player_table)
 
     -- Table for exclusions
-    local exclusions_table = subheader_frame.add{type = "table", name = WINDOW_NAME.."-table", column_count = 3, style = "li_mainwindow_content_style"}
-    player_table.ui.exclusions_pane.exclusions_table = exclusions_table
+    local scroll = subheader_frame.add{ type = "scroll-pane", style = "naked_scroll_pane", name = WINDOW_NAME .. "-scroll", horizontal_scroll_policy = "never" }
+    scroll.style.padding = 0
+    local scrollflow = scroll.add{type="flow", direction="horizontal",  name = WINDOW_NAME.."-scroll-flow"}
 
+    local exclusions_table = scrollflow.add{type = "table", name = WINDOW_NAME.."-table", column_count = column_count, style = "li_mainwindow_content_style"}
+
+    local spacer = subheader_frame.add{type="empty-widget"}
+    spacer.style.vertically_stretchable = true
+
+    player_table.ui.exclusions_pane.exclusions_table = exclusions_table
 end
 
 ---@param gui_table LuaGuiElement The GUItable to contain the list
@@ -107,7 +107,6 @@ local function show_storage_item_list(gui_table, excluded_numbers, player_table)
       else
         cell.sprite = "item/storage-chest"
       end
-      --cell.caption = tostring(chest.unit_number)
     end
   end
 end
@@ -117,24 +116,24 @@ end
 
 ---@param player_table PlayerData
 function exclusions_window.update(player_table)
-   if not player_table.ui.networks.exclusions_frame.visible then return end
+   if not player_table.ui.network_settings.exclusions_frame.visible then return end
 
   local network_id = player_table.settings_network_id
   local networkdata = network_data.get_networkdata_fromid(network_id)
-  if not networkdata then return end
   local setting_shown = player_table.exclusion_list_shown
-
-  if setting_shown then
-    player_table.ui.exclusions_pane.header.caption = {"exclusions-window."..setting_shown.."-headline"}
-  else
-    player_table.ui.exclusions_pane.header.caption = {"exclusions-window.window-title"}
-  end
 
   exclusions_table = player_table.ui.exclusions_pane.exclusions_table
   if not exclusions_table then return end
 
+  if setting_shown and networkdata then
+    player_table.ui.exclusions_pane.header.caption = {"exclusions-window."..setting_shown.."-headline"}
+  else
+    player_table.ui.exclusions_pane.header.caption = ""-- {"exclusions-window.window-title"}
+  end
+
   -- Clear existing entries
   exclusions_table.clear()
+  if not networkdata then return end
 
   if setting_shown == exclusions_window.undersupply_ignore_list_setting then
     show_item_quality_list(exclusions_table, networkdata.ignored_items_for_undersupply)
