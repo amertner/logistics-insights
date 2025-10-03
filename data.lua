@@ -82,3 +82,9 @@ styles.li_row_hflow = {
   vertical_align = "center",
   padding = 0,
 }
+
+styles.li_close_settings_button = {
+  type = "button_style",
+  parent = "tool_button",
+  invert_colors_of_picture_when_disabled = false
+}

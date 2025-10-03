@@ -46,7 +46,8 @@ end
 ---@returns LuaGuiElement The revert button created
 local function add_label_with_revert_button(table, setting_name)
   local hflow = table.add{type="flow", direction="horizontal"}
-  local revert_button = hflow.add {type="sprite-button", style="mini_tool_button_red", sprite="utility/reset_white", tooltip={"network-settings.setting-has-default-value"}, tags={name=setting_name, action="revert"}}
+  local revert_button = hflow.add {type="sprite-button", style="mini_tool_button_red", sprite="utility/reset_white", tooltip={"network-settings.seting-has-default-value"}, 
+    tags={name=setting_name, action="revert", pane=PANE_NAME}}
   revert_button.enabled = false
   revert_button.style.top_margin = 4
   hflow.add{type="label", style="label", caption={"network-settings."..setting_name}, tooltip={"network-settings."..setting_name.."-tooltip"}}
@@ -60,7 +61,7 @@ end
 ---@returns NetworkSetting
 local function add_checkbox_setting(table, setting_name, default_state)
   local revert = add_label_with_revert_button(table, setting_name)
-  local checkbox = table.add{type="checkbox", name="li_"..setting_name, tags={name=setting_name, action="set"}, state=default_state}
+  local checkbox = table.add{type="checkbox", name="li_"..setting_name, tags={name=setting_name, action="set", pane=PANE_NAME}, state=default_state}
   return {revert = revert, control = checkbox, default=default_state}
 end
 
@@ -72,7 +73,7 @@ local function add_setting_with_list(table, setting_name, sprite_name)
   local revert = add_label_with_revert_button(table, setting_name)
 
   local button = table.add{type="sprite-button", style="frame_action_button", name="li_manage_"..setting_name, sprite=sprite_name, tooltip={"network-settings.manage-list-tooltip"}, 
-    tags={name=setting_name, action="manage"}}
+    tags={name=setting_name, action="manage", pane=PANE_NAME}}
 
   return {revert = revert, control = button, default=0}
 end
@@ -317,7 +318,11 @@ end
 ---@returns boolean true if the click was handled
 function network_settings.on_gui_click(event)
   if not event.element or not event.element.valid then return false end
+  -- First check for exclusion window clicks
+  if exclusions_window.on_gui_click(event) then return end
+
   if not event.element.tags then return false end
+  if not event.element.tags.pane or event.element.tags.pane ~= PANE_NAME then return false end
 
   local handled = false
   local player_table = player_data.get_player_table(event.player_index)

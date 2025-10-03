@@ -60,7 +60,9 @@ local function show_item_quality_list(gui_table, list)
   for item_quality, excluded in pairs(list) do
     local item_name, quality_name = string.match(item_quality, "^(.-):(.*)$")
     if item_name and quality_name and excluded then
-      local cell = gui_table.add {name = "li-exclude-"..item_quality, type = "sprite-button", style = "slot_button"}
+      local cell = gui_table.add {name = "li-exclude-"..item_quality, type = "sprite-button", style = "slot_button", 
+        tooltip={"exclusions-window.remove-undersupply-exclusion-tooltip"},
+        tags={item_name=item_name, quality=quality_name, shift_action="remove-undersupply", pane=WINDOW_NAME}}
       cell.sprite = utils.get_valid_sprite_path("item/", item_name)
       cell.quality = quality_name or "normal"
     end
@@ -99,7 +101,8 @@ local function show_storage_item_list(gui_table, excluded_numbers, player_table)
 
   for _, chest in pairs(entity_list) do
     if chest and chest.valid then
-      local cell = gui_table.add {type = "sprite-button", style = "slot_button"}
+      local cell = gui_table.add {type = "sprite-button", style = "slot_button", tags={entity_id=chest.unit_number, 
+        action="focus-chest", shift_action="remove-chest", pane=WINDOW_NAME}}
       local filter = get_filter_for_chest(chest)
       if filter then
         cell.sprite = utils.get_valid_sprite_path("item/", filter.name)
@@ -151,6 +154,45 @@ end
 function exclusions_window.show_exclusions(player_table, setting_name)
   player_table.exclusion_list_shown = setting_name
   exclusions_window.update(player_table)
+end
+
+function remove_undersupply_exclusion(event)
+  if not event.element or not event.element.valid then return false end
+  local player_table = player_data.get_player_table(event.player_index)
+  if not player_table then return false end
+
+  local tags = event.element.tags
+  local network_id = player_table.settings_network_id
+  local networkdata = network_data.get_networkdata_fromid(network_id)
+  if networkdata and networkdata.ignored_items_for_undersupply then
+    local key = utils.get_item_quality_key(tags.item_name, tags.quality)
+    if networkdata.ignored_items_for_undersupply[key] then
+      networkdata.ignored_items_for_undersupply[key] = nil
+      exclusions_window.update(player_table)
+    end
+  end
+end
+
+---@returns boolean true if the click was handled
+function exclusions_window.on_gui_click(event)
+  if not event.element or not event.element.valid then return false end
+  if not event.element.tags then return false end
+  if not event.element.tags.pane or event.element.tags.pane ~= WINDOW_NAME then return false end
+  local handled = false
+  -- Click = show item if possible
+  -- Shift-click = remove item from ignore list
+
+  local action = event.element.tags.action
+  local shift_action = event.element.tags.shift_action
+
+  if event.button == defines.mouse_button_type.left then
+    if event.shift and shift_action == "remove-undersupply" then
+      remove_undersupply_exclusion(event)
+      handled = true
+    end
+  end
+
+  return handled
 end
 
 return exclusions_window
