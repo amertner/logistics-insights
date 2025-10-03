@@ -6,7 +6,7 @@ local player_data = require "scripts.player-data"
 local network_data = require "scripts.network-data"
 local exclusions_window = require "scripts.networkswin.exclusions_window"
 
-local WINDOW_NAME = "li_network_settings_window"
+local PANE_NAME = "li_network_settings_pane"
 local WINDOW_MIN_HEIGHT = 110-3*24
 local WINDOW_MAX_HEIGHT = 110+10*24
 local mismatched_storage_setting=exclusions_window.chests_on_ignore_list_setting
@@ -99,7 +99,7 @@ local function add_undersupply_settings(ui, player_table)
   -- Add ignore buffer chests setting
   local setting = add_checkbox_setting(settings_table, ignore_buffer_chests_setting, false)
   player_table.ui.network_settings[ignore_buffer_chests_setting] = setting
-  setting = add_setting_with_list(settings_table, undersupply_ignore_list_setting, "li_undersupply")
+  setting = add_setting_with_list(settings_table, undersupply_ignore_list_setting, "item/requester-chest")
   player_table.ui.network_settings[undersupply_ignore_list_setting] = setting
 end
 
@@ -113,28 +113,27 @@ function network_settings.create_frame(parent, player)
 
   player_data.register_ui(player_table, "network_settings")
 
-  local window = parent.add {type = "flow", name = WINDOW_NAME, direction = "vertical"} --, style = "li_window_style"}
+  local window = parent.add {type = "flow", name = PANE_NAME, direction = "vertical"} --, style = "li_window_style"}
   window.style.padding = 0
 
     -- Header: Network ID and Revert to defaults button
-      local header_frame = window.add{type = "frame", name = WINDOW_NAME.."-subheader", style = "inside_deep_frame"}
+      local header_frame = window.add{type = "frame", name = PANE_NAME.."-subheader", style = "inside_deep_frame"}
       local header_flow = header_frame.add{type="flow", direction="horizontal"}
       add_network_id_header(header_flow, player_table)
       local space = header_flow.add {type = "empty-widget"}
       space.style.horizontally_stretchable = true
       local default_settings = header_flow.add{type="sprite-button", style="tool_button_red", name=revert_to_defaults_button_name, sprite="utility/reset", tooltip={"network-settings.all-options-default-tooltip"}}
-      local close_button = header_flow.add({ type = "sprite-button", style="tool_button", sprite = "utility/close", name = WINDOW_NAME .. "-close", tooltip = {"networks-window.close-window-tooltip"}})
-      close_button.enabled = true
+      local close_button = header_flow.add({type="sprite-button", style="li_close_settings_button", sprite="utility/close", name=PANE_NAME.."-close", tooltip={"network-settings.close-window-tooltip"}})
       --close_button.style.top_margin = 2
       player_table.ui.network_settings.defaults_button = default_settings
 
     -- Content: Area to host settings for the network
     local outer_flow = window.add{type="flow", direction="horizontal"}
     outer_flow.style.padding = 0
-    local inside_frame = outer_flow.add{type = "frame", name = WINDOW_NAME.."-inside", style = "inside_deep_frame", direction = "vertical"}
+    local inside_frame = outer_flow.add{type = "frame", name = PANE_NAME.."-inside", style = "inside_deep_frame", direction = "vertical"}
       inside_frame.style.vertically_stretchable = true
       inside_frame.style.horizontally_stretchable = true
-      local subheader_frame = inside_frame.add{type = "frame", name = WINDOW_NAME.."-subheader", style = "subheader_frame", direction = "vertical"}
+      local subheader_frame = inside_frame.add{type = "frame", name = PANE_NAME.."-subheader", style = "subheader_frame", direction = "vertical"}
       subheader_frame.style.minimal_height = WINDOW_MIN_HEIGHT -- This dictates how much there is room for
       subheader_frame.style.maximal_height = WINDOW_MAX_HEIGHT -- This dictates how much there is room for
       subheader_frame.style.vertically_stretchable = true
@@ -144,7 +143,7 @@ function network_settings.create_frame(parent, player)
     add_undersupply_settings(subheader_frame, player_table)
 
     -- Exclusions frame
-    local exclusions_frame = outer_flow.add{ type = "flow", name = WINDOW_NAME.."-exclusions", direction = "vertical" }
+    local exclusions_frame = outer_flow.add{ type = "flow", name = PANE_NAME.."-exclusions", direction = "vertical" }
     exclusions_window.create_frame(exclusions_frame, player)
     player_table.ui.network_settings.exclusions_frame = exclusions_frame
     exclusions_window.show_exclusions(player_table, default_list_shown)
@@ -332,7 +331,7 @@ function network_settings.on_gui_click(event)
           set_checkbox_setting(player_table, setting_name, action, controls)
           handled = true
         end
-        if action == "revert" and controls.control.type == "label" then
+        if action == "revert" then
           -- Revert button for a list setting
           if setting_name == mismatched_storage_setting or setting_name == undersupply_ignore_list_setting then
             clear_list_and_refresh(player_table, event)
@@ -350,10 +349,14 @@ function network_settings.on_gui_click(event)
     if event.element.name == revert_to_defaults_button_name then
       revert_to_defaults(player_table, event)
       handled = true
+    elseif event.element.name == PANE_NAME.."-close" and player_table.ui.network_settings.settings_frame then
+      local frame = player_table.ui.network_settings.settings_frame
+      frame.visible = false
+      handled = true
     end
     if handled then
       local player = game.get_player(player_table.player_index)
-      network_settings.update(player, player_table)      
+      network_settings.update(player, player_table)   
     end
   end
   return handled
