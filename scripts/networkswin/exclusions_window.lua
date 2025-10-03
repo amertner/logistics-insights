@@ -101,8 +101,9 @@ local function show_storage_item_list(gui_table, excluded_numbers, player_table)
 
   for _, chest in pairs(entity_list) do
     if chest and chest.valid then
-      local cell = gui_table.add {type = "sprite-button", style = "slot_button", tags={entity_id=chest.unit_number, 
-        action="focus-chest", shift_action="remove-chest", pane=WINDOW_NAME}}
+      local cell = gui_table.add {type = "sprite-button", style = "slot_button", 
+        tooltip={"exclusions-window.filter-exclusion-tooltip"},
+        tags={entity_id=chest.unit_number, action="focus-chest", shift_action="remove-chest", pane=WINDOW_NAME}}
       local filter = get_filter_for_chest(chest)
       if filter then
         cell.sprite = utils.get_valid_sprite_path("item/", filter.name)
@@ -156,7 +157,28 @@ function exclusions_window.show_exclusions(player_table, setting_name)
   exclusions_window.update(player_table)
 end
 
-function remove_undersupply_exclusion(event)
+local function focus_on_chest(event)
+  -- #TODO: Focus on the chest on the map
+end
+
+local function remove_chest_exclusion(event)
+  if not event.element or not event.element.valid then return false end
+  local player_table = player_data.get_player_table(event.player_index)
+  if not player_table then return false end
+
+  local tags = event.element.tags
+  local entity_id = tags.entity_id
+  local network_id = player_table.settings_network_id
+  local networkdata = network_data.get_networkdata_fromid(network_id)
+  if networkdata and networkdata.ignored_storages_for_mismatch then
+    if entity_id and networkdata.ignored_storages_for_mismatch[entity_id] then
+      networkdata.ignored_storages_for_mismatch[entity_id] = nil
+      exclusions_window.update(player_table)
+    end
+  end
+end
+
+local function remove_undersupply_exclusion(event)
   if not event.element or not event.element.valid then return false end
   local player_table = player_data.get_player_table(event.player_index)
   if not player_table then return false end
@@ -186,9 +208,19 @@ function exclusions_window.on_gui_click(event)
   local shift_action = event.element.tags.shift_action
 
   if event.button == defines.mouse_button_type.left then
-    if event.shift and shift_action == "remove-undersupply" then
-      remove_undersupply_exclusion(event)
-      handled = true
+    if event.shift then
+      if shift_action == "remove-undersupply" then
+        remove_undersupply_exclusion(event)
+        handled = true
+      elseif shift_action == "remove-chest" then
+        remove_chest_exclusion(event)
+        handled = true
+      end
+    else
+      if action == "focus-chest" then
+        focus_on_chest(event)
+        handled = true
+      end
     end
   end
 

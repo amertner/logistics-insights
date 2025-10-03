@@ -1,8 +1,10 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.11.5
 Date: ????
+  Features:
+    - You can now show and manage the items that are excluded from undersupply and mismatched storage analyses
   Changes:
-    - Added a settings panel to show and manage the items that are excluded from undersupply and mismatched storage analyses
+    - The settings panel is now attached to the bottom of the main Logistics Insights window
 ---------------------------------------------------------------------------------------------------
 Version: 0.11.4
 Date: 2025-09-30
