@@ -89,9 +89,16 @@ local function get_filter_for_chest(chest)
 end
 
 ---@param gui_table LuaGuiElement The GUItable to contain the list
----@param excluded_numbers table<number, boolean>
+---@param networkdata LINetworkData
 ---@param player_table PlayerData
-local function show_storage_item_list(gui_table, excluded_numbers, player_table)
+local function show_ignored_storages_for_mismatch_list(gui_table, networkdata, player_table)
+  if not networkdata or not networkdata.ignored_storages_for_mismatch or not player_table then return end
+  if player_table.ignored_storages_for_mismatch_shown >= networkdata.ignored_storages_for_mismatch_changed then
+    return -- No change since last shown
+  end
+  exclusions_table.clear()
+  player_table.ignored_storages_for_mismatch_shown = game.tick
+  local excluded_numbers = networkdata.ignored_storages_for_mismatch
   local entity_list = {}
   for _, chest in pairs(player_table.network.storages) do
     if chest and chest.valid and excluded_numbers[chest.unit_number] then
@@ -135,14 +142,17 @@ function exclusions_window.update(player_table)
     player_table.ui.exclusions_pane.header.caption = ""-- {"exclusions-window.window-title"}
   end
 
-  -- Clear existing entries
-  exclusions_table.clear()
-  if not networkdata then return end
-
-  if setting_shown == exclusions_window.undersupply_ignore_list_setting then
-    show_item_quality_list(exclusions_table, networkdata.ignored_items_for_undersupply)
-  elseif player_table.exclusion_list_shown == exclusions_window.chests_on_ignore_list_setting then
-    show_storage_item_list(exclusions_table, networkdata.ignored_storages_for_mismatch, player_table)
+  if not networkdata then
+    exclusions_table.clear()
+    player_table.ignored_storages_for_mismatch_shown = 0
+  else
+    if setting_shown == exclusions_window.undersupply_ignore_list_setting then
+      exclusions_table.clear()
+      player_table.ignored_storages_for_mismatch_shown = 0
+      show_item_quality_list(exclusions_table, networkdata.ignored_items_for_undersupply)
+    elseif player_table.exclusion_list_shown == exclusions_window.chests_on_ignore_list_setting then
+      show_ignored_storages_for_mismatch_list(exclusions_table, networkdata, player_table)
+    end
   end
 end
 
@@ -172,7 +182,7 @@ local function remove_chest_exclusion(event)
   local networkdata = network_data.get_networkdata_fromid(network_id)
   if networkdata and networkdata.ignored_storages_for_mismatch then
     if entity_id and networkdata.ignored_storages_for_mismatch[entity_id] then
-      networkdata.ignored_storages_for_mismatch[entity_id] = nil
+      network_data.remove_id_from_ignored_storages_for_mismatch(networkdata, entity_id)
       exclusions_window.update(player_table)
     end
   end

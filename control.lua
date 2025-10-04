@@ -60,6 +60,7 @@ end
 --- @param player_table PlayerData
 local function network_check(player, player_table)
   if network_data.check_network_changed(player, player_table) then
+    player_table.ignored_storages_for_mismatch_shown = 0
     scan_coordinator.prioritise_scanning_new_player_network(player_table)
     main_window.clear_progress(player_table)
     full_UI_refresh(player, player_table)

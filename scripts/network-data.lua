@@ -22,6 +22,7 @@ local utils = require("scripts.utils")
 ---@field suggestions Suggestions -- The list of suggestions associated with this network
 ---@ -- Per-network settings
 ---@field ignored_storages_for_mismatch table<number, boolean> -- A list of storage IDs to ignore for mismatched storage suggestion
+---@field ignored_storages_for_mismatch_changed number -- The tick when the filter ignore lists were last changed
 ---@field ignore_higher_quality_mismatches boolean -- Whether to ignore higher quality mismatches
 ---@field ignored_items_for_undersupply table<string, boolean> -- A list of "item name:quality" to ignore for undersupply suggestion
 ---@field ignore_buffer_chests_for_undersupply boolean -- True to ignore buffer chests when calculating undersupply
@@ -126,6 +127,7 @@ function network_data.create_networkdata(network)
       history_timer = tick_counter.new(),
       suggestions = suggestions.new(),
       ignored_storages_for_mismatch = {},
+      ignored_storages_for_mismatch_changed = game.tick,
       ignore_higher_quality_mismatches = false,
       ignored_items_for_undersupply = {},
       ignore_buffer_chests_for_undersupply = false,
@@ -476,9 +478,23 @@ function network_data.add_storages_to_ignorelist_for_filter_mismatch(networkdata
       local ID = item.unit_number
       if ID then
         networkdata.ignored_storages_for_mismatch[ID] = true
+        networkdata.ignored_storages_for_mismatch_changed = game.tick
       end
     end
   end
+end
+
+---@param networkdata LINetworkData The network
+function network_data.clear_ignored_storages_for_mismatch(networkdata)
+  networkdata.ignored_storages_for_mismatch = {}
+  networkdata.ignored_storages_for_mismatch_changed = game.tick
+end
+
+---@param networkdata LINetworkData The network
+---@param entity_id number The storage entity ID to remove from the ignore list
+function network_data.remove_id_from_ignored_storages_for_mismatch(networkdata, entity_id)
+  networkdata.ignored_storages_for_mismatch[entity_id] = nil
+  networkdata.ignored_storages_for_mismatch_changed = game.tick
 end
 
 ---@param networkdata? LINetworkData The network

@@ -297,7 +297,7 @@ local function clear_list_and_refresh(player_table, event)
 
   if event.element.tags.name == mismatched_storage_setting then
     -- Clear the list of ignored storages for mismatched storage suggestion
-    networkdata.ignored_storages_for_mismatch = {}
+    network_data.clear_ignored_storages_for_mismatch(networkdata)
   elseif event.element.tags.name == undersupply_ignore_list_setting then
     -- Clear the list of ignored storages for undersupply
     networkdata.ignored_items_for_undersupply = {}
@@ -312,8 +312,8 @@ local function revert_to_defaults(player_table, event)
   if networkdata then
     networkdata.ignore_higher_quality_mismatches = false
     networkdata.ignore_buffer_chests_for_undersupply = false
-    networkdata.ignored_storages_for_mismatch = {}
     networkdata.ignored_items_for_undersupply = {}
+    network_data.clear_ignored_storages_for_mismatch(networkdata)
   end
 end
 

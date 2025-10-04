@@ -454,8 +454,6 @@ function networks_window.update(player)
   -- Update settings frame
   if seen_settings_network then
     network_settings.update(player, player_table)
-  elseif player_table.settings_network_id then
-    close_settings_pane(player_table)
   end
 end
 

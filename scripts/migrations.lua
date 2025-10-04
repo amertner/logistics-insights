@@ -364,9 +364,13 @@ local li_migrations = {
   -- 0.11.4: Added new buttons to revert per-network settings
 
   ["0.11.5"] = function()
+    for _, nwd in pairs(storage.networks) do
+      nwd.ignored_storages_for_mismatch_changed = game.tick
+    end
     -- Added new settings panel for managing exclusions
     for player_index, player_table in pairs(storage.players) do
       local player = game.get_player(player_index)
+      player_table.ignored_storages_for_mismatch_shown = 0
       reinitialise_ui(player, player_table)
     end
   end,
