@@ -1,6 +1,6 @@
 ---------------------------------------------------------------------------------------------------
 Version: 0.11.5
-Date: ????
+Date: 2025-10-04
   Features:
     - You can now show and manage the items that are excluded from undersupply and mismatched storage analyses
     - Added a per-network setting to ignore low storage suggestions when there are no storage chests at all
