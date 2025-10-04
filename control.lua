@@ -17,7 +17,7 @@ local network_settings = require("scripts.networkswin.network_settings")
 local tooltips_helper = require("scripts.tooltips-helper")
 local analysis_coordinator = require("scripts.analysis-coordinator")
 local scan_coordinator = require("scripts.scan-coordinator")
---local alerts_manager = require("scripts/alerts-manager")
+local events = require("scripts.events")
 
 ---@alias SurfaceName string
 
@@ -126,6 +126,16 @@ end })
 -- All actual timed dispatching handler in scheduler.lua
 script.on_nth_tick(1, function()
   scheduler.on_tick()
+end)
+
+script.on_event({events.on_settings_pane_closed}, 
+  ---@param e {player_index: uint}
+  function(e)
+  local player = game.get_player(e.player_index)
+  local player_table = player_data.get_player_table(e.player_index)
+  if player and player.valid and player_table then
+    main_window.update(player, player_table, false)
+  end
 end)
 
 -- Called when a new player is created

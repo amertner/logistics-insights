@@ -5,6 +5,7 @@ local network_settings = {}
 local player_data = require "scripts.player-data"
 local network_data = require "scripts.network-data"
 local exclusions_window = require "scripts.networkswin.exclusions_window"
+local events = require "scripts.events"
 
 local PANE_NAME = "li_network_settings_pane"
 local WINDOW_MIN_HEIGHT = 110-3*24
@@ -123,8 +124,10 @@ function network_settings.create_frame(parent, player)
       add_network_id_header(header_flow, player_table)
       local space = header_flow.add {type = "empty-widget"}
       space.style.horizontally_stretchable = true
-      local default_settings = header_flow.add{type="sprite-button", style="tool_button_red", name=revert_to_defaults_button_name, sprite="utility/reset", tooltip={"network-settings.all-options-default-tooltip"}}
-      local close_button = header_flow.add({type="sprite-button", style="li_close_settings_button", sprite="utility/close", name=PANE_NAME.."-close", tooltip={"network-settings.close-window-tooltip"}})
+      local default_settings = header_flow.add{type="sprite-button", style="tool_button_red", name=revert_to_defaults_button_name, sprite="utility/reset", tooltip={"network-settings.all-options-default-tooltip"},
+        tags={action="revert-to-defaults", pane=PANE_NAME}}
+      local close_button = header_flow.add({type="sprite-button", style="li_close_settings_button", sprite="utility/close", name=PANE_NAME.."-close", tooltip={"network-settings.close-window-tooltip"},
+        tags={action="close", pane=PANE_NAME}})
       --close_button.style.top_margin = 2
       player_table.ui.network_settings.defaults_button = default_settings
 
@@ -325,10 +328,10 @@ function network_settings.on_gui_click(event)
   if not event.element.tags.pane or event.element.tags.pane ~= PANE_NAME then return false end
 
   local handled = false
+  local action = event.element.tags.action
   local player_table = player_data.get_player_table(event.player_index)
   if player_table then
     local setting_name = event.element.tags.name
-    local action = event.element.tags.action
     local controls = player_table.ui.network_settings[setting_name]
     if controls then
       if controls.control and controls.control.valid then
@@ -351,12 +354,13 @@ function network_settings.on_gui_click(event)
       end
     end
 
-    if event.element.name == revert_to_defaults_button_name then
+    if action == "revert-to-defaults" then
       revert_to_defaults(player_table, event)
       handled = true
-    elseif event.element.name == PANE_NAME.."-close" and player_table.ui.network_settings.settings_frame then
+    elseif action == "close" and player_table.ui.network_settings.settings_frame then
       local frame = player_table.ui.network_settings.settings_frame
       frame.visible = false
+      events.emit(events.on_settings_pane_closed, event.player_index)
       handled = true
     end
     if handled then
