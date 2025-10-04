@@ -342,41 +342,44 @@ function network_settings.on_gui_click(event)
   local player_table = player_data.get_player_table(event.player_index)
   if not player_table or not player_table.ui or not player_table.ui.network_settings then return false end
   local setting_name = event.element.tags.name
-  local controls = player_table.ui.network_settings[setting_name]
-  if controls then
-    if controls.control and controls.control.valid then
-      if controls.control.type == "checkbox" then
-        set_checkbox_setting(player_table, setting_name, action, controls)
-        handled = true
-      end
-      if action == "revert" then
-        -- Revert button for a list setting
-        if setting_name == mismatched_storage_setting or setting_name == undersupply_ignore_list_setting then
-          clear_list_and_refresh(player_table, event)
+  if setting_name then
+    local controls = player_table.ui.network_settings[setting_name]
+    if controls then
+      if controls.control and controls.control.valid then
+        if controls.control.type == "checkbox" then
+          set_checkbox_setting(player_table, setting_name, action, controls)
+          handled = true
+        end
+        if action == "revert" then
+          -- Revert button for a list setting
+          if setting_name == mismatched_storage_setting or setting_name == undersupply_ignore_list_setting then
+            clear_list_and_refresh(player_table, event)
+            handled = true
+          end
+        end
+        if action == "manage" then
+          -- Change which exclusion list is shown
+          exclusions_window.show_exclusions(player_table, setting_name)
           handled = true
         end
       end
-      if action == "manage" then
-        -- Change which exclusion list is shown
-        exclusions_window.show_exclusions(player_table, setting_name)
-        handled = true
-      end
-    end
-
-    if action == "revert-to-defaults" then
-      revert_to_defaults(player_table, event)
-      handled = true
-    elseif action == "close" and player_table.ui.network_settings.settings_frame then
-      local frame = player_table.ui.network_settings.settings_frame
-      frame.visible = false
-      events.emit(events.on_settings_pane_closed, event.player_index)
-      handled = true
-    end
-    if handled then
-      local player = game.get_player(player_table.player_index)
-      network_settings.update(player, player_table)
     end
   end
+
+  if action == "revert-to-defaults" then
+    revert_to_defaults(player_table, event)
+    handled = true
+  elseif action == "close" and player_table.ui.network_settings.settings_frame then
+    local frame = player_table.ui.network_settings.settings_frame
+    frame.visible = false
+    events.emit(events.on_settings_pane_closed, event.player_index)
+    handled = true
+  end
+  if handled then
+    local player = game.get_player(player_table.player_index)
+    network_settings.update(player, player_table)
+  end
+
   return handled
 end
 

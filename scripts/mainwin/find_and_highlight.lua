@@ -8,6 +8,7 @@ local utils = require("scripts.utils")
 local game_state = require("scripts.game-state")
 local ResultLocation = require("scripts.result-location")
 local suggestions = require("scripts.suggestions")
+local events = require("scripts.events")
 
 ---@class ViewData
 ---@field items LuaEntity[]|nil List of entities to highlight
@@ -411,6 +412,7 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
     if is_shift_click and not is_right_click then
       local networkdata = network_data.get_networkdata(player_table.network)
       network_data.add_item_to_ignorelist_for_undersupply(networkdata, iq)
+      events.emit(events.on_ignorelist_changed, player.index)
     else
       find_and_highlight.highlight_locations_with_filter_on_map(
         player, player_table, rowname,
@@ -434,6 +436,7 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
           network_data.add_storages_to_ignorelist_for_filter_mismatch(networkdata, list)
           -- Immediately clear the suggestion to provide visual feedback
           networkdata.suggestions:clear_suggestion(suggestions.mismatched_storage_key)
+          events.emit(events.on_ignorelist_changed, player.index)
         else
           find_and_highlight.highlight_list_locations_on_map(player, list, is_right_click)
         end

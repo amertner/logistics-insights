@@ -315,6 +315,17 @@ script.on_event({events.on_forced_network_changed},
   end
 end)
 
+-- An item was added to an ignore list, so the network settings window should be refreshed
+script.on_event({events.on_ignorelist_changed},
+  ---@param e {player_index: uint}
+  function(e)
+  local player = game.get_player(e.player_index)
+  local player_table = player_data.get_player_table(e.player_index)
+  if player and player.valid and player_table then
+    network_settings.update(player, player_table)
+  end
+end)
+
 script.on_event(
   { defines.events.on_cutscene_started, defines.events.on_cutscene_finished, defines.events.on_cutscene_cancelled },
   --- @param e EventData.on_cutscene_started|EventData.on_cutscene_finished|EventData.on_cutscene_cancelled
