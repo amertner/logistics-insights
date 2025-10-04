@@ -14,6 +14,7 @@ local mismatched_storage_setting=exclusions_window.chests_on_ignore_list_setting
 local undersupply_ignore_list_setting=exclusions_window.undersupply_ignore_list_setting
 local ignore_higher_quality_matches_setting="ignore-higher-quality-mismatches"
 local ignore_buffer_chests_setting="ignore-buffer-chests"
+local ignore_low_storage_when_no_storage_setting="ignore_low_storage_when_no_storage"
 local revert_to_defaults_button_name="network-settings-revert-to-defaults"
 local default_list_shown = mismatched_storage_setting
 
@@ -33,12 +34,9 @@ local function add_network_id_header(ui, player_table)
 end
 
 -- Add a header line to indicate a section of settings beginning
----@returns LuaGuiElement Returns the table that will contain the settings
 local function add_settings_header(ui, caption)
   ui.add{type="label", caption=caption, style="caption_label"}
-  local settings_table = ui.add{type="table", column_count=2}
-  settings_table.style.column_alignments[2] = "center"
-  return settings_table
+  ui.add{type="empty-widget"}
 end
 
 -- Add a flow containing a revert button and a label with a tooltip
@@ -83,12 +81,16 @@ end
 ---@param ui LuaGuiElement The parent UI element to add the settings to
 ---@param player_table PlayerData The player's data table
 local function add_suggestions_settings(ui, player_table)
+  add_settings_header(ui, {"network-settings.low-storage-header"})
+  setting = add_checkbox_setting(ui, ignore_low_storage_when_no_storage_setting, false)
+  player_table.ui.network_settings[ignore_low_storage_when_no_storage_setting] = setting
+
   local settings_table = add_settings_header(ui, {"network-settings.mismatched-storage-header"})
 
-  local setting = add_checkbox_setting(settings_table, ignore_higher_quality_matches_setting, false)
+  local setting = add_checkbox_setting(ui, ignore_higher_quality_matches_setting, false)
   player_table.ui.network_settings[ignore_higher_quality_matches_setting] = setting
-
-  setting = add_setting_with_list(settings_table, mismatched_storage_setting, "item/storage-chest")
+ 
+  setting = add_setting_with_list(ui, mismatched_storage_setting, "item/storage-chest")
   player_table.ui.network_settings[mismatched_storage_setting] = setting
 end
 
@@ -96,12 +98,12 @@ end
 ---@param ui LuaGuiElement The parent UI element to add the settings to
 ---@param player_table PlayerData The player's data table
 local function add_undersupply_settings(ui, player_table)
-  local settings_table = add_settings_header(ui, {"network-settings.undersupply-header"})
+  add_settings_header(ui, {"network-settings.undersupply-header"})
   
   -- Add ignore buffer chests setting
-  local setting = add_checkbox_setting(settings_table, ignore_buffer_chests_setting, false)
+  local setting = add_checkbox_setting(ui, ignore_buffer_chests_setting, false)
   player_table.ui.network_settings[ignore_buffer_chests_setting] = setting
-  setting = add_setting_with_list(settings_table, undersupply_ignore_list_setting, "item/requester-chest")
+  setting = add_setting_with_list(ui, undersupply_ignore_list_setting, "item/requester-chest")
   player_table.ui.network_settings[undersupply_ignore_list_setting] = setting
 end
 
@@ -143,8 +145,11 @@ function network_settings.create_frame(parent, player)
       subheader_frame.style.vertically_stretchable = true
 
     -- Add actual settings
-    add_suggestions_settings(subheader_frame, player_table)
-    add_undersupply_settings(subheader_frame, player_table)
+    local settings_table = subheader_frame.add{type="table", column_count=2}
+    settings_table.style.column_alignments[2] = "center"
+
+    add_suggestions_settings(settings_table, player_table)
+    add_undersupply_settings(settings_table, player_table)
 
     -- Exclusions frame
     local exclusions_frame = outer_flow.add{ type = "flow", name = PANE_NAME.."-exclusions", direction = "vertical" }
@@ -245,6 +250,8 @@ function network_settings.update(player, player_table)
       num_changed = num_changed + update_checkbox_setting(control, defaults, networkdata and networkdata.ignore_higher_quality_mismatches)
     elseif name == ignore_buffer_chests_setting then
       num_changed = num_changed + update_checkbox_setting(control, defaults, networkdata and networkdata.ignore_buffer_chests_for_undersupply)
+    elseif name == ignore_low_storage_when_no_storage_setting then
+      num_changed = num_changed + update_checkbox_setting(control, defaults, networkdata and networkdata.ignore_low_storage_when_no_storage)
     elseif name == mismatched_storage_setting then
       num_changed = num_changed + update_list_setting(control, defaults, networkdata and table_size(networkdata.ignored_storages_for_mismatch))
     elseif name == undersupply_ignore_list_setting then
@@ -284,6 +291,8 @@ local function set_checkbox_setting(player_table, name, action, setting)
     networkdata.ignore_higher_quality_mismatches = new_value
   elseif name == ignore_buffer_chests_setting then
     networkdata.ignore_buffer_chests_for_undersupply = new_value
+  elseif name == ignore_low_storage_when_no_storage_setting then
+    networkdata.ignore_low_storage_when_no_storage = new_value
   else
     return false
   end
@@ -312,6 +321,7 @@ local function revert_to_defaults(player_table, event)
   if networkdata then
     networkdata.ignore_higher_quality_mismatches = false
     networkdata.ignore_buffer_chests_for_undersupply = false
+    networkdata.ignore_low_storage_when_no_storage = false
     networkdata.ignored_items_for_undersupply = {}
     network_data.clear_ignored_storages_for_mismatch(networkdata)
   end

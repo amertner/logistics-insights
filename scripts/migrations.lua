@@ -366,6 +366,7 @@ local li_migrations = {
   ["0.11.5"] = function()
     for _, nwd in pairs(storage.networks) do
       nwd.ignored_storages_for_mismatch_changed = game.tick
+      nwd.ignore_low_storage_when_no_storage = false
     end
     -- Added new settings panel for managing exclusions
     for player_index, player_table in pairs(storage.players) do

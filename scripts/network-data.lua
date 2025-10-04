@@ -26,6 +26,7 @@ local utils = require("scripts.utils")
 ---@field ignore_higher_quality_mismatches boolean -- Whether to ignore higher quality mismatches
 ---@field ignored_items_for_undersupply table<string, boolean> -- A list of "item name:quality" to ignore for undersupply suggestion
 ---@field ignore_buffer_chests_for_undersupply boolean -- True to ignore buffer chests when calculating undersupply
+---@field ignore_low_storage_when_no_storage boolean -- True to ignore no storage when calculating suggestions
 ---@ -- Data capture fields
 ---@field last_scanned_tick number -- The last tick this network's cell and bot data was updated
 ---@field last_analysed_tick number -- The last tick this network's suggestios and undersupply were analysed
@@ -126,11 +127,13 @@ function network_data.create_networkdata(network)
       last_analysed_tick = game_tick,
       history_timer = tick_counter.new(),
       suggestions = suggestions.new(),
+      -- settings
       ignored_storages_for_mismatch = {},
       ignored_storages_for_mismatch_changed = game.tick,
       ignore_higher_quality_mismatches = false,
       ignored_items_for_undersupply = {},
       ignore_buffer_chests_for_undersupply = false,
+      ignore_low_storage_when_no_storage = false,
       last_pass_bots_seen = {},
       idle_bot_qualities = {},
       charging_bot_qualities = {},

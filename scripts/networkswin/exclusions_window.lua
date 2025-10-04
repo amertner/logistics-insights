@@ -7,7 +7,7 @@ local find_and_highlight = require "scripts.mainwin.find_and_highlight"
 local utils = require "scripts.utils"
 
 local WINDOW_NAME = "li-exclusions-frame"
-local WINDOW_HEIGHT = 170
+local WINDOW_HEIGHT = 210
 
 exclusions_window.chests_on_ignore_list_setting = "chests-on-ignore-list"
 exclusions_window.undersupply_ignore_list_setting = "items-on-undersupply-ignore-list"

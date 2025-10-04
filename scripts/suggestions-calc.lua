@@ -57,6 +57,7 @@ end
 ---@field mismatched_storages LuaEntity[] List of storage chests that have items not
 ---@field ignored_storages_for_mismatch table<number> Set of storage unit IDs to ignore for mismatch detection
 ---@field ignore_higher_quality_mismatches boolean Whether to ignore higher quality mismatches
+---@field ignore_low_storage_when_no_storage boolean Whether to ignore low storage when there is no storage
 
 -- Get ready to analyse storage in chunks
 --- @param accumulator StorageAccumulator The accumulator to store results in
@@ -68,6 +69,7 @@ function suggestions_calc.initialise_storage_analysis(accumulator, context)
   accumulator.mismatched_storages = {}
   accumulator.ignored_storages_for_mismatch = context.ignored_storages_for_mismatch or {}
   accumulator.ignore_higher_quality_mismatches = context.ignore_higher_quality_mismatches or false
+  accumulator.ignore_low_storage_when_no_storage = context.ignore_low_storage_when_no_storage or false
 end
 
 --- Process a storage chest for chunked storage analysis
@@ -165,11 +167,16 @@ function suggestions_calc.all_storage_chunks_done(accumulator, gather, network_i
   if networkdata then
     local suggestions = networkdata.suggestions
     if accumulator then
-      -- Create storage capacity suggestions, if the numbers warrant it
-      suggestions_calc.create_storage_capacity_suggestion(
-        suggestions, SuggestionsMgr.storage_low_key, accumulator.total_stacks, accumulator.total_stacks)
-      suggestions_calc.create_storage_capacity_suggestion(
-        suggestions, SuggestionsMgr.unfiltered_storage_low_key, accumulator.unfiltered_total_stacks, accumulator.unfiltered_free_stacks)
+      if accumulator.ignore_low_storage_when_no_storage then
+        suggestions:clear_suggestion(SuggestionsMgr.unfiltered_storage_low_key)
+        suggestions:clear_suggestion(SuggestionsMgr.storage_low_key)
+      else
+        -- Create storage capacity suggestions, if the numbers warrant it
+        suggestions_calc.create_storage_capacity_suggestion(
+          suggestions, SuggestionsMgr.storage_low_key, accumulator.total_stacks, accumulator.total_stacks)
+        suggestions_calc.create_storage_capacity_suggestion(
+          suggestions, SuggestionsMgr.unfiltered_storage_low_key, accumulator.unfiltered_total_stacks, accumulator.unfiltered_free_stacks)
+      end
 
       -- Create Mismatched Storage suggestion
       local mismatched_count = table_size(accumulator.mismatched_storages)

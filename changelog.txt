@@ -3,8 +3,9 @@ Version: 0.11.5
 Date: ????
   Features:
     - You can now show and manage the items that are excluded from undersupply and mismatched storage analyses
+    - Added a per-network setting to ignore low storage suggestions when there are no storage chests at all
   Changes:
-    - The settings panel is now attached to the bottom of the main Logistics Insights window
+    - The settings panel is now attached to the bottom of the main Logistics Insights window for better UX
 ---------------------------------------------------------------------------------------------------
 Version: 0.11.4
 Date: 2025-09-30
