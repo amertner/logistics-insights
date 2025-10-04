@@ -3,6 +3,7 @@ local exclusions_window = {}
 
 local player_data = require "scripts.player-data"
 local network_data = require "scripts.network-data"
+local find_and_highlight = require "scripts.mainwin.find_and_highlight"
 local utils = require "scripts.utils"
 
 local WINDOW_NAME = "li-exclusions-frame"
@@ -168,7 +169,25 @@ function exclusions_window.show_exclusions(player_table, setting_name)
 end
 
 local function focus_on_chest(event)
-  -- #TODO: Focus on the chest on the map
+  if not event.element or not event.element.valid then return false end
+  local player_table = player_data.get_player_table(event.player_index)
+  if not player_table then return false end
+
+  local tags = event.element.tags
+  local entity_id = tags.entity_id
+  local player = game.get_player(event.player_index)
+  if player then
+    local focus_chest = nil
+    for _, chest in pairs(player_table.network.storages) do
+      if chest and chest.valid and chest.unit_number == entity_id then
+        focus_chest = chest
+        break
+      end
+    end
+    if focus_chest and focus_chest.valid then
+      find_and_highlight.highlight_list_locations_on_map(player, {focus_chest}, true)
+    end
+  end
 end
 
 local function remove_chest_exclusion(event)
