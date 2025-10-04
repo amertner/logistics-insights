@@ -85,7 +85,7 @@ local function add_suggestions_settings(ui, player_table)
   setting = add_checkbox_setting(ui, ignore_low_storage_when_no_storage_setting, false)
   player_table.ui.network_settings[ignore_low_storage_when_no_storage_setting] = setting
 
-  local settings_table = add_settings_header(ui, {"network-settings.mismatched-storage-header"})
+  add_settings_header(ui, {"network-settings.mismatched-storage-header"})
 
   local setting = add_checkbox_setting(ui, ignore_higher_quality_matches_setting, false)
   player_table.ui.network_settings[ignore_higher_quality_matches_setting] = setting
@@ -340,27 +340,26 @@ function network_settings.on_gui_click(event)
   local handled = false
   local action = event.element.tags.action
   local player_table = player_data.get_player_table(event.player_index)
-  if player_table then
-    local setting_name = event.element.tags.name
-    local controls = player_table.ui.network_settings[setting_name]
-    if controls then
-      if controls.control and controls.control.valid then
-        if controls.control.type == "checkbox" then
-          set_checkbox_setting(player_table, setting_name, action, controls)
+  if not player_table or not player_table.ui or not player_table.ui.network_settings then return false end
+  local setting_name = event.element.tags.name
+  local controls = player_table.ui.network_settings[setting_name]
+  if controls then
+    if controls.control and controls.control.valid then
+      if controls.control.type == "checkbox" then
+        set_checkbox_setting(player_table, setting_name, action, controls)
+        handled = true
+      end
+      if action == "revert" then
+        -- Revert button for a list setting
+        if setting_name == mismatched_storage_setting or setting_name == undersupply_ignore_list_setting then
+          clear_list_and_refresh(player_table, event)
           handled = true
         end
-        if action == "revert" then
-          -- Revert button for a list setting
-          if setting_name == mismatched_storage_setting or setting_name == undersupply_ignore_list_setting then
-            clear_list_and_refresh(player_table, event)
-            handled = true
-          end
-        end
-        if action == "manage" then
-          -- Change which exclusion list is shown
-          exclusions_window.show_exclusions(player_table, setting_name)
-          handled = true
-        end
+      end
+      if action == "manage" then
+        -- Change which exclusion list is shown
+        exclusions_window.show_exclusions(player_table, setting_name)
+        handled = true
       end
     end
 
@@ -375,7 +374,7 @@ function network_settings.on_gui_click(event)
     end
     if handled then
       local player = game.get_player(player_table.player_index)
-      network_settings.update(player, player_table)   
+      network_settings.update(player, player_table)
     end
   end
   return handled

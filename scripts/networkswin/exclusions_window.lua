@@ -128,6 +128,7 @@ end
 
 ---@param player_table PlayerData
 function exclusions_window.update(player_table)
+   if not player_table or not player_table.ui or not player_table.ui.network_settings or not player_table.ui.network_settings.exclusions_frame then return end
    if not player_table.ui.network_settings.exclusions_frame.visible then return end
 
   local network_id = player_table.settings_network_id
