@@ -206,8 +206,8 @@ local cell_setup = {
       btn.style.top_margin = 2
       btn = flow.add{ type = "sprite-button", name = name .. "-trash", style = "mini_button", sprite = "utility/trash", tooltip = {"networks-window.trash-tooltip"} }
       btn.style.top_margin = 2
-      --btn = flow.add{ type = "sprite-button", name = name .. "-settings", style = "mini_button", sprite = "li-settings", tooltip = {"networks-window.settings-tooltip"} }
-      --btn.style.top_margin = 2
+      btn = flow.add{ type = "sprite-button", name = name .. "-settings", style = "mini_button", sprite = "li-settings", tooltip = {"networks-window.settings-tooltip"} }
+      btn.style.top_margin = 2
       return flow
     end,
     populate = function(el, nwd, pt)
@@ -502,6 +502,14 @@ function networks_window.on_gui_click(event)
       events.emit(events.on_forced_network_changed, event.player_index)
     elseif col_key == "settings" and network_id and player_table then
       -- Change to this network, and show the settings pane
+      if player and player.valid and network and network.valid then
+        find_and_highlight.highlight_network_locations_on_map(
+          player,
+          network,
+          "logistics-insights-roboports", --Highlight roboports
+          true -- Focus on an element
+        )
+      end
       local frame = player_table.ui.network_settings.settings_frame
       frame.visible = true
       events.emit(events.on_forced_network_changed, event.player_index)
