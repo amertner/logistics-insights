@@ -55,13 +55,20 @@ end
 -- 59: Cell chunk scanning. Slower is ok, as cells change less often. (Can be 17, 37, 41, 53, 59, 71, 89)
 -- 61: Check which derived analysis should run, if any
 
--- Check whether a player's active network has changed
-scheduler.register({ name = "network-check", interval = 29, per_player = true, is_heavy = false, fn = function(player, player_table)
+--- Check whether a player's active network has changed, and if so, reprioritise scanning and refresh the UI
+--- @param player LuaPlayer
+--- @param player_table PlayerData
+local function network_check(player, player_table)
   if network_data.check_network_changed(player, player_table) then
     scan_coordinator.prioritise_scanning_new_player_network(player_table)
     main_window.clear_progress(player_table)
     full_UI_refresh(player, player_table)
   end
+end
+
+-- Check whether a player's active network has changed
+scheduler.register({ name = "network-check", interval = 29, per_player = true, is_heavy = false, fn = function(player, player_table)
+  network_check(player, player_table)
 end })
 -- Scheduler for refreshing background networks that don't have an active player in them
 scheduler.register({ name = "background-refresh", interval = 11, is_heavy = true, per_player = false,
@@ -126,16 +133,6 @@ end })
 -- All actual timed dispatching handler in scheduler.lua
 script.on_nth_tick(1, function()
   scheduler.on_tick()
-end)
-
-script.on_event({events.on_settings_pane_closed}, 
-  ---@param e {player_index: uint}
-  function(e)
-  local player = game.get_player(e.player_index)
-  local player_table = player_data.get_player_table(e.player_index)
-  if player and player.valid and player_table then
-    main_window.update(player, player_table, false)
-  end
 end)
 
 -- Called when a new player is created
@@ -289,11 +286,31 @@ script.on_event(defines.events.on_gui_click,
     local player_table = player_data.get_player_table(event.player_index)
     if action == "refresh" then
       full_UI_refresh(player, player_table)
-    elseif action == "openmain" then
-      if player and player.valid and player_table then
-        main_window.set_window_visible(player, player_table, true)
-      end
     end
+  end
+end)
+
+--- The settings window closed. Update the setting button in the main window
+script.on_event({events.on_settings_pane_closed},
+  ---@param e {player_index: uint}
+  function(e)
+  local player = game.get_player(e.player_index)
+  local player_table = player_data.get_player_table(e.player_index)
+  if player and player.valid and player_table then
+    main_window.update(player, player_table, false)
+  end
+end)
+
+-- The network has changed. Bring to foreground and refresh the main window.
+script.on_event({events.on_forced_network_changed},
+  ---@param e {player_index: uint}
+  function(e)
+  local player = game.get_player(e.player_index)
+  local player_table = player_data.get_player_table(e.player_index)
+  if player and player.valid and player_table then
+    network_check(player, player_table)
+    main_window.set_window_visible(player, player_table, true)
+    main_window.update(player, player_table, false)
   end
 end)
 

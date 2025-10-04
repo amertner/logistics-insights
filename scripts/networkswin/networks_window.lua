@@ -7,6 +7,7 @@ local network_data = require("scripts.network-data")
 local find_and_highlight = require("scripts.mainwin.find_and_highlight")
 local utils = require("scripts.utils")
 local network_settings = require("scripts.networkswin.network_settings")
+local events = require("scripts.events")
 
 local WINDOW_NAME = "li_networks_window"
 local WINDOW_MIN_HEIGHT = 110-3*24 -- Room for 0 networks
@@ -479,7 +480,7 @@ function networks_window.update(player)
 end
 
 --- Handle clicks on Networks window mini buttons (settings/trash).
---- Returns "refresh", "openmain" or nil
+--- Returns "refresh", or nil
 ---@param event EventData.on_gui_click
 ---@return string|nil nil if no action, "refresh" is the UI needs refreshing, and "openmain" if the main window should be opened
 function networks_window.on_gui_click(event)
@@ -520,8 +521,7 @@ function networks_window.on_gui_click(event)
           true -- Focus on an element
         )
       end
-      -- Open the main window if not already open
-      return "openmain"
+      events.emit(events.on_forced_network_changed, event.player_index)
     elseif col_key == "settings" and network_id and player_table then
       -- Show/hide settings for this network
       local is_open = player_table.ui.networks.settings_frame.visible

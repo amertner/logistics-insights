@@ -1,6 +1,10 @@
+--- Events specific to Logistics Insights
+--- 
 local events = {
   -- Triggered when the settings pane closes
   on_settings_pane_closed = script.generate_event_name(),
+  -- Triggered when the network being monitored changes because the user clicks a button to do so
+  on_forced_network_changed = script.generate_event_name(),
 }
 
 ---@param event LuaEventType the name of the event that will be emited
