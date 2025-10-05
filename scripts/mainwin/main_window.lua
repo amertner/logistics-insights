@@ -295,7 +295,7 @@ end
 ---@param player_table PlayerData
 function main_window.ensure_settings_network_correct(player_table)
   local network_id
-  if player_table and player_table.network then
+  if player_table and player_table.network and player_table.network.valid then
     network_id = player_table.network.network_id
   else
     network_id = nil

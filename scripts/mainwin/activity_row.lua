@@ -146,7 +146,7 @@ function activity_row.update(player_table)
   end
 
   local networkdata = network_data.get_networkdata(player_table.network)
-  if player_table.network and networkdata then
+  if player_table.network and player_table.network.valid and networkdata then
     for key, window in pairs(player_table.ui.activity.cells) do
       if window.cell.valid then
         local num = networkdata.bot_items[key] or 0

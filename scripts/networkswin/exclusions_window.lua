@@ -93,7 +93,7 @@ end
 ---@param networkdata LINetworkData
 ---@param player_table PlayerData
 local function show_ignored_storages_for_mismatch_list(gui_table, networkdata, player_table)
-  if not networkdata or not networkdata.ignored_storages_for_mismatch or not player_table then return end
+  if not networkdata or not networkdata.ignored_storages_for_mismatch or not player_table or not player_table.network or not player_table.network.valid then return end
   if player_table.ignored_storages_for_mismatch_shown >= networkdata.ignored_storages_for_mismatch_changed then
     return -- No change since last shown
   end
@@ -144,7 +144,7 @@ function exclusions_window.update(player_table)
     player_table.ui.exclusions_pane.header.caption = ""-- {"exclusions-window.window-title"}
   end
 
-  if not networkdata or not player_data.network or not player_data.network.valid then
+  if not networkdata or not player_table.network or not player_table.network.valid then
     exclusions_table.clear()
     player_table.ignored_storages_for_mismatch_shown = 0
   else
@@ -172,7 +172,7 @@ end
 local function focus_on_chest(event)
   if not event.element or not event.element.valid then return false end
   local player_table = player_data.get_player_table(event.player_index)
-  if not player_table then return false end
+  if not player_table or not player_table.network or not player_table.network.valid then return false end
 
   local tags = event.element.tags
   local entity_id = tags.entity_id
