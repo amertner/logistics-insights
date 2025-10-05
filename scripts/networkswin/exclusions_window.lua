@@ -144,7 +144,7 @@ function exclusions_window.update(player_table)
     player_table.ui.exclusions_pane.header.caption = ""-- {"exclusions-window.window-title"}
   end
 
-  if not networkdata then
+  if not networkdata or not player_data.network or not player_data.network.valid then
     exclusions_table.clear()
     player_table.ignored_storages_for_mismatch_shown = 0
   else
