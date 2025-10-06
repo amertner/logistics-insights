@@ -47,6 +47,10 @@ function undersupply.process_one_requester(requester, accumulator)
     if accumulator.ignore_buffer_chests_for_undersupply and requester.name == "buffer-chest" then
       return consumed
     end
+    -- If disabled by a circuit condition, ignore the request
+    if requester.status == defines.entity_status.disabled_by_control_behavior then
+      return consumed
+    end
     consumed = 1
     -- Get the logistic point (the actual requester interface)
     local logistic_point = requester.get_logistic_point(defines.logistic_member_index.logistic_container)
