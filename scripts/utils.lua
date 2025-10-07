@@ -99,6 +99,8 @@ function utils.get_localised_names(entry)
       localised_name = prototypes.item[entry.item_name].localised_name
     elseif prototypes.entity[entry.item_name] then
       localised_name = prototypes.entity[entry.item_name].localised_name
+    else
+      localised_name = entry.item_name
     end
     localised_quality_name = prototypes.quality[entry.quality_name].localised_name
     return { iname = localised_name, qname = localised_quality_name }
