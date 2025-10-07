@@ -353,12 +353,6 @@ local li_migrations = {
     for _, nwd in pairs(storage.networks) do
       nwd.ignore_buffer_chests_for_undersupply = false
     end
-
-    -- Added new per-network setting, so reinitialise UIs
-    for player_index, player_table in pairs(storage.players) do
-      local player = game.get_player(player_index)
-      reinitialise_ui(player, player_table)
-    end
   end,
 
   -- 0.11.4: Added new buttons to revert per-network settings
