@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.11.10
+Date: ????
+  Bugfixes:
+    - When loading a save without a mod that introduced new items that were being transported, the descriptions would be wrong. Now, they use the non-localised string descriptions and an empty icon.
+---------------------------------------------------------------------------------------------------
 Version: 0.11.9
 Date: 2025-10-07
   Bugfixes:
