@@ -76,10 +76,10 @@ function utils.get_ItemQuality_key(iq)
 end
 
 --- Get the sprite path for a given prefix/item.
---- If the sprite does not exist, returns nil
+--- If the sprite does not exist, returns "".
 --- @param prefix string Prefix, e.g. "item/" or "entity/"
 --- @param name string Item/entity name
---- @return SpritePath|string sprite_path Full sprite path, e.g. "item/iron-plate
+--- @return SpritePath|string sprite_path Full sprite path, e.g. "item/iron-plate", or "" if not found
 function utils.get_valid_sprite_path(prefix, name)
   local entity_sprite = prefix .. name  ---@type SpritePath
   if helpers.is_valid_sprite_path(entity_sprite) then
@@ -95,6 +95,7 @@ end
 ---@return { iname: LocalisedString, qname: LocalisedString }
 function utils.get_localised_names(entry)
   if entry.item_name and entry.quality_name then
+    local localised_name
     if prototypes.item[entry.item_name] then
       localised_name = prototypes.item[entry.item_name].localised_name
     elseif prototypes.entity[entry.item_name] then
@@ -102,7 +103,7 @@ function utils.get_localised_names(entry)
     else
       localised_name = entry.item_name
     end
-    localised_quality_name = prototypes.quality[entry.quality_name].localised_name
+    local localised_quality_name = prototypes.quality[entry.quality_name].localised_name
     return { iname = localised_name, qname = localised_quality_name }
   end
   return { iname = entry.item_name, qname = entry.quality_name }

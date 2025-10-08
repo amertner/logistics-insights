@@ -206,7 +206,7 @@ end
 ---@param use_default boolean True if resetting to default
 ---@param state? boolean The new state, if not resetting it
 ---@return number Return number of settings changed (0 or 1)
-function update_checkbox_setting(control, use_default, state)
+local function update_checkbox_setting(control, use_default, state)
   local changed = 0
   if use_default then
     state = control.default
