@@ -172,7 +172,6 @@ script.on_event(defines.events.on_player_removed,
   function(e)
   storage.players[e.player_index] = nil
   -- Reset cached references as player configuration has changed
-  player_data.reset_cache()
   network_data.remove_player_index(e.player_index)
 end)
 
