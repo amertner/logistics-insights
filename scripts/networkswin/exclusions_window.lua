@@ -94,7 +94,7 @@ end
 ---@param player_table PlayerData
 local function show_ignored_storages_for_mismatch_list(gui_table, networkdata, player_table)
   if not networkdata or not networkdata.ignored_storages_for_mismatch or not player_table or not player_table.network or not player_table.network.valid then return end
-  if player_table.ignored_storages_for_mismatch_shown >= networkdata.ignored_storages_for_mismatch_changed then
+  if player_table.ignored_storages_for_mismatch_shown and player_table.ignored_storages_for_mismatch_shown >= networkdata.ignored_storages_for_mismatch_changed then
     return -- No change since last shown
   end
   exclusions_table.clear()
