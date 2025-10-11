@@ -64,7 +64,7 @@ end
 
 -- Check if we are currently analysing this player's network
 function analysis_coordinator.is_analysing_player_network(player_table)
-  if not storage.analysing_networkdata or not player_table or not player_table.network then
+  if not storage.analysing_networkdata or not player_table or not player_table.network or not player_table.network.valid then
     return false
   end
 

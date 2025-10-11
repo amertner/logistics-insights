@@ -161,7 +161,7 @@ script.on_event({ defines.events.on_player_joined_game },
   --- @param e EventData.on_player_joined_game
   function(e)
     local player_table = player_data.get_player_table(e.player_index)
-    if player_table and player_table.network then
+    if player_table and player_table.network and player_table.network.valid then
       network_data.player_changed_networks(player_table, nil, player_table.network)
     end
   end)
@@ -355,7 +355,7 @@ script.on_event(
   --- @param e EventData.on_gui_opened|EventData.on_gui_closed
   function(e)
     -- Show/hide the GUI when the player opens a locomotive view
-    if e.gui_type ~= defines.gui_type.entity or e.entity.type ~= "locomotive" then
+    if e.gui_type ~= defines.gui_type.entity or not e.entity or e.entity.type ~= "locomotive" then
       return
     end
     local player = game.get_player(e.player_index)
@@ -376,7 +376,8 @@ script.on_event(defines.events.on_player_changed_surface,
   local player_table = storage.players[player.index]
   if not player_table then return end
 
-  window = player.gui.screen.logistics_insights_window
+  local g = player.gui and player.gui.screen
+  local window = g and g.logistics_insights_window
   if window then
     -- If there is a space platform, ricity network, there can't be bots
     window.visible = player_table.bots_window_visible and not player.surface.platform

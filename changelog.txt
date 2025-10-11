@@ -3,6 +3,7 @@ Version: 0.11.10
 Date: ????
   Bugfixes:
     - When loading a save without a mod that introduced new items that were being transported, the descriptions would be wrong. Now, they use the non-localised string descriptions and an empty icon.
+    - Fix crash that could happen when a player is removedfrom a game, or when starting a new scenario.
 ---------------------------------------------------------------------------------------------------
 Version: 0.11.9
 Date: 2025-10-07
