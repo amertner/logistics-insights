@@ -107,22 +107,27 @@ end
 
 --- Handle click events on the controller GUI elements
 --- @param event EventData.on_gui_click The click event data containing element and player information
+--- @return boolean True if the event was handled, false otherwise
 function controller_gui.onclick(event)
   local player = game.get_player(event.player_index)
-  if not player or not player.valid then return end
+  if not player or not player.valid then return false end
 
+  local handled = false
   if event.element.name == "logistics_insights_toggle_main" then
     if event.button == defines.mouse_button_type.left then
       main_window.toggle_window_visible(player)
 
       local player_table = player_data.get_player_table(event.player_index)
       controller_gui.update_window(player, player_table)
+      handled = true
     end
   elseif event.element.name == "logistics_insights_toggle_networks" then
     if event.button == defines.mouse_button_type.left then
       networks_window.toggle_window_visible(player)
+      handled = true
     end
   end
+  return handled
 end
 
 return controller_gui

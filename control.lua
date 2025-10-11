@@ -277,17 +277,11 @@ end)
 script.on_event(defines.events.on_gui_click,
   --- @param event EventData.on_gui_click
   function(event)
-  controller_gui.onclick(event)
-  main_window.onclick(event)
+  -- Call the various GUI handlers in turn, stopping if one of them handles the event
+  if controller_gui.onclick(event) then return end
+  if main_window.onclick(event) then return end
   if network_settings.on_gui_click(event) then return end
-  local action = networks_window.on_gui_click(event)
-  if action then
-    local player = game.get_player(event.player_index)
-    local player_table = player_data.get_player_table(event.player_index)
-    if action == "refresh" then
-      full_UI_refresh(player, player_table)
-    end
-  end
+  networks_window.on_gui_click(event)
 end)
 
 --- The settings window closed. Update the setting button in the main window

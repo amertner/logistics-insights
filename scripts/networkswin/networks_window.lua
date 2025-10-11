@@ -458,9 +458,7 @@ function networks_window.update(player)
 end
 
 --- Handle clicks on Networks window mini buttons (settings/trash).
---- Returns "refresh", or nil
 ---@param event EventData.on_gui_click
----@return string|nil nil if no action, "refresh" is the UI needs refreshing, and "openmain" if the main window should be opened
 function networks_window.on_gui_click(event)
   local element = event.element
   if not (element and element.valid) then return nil end

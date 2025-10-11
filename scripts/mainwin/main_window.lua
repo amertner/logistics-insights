@@ -369,32 +369,39 @@ end
 
 --- Handle click events on GUI elements
 --- @param event EventData.on_gui_click The click event data
+--- @return boolean True if the event was handled, false otherwise
 function main_window.onclick(event)
+  local handled = false
   if utils.starts_with(event.element.name, "logistics-insights") then
     local player = game.get_player(event.player_index)
     local player_table = player_data.get_player_table(event.player_index)
     if player and player.valid and player_table then
       if game_state.handle_control_button(player_table, event.element) then
         -- Control button handled (freeze/unfreeze/step)
+        handled = true
       elseif event.element.name == "logistics-insights-close" then
         -- Close button clicked
         main_window.set_window_visible(player, player_table, false)
+        handled = true
       elseif event.element.name == "logistics-insights-network-id" then
         -- Clicking the network ID button toggles between fixed and dynamic network
         event.element.toggled = not event.element.toggled
         player_table.fixed_network = event.element.toggled
+        handled = true
       elseif event.element.name == "logistics-insights-sorted-network" then
         -- Open networks window and show settings for current network
         main_window.open_or_close_settings(player, player_table)
+        handled = true
       elseif event.element.name == "logistics-insights-sorted-clear" then
         -- Clear the delivery history and clear the timer
         network_data.clear_delivery_history(player_table.network)
         main_window.destroy(player, player_table)
         main_window.create(player, player_table)
         main_window.update(player, player_table, true)
+        handled = true
       else
         -- The click may require a highlight/freeze
-        local handled = find_and_highlight.handle_click(
+        handled = find_and_highlight.handle_click(
           player,
           player_table,
           event.element,
@@ -404,6 +411,7 @@ function main_window.onclick(event)
       end
     end
   end
+  return handled
 end
 
 -- When the window is moved, remember its new location
