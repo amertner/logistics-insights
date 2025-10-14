@@ -51,7 +51,7 @@ end
 --- Clear a progress bar
 --- @param player_table PlayerData The player's data table
 function progress_bars.clear_all_progressbars(player_table)
-  if not player_table.ui or not player_table.ui.progress_count or not player_table.ui.progress_total then
+  if not player_table.ui or not player_table.ui.progress_count then
     return
   end
   local labels = player_table.ui.progress_count

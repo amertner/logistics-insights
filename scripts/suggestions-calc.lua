@@ -226,6 +226,7 @@ function suggestions_calc.analyse_too_many_bots(suggestions, network)
     end
   end
   if not first or not last or last <= first then
+    -- Only warn of too many bots if the number is increasing
     suggestions:clear_suggestion(SuggestionsMgr.too_many_bots_key)
     return
   end
