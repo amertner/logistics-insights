@@ -270,8 +270,6 @@ function network_data.remove_player_index_from_networkdata(networkdata, player_t
     end
     player_table.network = nil
     debugger.info("Removed player index " .. tostring(player_table.player_index) .. " from network ID " .. tostring(networkdata.id))
-  else
-    debugger.error("[remove_player_index_from_networkdata: Need both networkdata and player_table")
   end
 end
 
