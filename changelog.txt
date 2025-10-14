@@ -1,4 +1,11 @@
 ---------------------------------------------------------------------------------------------------
+Version: 0.11.11
+Date: 2025-10-14
+  Changes:
+    - Removed unused and unnecessary code to improve efficiency in preparation for v1.0 release
+  Bugfixes:
+    - Fixed a bug where the tooltip did not reflect the "freeze on highlight" setting
+---------------------------------------------------------------------------------------------------
 Version: 0.11.10
 Date: 2025-10-11
   Bugfixes:
