@@ -153,41 +153,6 @@ function network_data.create_networkdata(network)
   return storage.networks[network.network_id]
 end
 
--- Initialize all of the storage elements managed by logistic_cell_counter
----@param network LuaLogisticNetwork|nil The network to initialise
----@return nil
-function network_data.init_logistic_cell_counter_storage(network)
-  local nw = network_data.get_networkdata(network)
-  if not nw then
-    network_data.create_networkdata(network)
-  else
-    nw.idle_bot_qualities = {}
-    nw.charging_bot_qualities = {}
-    nw.waiting_bot_qualities = {}
-    nw.roboport_qualities = {}
-  end
-end
-
--- Initialize all of the storage elements managed by bot_counter only
----@param network LuaLogisticNetwork|nil The network to initialise
----@return nil
-function network_data.init_bot_counter_storage(network)
-  local nw = network_data.get_networkdata(network)
-  if not nw then
-    network_data.create_networkdata(network)
-  else
-    nw.bot_deliveries = {}
-    nw.last_pass_bots_seen = {}
-    nw.bot_items = {}
-    nw.bot_active_deliveries = {} -- A list of bots currently delivering items
-    nw.delivery_history = {} -- A list of past delivered items
-    nw.picking_bot_qualities = {} -- Quality of bots currently picking items
-    nw.delivering_bot_qualities = {} -- Quality of bots currently delivering items
-    nw.other_bot_qualities = {} -- Quality of bots doing anything else
-    nw.total_bot_qualities = {} -- Quality of all bots counted
-  end
-end
-
 --- Clear delivery history for a network, in response to user clicking the "Clear" button
 --- @param network LuaLogisticNetwork The network to clear delivery history for
 function network_data.clear_delivery_history(network)

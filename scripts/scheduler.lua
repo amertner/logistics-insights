@@ -131,24 +131,6 @@ function scheduler.update_player_intervals(player_index, intervals)
     scheduler.update_player_interval(player_index, name, interval)
   end
 end
---- Bulk re-register: given a list of task specs, register new ones and update intervals of existing ones.
---- @param specs table[] Each spec: {name, interval, per_player, fn}
-function scheduler.reregister(specs)
-  for _, spec in pairs(specs) do
-    local existing = (spec.per_player and player_tasks[spec.name]) or (not spec.per_player and global_tasks[spec.name])
-    if existing then
-      if spec.interval and existing.interval ~= spec.interval then
-        existing.interval = spec.interval
-      end
-      if spec.fn and existing.fn ~= spec.fn then
-        existing.fn = spec.fn
-      end
-      -- Order unchanged for existing tasks
-    else
-      scheduler.register(spec) -- Adds to order arrays
-    end
-  end
-end
 
 -- Build the task queue for the next TASK_QUEUE_TICKS ticks, starting at first_tick.
 -- Tries to avoid scheduling too many heavy tasks in the same tick.

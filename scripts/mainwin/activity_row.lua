@@ -5,6 +5,7 @@ local activity_row = {}
 
 local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
+local global_data = require("scripts.global-data")
 local tooltips_helper = require("scripts.tooltips-helper")
 local mini_button = require("scripts.mainwin.mini_button")
 local progress_bars = require("scripts.mainwin.progress_bars")
@@ -163,7 +164,7 @@ function activity_row.update(player_table)
 
         if window.clicktip then
           -- Only show the "what happens if you click" tooltip if the button is active
-          if window.onwithpause or not player_table.settings.pause_for_bots then
+          if window.onwithpause or not global_data.freeze_highlighting_bots() then
             window.cell.tooltip = {"", main_tip, "\n", {"bots-gui.show-location-tooltip"}}
           else
             window.cell.tooltip = {"", main_tip, "\n", {"bots-gui.show-location-and-pause-tooltip"}}

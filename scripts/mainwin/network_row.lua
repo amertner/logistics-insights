@@ -5,6 +5,7 @@ local network_row = {}
 
 local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
+local global_data = require("scripts.global-data")
 local tooltips_helper = require("scripts.tooltips-helper")
 local mini_button = require("scripts.mainwin.mini_button")
 
@@ -193,7 +194,7 @@ function network_row.update(player_table)
 
     --  All Logistic Bots cell and tooltip
     local bottip
-    if player_table.settings.pause_for_bots then
+    if global_data.freeze_highlighting_bots() then
       bottip = "bots-gui.show-location-and-pause-tooltip"
     else
       bottip = "bots-gui.show-location-tooltip"

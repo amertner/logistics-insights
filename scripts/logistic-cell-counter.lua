@@ -136,26 +136,6 @@ function logistic_cell_counter.restart_counting(networkdata)
   end
 end
 
---- Reset logistic cell data when network changes
---- @param player? LuaPlayer The player whose network changed
---- @param player_table? PlayerData The player's data table
-function logistic_cell_counter.network_changed(player, player_table)
-  if player_table then
-    local network = player_table.network
-    if not network or not network.valid then
-      return
-    end
-    local networkdata = network_data.create_networkdata(network)
-    if not networkdata then
-      return
-    end
-
-    networkdata.cell_chunker:reset(networkdata.id, initialise_cell_network_list, all_chunks_done)
-    network_data.init_logistic_cell_counter_storage(player_table.network)
-    networkdata.suggestions:clear_suggestions()
-  end
-end
-
 --- PROCESSING A PLAYER NETWORK, AKA FOREGROUND
 
 ---@param networkdata LINetworkData

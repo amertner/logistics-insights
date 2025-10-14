@@ -204,10 +204,6 @@ function sorted_item_row.clear_cells(player_table, title)
       cell.tags = {} -- Clear tags to avoid confusion
     end
   end
-  -- Clear progress bar if it exists
-  if player_table.ui[title].progressbar then
-    player_table.ui[title].progressbar.value = 1
-  end
 end
 
 return sorted_item_row

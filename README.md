@@ -13,7 +13,7 @@ Logistics Insights can help:
 
 ## Quick info available
 
-In the top left corner of the screen, you'll see two icons:
+In the top left corner of the screen, you'll see two icons.
 
 - The lightbulb shows how many Suggestions you have across all of the networks being analyzed. Click this button to open/close the Networks window where you can see more detail.
 - The logistics bot shows how many logistics bots are idle in your current network. If this gets to 0, you most likely don't have enough. Click this button to open the Logistics Insights window to see much more detail about the network.
@@ -22,13 +22,17 @@ In the top left corner of the screen, you'll see two icons:
 
 The main Logistics Insights window focuses on showing everything you need to know about a single bot network at a time, whether it's the one where you are or one you're looking at via the map view.
 
-The Logistics Networks window shows all of the networks you've visited, with a few key highlights like number of bots, number of active suggestions and how many things are in short supply. You can also easily navigate between networks from here.
+The Logistics Networks window shows all of the networks you've visited, with a few key highlights like number of bots, number of active suggestions and how many things are in short supply. You can also easily navigate between networks from here. Clicking the gear icon opens the Logistics Insights window with the settings pane below.
+
+When the settings pane is open (you can also open it with the settings icon next to the Network row), you can see and edit the settings that apply to the current network.
 
 ## How to use Undersupply information
 
 In the Undersupply row, you can see items that have more demand than can be supplied in the network. This is useful to identify hard-to-spot bottlenecks.
 
 If you click on an item, LI will highlight every place that requests the item, and if you right-click, it will also zoom in and focus the map view on one of them. You can repeatedly right-click to get a sense for where the problems are.
+
+If an item is shown in undersupply but you don't want to track it, you can Shift-click on the icon to ignore that item type in the current network. I find this useful when I have requests for "accidental" items that I want to capture somewhere, but where there is no real shortage.
 
 ## How to use Suggestions
 
@@ -38,6 +42,7 @@ There are several types of suggestions, depending on what is happening in your n
 - **Build more storage.** If your storage is close to full, your network will work less efficiently as bots need to go further to find available storage. This suggestion shows up when your storage is 70% full, and becomes High priority when it's 90% full.
 - **Build more unfiltered storage.** Filtered storage is great, but you may be running out of storage that isn't filtered. LI uses same thresholds as for total storage here.
 - **Filtered storage mismatch.** If your filtered storage has items that don't match the filter, LI suggests you fix it. You can click/right-click on the suggestion to see which chests show the problem, which is otherwise hard to find.
+- **Too few bots**. Sometimes, you just don't have enough bots to do everything, and you might get this suggestion.
 
 Note that "fullness" of storage is measured by stacks, so you may have more storage available than LI suggests as it only looks for empty stacks.
 
@@ -79,7 +84,7 @@ If you have fewer items than the chunk size, the data will be updated on every p
 
 On a powerful machine, you can easily have a chunk size of 1,000 or more, and process data every 3 ticks. On a less powerful machine, you may want to process fewer items at a time, less often.
 
-From v0.10, Logistics Insights uses a sophisticated scheduler that smooths the load across many ticks, allowing you to get up to date information even with many networks and several players, without suffering a noticeable performance impact on the game.
+From v0.10, Logistics Insights uses a custom scheduler that smooths the load across many ticks, allowing you to get up to date information even with many networks and several players, without suffering a noticeable performance impact on the game.
 
 ## What's next?
 

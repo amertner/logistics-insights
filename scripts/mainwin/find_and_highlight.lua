@@ -4,6 +4,7 @@ local find_and_highlight = {}
 
 local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
+local global_data = require("scripts.global-data")
 local utils = require("scripts.utils")
 local game_state = require("scripts.game-state")
 local ResultLocation = require("scripts.result-location")
@@ -214,7 +215,7 @@ local get_network_list_function = {
 --- @param viewdata ViewData The view data containing items and focus information
 --- @param focus_on_element boolean Whether to focus on the selected element
 local function open_viewdata(player, viewdata, focus_on_element)
-  if viewdata.follow and settings.global["li-freeze-highlighting-bots"].value then
+  if viewdata.follow and global_data.freeze_highlighting_bots() then
     local player_table = player_data.get_player_table(player.index)
     game_state.freeze_game(player_table)
   end

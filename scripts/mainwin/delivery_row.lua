@@ -3,6 +3,7 @@
 
 local delivery_row = {}
 local network_data = require("scripts.network-data")
+local global_data = require("scripts.global-data")
 
 local sorted_item_row = require("scripts.mainwin.sorted_item_row")
 
@@ -21,7 +22,7 @@ function delivery_row.update(player_table, clearing)
   local networkdata = network_data.get_networkdata(player_table.network)
   if networkdata then
     local clicktip
-    if player_table.settings.pause_for_bots then
+    if global_data.freeze_highlighting_bots() then
       clicktip = {"bots-gui.show-location-and-pause-tooltip"}
     else
       clicktip = {"bots-gui.show-location-tooltip"}

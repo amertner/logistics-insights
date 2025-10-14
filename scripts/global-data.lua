@@ -20,6 +20,7 @@ function global_data.settings_changed()
   storage.global.gather_quality_data = settings.global["li-gather-quality-data-global"].value ~= false
   storage.global.show_all_networks = settings.global["li-show-all-networks"].value ~= false
   storage.global.ignore_player_demands_in_undersupply = settings.global["li-ignore-player-demands-in-undersupply"].value ~= false
+  storage.global.freeze_highlighting_bots = settings.global["li-freeze-highlighting-bots"].value ~= false
 end
 
 ---@return integer The global bot chunk interval setting
@@ -70,6 +71,10 @@ end
 function global_data.ignore_player_demands_in_undersupply()
   -- Undersupply includes Player demands unless the setting is disabled
   return storage.global.ignore_player_demands_in_undersupply
+end
+
+function global_data.freeze_highlighting_bots()
+  return storage.global.freeze_highlighting_bots
 end
 
 return global_data

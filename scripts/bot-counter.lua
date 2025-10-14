@@ -280,18 +280,6 @@ function bot_counter.restart_counting(networkdata)
   end
 end
 
---- When the network changes, reset all bot data
---- @param player LuaPlayer|nil The player whose network changed
---- @param player_table PlayerData|nil The player's data table
-function bot_counter.network_changed(player, player_table)
-  -- Clear all current state when we change networks
-  if player_table then
-    local networkdata = network_data.get_networkdata(player_table.network)
-    bot_counter.restart_counting(networkdata)
-    network_data.init_bot_counter_storage(player_table.network)
-  end
-end
-
 --- PROCESSING A PLAYER NETWORK, AKA FOREGROUND
 
 ---@param networkdata LINetworkData

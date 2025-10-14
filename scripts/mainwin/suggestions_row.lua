@@ -92,11 +92,7 @@ function suggestions_row.set_suggestion_cell(items, index, suggestion, enabled)
       if suggestion.clickname then
         -- This is a clickable suggestion, so update the tooltip
         button.tags = {clickname = suggestion.clickname}
-        if suggestion.alt_action then
-          button.tooltip = {"", button.tooltip, "\n", suggestion.alt_action}
-        else
-          button.tooltip = {"", button.tooltip, "\n", {"suggestions-row." .. suggestion.clickname .. "-tooltip"}}
-        end
+        button.tooltip = {"", button.tooltip, "\n", {"suggestions-row." .. suggestion.clickname .. "-tooltip"}}
       else
         button.tags = {} -- Clear tags if not clickable
       end
