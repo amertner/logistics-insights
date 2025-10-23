@@ -395,7 +395,6 @@ function main_window.onclick(event)
       elseif event.element.name == "logistics-insights-sorted-clear" then
         -- Clear the delivery history and clear the timer
         network_data.clear_delivery_history(player_table.network)
-        main_window.destroy(player, player_table)
         main_window.create(player, player_table)
         main_window.update(player, player_table, true)
         handled = true

@@ -7,6 +7,8 @@ local events = {
   on_forced_network_changed = script.generate_event_name(),
   -- Triggered when an element is added to the undersupply or filter exclude ignore list
   on_ignorelist_changed = script.generate_event_name(),
+  -- Triggered when the main window should be recreated (typically because of a mod settings change))
+  on_recreate_main_window = script.generate_event_name(),
 }
 
 ---@param event LuaEventType the name of the event that will be emited

@@ -240,6 +240,9 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
         -- Update the global bot chunk interval setting
         scheduler.apply_global_settings()
         scheduler.apply_all_player_intervals()
+      elseif e.setting == "li-calculate-undersupply" then
+        -- If undersupply calculation was enabled or disabled, recreate the main window
+        events.emit(events.on_recreate_main_window, e.player_index)
       elseif e.setting == "li-gather-quality-data-global" or e.setting == "li-ignore-player-demands-in-undersupply" then
         -- Nothing particular to do yet; will be used on next chunking cycle
       end
@@ -258,13 +261,11 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
         elseif e.setting == "li-show-history" then
           -- Show History was enabled or disabled
           player_data.update_settings(player, player_table)
-          main_window.destroy(player, player_table)
-          main_window.create(player, player_table)
+          events.emit(events.on_recreate_main_window, e.player_index)
         else
           -- For other settings, rebuild the main window
           player_data.update_settings(player, player_table)
-          main_window.destroy(player, player_table)
-          main_window.create(player, player_table)
+          events.emit(events.on_recreate_main_window, e.player_index)
         end
       end
     end
@@ -316,6 +317,17 @@ script.on_event({events.on_ignorelist_changed},
   local player_table = player_data.get_player_table(e.player_index)
   if player and player.valid and player_table then
     network_settings.update(player, player_table)
+  end
+end)
+
+script.on_event({events.on_recreate_main_window},
+  ---@param e {player_index: uint}
+  function(e)
+  local player = game.get_player(e.player_index)
+  local player_table = player_data.get_player_table(e.player_index)
+  if player and player.valid and player_table then
+    -- Creating the window first destroys it if it already exists
+    main_window.create(player, player_table)
   end
 end)
 

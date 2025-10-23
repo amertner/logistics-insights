@@ -74,6 +74,13 @@ data:extend(
     },
     {
       type = "bool-setting",
+      name = "li-calculate-undersupply",
+      setting_type = "runtime-global",
+      default_value = true,
+      order = "2.2"
+    },
+    {
+      type = "bool-setting",
       name = "li-freeze-highlighting-bots",
       setting_type = "runtime-global",
       default_value = true,

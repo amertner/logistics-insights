@@ -18,6 +18,7 @@ function global_data.settings_changed()
   storage.global.background_refresh_interval_secs = tonumber(settings.global["li-background-refresh-interval"].value) or 10
   storage.global.chunk_size = tonumber(settings.global["li-chunk-size-global"].value) or 400
   storage.global.gather_quality_data = settings.global["li-gather-quality-data-global"].value ~= false
+  storage.global.calculate_undersupply = settings.global["li-calculate-undersupply"].value ~= false
   storage.global.show_all_networks = settings.global["li-show-all-networks"].value ~= false
   storage.global.ignore_player_demands_in_undersupply = settings.global["li-ignore-player-demands-in-undersupply"].value ~= false
   storage.global.freeze_highlighting_bots = settings.global["li-freeze-highlighting-bots"].value ~= false
@@ -46,6 +47,11 @@ end
 ---@return boolean True if quality data gathering is enabled
 function global_data.gather_quality_data()
   return storage.global.gather_quality_data
+end
+
+---@return boolean True if undersupply calculation is enabled
+function global_data.calculate_undersupply()
+  return storage.global.calculate_undersupply
 end
 
 ---@return boolean True if all networks should be shown

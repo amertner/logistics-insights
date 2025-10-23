@@ -81,7 +81,8 @@ function analysis_coordinator.start_analysis(networkdata)
     storage.analysis_start_tick = game.tick
     storage.analysis_state = {
       free_suggestions_done = false,
-      undersupply_analysis_done = false,
+      -- If undersupply calculation is disabled, mark it as done immediately
+      undersupply_analysis_done = not global_data.calculate_undersupply(),
       undersupply_chunker = nil,
       storage_analysis_done = false,
       storage_chunker = nil,

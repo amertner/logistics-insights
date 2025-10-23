@@ -4,6 +4,7 @@ local networks_window = {}
 local flib_format = require("__flib__.format")
 local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
+local global_data = require("scripts.global-data")
 local find_and_highlight = require("scripts.mainwin.find_and_highlight")
 local utils = require("scripts.utils")
 local network_settings = require("scripts.networkswin.network_settings")
@@ -137,14 +138,19 @@ local cell_setup = {
     end,
     populate = function(el, nw, pt)
       if not (el and el.valid) then return end
-      local count = 0
-      if nw.suggestions and nw.suggestions.get_cached_list then
-        local undersupply = nw.suggestions:get_cached_list("undersupply")
-        if undersupply then
-          count = table_size(undersupply)
+      if global_data.calculate_undersupply()  then
+        local count = 0
+        if nw.suggestions and nw.suggestions.get_cached_list then
+          local undersupply = nw.suggestions:get_cached_list("undersupply")
+          if undersupply then
+            count = table_size(undersupply)
+          end
         end
+        el.caption = tostring(count)
+      else
+        el.caption = "n/a"
+        return
       end
-      el.caption = tostring(count)
     end
   },
   {
