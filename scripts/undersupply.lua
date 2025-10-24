@@ -18,7 +18,7 @@ local network_data = require("scripts.network-data")
 --- @param context table Context data for the initialization
 function undersupply.initialise_undersupply(accumulator, context)
   accumulator.demand = {}
-  accumulator.bot_deliveries = context.bot_deliveries
+  accumulator.bot_deliveries = context.deliveries
   accumulator.net_demand = {}
   accumulator.ignored_items_for_undersupply = context.ignored_items
   accumulator.ignore_player_demands = context.ignore_player_demands
