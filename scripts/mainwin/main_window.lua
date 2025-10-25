@@ -405,7 +405,9 @@ function main_window.onclick(event)
           player_table,
           event.element,
           event.button == defines.mouse_button_type.right,
-          event.shift
+          event.shift,
+          event.alt,
+          event.control
         )
       end
     end

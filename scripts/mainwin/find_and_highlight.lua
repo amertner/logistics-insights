@@ -369,14 +369,31 @@ function find_and_highlight.clear_markers(player)
   ResultLocation.clear_markers(player)
 end
 
+---@param player LuaPlayer
+---@param player_table PlayerData
+---@param iq ItemQuality
+local function open_in_factory_search(player, player_table, iq)
+  if not player or not player.valid or not player_table then
+    return
+  end
+  remote.call("factory-search", "search", player, {
+    type = "item",
+    name = iq and iq.name or "",
+    quality = iq and iq.quality or "normal",
+  })
+  return true
+end
+
 --- Unified handler to process a GUI click for highlighting; returns true if handled.
 --- @param player LuaPlayer
 --- @param player_table PlayerData
 --- @param element LuaGuiElement
 --- @param is_right_click boolean
 --- @param is_shift_click boolean
+--- @param is_alt_click boolean
+--- @param is_ctrl_click boolean
 --- @return boolean handled Whether the element was a highlight element
-function find_and_highlight.handle_click(player, player_table, element, is_right_click, is_shift_click)
+function find_and_highlight.handle_click(player, player_table, element, is_right_click, is_shift_click, is_alt_click, is_ctrl_click)
   if not (player and player.valid and player_table and element and element.valid) then
     return false
   end
@@ -414,6 +431,8 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
       local networkdata = network_data.get_networkdata(player_table.network)
       network_data.add_item_to_ignorelist_for_undersupply(networkdata, iq)
       events.emit(events.on_ignorelist_changed, player.index)
+    elseif is_ctrl_click and remote.interfaces["factory-search"] then
+      open_in_factory_search(player, player_table, iq)
     else
       find_and_highlight.highlight_locations_with_filter_on_map(
         player, player_table, rowname,

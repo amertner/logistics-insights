@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.0.4
+Date: 2025-10-25
+  Features:
+    - Now integrates with the Factory Search mod if it's installed
+    - Ctrl-click on an item in undersupply to open Factory Search with that item pre-filled, to make it easy to find producers, etc.
+---------------------------------------------------------------------------------------------------
 Version: 1.0.3
 Date: 2025-10-24
   Bugfixes:

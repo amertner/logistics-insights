@@ -30,6 +30,13 @@ function undersupply_row.update(player_table, clearing)
     local networkdata = network_data.get_networkdata(player_table.network)
     local in_demand = networkdata and networkdata.suggestions:get_cached_list("undersupply")
     if in_demand then
+      local has_factory_search = remote.interfaces["factory-search"] ~= nil
+      local tooltip = nil
+      if has_factory_search then
+        tooltip = {"", {"undersupply-row.show-location-tooltip"}, "\n", {"undersupply-row.show-factory-search-tooltip"}}
+      else
+        tooltip = {"undersupply-row.show-location-tooltip"}
+      end
       sorted_item_row.update(
         player_table,
         ROW_TITLE,
@@ -37,7 +44,7 @@ function undersupply_row.update(player_table, clearing)
         function(a, b) return a.shortage > b.shortage end,
         "shortage",
         clearing or false,
-        {"undersupply-row.show-location-tooltip"}
+        tooltip
       )
     else
       sorted_item_row.clear_cells(player_table, ROW_TITLE)

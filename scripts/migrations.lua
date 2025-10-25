@@ -363,9 +363,12 @@ local li_migrations = {
       nwd.ignore_low_storage_when_no_storage = false
     end
     -- Added new settings panel for managing exclusions
+  end,
+
+  ["1.0.4"] = function()
+    -- Added Factory Search integration, so recreate the UI to update tooltips if needed
     for player_index, player_table in pairs(storage.players) do
       local player = game.get_player(player_index)
-      player_table.ignored_storages_for_mismatch_shown = 0
       reinitialise_ui(player, player_table)
     end
   end,
