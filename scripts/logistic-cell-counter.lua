@@ -13,6 +13,7 @@ local ROBOPORT_INV = defines.inventory.roboport_robot
 ---@field bots_waiting_for_charge number Count of bots waiting to charge
 ---@field idle_bot_qualities QualityTable Quality counts of idle bots in roboports
 ---@field roboport_qualities QualityTable Quality counts of roboports
+---@field unpowered_roboport_list LuaEntity[] List of unpowered roboports
 ---@field charging_bot_qualities QualityTable Quality counts of charging bots
 ---@field waiting_bot_qualities QualityTable Quality counts of bots waiting to charge
 ---@field total_cells number Total number of cells processed
@@ -24,6 +25,7 @@ local function initialise_cell_network_list(accumulator)
   accumulator.bots_waiting_for_charge = 0
   accumulator.idle_bot_qualities = {} -- Gather quality of idle bots
   accumulator.roboport_qualities = {} -- Gather quality of roboports
+  accumulator.unpowered_roboport_list = {} -- List of unpowered roboports
   accumulator.charging_bot_qualities = {} -- Gather quality of charging bots
   accumulator.waiting_bot_qualities = {} -- Gather quality of bots waiting to charge
   accumulator.total_cells = 0 -- Total number of cells
@@ -51,6 +53,11 @@ local function process_one_cell(cell, accumulator, gather, network_id)
     local rp_quality = (owner.quality and owner.quality.name) or "normal"
     local accq = utils.accumulate_quality
     accq(accumulator.roboport_qualities, rp_quality, 1)
+
+    -- Check if roboport is unpowered
+    if not owner.is_connected_to_electric_network() and accumulator.unpowered_roboport_list then
+      table.insert(accumulator.unpowered_roboport_list, owner)
+    end
 
     -- Count quality of charging bots (fast path: numeric loop + cached locals)
     do
@@ -122,6 +129,7 @@ local function all_chunks_done(accumulator, gather, network_id)
 
     networkdata.idle_bot_qualities = accumulator.idle_bot_qualities or {}
     networkdata.roboport_qualities = accumulator.roboport_qualities or {}
+    networkdata.unpowered_roboport_list = accumulator.unpowered_roboport_list or {}
     networkdata.charging_bot_qualities = accumulator.charging_bot_qualities or {}
     networkdata.waiting_bot_qualities = accumulator.waiting_bot_qualities or {}
     networkdata.total_cells = accumulator.total_cells or 0
@@ -166,9 +174,7 @@ end
 function logistic_cell_counter.init_background_processing(networkdata, network)
   -- Initialise the chunker for background processing
   local gather_options = {}
-  if global_data.gather_quality_data() then
-    gather_options.quality = true
-  end
+  gather_options.quality = global_data.gather_quality_data()
 
   -- Store basic network stats
   networkdata.bot_items["logistic-robot-total"] = network.all_logistic_robots

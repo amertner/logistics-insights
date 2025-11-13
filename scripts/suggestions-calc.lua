@@ -49,6 +49,26 @@ function suggestions_calc.create_storage_capacity_suggestion(suggestions, sugges
   end
 end
 
+--- Suggest powering unpowered roboports
+--- @param suggestions Suggestions The suggestions manager
+--- @param unpowered_roboports_list LuaEntity[] List of unpowered roboports
+function suggestions_calc.analyse_unpowered_roboports(suggestions, unpowered_roboports_list)
+  if unpowered_roboports_list and #unpowered_roboports_list > 0 then
+    local unpowered_roboports = #unpowered_roboports_list
+    suggestions:create_or_clear_suggestion(
+      SuggestionsMgr.unpowered_roboports_key,
+      unpowered_roboports,
+      "entity/roboport",
+      "high",
+      true,
+      {"suggestions-row.unpowered-roboports-action", unpowered_roboports}
+    )
+    suggestions:set_cached_list(SuggestionsMgr.unpowered_roboports_key, unpowered_roboports_list)
+  else
+    suggestions:clear_suggestion(SuggestionsMgr.unpowered_roboports_key)
+  end
+end
+
 ---@class StorageAccumulator
 ---@field total_stacks number Total number of stacks in all storage chests
 ---@field free_stacks number Total number of free stacks in all storage chests

@@ -300,10 +300,7 @@ function bot_counter.init_foreground_processing(networkdata, network)
   end
 
   if gather_options.delivery or gather_options.history then
-    if global_data.gather_quality_data() then
-      gather_options.quality = true
-    end
-
+    gather_options.quality = global_data.gather_quality_data()
     networkdata.bot_chunker:initialise_chunking(networkdata.id, network.logistic_robots, networkdata.last_pass_bots_seen, gather_options, bot_initialise_chunking)
   else
     networkdata.bot_items["delivering"] = nil
@@ -319,9 +316,7 @@ end
 function bot_counter.init_background_processing(networkdata, network)
   -- Initialise the chunker for background processing
   local gather_options = {}
-  if global_data.gather_quality_data() then
-    gather_options.quality = true
-  end
+  gather_options.quality = global_data.gather_quality_data()
 
   networkdata.bot_chunker:initialise_chunking(networkdata.id, network.logistic_robots, networkdata.last_pass_bots_seen, gather_options, bot_initialise_chunking)
 end

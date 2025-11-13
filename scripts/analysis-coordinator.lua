@@ -135,6 +135,8 @@ function analysis_coordinator.run_free_suggestions_step()
 
     suggestions_calc.analyse_too_many_bots(nwd.suggestions, storage.analysing_network)
     suggestions_calc.analyse_too_few_bots(nwd.suggestions, storage.analysing_network)
+
+    suggestions_calc.analyse_unpowered_roboports(nwd.suggestions, nwd.unpowered_roboport_list)
   end
   return true
 end

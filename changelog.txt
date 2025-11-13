@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.0.5
+Date: ????
+  Features:
+    - Added suggestion to identify and highlight roboports not connected to electricity
+---------------------------------------------------------------------------------------------------
 Version: 1.0.4
 Date: 2025-10-25
   Features:

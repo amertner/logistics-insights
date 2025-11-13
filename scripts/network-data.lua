@@ -36,6 +36,7 @@ local utils = require("scripts.utils")
 ---@field charging_bot_qualities QualityTable Quality of bots currently charging
 ---@field waiting_bot_qualities QualityTable Quality of bots waiting to charge
 ---@field roboport_qualities QualityTable Quality of roboports
+---@field unpowered_roboport_list LuaEntity[] List of unpowered roboports
 ---@field total_cells number Total number of cells in the network
 ---@ -- Fields populated by bot_counter
 ---@field bot_deliveries table<string, DeliveryItem> A list of items being delivered right now
@@ -139,6 +140,7 @@ function network_data.create_networkdata(network)
       charging_bot_qualities = {},
       waiting_bot_qualities = {},
       roboport_qualities = {},
+      unpowered_roboport_list = {},
       bot_deliveries = {},
       bot_items = {},
       bot_active_deliveries = {},

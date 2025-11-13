@@ -372,6 +372,13 @@ local li_migrations = {
       reinitialise_ui(player, player_table)
     end
   end,
+
+  ["1.0.5"] = function()
+    -- Added unpowered roboport suggestion
+    for _, nwd in pairs(storage.networks) do
+      nwd.unpowered_roboport_list = {}
+    end
+  end,
 }
 
 return li_migrations

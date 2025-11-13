@@ -32,9 +32,7 @@ function chunker.new(divisor)
   self.divisor = math.max(divisor or 1, 1)
   self:set_chunk_size()
   self.gather = {}
-  if global_data.gather_quality_data() then
-    self.gather.quality = true
-  end
+  self.gather.quality = global_data.gather_quality_data()
   self.current_index = 1
   self.processing_list = nil
   self.processing_count = 0
@@ -64,9 +62,7 @@ function chunker:initialise_chunking(network_id, list, initial_data, gather_opti
   self.current_index = 1
   self:set_chunk_size() -- Update in case the setting changed since new()
   self.gather = gather_options or {}
-  if global_data.gather_quality_data() then
-    self.gather.quality = true
-  end
+  self.gather.quality = global_data.gather_quality_data()
   self.network_id = network_id
   on_init(self.partial_data, initial_data)
 end

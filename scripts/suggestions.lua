@@ -40,9 +40,11 @@ Suggestions.mismatched_storage_key = "mismatched-storage"
 Suggestions.undersupply_key = "supply-shortage"
 Suggestions.too_many_bots_key = "too-many-bots"
 Suggestions.too_few_bots_key = "too-few-bots"
+Suggestions.unpowered_roboports_key = "unpowered-roboports"
 -- Order of suggestions in the UI: First by priority, then by this order:
 Suggestions.order = { 
   Suggestions.awaiting_charge_key,
+  Suggestions.unpowered_roboports_key,
   Suggestions.storage_low_key,
   Suggestions.unfiltered_storage_low_key,
   Suggestions.mismatched_storage_key,
@@ -131,6 +133,7 @@ function Suggestions:clear_suggestions()
   -- Historical data needed to make better suggestions
   self._historydata = {
     [Suggestions.awaiting_charge_key] = nil,
+    [Suggestions.unpowered_roboports_key] = nil,
     [Suggestions.storage_low_key] = nil,
     [Suggestions.unfiltered_storage_low_key] = nil,
     [Suggestions.undersupply_key] = nil,
@@ -140,6 +143,7 @@ function Suggestions:clear_suggestions()
   }
   self._suggestions = {
     [Suggestions.awaiting_charge_key] = nil,
+    [Suggestions.unpowered_roboports_key] = nil,
     [Suggestions.storage_low_key] = nil,
     [Suggestions.unfiltered_storage_low_key] = nil,
     [Suggestions.undersupply_key] = nil,
@@ -149,6 +153,7 @@ function Suggestions:clear_suggestions()
   }
   self._cached_data = {
     [Suggestions.awaiting_charge_key] = nil,
+    [Suggestions.unpowered_roboports_key] = nil,
     [Suggestions.storage_low_key] = nil,
     [Suggestions.unfiltered_storage_low_key] = nil,
     [Suggestions.undersupply_key] = nil,
