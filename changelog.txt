@@ -3,8 +3,9 @@ Version: 1.0.6
 Date: 2025-11-17
   Changes:
     - Made the suggestion to build more roboports more useful, looking for a sustained need over 2-3 minutes and ignore smaller spikes
+    - You can now click the planet icon or network ID in the Networks view to go to that network
   Bugfixes:
-    - Now remembers unpowered roboports that have run out of energy and left the network, so they can be highlighted in the suggestion
+    - Now remembers unpowered roboports that have run out of energy and left the network, so they remain in the suggestion
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.5
 Date: 2025-11-14

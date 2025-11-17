@@ -36,6 +36,7 @@ local cell_setup = {
       if el and el.valid then 
         el.caption = idstr 
         el.tooltip = {"networks-window.id-cell-tooltip", idstr}
+        el.tags = { network_id = nw.id or 0 } -- So we can click on it
       end
     end
   },
@@ -54,6 +55,7 @@ local cell_setup = {
       if not surface or surface == "" then surface = "space-location-unknown" end
       el.sprite = utils.get_valid_sprite_path("space-location/", surface)
       el.tooltip = surface
+      el.tags = { network_id = nw.id or 0 } -- So we can click on it
     end
   },
   {
@@ -480,10 +482,17 @@ function networks_window.on_gui_click(event)
   -- Only handle Action buttons
   if not name:find(WINDOW_NAME .. "-cell-", 1, true) then return nil end
 
-  -- Identify column from the control name
-  local row_str, col_key = name:match(WINDOW_NAME .. "%-cell%-(%d+)%-actions%-(%w+)$")
-  if not col_key or (col_key ~= "settings" and col_key ~= "trash" and col_key ~= "view") then
-    return nil
+  -- Check if it's the planet icon (special case)
+  local row_str, col_key
+  row_str, col_key = name:match(WINDOW_NAME .. "%-cell%-(%d+)%-(%w+)$")
+  if row_str and (col_key == "surface" or col_key == "id") then
+    col_key = "view"
+  else
+    -- Identify column from the control name
+    row_str, col_key = name:match(WINDOW_NAME .. "%-cell%-(%d+)%-actions%-(%w+)$")
+    if not col_key or (col_key ~= "settings" and col_key ~= "trash" and col_key ~= "view") then
+      return nil
+    end
   end
 
   -- Resolve the network id: prefer tags; fallback to row index lookup
