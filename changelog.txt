@@ -1,6 +1,13 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.0.6
+Date: 2025-11-17
+  Changes:
+    - Made the suggestion to build more roboports more useful, looking for a sustained need over 2-3 minutes and ignore smaller spikes
+  Bugfixes:
+    - Now remembers unpowered roboports that have run out of energy and left the network, so they can be highlighted in the suggestion
+---------------------------------------------------------------------------------------------------
 Version: 1.0.5
-Date: ????
+Date: 2025-11-14
   Features:
     - Added suggestion to identify and highlight roboports not connected to electricity
 ---------------------------------------------------------------------------------------------------

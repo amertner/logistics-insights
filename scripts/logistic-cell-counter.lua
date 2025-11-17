@@ -116,6 +116,38 @@ local function process_one_cell(cell, accumulator, gather, network_id)
   return math.floor(consumed)
 end
 
+-- Look for previously unpowered roboports that may have run out of power and therefore no longer are in a network
+-- Make sure new_list includes those from prior_list
+--- @param prior_list LuaEntity[]|nil The prior list of unpowered roboports
+--- @param new_list LuaEntity[]|nil The new list of unpowered roboports
+--- @param network_id number The network ID of the network we're updating
+local function include_unpowered_roboports(prior_list, new_list, network_id)
+  if not prior_list or not new_list then
+    return
+  end
+  for _, roboport in pairs(prior_list) do
+    if roboport and roboport.valid then
+      local found = false
+      for _, new_roboport in pairs(new_list) do
+        if new_roboport == roboport then
+          found = true
+          break
+        end
+      end
+      if not found then
+        -- It's not in the new list. Check if it's unpowered
+        if not roboport.is_connected_to_electric_network() then
+          -- Check that it hasn't joined another network
+          if roboport.logistic_network and roboport.logistic_network.network_id == network_id then
+            -- Still in the same network, so include it
+            table.insert(new_list, roboport)
+          end
+        end
+      end
+    end
+  end
+end
+
 --- Complete processing of all chunks and store results
 --- @param accumulator CellAccumulator The accumulator containing gathered statistics
 --- @param gather GatherOptions for what to gather
@@ -126,6 +158,8 @@ local function all_chunks_done(accumulator, gather, network_id)
     local bot_items = networkdata.bot_items
     bot_items["charging-robot"] = accumulator.bots_charging
     bot_items["waiting-for-charge-robot"] = accumulator.bots_waiting_for_charge
+
+    include_unpowered_roboports(networkdata.unpowered_roboport_list, accumulator.unpowered_roboport_list, network_id)
 
     networkdata.idle_bot_qualities = accumulator.idle_bot_qualities or {}
     networkdata.roboport_qualities = accumulator.roboport_qualities or {}
