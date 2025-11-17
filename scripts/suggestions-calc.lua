@@ -5,6 +5,7 @@ local SuggestionsMgr = require("scripts.suggestions")
 local undersupply = require("scripts.undersupply")
 local network_data = require("scripts.network-data")
 local utils = require("scripts.utils")
+local global_data = require("scripts.global-data")
 
 -- Reusable table for per-chest filter allow-list to reduce allocations
 local __allowed_filters = {}
@@ -20,7 +21,13 @@ function suggestions_calc.analyse_waiting_to_charge(suggestions, waiting_for_cha
   -- Record the last few numbers so the recommendation does not jump around randomly
   suggestions:remember(suggestions.awaiting_charge_key, need_rps)
 
-  local suggested_number = suggestions:max_from_history(SuggestionsMgr.awaiting_charge_key)
+  local interval = 150 -- Default is 2.5 minutes
+  if global_data.background_refresh_interval_secs() >= 40 then
+    -- If background refresh is very slow, look for trends over a longer period of time
+    -- so we have at least 4 data points
+    interval = global_data.background_refresh_interval_secs() * 4.1
+  end
+  local suggested_number = suggestions:weighted_min_from_history(SuggestionsMgr.awaiting_charge_key, interval)
   suggestions:create_or_clear_suggestion(
     SuggestionsMgr.awaiting_charge_key,
     suggested_number,

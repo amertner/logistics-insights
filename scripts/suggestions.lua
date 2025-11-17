@@ -129,6 +129,53 @@ function Suggestions:max_from_history(name)
   return max_value
 end
 
+--- Get the smallest value from the historical data for a suggestion
+--- @param name string The name of the suggestion to get the maximum value for
+--- @param need_time_seconds number The number of seconds of data needed to return a value other than 0
+--- @return number The average of the smallest 1/4 of the values from the historical data, or 0 if enough values are 0
+function Suggestions:weighted_min_from_history(name, need_time_seconds)
+  local history = self._historydata[name]
+  -- Must have at least 2 data points
+  if not history or #history < 2 then return 0 end
+  local cutoff = self._current_tick - need_time_seconds * 60
+
+  -- How often does this data get updated?
+  local tick_delta = history[2].tick - history[1].tick
+  -- Check the age of the oldest entry to see if we have enough data
+  if history[1].tick > cutoff + tick_delta then
+    return 0
+  end
+
+  -- Prune old items and create copy for potential sorting
+  local sorted_history = {}
+  local zero_count = 0
+  for i = #history, 1, -1 do
+    local entry = history[i]
+
+    if entry.tick < cutoff then
+      table.remove(history, i)
+    else
+      if entry.data == 0 then
+        zero_count = zero_count + 1
+      end
+      table.insert(sorted_history, entry)
+    end
+  end
+  if zero_count > 1 or #sorted_history < 2 then
+    -- If more than one value is 0, just return 0
+    return 0
+  end
+  table.sort(sorted_history, function(a,b) return a.data < b.data end)
+  local count = math.ceil(#history/4)
+  local total = 0
+  for i = 1, count do
+    total = total + sorted_history[i].data
+  end
+
+  -- Return the average of the smallest values
+  return math.ceil(total/count)
+end
+
 function Suggestions:clear_suggestions()
   -- Historical data needed to make better suggestions
   self._historydata = {
@@ -167,7 +214,7 @@ end
 --- @param name string The name of the suggestion to clear
 function Suggestions:clear_suggestion(name)
   self._suggestions[name] = nil
-  self._historydata[name] = nil
+  --self._historydata[name] = nil
   self._cached_data[name] = nil
 end
 
