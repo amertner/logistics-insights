@@ -22,6 +22,7 @@ function global_data.settings_changed()
   storage.global.show_all_networks = settings.global["li-show-all-networks"].value ~= false
   storage.global.ignore_player_demands_in_undersupply = settings.global["li-ignore-player-demands-in-undersupply"].value ~= false
   storage.global.freeze_highlighting_bots = settings.global["li-freeze-highlighting-bots"].value ~= false
+  storage.global.age_out_suggestions_interval_minutes = tonumber(settings.global["li-age-out-suggestions-interval-minutes"].value) or 0
 end
 
 ---@return integer The global bot chunk interval setting
@@ -81,6 +82,14 @@ end
 
 function global_data.freeze_highlighting_bots()
   return storage.global.freeze_highlighting_bots
+end
+
+function global_data.age_out_suggestions_interval_minutes()
+  return storage.global.age_out_suggestions_interval_minutes or 0
+end
+
+function global_data.age_out_suggestions_interval_ticks()
+  return storage.global.age_out_suggestions_interval_minutes*60*60 or 0
 end
 
 return global_data

@@ -88,3 +88,43 @@ styles.li_close_settings_button = {
   parent = "tool_button",
   invert_colors_of_picture_when_disabled = false
 }
+
+default_dirt_color = {15, 7, 3, 100}
+aging_slot_glow_color = {111, 111, 111, 111}
+grey_slot_file = "__logistics-insights__/graphics/grey-slot-button.png"
+
+function offset_by_2_rounded_corners_glow(tint_value)
+  return
+  {
+    position = {240, 0},
+    corner_size = 16,
+    tint = tint_value,
+    top_outer_border_shift = 4,
+    bottom_outer_border_shift = -4,
+    left_outer_border_shift = 4,
+    right_outer_border_shift = -4,
+    draw_type = "outer",
+    filename = grey_slot_file
+  }
+end
+
+styles.aging_slot_button = {
+  type = "button_style",
+  parent = "slot_button",
+  default_graphical_set =
+  {
+    base = {border = 4, position = {0, 0}, size = 80, filename = grey_slot_file},
+    shadow = offset_by_2_rounded_corners_glow(default_dirt_color)
+  },
+  hovered_graphical_set =
+  {
+    base = {border = 4, position = {80, 0}, size = 80, filename = grey_slot_file},
+    shadow = offset_by_2_rounded_corners_glow(default_dirt_color),
+    glow = offset_by_2_rounded_corners_glow(aging_slot_glow_color)
+  },
+  clicked_graphical_set =
+  {
+    base = {border = 4, position = {160, 0}, size = 80, filename = grey_slot_file},
+    shadow = offset_by_2_rounded_corners_glow(default_dirt_color)
+  },
+}

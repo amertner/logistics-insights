@@ -1,7 +1,9 @@
 --- Handles storage of suggestions for improving logistics network
 
+local global_data = require("scripts.global-data")
+
 --- Urgency levels for suggestions
----@alias SuggestionUrgency "high"|"low"
+---@alias SuggestionUrgency "high"|"low"|"aging"
 
 --- Individual suggestion object
 ---@class Suggestion
@@ -11,6 +13,7 @@
 ---@field urgency SuggestionUrgency The urgency level of the suggestion
 ---@field action LocalisedString The action to take based on the suggestion
 ---@field clickname? string Used to get the right action on click, or nil if no click
+---@field age_start_tick number The tick when the suggestion started aging out
 
 --- Table containing a historical datapoint
 ---@class HistoryDataEntry
@@ -89,6 +92,15 @@ end
 
 function Suggestions:set_cached_list(suggestion_name, list)
   self._cached_data[suggestion_name] = list
+end
+
+function Suggestions:is_aging(suggestion_name)
+  local suggestion = self._suggestions[suggestion_name]
+  if suggestion and suggestion.urgency == "aging" then
+    return true
+  else
+    return false
+  end
 end
 
 ---@param value number The value to evaluate for urgency
@@ -218,6 +230,21 @@ function Suggestions:clear_suggestion(name)
   self._cached_data[name] = nil
 end
 
+--- Age out a suggestion that's no longer relevant
+function Suggestions:age_out_suggestion(name)
+  local suggestion = self._suggestions[name]
+  if suggestion then
+    if suggestion.age_start_tick == 0 and global_data.age_out_suggestions_interval_ticks() > 0 then
+      -- Just started to age out
+      suggestion.age_start_tick = self._current_tick
+      suggestion.urgency = "aging"
+    elseif self._current_tick - suggestion.age_start_tick >= global_data.age_out_suggestions_interval_ticks() then
+      -- Fully aged out
+      self:clear_suggestion(name)
+    end
+  end
+end
+
 --- Create a suggestion
 --- @param suggestion_name string The name of the suggestion to create
 --- @param count number The number associated with the suggestion, if applicable
@@ -225,7 +252,7 @@ end
 --- @param urgency SuggestionUrgency The urgency level of the suggestion
 --- @param clickable boolean Whether the suggestion is clickable by the user
 --- @param action LocalisedString The action to take based on the suggestion
-function Suggestions:create_or_clear_suggestion(suggestion_name, count, sprite, urgency, clickable, action)
+function Suggestions:create_or_age_suggestion(suggestion_name, count, sprite, urgency, clickable, action)
   local clickname
   if count > 0 then
     if clickable then
@@ -239,10 +266,11 @@ function Suggestions:create_or_clear_suggestion(suggestion_name, count, sprite, 
       urgency = urgency,
       action = action,
       clickname = clickname,
-      count = count
+      count = count,
+      age_start_tick = 0,
     }
   else
-    self:clear_suggestion(suggestion_name)
+    self:age_out_suggestion(suggestion_name)
   end
 end
 

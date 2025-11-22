@@ -9,6 +9,8 @@ local events = {
   on_ignorelist_changed = script.generate_event_name(),
   -- Triggered when the main window should be recreated (typically because of a mod settings change))
   on_recreate_main_window = script.generate_event_name(),
+  -- Triggered when a suggestion is added, removed, or changed
+  on_suggestions_changed = script.generate_event_name(),
 }
 
 ---@param event LuaEventType the name of the event that will be emited

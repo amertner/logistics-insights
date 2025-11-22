@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.0.7
+Date: 2025-11-22
+  Features:
+    - Suggestions now remain in an "aged out" state after their condition is resolved, to give players time to act on them. The time to keep old suggestions is configurable in the per-map settings and defaults to 3 minutes.
+    - Aged-out suggestions can be cleared from the display by Ctrl-clicking them
+---------------------------------------------------------------------------------------------------
 Version: 1.0.6
 Date: 2025-11-17
   Changes:

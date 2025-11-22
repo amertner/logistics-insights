@@ -114,6 +114,15 @@ data:extend(
     ,
     {
       type = "int-setting",
+      name = "li-age-out-suggestions-interval-minutes",
+      setting_type = "runtime-global",
+      default_value = 3,
+      allowed_values  = {0, 1, 3, 5, 10, 15, 30, 60},
+      order = "4.5"
+    }
+    ,
+    {
+      type = "int-setting",
       name = "li-background-refresh-interval",
       setting_type = "runtime-global",
       default_value = 10,

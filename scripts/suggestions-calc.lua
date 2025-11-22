@@ -28,7 +28,7 @@ function suggestions_calc.analyse_waiting_to_charge(suggestions, waiting_for_cha
     interval = global_data.background_refresh_interval_secs() * 4.1
   end
   local suggested_number = suggestions:weighted_min_from_history(SuggestionsMgr.awaiting_charge_key, interval)
-  suggestions:create_or_clear_suggestion(
+  suggestions:create_or_age_suggestion(
     SuggestionsMgr.awaiting_charge_key,
     suggested_number,
     "entity/roboport",
@@ -49,10 +49,11 @@ function suggestions_calc.create_storage_capacity_suggestion(suggestions, sugges
   local urgency = suggestions:get_urgency(used_capacity, 0.9)
   local used_rounded = math.floor(used_capacity * 1000)/10
   if used_capacity > 0.7 then
-    suggestions:create_or_clear_suggestion(suggestion_name, used_rounded, "entity/storage-chest", urgency, false,
+    suggestions:create_or_age_suggestion(suggestion_name, used_rounded, "entity/storage-chest", urgency, false,
       {"suggestions-row." .. suggestion_name .. "-action", used_rounded})
   else
-    suggestions:clear_suggestion(suggestion_name)
+    -- No need to age out a storage suggestion
+    suggestions:age_out_suggestion(suggestion_name)
   end
 end
 
@@ -62,7 +63,7 @@ end
 function suggestions_calc.analyse_unpowered_roboports(suggestions, unpowered_roboports_list)
   if unpowered_roboports_list and #unpowered_roboports_list > 0 then
     local unpowered_roboports = #unpowered_roboports_list
-    suggestions:create_or_clear_suggestion(
+    suggestions:create_or_age_suggestion(
       SuggestionsMgr.unpowered_roboports_key,
       unpowered_roboports,
       "entity/roboport",
@@ -70,9 +71,12 @@ function suggestions_calc.analyse_unpowered_roboports(suggestions, unpowered_rob
       true,
       {"suggestions-row.unpowered-roboports-action", unpowered_roboports}
     )
-    suggestions:set_cached_list(SuggestionsMgr.unpowered_roboports_key, unpowered_roboports_list)
+    if unpowered_roboports > 0 then
+      -- Store the list of unpowered roboports for later inspection
+      suggestions:set_cached_list(SuggestionsMgr.unpowered_roboports_key, unpowered_roboports_list)
+    end
   else
-    suggestions:clear_suggestion(SuggestionsMgr.unpowered_roboports_key)
+    suggestions:age_out_suggestion(SuggestionsMgr.unpowered_roboports_key)
   end
 end
 
@@ -207,9 +211,13 @@ function suggestions_calc.all_storage_chunks_done(accumulator, gather, network_i
 
       -- Create Mismatched Storage suggestion
       local mismatched_count = table_size(accumulator.mismatched_storages)
-      suggestions:create_or_clear_suggestion(SuggestionsMgr.mismatched_storage_key, mismatched_count, "entity/storage-chest", "low", true,
+      suggestions:create_or_age_suggestion(SuggestionsMgr.mismatched_storage_key, mismatched_count, "entity/storage-chest", "low", true,
         {"suggestions-row.mismatched-storage-action", mismatched_count})
-      suggestions:set_cached_list(SuggestionsMgr.mismatched_storage_key, accumulator.mismatched_storages) -- Store the list of mismatched storages
+      if mismatched_count > 0 then
+         -- Store the list of mismatched storages
+         -- If 0, don't clear the previous list as the player may want to inspect it through the aging suggestion
+        suggestions:set_cached_list(SuggestionsMgr.mismatched_storage_key, accumulator.mismatched_storages)
+      end
     else
       -- Premature completion: We didn't get the data to figure out if there is anything wrong
       suggestions:clear_suggestion(SuggestionsMgr.mismatched_storage_key)
@@ -254,19 +262,19 @@ function suggestions_calc.analyse_too_many_bots(suggestions, network)
   end
   if not first or not last or last <= first then
     -- Only warn of too many bots if the number is increasing
-    suggestions:clear_suggestion(SuggestionsMgr.too_many_bots_key)
+    suggestions:age_out_suggestion(SuggestionsMgr.too_many_bots_key)
     return
   end
   local idle_ratio = (total > 0) and (idle / total) or 0
   if idle_ratio <= 0.5 then
-    suggestions:clear_suggestion(SuggestionsMgr.too_many_bots_key)
+    suggestions:age_out_suggestion(SuggestionsMgr.too_many_bots_key)
     return
   end
 
   -- If more than 80% of bots are idle, make it an urgent suggestion
   local urgency = suggestions:get_urgency(idle_ratio, 0.8)
   local idle_rounded = math.floor(idle_ratio * 1000)/10
-  suggestions:create_or_clear_suggestion(
+  suggestions:create_or_age_suggestion(
     SuggestionsMgr.too_many_bots_key,
     idle_rounded,
     "entity/logistic-robot",
@@ -315,7 +323,7 @@ function suggestions_calc.analyse_too_few_bots(suggestions, network)
   if highest_idle_ratio <= 0.02 and total > 0 then
     -- There are bots and 98%+ of them are busy, suggest getting more
     local busy_rounded = math.floor((1-highest_idle_ratio) * 1000)/10
-    suggestions:create_or_clear_suggestion(
+    suggestions:create_or_age_suggestion(
       SuggestionsMgr.too_few_bots_key,
       busy_rounded,
       "entity/logistic-robot",
@@ -325,7 +333,7 @@ function suggestions_calc.analyse_too_few_bots(suggestions, network)
     )
     return
   else
-    suggestions:clear_suggestion(SuggestionsMgr.too_few_bots_key)
+    suggestions:age_out_suggestion(SuggestionsMgr.too_few_bots_key)
   end
 end
 

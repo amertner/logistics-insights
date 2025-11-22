@@ -448,7 +448,14 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
   if rowname == "logistics-insights-suggestion" then
     local tags = element.tags
     local clickname = tags and tags.clickname
+    local age_name = tags and tags.age_name
     local networkdata = network_data.get_networkdata(player_table.network)
+    if is_ctrl_click and networkdata and networkdata.suggestions:is_aging(age_name) then
+      -- Clear aging suggestion on Ctrl+Click
+      networkdata.suggestions:clear_suggestion(tostring(age_name))
+      events.emit(events.on_suggestions_changed, player.index)
+      return true
+    end
     if clickname and networkdata and networkdata.suggestions then
       local list = networkdata.suggestions:get_cached_list(clickname)
       if list then

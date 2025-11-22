@@ -1,6 +1,7 @@
 --- Shows suggestions for how the Logistics Network could work better
 
 local player_data = require("scripts.player-data")
+local global_data = require("scripts.global-data")
 local suggestions = require("scripts.suggestions")
 local mini_button = require("scripts.mainwin.mini_button")
 local network_data = require("scripts.network-data")
@@ -98,8 +99,13 @@ function suggestions_row.set_suggestion_cell(items, index, suggestion, enabled)
       end
       if suggestion.urgency == "high" then
         button.style = "red_slot_button"
-      else
+      elseif suggestion.urgency == "low" then
         button.style = "yellow_slot_button"
+      else
+        button.style = "aging_slot_button"
+        button.tags = {clickname = suggestion.clickname, age_name = suggestion.name}
+        -- Add to the tooltip that this suggestion is aging out
+        button.tooltip = {"", {"suggestions-row.aging-tooltip", global_data.age_out_suggestions_interval_minutes()}, "\n", button.tooltip}
       end
     else
       button.visible = false
@@ -118,25 +124,18 @@ function suggestions_row.show_suggestions(player_table, suggestions_table, enabl
   local suggestions_list = suggestions_table:get_suggestions()
   local max_items = player_table.settings.max_items
   local index = 1
-  -- Pass 1: high urgency in order
-  for _, key in ipairs(order) do
-    if index > max_items then break end
-    local s = suggestions_list[key]
-    if s and s.urgency == "high" then
-      suggestions_row.set_suggestion_cell(items, index, s, enabled)
-      index = index + 1
-    end
-  end
-  -- Pass 2: remaining (low or not high) in order
-  if index <= max_items then
+  -- Process suggestions so they appear in priority order: high, low, aging
+  local urgency_order = {"high", "low", "aging"}
+  for _, urgency in ipairs(urgency_order) do
     for _, key in ipairs(order) do
       if index > max_items then break end
       local s = suggestions_list[key]
-      if s and s.urgency ~= "high" then
+      if s and s.urgency == urgency then
         suggestions_row.set_suggestion_cell(items, index, s, enabled)
         index = index + 1
       end
     end
+    if index > max_items then break end
   end
   local shown = index - 1
   -- Toggle placeholder visibility
