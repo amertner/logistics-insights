@@ -34,6 +34,10 @@ If you already have more bots than you need, it's a waste of Factorio resources 
 
 Logistics Insights will look for networks of more than 100 robots where more than 50% of them are idle and where more bots are being added. If it finds this is the case, it will suggest you stop adding more.
 
+## Aging out suggestions
+
+As of v1.0.7, suggestions no longer just disappear when their condition is resolved. Instead, they remain visible on a greyed-out background for 3 minutes to give you a chance to look at what happened without worrying that interesting suggestions disappear before you get to see them. The interval is configurable in the per-map mod settings, from 0 (don't show aging suggestions) to 60 minutes.
+
 ## More suggestions could be added
 
 What might be useful for you? What patterns have you spotted?
