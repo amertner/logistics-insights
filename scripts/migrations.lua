@@ -379,6 +379,16 @@ local li_migrations = {
       nwd.unpowered_roboport_list = {}
     end
   end,
+
+  ["1.0.8"] = function()
+    -- Added per-player settings to control mini window visibility
+    for player_index, player_table in pairs(storage.players) do
+      if player_table and player_table.settings then
+        player_table.settings.show_networks_mini_window = true
+        player_table.settings.show_main_mini_window = true
+      end
+    end
+  end,
 }
 
 return li_migrations

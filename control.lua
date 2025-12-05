@@ -262,6 +262,10 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
           -- Show History was enabled or disabled
           player_data.update_settings(player, player_table)
           events.emit(events.on_recreate_main_window, e.player_index)
+        elseif e.setting == "li-show-main-mini-window" or e.setting == "li-show-networks-mini-window" then
+          -- Recreate the mini windows (or not), depending on settings
+          player_data.update_settings(player, player_table)
+          controller_gui.create_window(player)
         else
           -- For other settings, rebuild the main window
           player_data.update_settings(player, player_table)

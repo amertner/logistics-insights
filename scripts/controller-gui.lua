@@ -14,6 +14,13 @@ function controller_gui.create_window(player)
   local gui = player.gui.top
   if gui.logistics_insights_mini then gui.logistics_insights_mini.destroy() end
 
+  local player_table = player_data.get_player_table(player.index)
+  if not player_table then return end
+  if not player_table.settings then return end
+  if not (player_table.settings.show_networks_mini_window or player_table.settings.show_main_mini_window) then
+    return -- Both mini windows are disabled in settings
+  end
+
   local mini = gui.add {
     type = "frame",
     name = "logistics_insights_mini",
@@ -22,20 +29,24 @@ function controller_gui.create_window(player)
   }
   mini.location = { x = 10, y = 40 }
 
-  mini.add {
-    type = "sprite-button",
-    name = "logistics_insights_toggle_networks",
-    sprite = "li_suggestions_centered",
-    style = "slot_button",
-    tooltip = { "controller-gui.networks_tooltip_click" }
-  }
-  mini.add {
-    type = "sprite-button",
-    name = "logistics_insights_toggle_main",
-    sprite = "item/logistic-robot",
-    style = "slot_button",
-    tooltip = { "controller-gui.main_tooltip_click" }
-  }
+  if player_table.settings.show_networks_mini_window then
+    mini.add {
+      type = "sprite-button",
+      name = "logistics_insights_toggle_networks",
+      sprite = "li_suggestions_centered",
+      style = "slot_button",
+      tooltip = { "controller-gui.networks_tooltip_click" }
+    }
+  end
+  if player_table.settings.show_main_mini_window then
+    mini.add {
+      type = "sprite-button",
+      name = "logistics_insights_toggle_main",
+      sprite = "item/logistic-robot",
+      style = "slot_button",
+      tooltip = { "controller-gui.main_tooltip_click" }
+    }
+  end
 end
 
 ---@param gui LuaGuiElement The GUI element to update
@@ -43,7 +54,7 @@ end
 local function update_main_tooltip(gui, player_table)
   local networkdata = network_data.get_networkdata(player_table.network)
   local tip = {}
-  if player_table.network and player_table.network.valid and networkdata then
+  if player_table.network and player_table.network.valid and networkdata and player_table.settings.show_main_mini_window and gui.logistics_insights_toggle_main then
     local idle_count = networkdata.bot_items and networkdata.bot_items["logistic-robot-available"] or 0
     local total_count = networkdata.bot_items and networkdata.bot_items["logistic-robot-total"] or 0
     gui.logistics_insights_toggle_main.number = idle_count
@@ -53,29 +64,35 @@ local function update_main_tooltip(gui, player_table)
     tip = tooltips_helper.add_bots_idle_and_total_tip(tip, idle_count, total_count)
     tip = tooltips_helper.get_quality_tooltip_line(tip, networkdata.total_bot_qualities, false, "controller-gui.main_tooltip_quality")
   else
-    gui.logistics_insights_toggle_main.number = nil
+    if gui.logistics_insights_toggle_main then
+      gui.logistics_insights_toggle_main.number = nil
+    end
     tip = { "controller-gui.no-network" }
   end
 
-  gui.logistics_insights_toggle_main.tooltip = { "", tip, { "controller-gui.main_tooltip_click" } }
+  if gui.logistics_insights_toggle_main then
+    gui.logistics_insights_toggle_main.tooltip = { "", tip, { "controller-gui.main_tooltip_click" } }
+  end
 end
 
 ---@param gui LuaGuiElement The GUI element to update
 ---@param player_table PlayerData The player's data table containing network and settings
 local function update_networks_tooltip(gui, player_table)
   -- Get the number of suggestions across all networks
-  local total_counts = network_data.get_total_suggestions_and_undersupply()
-  gui.logistics_insights_toggle_networks.number = total_counts.suggestions
+  if player_table.settings.show_networks_mini_window and gui.logistics_insights_toggle_networks then
+    local total_counts = network_data.get_total_suggestions_and_undersupply()
+    gui.logistics_insights_toggle_networks.number = total_counts.suggestions
 
-  local networkcount = table_size(storage.networks)
-  local tip
-  tip = { "", tip, { "controller-gui.networks_1suggestions_2_undersupplies_3networks", total_counts.suggestions, total_counts.undersupplies, networkcount } }
-  if global_data.background_scans_disabled() then
-    tip = { "", tip, "\n", { "controller-gui.background_scanning_paused" } }
+    local networkcount = table_size(storage.networks)
+    local tip
+    tip = { "", tip, { "controller-gui.networks_1suggestions_2_undersupplies_3networks", total_counts.suggestions, total_counts.undersupplies, networkcount } }
+    if global_data.background_scans_disabled() then
+      tip = { "", tip, "\n", { "controller-gui.background_scanning_paused" } }
+    end
+    tip = { "", tip, { "controller-gui.networks_tooltip_click" } }
+
+    gui.logistics_insights_toggle_networks.tooltip = tip
   end
-  tip = { "", tip, { "controller-gui.networks_tooltip_click" } }
-
-  gui.logistics_insights_toggle_networks.tooltip = tip
 end
 
 --- Update the mini window's counter and tooltip

@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.0.8
+Date: 2025-12-05
+  Features:
+    - Added two new per-player settings to control whether the two mini windows are shown. When disabled, you have to use the hotkey to open the Logistics Insights windows.
+---------------------------------------------------------------------------------------------------
 Version: 1.0.7
 Date: 2025-11-22
   Features:

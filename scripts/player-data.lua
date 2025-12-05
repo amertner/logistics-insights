@@ -69,6 +69,8 @@ function player_data.update_settings(player, player_table)
       max_items = mod_settings["li-max-items"].value,
       show_history = mod_settings["li-show-history"].value,
       ui_update_interval = mod_settings["li-ui-update-interval"].value,
+      show_networks_mini_window = mod_settings["li-show-networks-mini-window"].value,
+      show_main_mini_window = mod_settings["li-show-main-mini-window"].value,
     }
     player_table.settings = settings
     player_table.player_index = player.index

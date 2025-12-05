@@ -22,6 +22,20 @@ data:extend(
       order = "3"
     },
     {
+      type = "bool-setting",
+      name = "li-show-networks-mini-window",
+      setting_type = "runtime-per-user",
+      default_value = true,
+      order = "3.3"
+    },
+    {
+      type = "bool-setting",
+      name = "li-show-main-mini-window",
+      setting_type = "runtime-per-user",
+      default_value = true,
+      order = "3.4"
+    },
+    {
       type = "int-setting",
       name = "li-max-items",
       setting_type = "runtime-per-user",
