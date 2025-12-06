@@ -380,6 +380,10 @@ local li_migrations = {
     end
   end,
 
+  ["1.0.7"] = function()
+    -- Added aging-out of suggestions
+ end,
+
   ["1.0.8"] = function()
     -- Added per-player settings to control mini window visibility
     for player_index, player_table in pairs(storage.players) do

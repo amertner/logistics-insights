@@ -234,6 +234,9 @@ end
 function Suggestions:age_out_suggestion(name)
   local suggestion = self._suggestions[name]
   if suggestion then
+    if not suggestion.age_start_tick then
+      suggestion.age_start_tick = 0  -- For pre-1.0.7 suggestions
+    end
     if suggestion.age_start_tick == 0 and global_data.age_out_suggestions_interval_ticks() > 0 then
       -- Just started to age out
       suggestion.age_start_tick = self._current_tick
