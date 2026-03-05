@@ -60,6 +60,7 @@ function undersupply.process_one_requester(requester, accumulator)
       for section_index = 1, section_count do
         local requests = logistic_point.get_section(section_index)
         if requests and requests.active then
+          local section_multiplier = requests.multiplier or 1
           for i = 1, requests.filters_count do
             local filter = requests.filters[i]
             if filter and filter.value then
@@ -71,7 +72,7 @@ function undersupply.process_one_requester(requester, accumulator)
                 ---@type string Filter.value.quality is a string, per https://lua-api.factorio.com/latest/concepts/ItemWithQualityCount.html
                 ---@diagnostic disable-next-line: assign-type-mismatch
                 local quality_name = filter.value.quality or "normal"
-                local requested_count = filter.min or 0
+                local requested_count = (filter.min or 0) * section_multiplier
                 if requested_count > 0 and not is_ignored_for_undersupply(accumulator.ignored_items_for_undersupply, item_name, quality_name) then
                   local inventory = requester.get_inventory(defines.inventory.chest)
                   if inventory then
