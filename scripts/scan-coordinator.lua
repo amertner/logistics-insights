@@ -125,7 +125,7 @@ end
 function scan_coordinator.initiate_next_player_network_scan()
   -- Check if currently processing network is done
   if storage.fg_refreshing_network_id then
-    networkdata = network_data.get_networkdata_fromid(storage.fg_refreshing_network_id)
+    local networkdata = network_data.get_networkdata_fromid(storage.fg_refreshing_network_id)
     if networkdata then
       if networkdata.bot_chunker:is_done_processing() and networkdata.cell_chunker:is_done_processing() then
         -- The previous network is fully processed, so we can move to the next one

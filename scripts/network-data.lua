@@ -115,10 +115,14 @@ function network_data.create_networkdata(network)
 
   -- Create a new network data entry if it doesn't exist
   if not storage.networks[network.network_id] then
+    local first_cell = network.cells and network.cells[1]
+    if not first_cell or not first_cell.owner or not first_cell.owner.valid then
+      return nil -- Network has no valid cells, can't determine surface
+    end
     local game_tick = game.tick
     storage.networks[network.network_id] = {
       id = network.network_id,
-      surface = network.cells[1].owner.surface.name or "",
+      surface = first_cell.owner.surface.name or "",
       force_name = network.force.name or "",
       players_set = {},
       cell_chunker = chunker.new(),
@@ -308,21 +312,45 @@ function network_data.players_in_network(networkdata)
   return table_size(networkdata.players_set)
 end
 
+-- Per-tick cache for get_LuaNetwork to avoid repeated O(n) searches
+local _lua_network_cache = {}
+local _lua_network_cache_tick = 0
+
 -- Get the LuaLogisticNetwork object for a given network data
 ---@param networkdata LINetworkData The network data to get the LuaLogisticNetwork
 ---@return LuaLogisticNetwork|nil
 function network_data.get_LuaNetwork(networkdata)
-  local force = game.forces[networkdata.force_name]
-  if not force then return nil end
+  local tick = game.tick
+  if tick ~= _lua_network_cache_tick then
+    _lua_network_cache = {}
+    _lua_network_cache_tick = tick
+  end
 
-  local networks = force.logistic_networks[networkdata.surface] -- surface object as key
-  if not networks then return nil end
+  local id = networkdata.id
+  local cached = _lua_network_cache[id]
+  if cached ~= nil then
+    return cached -- may be false (meaning "looked up, not found")
+  end
+
+  local force = game.forces[networkdata.force_name]
+  if not force then
+    _lua_network_cache[id] = false
+    return nil
+  end
+
+  local networks = force.logistic_networks[networkdata.surface]
+  if not networks then
+    _lua_network_cache[id] = false
+    return nil
+  end
 
   for _, nw in pairs(networks) do
-    if nw.network_id == networkdata.id then
+    if nw.network_id == id then
+      _lua_network_cache[id] = nw
       return nw
     end
   end
+  _lua_network_cache[id] = false
   return nil
 end
 

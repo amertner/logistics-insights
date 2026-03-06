@@ -97,7 +97,7 @@ local function show_ignored_storages_for_mismatch_list(gui_table, networkdata, p
   if player_table.ignored_storages_for_mismatch_shown and player_table.ignored_storages_for_mismatch_shown >= networkdata.ignored_storages_for_mismatch_changed then
     return -- No change since last shown
   end
-  exclusions_table.clear()
+  gui_table.clear()
   player_table.ignored_storages_for_mismatch_shown = game.tick
   local excluded_numbers = networkdata.ignored_storages_for_mismatch
   local entity_list = {}

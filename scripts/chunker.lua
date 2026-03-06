@@ -167,7 +167,7 @@ function chunker:process_chunk(on_process_entity)
   local consumed = 0
   while (consumed < chunk_size) and (current_index <= list_size) do
     local entity = processing_list[current_index]
-    if entity.valid then
+    if entity and entity.valid then
       local cost = on_process_entity(entity, self.partial_data, self.gather, self.network_id)
       consumed = consumed + cost
     end

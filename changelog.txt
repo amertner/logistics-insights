@@ -1,4 +1,12 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.0.11
+Date: ????
+  Changes:
+    - Small performance optimisation for bases with many networks
+  Bugfixes:
+    - Low storage suggestions would never happen for unfiltered chests. Oops!
+    - Eliminated a few potential memory leaks
+---------------------------------------------------------------------------------------------------
 Version: 1.0.10
 Date: 2026-03-05
   Bugfixes:

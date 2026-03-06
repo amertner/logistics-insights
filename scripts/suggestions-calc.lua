@@ -139,7 +139,7 @@ function suggestions_calc.process_storage_for_analysis(nstorage, accumulator)
                   current[fqual] = true
                   if accumulator.ignore_higher_quality_mismatches then
                     -- If ignoring higher quality mismatches, allow all qualities up to and including this one
-                    quality = filter.quality
+                    local quality = filter.quality
                     while quality do
                       current[quality.name] = true
                       quality = quality.next
@@ -204,7 +204,7 @@ function suggestions_calc.all_storage_chunks_done(accumulator, gather, network_i
       else
         -- Create storage capacity suggestions, if the numbers warrant it
         suggestions_calc.create_storage_capacity_suggestion(
-          suggestions, SuggestionsMgr.storage_low_key, accumulator.total_stacks, accumulator.total_stacks)
+          suggestions, SuggestionsMgr.storage_low_key, accumulator.total_stacks, accumulator.free_stacks)
         suggestions_calc.create_storage_capacity_suggestion(
           suggestions, SuggestionsMgr.unfiltered_storage_low_key, accumulator.unfiltered_total_stacks, accumulator.unfiltered_free_stacks)
       end
@@ -300,7 +300,7 @@ function suggestions_calc.analyse_too_few_bots(suggestions, network)
   -- Record idle for trend analysis
   suggestions:remember(SuggestionsMgr.too_few_bots_key, idle)
   -- Look for highest number of idle bots in the window
-  history = suggestions._historydata[SuggestionsMgr.too_few_bots_key]
+  local history = suggestions._historydata[SuggestionsMgr.too_few_bots_key]
   if not history or #history < 3 then
     return -- Need more samples
   end

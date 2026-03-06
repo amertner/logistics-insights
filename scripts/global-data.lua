@@ -89,7 +89,7 @@ function global_data.age_out_suggestions_interval_minutes()
 end
 
 function global_data.age_out_suggestions_interval_ticks()
-  return storage.global.age_out_suggestions_interval_minutes*60*60 or 0
+  return (storage.global.age_out_suggestions_interval_minutes or 0) * 60 * 60
 end
 
 return global_data

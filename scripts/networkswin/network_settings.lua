@@ -82,7 +82,7 @@ end
 ---@param player_table PlayerData The player's data table
 local function add_suggestions_settings(ui, player_table)
   add_settings_header(ui, {"network-settings.low-storage-header"})
-  setting = add_checkbox_setting(ui, ignore_low_storage_when_no_storage_setting, false)
+  local setting = add_checkbox_setting(ui, ignore_low_storage_when_no_storage_setting, false)
   player_table.ui.network_settings[ignore_low_storage_when_no_storage_setting] = setting
 
   add_settings_header(ui, {"network-settings.mismatched-storage-header"})
