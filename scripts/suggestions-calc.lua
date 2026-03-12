@@ -10,7 +10,7 @@ local global_data = require("scripts.global-data")
 -- Reusable table for per-chest filter allow-list to reduce allocations
 local __allowed_filters = {}
 
-local BOT_TREND_WINDOW_TICKS = 60 * 10 -- 10 seconds window for trend
+local BOT_TREND_WINDOW_TICKS = 60 * 60 -- 60 seconds window for trend (covers multiple background scans)
 local MIN_TOTAL_BOTS_FOR_SUGGESTION = 100 -- Ignore small networks for suggesting too many bots
 
 -- Potential issue: Too many bots waiting to charge means we need more RPs
@@ -71,10 +71,8 @@ function suggestions_calc.analyse_unpowered_roboports(suggestions, unpowered_rob
       true,
       {"suggestions-row.unpowered-roboports-action", unpowered_roboports}
     )
-    if unpowered_roboports > 0 then
-      -- Store the list of unpowered roboports for later inspection
-      suggestions:set_cached_list(SuggestionsMgr.unpowered_roboports_key, unpowered_roboports_list)
-    end
+    -- Store the list of unpowered roboports for later inspection
+    suggestions:set_cached_list(SuggestionsMgr.unpowered_roboports_key, unpowered_roboports_list)
   else
     suggestions:age_out_suggestion(SuggestionsMgr.unpowered_roboports_key)
   end
@@ -210,7 +208,7 @@ function suggestions_calc.all_storage_chunks_done(accumulator, gather, network_i
       end
 
       -- Create Mismatched Storage suggestion
-      local mismatched_count = table_size(accumulator.mismatched_storages)
+      local mismatched_count = #accumulator.mismatched_storages
       suggestions:create_or_age_suggestion(SuggestionsMgr.mismatched_storage_key, mismatched_count, "entity/storage-chest", "low", true,
         {"suggestions-row.mismatched-storage-action", mismatched_count})
       if mismatched_count > 0 then
@@ -238,6 +236,16 @@ function suggestions_calc.analyse_too_many_bots(suggestions, network)
   local total = network.all_logistic_robots or 0
   if total < MIN_TOTAL_BOTS_FOR_SUGGESTION then
     suggestions:clear_suggestion(SuggestionsMgr.too_many_bots_key)
+    -- Prune stale history so it doesn't cause false trends when network grows back
+    local history = suggestions._historydata[SuggestionsMgr.too_many_bots_key]
+    if history then
+      local window_start = suggestions._current_tick - BOT_TREND_WINDOW_TICKS
+      for i = #history, 1, -1 do
+        if history[i].tick < window_start then
+          table.remove(history, i)
+        end
+      end
+    end
     return
   end
   local idle = network.available_logistic_robots or 0
@@ -318,7 +326,6 @@ function suggestions_calc.analyse_too_few_bots(suggestions, network)
     end
   end
 
-  local idle_ratio = (total > 0) and (idle / total) or 0
   local highest_idle_ratio = (total > 0) and (highest_idle / total) or 0
   if highest_idle_ratio <= 0.02 and total > 0 then
     -- There are bots and 98%+ of them are busy, suggest getting more

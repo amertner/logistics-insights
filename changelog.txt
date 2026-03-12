@@ -1,10 +1,11 @@
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.11
-Date: ????
+Date: 2026-03-12
   Changes:
     - Small performance optimisation for bases with many networks
   Bugfixes:
     - Low storage suggestions would never happen for unfiltered chests. Oops!
+    - Too Many Bots suggestion would not trigger on background-monitored networks.
     - Eliminated a few potential memory leaks
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.10
