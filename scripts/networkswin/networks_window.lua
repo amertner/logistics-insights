@@ -11,6 +11,7 @@ local network_settings = require("scripts.networkswin.network_settings")
 local events = require("scripts.events")
 
 local WINDOW_NAME = "li_networks_window"
+networks_window.WINDOW_NAME = WINDOW_NAME
 local WINDOW_MIN_HEIGHT = 110-3*24 -- Room for 0 networks
 local WINDOW_MAX_HEIGHT = 110+10*24 -- Room for 12 networks
 local WINDOW_HEIGHT_STEP = 24
@@ -257,6 +258,7 @@ function networks_window.create(player)
       local label = titlebar.add{ type = "label", name = WINDOW_NAME .. "-caption", caption = {"networks-window.window-title"}, style = "frame_title", ignored_by_interaction = true }
       label.style.top_margin = -4
       titlebar.add {type = "empty-widget", style = "fs_flib_titlebar_drag_handle", ignored_by_interaction = true }
+      titlebar.add({ type = "sprite-button", sprite = player_table.networks_window_pinned and "flib_pin_black" or "flib_pin_white", style = player_table.networks_window_pinned and "flib_selected_frame_action_button" or "frame_action_button", name = WINDOW_NAME .. "-pin", tooltip = {"gui.flib-keep-open"} })
       titlebar.add({ type = "sprite-button", style = "frame_action_button", sprite = "utility/close", name = WINDOW_NAME .. "-close", tooltip = {"networks-window.close-window-tooltip"}, drag_target = window })
       titlebar.drag_target = window
 
@@ -351,12 +353,17 @@ function networks_window.toggle_window_visible(player)
   local player_table = player_data.get_player_table(player.index)
   local w = player.gui.screen[WINDOW_NAME]
   if not w then
-    player_table.networks_window_visible = true
+    player_table.networks_window_visible = false
     networks_window.create(player)
-    return
+    w = player.gui.screen[WINDOW_NAME]
+    if not w then return end
+    -- Fall through to toggle below
   end
   w.visible = not w.visible
   player_table.networks_window_visible = w.visible
+  if w.visible and not player_table.networks_window_pinned then
+    player.opened = w
+  end
 end
 
 --- Ensure the Networks table has exactly `count` data rows (below the header).
@@ -420,7 +427,11 @@ function networks_window.update(player)
   end
   if not player_table.ui or not player_table.ui.networks then
     networks_window.create(player)
-    return -- Will update on the next call
+    local w = player.gui.screen[WINDOW_NAME]
+    if w and w.visible and not player_table.networks_window_pinned then
+      player.opened = w
+    end
+    return
   end
   -- Debug
   -- local win = player.gui.screen["li_networks_window"]
@@ -476,6 +487,29 @@ function networks_window.on_gui_click(event)
 
   if player and (name == WINDOW_NAME .. "-close") then
     networks_window.toggle_window_visible(player)
+    return nil
+  end
+
+  if player and (name == WINDOW_NAME .. "-pin") then
+    local player_table = player_data.get_player_table(event.player_index)
+    if player_table then
+      player_table.networks_window_pinned = not player_table.networks_window_pinned
+      if player_table.networks_window_pinned then
+        element.sprite = "flib_pin_black"
+        element.style = "flib_selected_frame_action_button"
+        local w = player.gui.screen[WINDOW_NAME]
+        if player.opened == w then
+          player.opened = nil
+        end
+      else
+        element.sprite = "flib_pin_white"
+        element.style = "frame_action_button"
+        local w = player.gui.screen[WINDOW_NAME]
+        if w and w.visible then
+          player.opened = w
+        end
+      end
+    end
     return nil
   end
 

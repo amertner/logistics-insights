@@ -1,4 +1,10 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.0.12
+Date: ????
+  Features:
+    - Added a Pin button to the titlebar of the main and networks windows. Pinned windows will not be closed with ESC/E
+    - Unpinned windows close with the "Confirm Window" key, by default "E", as well as with ESC.
+---------------------------------------------------------------------------------------------------
 Version: 1.0.11
 Date: 2026-03-12
   Changes:

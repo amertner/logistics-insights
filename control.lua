@@ -374,6 +374,30 @@ script.on_event(
   { defines.events.on_gui_opened, defines.events.on_gui_closed },
   --- @param e EventData.on_gui_opened|EventData.on_gui_closed
   function(e)
+    -- Close our windows when the player presses E or ESC (via player.opened)
+    if e.name == defines.events.on_gui_closed and e.gui_type == defines.gui_type.custom and e.element then
+      local name = e.element.name
+      if name == main_window.WINDOW_NAME or name == networks_window.WINDOW_NAME then
+        local player = game.get_player(e.player_index)
+        if not player or not player.valid then return end
+        local player_table = player_data.get_player_table(e.player_index)
+        if not player_table then return end
+
+        -- Pinned windows ignore E/ESC
+        local is_pinned = (name == main_window.WINDOW_NAME and player_table.main_window_pinned)
+          or (name == networks_window.WINDOW_NAME and player_table.networks_window_pinned)
+        if is_pinned then return end
+
+        -- Unpinned: close the window
+        if name == main_window.WINDOW_NAME then
+          main_window.set_window_visible(player, player_table, false)
+        else
+          networks_window.set_window_visible(player, player_table, false)
+        end
+        return
+      end
+    end
+
     -- Show/hide the GUI when the player opens a locomotive view
     if e.gui_type ~= defines.gui_type.entity or not e.entity or e.entity.type ~= "locomotive" then
       return

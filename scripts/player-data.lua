@@ -23,6 +23,8 @@ local math_ceil = math.ceil
 ---@field settings_network_id number|nil -- The network ID currently being shown in the settings window
 ---@field exclusion_list_shown string|nil -- The name of the exclusion list currently shown, or nil if none
 ---@field ignored_storages_for_mismatch_shown number -- The tick when the exclusion list was last shown
+---@field main_window_pinned boolean -- Whether the main window is pinned (ignores E/ESC close)
+---@field networks_window_pinned boolean -- Whether the networks window is pinned (ignores E/ESC close)
 ---@param player_index uint
 ---@return nil
 function player_data.init(player_index)
@@ -42,6 +44,8 @@ function player_data.init(player_index)
     settings_network_id = nil,
     exclusion_list_shown = nil,
     ignored_storages_for_mismatch_shown = 0,
+    main_window_pinned = false,
+    networks_window_pinned = false,
   }
   storage.players[player_index] = player_data_entry
 end

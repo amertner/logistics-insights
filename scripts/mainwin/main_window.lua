@@ -28,6 +28,7 @@ local debugger = require("scripts.debugger")
 -------------------------------------------------------------------------------
 
 local WINDOW_NAME = "logistics_insights_window"
+main_window.WINDOW_NAME = WINDOW_NAME
 local SHORTCUT_TOGGLE = "logistics-insights-toggle"
 
 --- Create the main Logistics Insights window
@@ -184,6 +185,13 @@ function main_window._add_titlebar(window, player_table)
     name = "logistics-insights-step",
     tooltip = {"bots-gui.step-game-tooltip"},
   }
+  titlebar.add {
+    type = "sprite-button",
+    sprite = player_table.main_window_pinned and "flib_pin_black" or "flib_pin_white",
+    style = player_table.main_window_pinned and "flib_selected_frame_action_button" or "frame_action_button",
+    name = "logistics-insights-pin",
+    tooltip = {"gui.flib-keep-open"},
+  }
   titlebar.add({
       type = "sprite-button",
       style = "frame_action_button",
@@ -333,7 +341,6 @@ function main_window.destroy(player, player_table)
     player.gui.screen.logistics_insights_window.destroy()
   end
   player_table.window = nil
-  player_table.ui = {} -- Keep as table for future register_ui calls
 end
 
 --- Toggle window visibility
@@ -352,6 +359,9 @@ function main_window.set_window_visible(player, player_table, visible)
   end
   if gui.logistics_insights_window then
     gui.logistics_insights_window.visible = player_table.bots_window_visible
+    if player_table.bots_window_visible and not player_table.main_window_pinned then
+      player.opened = gui.logistics_insights_window
+    end
   end
 end
 
@@ -378,6 +388,24 @@ function main_window.onclick(event)
     if player and player.valid and player_table then
       if game_state.handle_control_button(player_table, event.element) then
         -- Control button handled (freeze/unfreeze/step)
+        handled = true
+      elseif event.element.name == "logistics-insights-pin" then
+        -- Pin button clicked — toggle pinned state
+        player_table.main_window_pinned = not player_table.main_window_pinned
+        if player_table.main_window_pinned then
+          event.element.sprite = "flib_pin_black"
+          event.element.style = "flib_selected_frame_action_button"
+          if player.opened == player.gui.screen[WINDOW_NAME] then
+            player.opened = nil
+          end
+        else
+          event.element.sprite = "flib_pin_white"
+          event.element.style = "frame_action_button"
+          local w = player.gui.screen[WINDOW_NAME]
+          if w and w.visible then
+            player.opened = w
+          end
+        end
         handled = true
       elseif event.element.name == "logistics-insights-close" then
         -- Close button clicked

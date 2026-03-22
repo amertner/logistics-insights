@@ -393,6 +393,23 @@ local li_migrations = {
       end
     end
   end,
+  
+  ["1.0.12"] = function()
+    for player_index, player_table in pairs(storage.players) do
+      -- Add pin state fields
+      player_table.main_window_pinned = false
+      player_table.networks_window_pinned = false
+      -- Recreate UI to add pin buttons to titlebars
+      local player = game.get_player(player_index)
+      reinitialise_ui(player, player_table)
+      -- Set player.opened for visible unpinned windows so E/ESC close works
+      if player and player.valid then
+        local mw = player.gui.screen["logistics_insights_window"]
+        if mw and mw.visible then
+          player.opened = mw
+        end
+      end
+    end
+  end,
 }
-
 return li_migrations
