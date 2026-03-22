@@ -59,6 +59,7 @@ function sorted_item_row.add(player_table, gui_table, title, button_title, need_
       type = "sprite-button",
       style = "slot_button",
       enabled = false,
+      raise_hover_events = true,
     }
   end
   return row_button

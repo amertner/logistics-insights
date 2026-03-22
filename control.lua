@@ -289,6 +289,37 @@ script.on_event(defines.events.on_gui_click,
   networks_window.on_gui_click(event)
 end)
 
+-- PIPETTE SUPPORT: track hovered element and handle Q-key pickup
+
+script.on_event(defines.events.on_gui_hover, function(event)
+  local element = event.element
+  if element and element.valid and element.sprite and
+     element.sprite:find("^item/") then
+    local pt = player_data.get_player_table(event.player_index)
+    if pt then pt.hovered_element = element end
+  end
+end)
+
+script.on_event(defines.events.on_gui_leave, function(event)
+  local pt = player_data.get_player_table(event.player_index)
+  if pt then pt.hovered_element = nil end
+end)
+
+script.on_event("logistics-insights-pipette", function(event)
+  local pt = player_data.get_player_table(event.player_index)
+  if not pt or not pt.hovered_element then return end
+  local element = pt.hovered_element
+  if not element.valid then pt.hovered_element = nil; return end
+  local item_name = element.sprite and element.sprite:match("^item/(.+)$")
+  if not item_name then return end
+  local quality_name = (element.quality and element.quality.name) or "normal"
+  local player = game.get_player(event.player_index)
+  if player and player.valid then
+    player.clear_cursor()
+    player.cursor_ghost = {name = item_name, quality = quality_name}
+  end
+end)
+
 --- The settings window closed. Update the setting button in the main window
 script.on_event({events.on_settings_pane_closed},
   ---@param e {player_index: uint}

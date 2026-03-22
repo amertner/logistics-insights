@@ -61,7 +61,8 @@ local function show_item_quality_list(gui_table, list)
   for item_quality, excluded in pairs(list) do
     local item_name, quality_name = string.match(item_quality, "^(.-):(.*)$")
     if item_name and quality_name and excluded then
-      local cell = gui_table.add {name = "li-exclude-"..item_quality, type = "sprite-button", style = "slot_button", 
+      local cell = gui_table.add {name = "li-exclude-"..item_quality, type = "sprite-button", style = "slot_button",
+        raise_hover_events = true,
         tooltip={"exclusions-window.remove-undersupply-exclusion-tooltip"},
         tags={item_name=item_name, quality=quality_name, shift_action="remove-undersupply", pane=WINDOW_NAME}}
       cell.sprite = utils.get_valid_sprite_path("item/", item_name)
@@ -109,7 +110,8 @@ local function show_ignored_storages_for_mismatch_list(gui_table, networkdata, p
 
   for _, chest in pairs(entity_list) do
     if chest and chest.valid then
-      local cell = gui_table.add {type = "sprite-button", style = "slot_button", 
+      local cell = gui_table.add {type = "sprite-button", style = "slot_button",
+        raise_hover_events = true,
         tooltip={"exclusions-window.filter-exclusion-tooltip"},
         tags={entity_id=chest.unit_number, action="focus-chest", shift_action="remove-chest", pane=WINDOW_NAME}}
       local filter = get_filter_for_chest(chest)

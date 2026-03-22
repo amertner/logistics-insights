@@ -10,5 +10,12 @@ data:extend({
     name = "logistics-insights-toggle-networks-gui",
     key_sequence = "ALT + N",
     consuming = "none"
+  },
+  {
+    type = "custom-input",
+    name = "logistics-insights-pipette",
+    key_sequence = "",
+    linked_game_control = "pipette",
+    consuming = "none"
   }
 })

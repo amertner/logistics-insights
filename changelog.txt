@@ -1,9 +1,9 @@
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.12
-Date: ????
+Date: 2026-03-22
   Features:
-    - Added a Pin button to the titlebar of the main and networks windows. Pinned windows will not be closed with ESC/E
-    - Unpinned windows close with the "Confirm Window" key, by default "E", as well as with ESC.
+    - Added a Pin button to both windows; pinned windows do not close with Escape/E. Unpinned windows not do.
+    - Items now have pipette support, so you can use Q to pick up items for searching, placing, etc.
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.11
 Date: 2026-03-12
