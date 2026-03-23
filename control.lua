@@ -293,8 +293,8 @@ end)
 
 script.on_event(defines.events.on_gui_hover, function(event)
   local element = event.element
-  if element and element.valid and element.sprite and
-     element.sprite:find("^item/") then
+  if element and element.valid and element.type == "sprite-button" and
+     element.sprite and element.sprite:find("^item/") then
     local pt = player_data.get_player_table(event.player_index)
     if pt then pt.hovered_element = element end
   end

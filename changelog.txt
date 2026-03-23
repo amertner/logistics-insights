@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.0.13
+Date: 2026-03-23
+  Bugfixes:
+    - Fixed a crash when hovering over non-sprite items, introduced by the pipette support in v1.0.12. Oops!
+---------------------------------------------------------------------------------------------------
 Version: 1.0.12
 Date: 2026-03-22
   Features:
