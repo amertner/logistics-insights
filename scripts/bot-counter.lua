@@ -9,6 +9,7 @@ local utils = require("scripts.utils")
 -- Cache frequently used functions and values for performance
 local pairs = pairs
 local table_size = table_size
+local accumulate_quality = utils.accumulate_quality
 local defines_robot_order_type_deliver = defines.robot_order_type.deliver
 local defines_robot_order_type_pickup = defines.robot_order_type.pickup
 local seen_bot_this_pass = 2
@@ -23,6 +24,8 @@ local seen_bot_last_pass = 1
 --- @field delivering_bot_qualities QualityTable
 --- @field picking_bot_qualities QualityTable
 --- @field other_bot_qualities QualityTable
+--- @field networkdata LINetworkData|nil Cached network data for this chunk pass
+--- @field current_tick number The game tick at the start of this chunk pass
 
 --- Add a completed delivery order to the history storage
 --- @param delivery_history table<string, DeliveredItems> The delivery history storage table
@@ -73,21 +76,13 @@ end
 
 --- Add the bot and order to the list of things being delivered for the purpose of calculating history
 --- @param networkdata LINetworkData The network data to update
---- @param bot LuaEntity The robot entity
+--- @param unit_number number The unique identifier of the robot
 --- @param order table The robot's delivery order
 --- @param item_name string The name of the item being delivered
 --- @param quality string The quality name of the item
 --- @param count number The number of items being delivered
-local function add_bot_to_active_deliveries(networkdata, bot, order, item_name, quality, count)
-  if not bot.valid or not order then
-    return
-  end
-  local current_tick = game.tick
-  local unit_number = bot.unit_number
-  if not unit_number then
-    -- No unit number, so we can't track this bot
-    return
-  end
+--- @param current_tick number The current game tick
+local function add_bot_to_active_deliveries(networkdata, unit_number, order, item_name, quality, count, current_tick)
   local botorder = networkdata.bot_active_deliveries[unit_number]
   -- Hoist target and position to avoid repeated table lookups
   local target = order.target
@@ -149,9 +144,13 @@ local function process_one_bot(bot, accumulator, gather, network_id)
       -- No unit number, so we can't track this bot
       return 0
     end
-    local networkdata = network_data.get_networkdata_fromid(network_id)
+    -- Cache networkdata and current_tick on first bot of each chunk
+    local networkdata = accumulator.networkdata
     if not networkdata then
-      return 0
+      networkdata = network_data.get_networkdata_fromid(network_id)
+      if not networkdata then return 0 end
+      accumulator.networkdata = networkdata
+      accumulator.current_tick = game.tick
     end
     consumed = 1
     if accumulator.last_seen[unit_number] then
@@ -161,17 +160,20 @@ local function process_one_bot(bot, accumulator, gather, network_id)
       -- Mark this bot as seen for the first time
       accumulator.just_seen[unit_number] = seen_bot_last_pass
     end
-    -- Track the bot's quality
-    local quality = (bot.quality and bot.quality.name) or "normal"
+    -- Track the bot's quality (skip API call if quality data not needed)
+    local quality
+    if gather.quality then
+      quality = (bot.quality and bot.quality.name) or "normal"
+    end
 
     local order = bot.robot_order_queue[1] or nil
     if order then
       if order.type == defines_robot_order_type_deliver then
         accumulator.delivering_bots = accumulator.delivering_bots + 1
-        utils.accumulate_quality(accumulator.delivering_bot_qualities, quality, 1)
+        if quality then accumulate_quality(accumulator.delivering_bot_qualities, quality, 1) end
       elseif order.type == defines_robot_order_type_pickup then
         accumulator.picking_bots = accumulator.picking_bots + 1
-        utils.accumulate_quality(accumulator.picking_bot_qualities, quality, 1)
+        if quality then accumulate_quality(accumulator.picking_bot_qualities, quality, 1) end
       end
 
       if order.target_item and order.target_item.name then
@@ -188,7 +190,7 @@ local function process_one_bot(bot, accumulator, gather, network_id)
             -- Record current deliveries
             add_item_to_current_deliveries(item_name, item_quality, item_count, accumulator.item_deliveries)
             -- Record delivery for history purposes
-            add_bot_to_active_deliveries(networkdata, bot, order, item_name, item_quality, item_count)
+            add_bot_to_active_deliveries(networkdata, unit_number, order, item_name, item_quality, item_count, accumulator.current_tick)
           else
             -- Check if the bot was delivering last time we saw it, and record the delivery
             check_if_no_order_bot_finished_delivery(networkdata, unit_number, gather.history)
@@ -201,7 +203,7 @@ local function process_one_bot(bot, accumulator, gather, network_id)
     else
       -- No orders, check if it's because the bot has finished its delivery
       check_if_no_order_bot_finished_delivery(networkdata, unit_number, gather.history)
-      utils.accumulate_quality(accumulator.other_bot_qualities, quality, 1)
+      if quality then accumulate_quality(accumulator.other_bot_qualities, quality, 1) end
     end
   end
   return consumed
@@ -219,6 +221,8 @@ local function bot_initialise_chunking(accumulator, last_seen)
   accumulator.delivering_bot_qualities = {}
   accumulator.picking_bot_qualities = {}
   accumulator.other_bot_qualities = {} -- Gather quality of bots doing anything else
+  accumulator.networkdata = nil -- Re-fetched on first bot of each chunk
+  accumulator.current_tick = 0
 end
 
 --- This function is called when all chunks are done processing, ready for a new chunk

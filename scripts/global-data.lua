@@ -16,6 +16,7 @@ end
 function global_data.settings_changed()
   storage.global.chunk_interval_ticks = tonumber(settings.global["li-chunk-processing-interval-ticks"].value) or 7
   storage.global.background_refresh_interval_secs = tonumber(settings.global["li-background-refresh-interval"].value) or 10
+  storage.global.background_refresh_interval_ticks = storage.global.background_refresh_interval_secs * 60
   storage.global.chunk_size = tonumber(settings.global["li-chunk-size-global"].value) or 400
   storage.global.gather_quality_data = settings.global["li-gather-quality-data-global"].value ~= false
   storage.global.calculate_undersupply = settings.global["li-calculate-undersupply"].value ~= false
@@ -37,7 +38,7 @@ end
 
 ---@return integer The refresh interval for background network scanning, ticks
 function global_data.background_refresh_interval_ticks()
-  return global_data.background_refresh_interval_secs() * 60
+  return storage.global.background_refresh_interval_ticks or 600
 end
 
 ---@return integer The global chunk size setting

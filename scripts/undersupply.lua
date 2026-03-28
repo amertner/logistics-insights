@@ -5,6 +5,9 @@ local undersupply = {}
 local utils = require("scripts.utils")
 local network_data = require("scripts.network-data")
 
+local math_max = math.max
+local get_item_quality_key = utils.get_item_quality_key
+
 ---@class Undersupply_Accumulator
 ---@field demand table<string, number> Table of item-quality keys to total demand counts
 ---@field bot_deliveries table<string, DeliveryItem> A list of items being delivered right now
@@ -20,17 +23,9 @@ function undersupply.initialise_undersupply(accumulator, context)
   accumulator.demand = {}
   accumulator.bot_deliveries = context.deliveries
   accumulator.net_demand = {}
-  accumulator.ignored_items_for_undersupply = context.ignored_items
+  accumulator.ignored_items_for_undersupply = context.ignored_items or {}
   accumulator.ignore_player_demands = context.ignore_player_demands
   accumulator.ignore_buffer_chests_for_undersupply = context.ignore_buffer_chests_for_undersupply
-end
-
-local function is_ignored_for_undersupply(ignored_items, item_name, quality_name)
-  if ignored_items and item_name and quality_name then
-    local key = utils.get_item_quality_key(item_name, quality_name)
-    return ignored_items[key] or false
-  end
-  return false
 end
 
 --- Process one requester to gather demand statistics
@@ -55,13 +50,17 @@ function undersupply.process_one_requester(requester, accumulator)
     -- Get the logistic point (the actual requester interface)
     local logistic_point = requester.get_logistic_point(defines.logistic_member_index.logistic_container)
     if logistic_point then
+      local ignored_items = accumulator.ignored_items_for_undersupply
+      local inventory
+      local item_quality_spec = {}
       -- Iterate through all sections in the logistic point
       local section_count = logistic_point.sections_count
       for section_index = 1, section_count do
         local requests = logistic_point.get_section(section_index)
         if requests and requests.active then
           local section_multiplier = requests.multiplier or 1
-          for i = 1, requests.filters_count do
+          local filters_count = requests.filters_count
+          for i = 1, filters_count do
             local filter = requests.filters[i]
             if filter and filter.value then
               consumed = consumed + 1 -- Count 1 processing unit per filter
@@ -73,16 +72,18 @@ function undersupply.process_one_requester(requester, accumulator)
                 ---@diagnostic disable-next-line: assign-type-mismatch
                 local quality_name = filter.value.quality or "normal"
                 local requested_count = (filter.min or 0) * section_multiplier
-                if requested_count > 0 and not is_ignored_for_undersupply(accumulator.ignored_items_for_undersupply, item_name, quality_name) then
-                  local inventory = requester.get_inventory(defines.inventory.chest)
-                  if inventory then
-                    local item_quality = {name = item_name, quality = quality_name}
-                    local current_count = inventory.get_item_count(item_quality)
-                    local actual_demand = math.max(0, requested_count - current_count)
-                    if actual_demand > 0 then
-                      local key = utils.get_item_quality_key(item_name, tostring(quality_name))
-                      accumulator.demand[key] = (accumulator.demand[key] or 0) + actual_demand
-                    end
+                local key = get_item_quality_key(item_name, quality_name)
+                if requested_count > 0 and not ignored_items[key] then
+                  if not inventory then
+                    inventory = requester.get_inventory(defines.inventory.chest)
+                    if not inventory then return consumed end
+                  end
+                  item_quality_spec.name = item_name
+                  item_quality_spec.quality = quality_name
+                  local current_count = inventory.get_item_count(item_quality_spec)
+                  local actual_demand = math_max(0, requested_count - current_count)
+                  if actual_demand > 0 then
+                    accumulator.demand[key] = (accumulator.demand[key] or 0) + actual_demand
                   end
                 end
               end
@@ -121,7 +122,7 @@ function undersupply.all_chunks_done(accumulator, gather, network_id)
       local total_supply = {}
       for _, item_with_quality in pairs(total_supply_array) do
         local quality_name = item_with_quality.quality or "normal" -- ensure plain string
-        local key = utils.get_item_quality_key(item_with_quality.name, tostring(quality_name))
+        local key = get_item_quality_key(item_with_quality.name, quality_name)
         total_supply[key] = item_with_quality.count
       end
 

@@ -47,6 +47,7 @@ local utils = require("scripts.utils")
 ---@field delivering_bot_qualities QualityTable Quality of bots currently delivering items
 ---@field other_bot_qualities QualityTable Quality of bots doing anything else 
 ---@field total_bot_qualities QualityTable Quality of all bots counted
+---@field _lua_network LuaLogisticNetwork|nil Cached network reference (valid check required before use)
 
 -- Record used to show items being delivered right now
 ---@class DeliveryItem
@@ -312,45 +313,39 @@ function network_data.players_in_network(networkdata)
   return table_size(networkdata.players_set)
 end
 
--- Per-tick cache for get_LuaNetwork to avoid repeated O(n) searches
-local _lua_network_cache = {}
-local _lua_network_cache_tick = 0
-
--- Get the LuaLogisticNetwork object for a given network data
+-- Get the LuaLogisticNetwork object for a given network data.
+-- Caches the reference on networkdata._lua_network. The cached reference persists
+-- across ticks and is only re-searched when the reference becomes invalid (network destroyed).
 ---@param networkdata LINetworkData The network data to get the LuaLogisticNetwork
 ---@return LuaLogisticNetwork|nil
 function network_data.get_LuaNetwork(networkdata)
-  local tick = game.tick
-  if tick ~= _lua_network_cache_tick then
-    _lua_network_cache = {}
-    _lua_network_cache_tick = tick
+  -- Fast path: use cached reference if still valid
+  local cached = networkdata._lua_network
+  if cached then
+    if cached.valid then
+      return cached
+    end
+    networkdata._lua_network = nil
   end
 
-  local id = networkdata.id
-  local cached = _lua_network_cache[id]
-  if cached ~= nil then
-    return cached -- may be false (meaning "looked up, not found")
-  end
-
+  -- Slow path: linear search through force's networks on this surface
   local force = game.forces[networkdata.force_name]
   if not force then
-    _lua_network_cache[id] = false
     return nil
   end
 
   local networks = force.logistic_networks[networkdata.surface]
   if not networks then
-    _lua_network_cache[id] = false
     return nil
   end
 
+  local id = networkdata.id
   for _, nw in pairs(networks) do
     if nw.network_id == id then
-      _lua_network_cache[id] = nw
+      networkdata._lua_network = nw
       return nw
     end
   end
-  _lua_network_cache[id] = false
   return nil
 end
 
@@ -362,76 +357,56 @@ function network_data.get_next_background_network()
   end
   -- Only refresh networks that have not been refreshed for at least refresh-interval
   local last_tick = game.tick - global_data.background_refresh_interval_ticks()
-  local list = {}
-  if storage.networks then
-    for _, networkdata in pairs(storage.networks) do
-      if networkdata and networkdata.players_set then
-        -- Check if the network still exists - might have been removed!
-        local nw = network_data.get_LuaNetwork(networkdata)
-        if not nw or not nw.valid then
-          -- The network no longer exists, so remove it from storage
-          network_data.remove_network(networkdata.id)
-        elseif networkdata.last_scanned_tick < last_tick then
-          -- This network has no active players, so it can be scanned in the background
-          list[#list+1] = networkdata
-        end
+  if not storage.networks then
+    return nil
+  end
+
+  -- Single-pass selection of the oldest eligible network
+  local best = nil
+  local best_tick = last_tick -- also serves as the eligibility threshold
+  for _, networkdata in pairs(storage.networks) do
+    if networkdata and networkdata.players_set then
+      -- Check if the network still exists - might have been removed!
+      local nw = network_data.get_LuaNetwork(networkdata)
+      if not nw or not nw.valid then
+        network_data.remove_network(networkdata.id)
+      elseif (networkdata.last_scanned_tick or 0) < best_tick then
+        best = networkdata
+        best_tick = networkdata.last_scanned_tick or 0
       end
     end
-  else
-    return nil -- No networks available
   end
-
-  if #list == 0 then
-    return nil -- No networks need a background scan
-  end
-  -- Sort by last active tick, so the oldest networks are scanned first
-  table.sort(list, function(a,b) return (a.last_scanned_tick or 0) < (b.last_scanned_tick or 0) end)
-
-  if #list > 0 then
-    -- Return the first network in the sorted list
-    return list[1]
-  else
-    return nil -- No background networks available
-  end
+  return best
 end
 
--- Return the next network to background scan, if any
+-- Return the next player network to scan, if any
 ---@return LINetworkData|nil The next network to scan, or nil if none available
 function network_data.get_next_player_network()
-  local list = {}
-  if storage.networks then
-    for _, networkdata in pairs(storage.networks) do
-      if networkdata and networkdata.players_set then
-        -- Check if the network still exists - might have been removed!
-        local nw = network_data.get_LuaNetwork(networkdata)
-        if not nw or not nw.valid then
-          -- The network no longer exists, so remove it from storage
-          network_data.remove_network(networkdata.id)
-        elseif network_data.players_in_network(networkdata) > 0 then
-          -- Check if any of the players have their bots window open
-          if player_data.players_show_main_window(networkdata.players_set) then
-            -- Addadd it to the candidate list
-            list[#list+1] = networkdata
-          end
+  if not storage.networks then
+    return nil
+  end
+
+  -- Single-pass selection of the oldest eligible network
+  local best = nil
+  local best_tick = math.huge
+  for _, networkdata in pairs(storage.networks) do
+    if networkdata and networkdata.players_set then
+      -- Check if the network still exists - might have been removed!
+      local nw = network_data.get_LuaNetwork(networkdata)
+      if not nw or not nw.valid then
+        network_data.remove_network(networkdata.id)
+      -- Check if any of the players have their bots window open
+      elseif network_data.players_in_network(networkdata) > 0
+        and player_data.players_show_main_window(networkdata.players_set) then
+        local tick = networkdata.last_scanned_tick or 0
+        if tick < best_tick then
+          best = networkdata
+          best_tick = tick
         end
       end
     end
-  else
-    return nil -- No networks available
   end
-
-  if #list == 0 then
-    return nil -- No networks need a background scan
-  end
-  -- Sort by last active tick, so the oldest networks are scanned first
-  table.sort(list, function(a,b) return (a.last_scanned_tick or 0) < (b.last_scanned_tick or 0) end)
-
-  if #list > 0 then
-    -- Return the first network in the sorted list
-    return list[1]
-  else
-    return nil -- No player networks available
-  end
+  return best
 end
 
 ---@param networkdata LINetworkData|nil The network data that has finished updating
@@ -450,7 +425,7 @@ function network_data.get_total_suggestions_and_undersupply()
       if networkdata and networkdata.suggestions then
         local undersupply = networkdata.suggestions:get_cached_list("undersupply")
         if undersupply then
-          num_us = num_us + table_size(undersupply)
+          num_us = num_us + #undersupply
         end
         for _, suggestion in pairs(networkdata.suggestions:get_suggestions()) do
           if suggestion then

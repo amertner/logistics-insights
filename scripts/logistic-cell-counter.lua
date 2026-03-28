@@ -7,6 +7,7 @@ local global_data = require("scripts.global-data")
 local utils = require("scripts.utils")
 local chunker = require("scripts.chunker")
 local ROBOPORT_INV = defines.inventory.roboport_robot
+local math_floor = math.floor
 
 ---@class CellAccumulator
 ---@field bots_charging number Count of bots currently charging
@@ -113,7 +114,7 @@ local function process_one_cell(cell, accumulator, gather, network_id)
       end
     end
   end
-  return math.floor(consumed)
+  return math_floor(consumed)
 end
 
 -- Look for previously unpowered roboports that may have run out of power and therefore no longer are in a network
@@ -125,23 +126,21 @@ local function include_unpowered_roboports(prior_list, new_list, network_id)
   if not prior_list or not new_list then
     return
   end
+  -- Build a set of roboports already in new_list for O(1) lookups
+  local new_set = {}
+  for _, rp in pairs(new_list) do
+    if rp and rp.valid then
+      new_set[rp.unit_number] = true
+    end
+  end
   for _, roboport in pairs(prior_list) do
-    if roboport and roboport.valid then
-      local found = false
-      for _, new_roboport in pairs(new_list) do
-        if new_roboport == roboport then
-          found = true
-          break
-        end
-      end
-      if not found then
-        -- It's not in the new list. Check if it's unpowered
-        if not roboport.is_connected_to_electric_network() then
-          -- Check that it hasn't joined another network
-          if roboport.logistic_network and roboport.logistic_network.network_id == network_id then
-            -- Still in the same network, so include it
-            table.insert(new_list, roboport)
-          end
+    if roboport and roboport.valid and not new_set[roboport.unit_number] then
+      -- It's not in the new list. Check if it's unpowered
+      if not roboport.is_connected_to_electric_network() then
+        -- Check that it hasn't joined another network
+        if roboport.logistic_network and roboport.logistic_network.network_id == network_id then
+          -- Still in the same network, so include it
+          table.insert(new_list, roboport)
         end
       end
     end

@@ -100,16 +100,18 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
     return tip
   end
 
-  -- Pre-allocate array by counting entries first
+  -- Count entries, but only up to max_items+1 (we just need to know if there are more)
+  local max_items = player_table.settings.max_items
   local entry_count = 0
   for _ in pairs(all_entries) do
     entry_count = entry_count + 1
+    if entry_count > max_items then break end
   end
 
   -- Only create as large an array as needed for display
-  local max_needed = math_min(entry_count, player_table.settings.max_items)
+  local max_needed = math_min(entry_count, max_items)
   local sorted_entries = {}
-  
+
   if entry_count <= max_needed then
     local idx = 1
     for _, entry in pairs(all_entries) do
