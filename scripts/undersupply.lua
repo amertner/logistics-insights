@@ -40,11 +40,11 @@ end
 function undersupply.process_one_requester(requester, accumulator)
   local consumed = 0
   if requester.valid then
-    if accumulator.ignore_player_demands and requester.name == "character" then
+    if accumulator.ignore_player_demands and requester.type == "character" then
       return consumed -- Ignore player demands
     end
     -- Ignore buffer chests if setting is enabled
-    if accumulator.ignore_buffer_chests_for_undersupply and requester.name == "buffer-chest" then
+    if accumulator.ignore_buffer_chests_for_undersupply and requester.type == "logistic-container" and requester.name == "buffer-chest" then
       return consumed
     end
     -- If disabled by a circuit condition, ignore the request

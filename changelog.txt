@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.0.14
+Date: 2026-03-28
+  Changes:
+    - Recognises Avatars as a "character", so its demand is ignored when the "ignore player demands" setting is enabled.
+---------------------------------------------------------------------------------------------------
 Version: 1.0.13
 Date: 2026-03-23
   Bugfixes:
@@ -7,7 +12,7 @@ Date: 2026-03-23
 Version: 1.0.12
 Date: 2026-03-22
   Features:
-    - Added a Pin button to both windows; pinned windows do not close with Escape/E. Unpinned windows not do.
+    - Added a Pin button to both windows; pinned windows do not close with Escape/E. Unpinned windows do not.
     - Items now have pipette support, so you can use Q to pick up items for searching, placing, etc.
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.11
