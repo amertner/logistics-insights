@@ -33,21 +33,18 @@ end
 --- @param accumulator Undersupply_Accumulator The accumulator for gathering statistics
 --- @return number Return number of "processing units" consumed, default is 1
 function undersupply.process_one_requester(requester, accumulator)
-  local consumed = 0
   if requester.valid then
     if accumulator.ignore_player_demands and requester.type == "character" then
-      return consumed -- Ignore player demands
+      return 0 -- Ignore player demands
     end
     -- Ignore buffer chests if setting is enabled
     if accumulator.ignore_buffer_chests_for_undersupply and requester.type == "logistic-container" and requester.name == "buffer-chest" then
-      return consumed
+      return 0
     end
     -- If disabled by a circuit condition, ignore the request
     if requester.status == defines.entity_status.disabled_by_control_behavior then
-      return consumed
+      return 0
     end
-    -- Base cost reflects get_logistic_point + potential get_inventory overhead
-    consumed = 3
     -- Get the logistic point (the actual requester interface)
     local logistic_point = requester.get_logistic_point(defines.logistic_member_index.logistic_container)
     if logistic_point then
@@ -58,13 +55,12 @@ function undersupply.process_one_requester(requester, accumulator)
       for section_index = 1, section_count do
         local requests = logistic_point.get_section(section_index)
         if requests and requests.active then
-          consumed = consumed + 1 -- Cost of get_section API call
           local section_multiplier = requests.multiplier or 1
+          local all_filters = requests.filters
           local filters_count = requests.filters_count
           for i = 1, filters_count do
-            local filter = requests.filters[i]
+            local filter = all_filters[i]
             if filter and filter.value then
-              consumed = consumed + 1 -- Base cost per filter
               local itemtype = filter.value.type
               -- Only track items/entities, not fluids, virtuals, etc
               if itemtype == "item" then
@@ -78,10 +74,9 @@ function undersupply.process_one_requester(requester, accumulator)
                   -- Build inventory lookup once per requester via get_contents() instead of per-filter get_item_count()
                   if not inventory_counts then
                     local inventory = requester.get_inventory(defines.inventory.chest)
-                    if not inventory then return consumed end
+                    if not inventory then return 1 end
                     inventory_counts = {}
                     local contents = inventory.get_contents()
-                    consumed = consumed + 2 -- Cost of get_inventory + get_contents
                     for ci = 1, #contents do
                       local stack = contents[ci]
                       local sq = stack.quality or "normal"
@@ -101,7 +96,7 @@ function undersupply.process_one_requester(requester, accumulator)
       end
     end
   end
-  return consumed
+  return 1
 end
 
 --- Get the number of items currently being delivered by bots

@@ -39,23 +39,25 @@ function analysis_coordinator.find_network_to_analyse()
       local has_players = table_size(networkdata.players_set) > 0
       local threshold_tick = has_players and last_fg_tick or last_bg_tick
 
-      -- Validate the underlying network still exists
-      local nw = network_data.get_LuaNetwork(networkdata)
-      if not nw or not nw.valid then
-        -- The network no longer exists, so remove it from storage
-        network_data.remove_network(networkdata.id)
-      else
-        local last_analysed = networkdata.last_analysed_tick or 0
-        if last_analysed < threshold_tick then
-          -- Candidate must be visible to at least one player or allowed for background scans
-          if (has_players and player_data.players_show_main_window(networkdata.players_set)) or global_data.background_scans_enabled() then
-            if not best_candidate or last_analysed < best_last_analysed then
-              best_candidate = networkdata
-              best_last_analysed = last_analysed
-            end
+      local last_analysed = networkdata.last_analysed_tick or 0
+      if last_analysed < threshold_tick then
+        -- Candidate must be visible to at least one player or allowed for background scans
+        if (has_players and player_data.players_show_main_window(networkdata.players_set)) or global_data.background_scans_enabled() then
+          if not best_candidate or last_analysed < best_last_analysed then
+            best_candidate = networkdata
+            best_last_analysed = last_analysed
           end
         end
       end
+    end
+  end
+
+  -- Validate only the selected network; stale entries cleaned up when selected
+  if best_candidate then
+    local nw = network_data.get_LuaNetwork(best_candidate)
+    if not nw or not nw.valid then
+      network_data.remove_network(best_candidate.id)
+      return nil
     end
   end
 
@@ -150,7 +152,7 @@ function analysis_coordinator.run_storage_analysis_step()
     return true -- Nothing to do, so done
   end
   if not storage.analysis_state.storage_chunker then
-    storage.analysis_state.storage_chunker = chunker.new()
+    storage.analysis_state.storage_chunker = chunker.new(2)
   end
   local the_chunker = storage.analysis_state.storage_chunker
   if the_chunker == nil then
@@ -193,8 +195,7 @@ function analysis_coordinator.run_undersupply_step()
     return true -- Nothing to do, so done
   end
   if not storage.analysis_state.undersupply_chunker then
-    -- Divisor reduces chunk size; undersupply is API-heavy per entity (get_logistic_point, get_section, get_item_count per filter)
-    storage.analysis_state.undersupply_chunker = chunker.new(2)
+    storage.analysis_state.undersupply_chunker = chunker.new()
   end
   local the_chunker = storage.analysis_state.undersupply_chunker
   if the_chunker == nil then

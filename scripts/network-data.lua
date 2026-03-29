@@ -129,8 +129,8 @@ function network_data.create_networkdata(network)
       surface = first_cell.owner.surface.name or "",
       force_name = network.force.name or "",
       players_set = {},
-      cell_chunker = chunker.new(),
-      bot_chunker = chunker.new(),
+      cell_chunker = chunker.new(2),
+      bot_chunker = chunker.new(2),
       requester_count = 0,
       provider_count = 0,
       storage_count = 0,
@@ -372,14 +372,18 @@ function network_data.get_next_background_network()
   local best_tick = last_tick -- also serves as the eligibility threshold
   for _, networkdata in pairs(storage.networks) do
     if networkdata and networkdata.players_set then
-      -- Check if the network still exists - might have been removed!
-      local nw = network_data.get_LuaNetwork(networkdata)
-      if not nw or not nw.valid then
-        network_data.remove_network(networkdata.id)
-      elseif (networkdata.last_scanned_tick or 0) < best_tick then
+      if (networkdata.last_scanned_tick or 0) < best_tick then
         best = networkdata
         best_tick = networkdata.last_scanned_tick or 0
       end
+    end
+  end
+  -- Validate only the selected network; stale entries cleaned up when selected
+  if best then
+    local nw = network_data.get_LuaNetwork(best)
+    if not nw or not nw.valid then
+      network_data.remove_network(best.id)
+      return nil
     end
   end
   return best
@@ -398,12 +402,7 @@ function network_data.get_next_player_network()
   local best_tick = math.huge
   for _, networkdata in pairs(storage.networks) do
     if networkdata and networkdata.players_set then
-      -- Check if the network still exists - might have been removed!
-      local nw = network_data.get_LuaNetwork(networkdata)
-      if not nw or not nw.valid then
-        network_data.remove_network(networkdata.id)
-      -- Check if any of the players have their bots window open
-      elseif network_data.players_in_network(networkdata) > 0
+      if network_data.players_in_network(networkdata) > 0
         and player_data.players_show_main_window(networkdata.players_set) then
         local tick = networkdata.last_scanned_tick or 0
         if tick < threshold_tick and tick < best_tick then
@@ -411,6 +410,14 @@ function network_data.get_next_player_network()
           best_tick = tick
         end
       end
+    end
+  end
+  -- Validate only the selected network; stale entries cleaned up when selected
+  if best then
+    local nw = network_data.get_LuaNetwork(best)
+    if not nw or not nw.valid then
+      network_data.remove_network(best.id)
+      return nil
     end
   end
   return best

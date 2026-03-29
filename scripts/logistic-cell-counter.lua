@@ -97,7 +97,6 @@ local function process_one_cell(cell, accumulator, gather, network_id)
         end
       end
     end
-
     -- Count quality of bots inside roboports (i.e. idle ones)
     local bot_qualities = accumulator.idle_bot_qualities
     local inventory = owner.get_inventory(ROBOPORT_INV)
