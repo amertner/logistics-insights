@@ -189,7 +189,8 @@ function analysis_coordinator.run_undersupply_step()
     return true -- Nothing to do, so done
   end
   if not storage.analysis_state.undersupply_chunker then
-    storage.analysis_state.undersupply_chunker = chunker.new(1)
+    -- Divisor reduces chunk size; undersupply is API-heavy per entity (get_logistic_point, get_section, get_item_count per filter)
+    storage.analysis_state.undersupply_chunker = chunker.new(2)
   end
   local the_chunker = storage.analysis_state.undersupply_chunker
   if the_chunker == nil then
@@ -197,8 +198,8 @@ function analysis_coordinator.run_undersupply_step()
   end
 
   if the_chunker:needs_data() then
-    local context = {deliveries = networkdata.bot_deliveries, 
-      ignored_items = networkdata.ignored_items_for_undersupply, 
+    local context = {deliveries = networkdata.bot_deliveries,
+      ignored_items = networkdata.ignored_items_for_undersupply,
       ignore_buffer_chests_for_undersupply = networkdata.ignore_buffer_chests_for_undersupply}
     context.ignore_player_demands = global_data.ignore_player_demands_in_undersupply()
 
