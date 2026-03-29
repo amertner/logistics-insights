@@ -2,7 +2,7 @@
 Version: 1.0.15
 Date: ????
   Changes:
-    - Performance improvements in several places, around 3-5% improvement.
+    - Performance improvements in several places, large bases should see 3-20% improvement.
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.14
 Date: 2026-03-28

@@ -1,6 +1,8 @@
 --- Defines the "controller GUI" in the top left corner of the screen
 local controller_gui = {}
 
+local debugger = require("scripts.debugger")
+local PROFILING = debugger.PROFILING
 local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
 local global_data = require("scripts.global-data")
@@ -60,7 +62,7 @@ local function update_main_tooltip(gui, player_table)
     gui.logistics_insights_toggle_main.number = idle_count
 
     tip = tooltips_helper.add_networkid_tip(tip,  player_table.network.network_id, player_table.fixed_network)
-    tip = tooltips_helper.add_network_surface_tip(tip, player_table.network)
+    tip = tooltips_helper.add_network_surface_tip(tip, networkdata.surface)
     tip = tooltips_helper.add_bots_idle_and_total_tip(tip, idle_count, total_count)
     tip = tooltips_helper.get_quality_tooltip_line(tip, networkdata.total_bot_qualities, false, "controller-gui.main_tooltip_quality")
   else
@@ -105,7 +107,9 @@ function controller_gui.update_window(player, player_table)
 
   local gui = player.gui.top.logistics_insights_mini
   if not gui then
+    local p = PROFILING and helpers.create_profiler()
     controller_gui.create_window(player)
+    if p then p.stop() log({"", "[perf] controller_gui.create_window ", p}) end
     gui = player.gui.top.logistics_insights_mini
   end
 
@@ -115,10 +119,14 @@ function controller_gui.update_window(player, player_table)
   end
 
   if player_table then
+    local p = PROFILING and helpers.create_profiler()
     update_networks_tooltip(gui, player_table)
+    if p then p.stop() log({"", "[perf] update_networks_tooltip ", p}) end
   end
   if gui.logistics_insights_toggle_main and player_table then
+    local p = PROFILING and helpers.create_profiler()
     update_main_tooltip(gui, player_table)
+    if p then p.stop() log({"", "[perf] update_main_tooltip ", p}) end
   end
 end
 

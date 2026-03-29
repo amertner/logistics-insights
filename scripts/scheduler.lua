@@ -7,6 +7,7 @@ local player_data = require("scripts.player-data")
 local global_data = require("scripts.global-data")
 local debugger = require("scripts.debugger")
 local DEBUG_ENABLED_INFO = debugger.debug_level > 1
+local PROFILING = debugger.PROFILING
 
 ---@class SchedulerTask
 ---@field name string Unique task name
@@ -214,7 +215,13 @@ end
 function scheduler.on_tick()
   local tick = game.tick
   if tick > task_queue.last_tick then
+    local profiler
+    if PROFILING then profiler = helpers.create_profiler() end
     build_task_queue(tick)
+    if PROFILING then
+      profiler.stop()
+      log({"", "[perf] build_task_queue ", profiler})
+    end
   end
   local tasks = task_queue.items[tick]
   if tasks and table_size(tasks) > 0 then
@@ -232,7 +239,13 @@ function scheduler.on_tick()
             if DEBUG_ENABLED_INFO then
               debugger.info("[scheduler] Running player task '" .. task.name .. "' for player " .. player_index)
             end
+            local profiler
+            if PROFILING then profiler = helpers.create_profiler() end
             local ok, err = pcall(task.fn, player, player_table)
+            if PROFILING then
+              profiler.stop()
+              log({"", "[perf] ", task.name, " p", player_index, " ", profiler})
+            end
             if not ok then
               debugger.error("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
             end
@@ -243,7 +256,13 @@ function scheduler.on_tick()
         if DEBUG_ENABLED_INFO then
           debugger.info("[scheduler] Running task " .. task.name)
         end
+        local profiler
+        if PROFILING then profiler = helpers.create_profiler() end
         local ok, err = pcall(task.fn)
+        if PROFILING then
+          profiler.stop()
+          log({"", "[perf] ", task.name, " ", profiler})
+        end
         if not ok then
           debugger.error("[scheduler] Task '" .. task.name .. "' failed: " .. tostring(err))
         end

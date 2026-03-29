@@ -37,11 +37,22 @@ script.on_init(
   network_data.init()
 end)
 
+local PROFILING = debugger.PROFILING
+
 local function full_UI_refresh(player, player_table)
+  local p1, p2, p3, p4
+  if PROFILING then p1 = helpers.create_profiler() end
   main_window.ensure_ui_consistency(player, player_table)
+  if PROFILING then p1.stop() p2 = helpers.create_profiler() end
   controller_gui.update_window(player, player_table)
+  if PROFILING then p2.stop() p3 = helpers.create_profiler() end
   main_window.update(player, player_table, false)
+  if PROFILING then p3.stop() p4 = helpers.create_profiler() end
   networks_window.update(player)
+  if PROFILING then
+    p4.stop()
+    log({"", "[perf] ui-update: ensure_consistency=", p1, " controller_gui=", p2, " main_window=", p3, " networks_window=", p4})
+  end
 end
 
 -- SETTING UP AND HANDLING SCHEDULED EVENTS
@@ -133,7 +144,13 @@ end })
 
 -- All actual timed dispatching handler in scheduler.lua
 script.on_nth_tick(1, function()
+  local profiler
+  if PROFILING then profiler = helpers.create_profiler() end
   scheduler.on_tick()
+  if PROFILING then
+    profiler.stop()
+    log({"", "[perf] tick ", profiler})
+  end
 end)
 
 -- Called when a new player is created

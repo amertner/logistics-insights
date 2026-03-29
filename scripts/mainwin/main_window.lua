@@ -19,6 +19,7 @@ local suggestions_row = require("scripts.mainwin.suggestions_row")
 local networks_window = require("scripts.networkswin.networks_window")
 local network_settings = require("scripts.networkswin.network_settings")
 local debugger = require("scripts.debugger")
+local PROFILING = debugger.PROFILING
 
 -- Control action dispatch (freeze / unfreeze / step)
 -- Control button handling moved to game_state.handle_control_button for centralization
@@ -236,29 +237,57 @@ end
 --- @param clearing boolean Whether this update is due to clearing history
 function main_window.update(player, player_table, clearing)
   -- Ensure window reference; do NOT assign window to player_table.ui
+  local p
+  if PROFILING then p = helpers.create_profiler() end
   if not player_table.window or not player_table.window.valid then
     if player.gui.screen.logistics_insights_window then
       player_table.window = player.gui.screen.logistics_insights_window
     else
+      if PROFILING then p.stop() log({"", "[perf] main_window early exit (no window) ", p}) end
       return -- No window to update
     end
   end
+  if PROFILING then p.stop() log({"", "[perf] main_window window_check ", p}) end
   if not player_table.ui then
     player_table.ui = {}
   end
   -- Update shortcut toggle state to match window visibility
+  if PROFILING then p = helpers.create_profiler() end
   player.set_shortcut_toggled(SHORTCUT_TOGGLE, player_table.bots_window_visible)
+  if PROFILING then p.stop() log({"", "[perf] main_window set_shortcut_toggled ", p}) end
   if not player_table.bots_window_visible then
     return
   end
 
   -- Update all of the rows; each row will only update if enabled in settings.
-  delivery_row.update(player_table, clearing)
-  history_rows.update(player_table, clearing)
-  activity_row.update(player_table)
-  network_row.update(player_table)
-  undersupply_row.update(player_table)
-  suggestions_row.update(player_table)
+  if PROFILING then
+    local p1 = helpers.create_profiler()
+    delivery_row.update(player_table, clearing)
+    p1.stop()
+    local p2 = helpers.create_profiler()
+    history_rows.update(player_table, clearing)
+    p2.stop()
+    local p3 = helpers.create_profiler()
+    activity_row.update(player_table)
+    p3.stop()
+    local p4 = helpers.create_profiler()
+    network_row.update(player_table)
+    p4.stop()
+    local p5 = helpers.create_profiler()
+    undersupply_row.update(player_table)
+    p5.stop()
+    local p6 = helpers.create_profiler()
+    suggestions_row.update(player_table)
+    p6.stop()
+    log({"", "[perf] rows: delivery=", p1, " history=", p2, " activity=", p3, " network=", p4, " undersupply=", p5, " suggestions=", p6})
+  else
+    delivery_row.update(player_table, clearing)
+    history_rows.update(player_table, clearing)
+    activity_row.update(player_table)
+    network_row.update(player_table)
+    undersupply_row.update(player_table)
+    suggestions_row.update(player_table)
+  end
 
   btn = player_table.ui.network.settings_button
   if btn then

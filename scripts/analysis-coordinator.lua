@@ -76,6 +76,8 @@ function analysis_coordinator.start_analysis(networkdata)
   local network = network_data.get_LuaNetwork(networkdata)
   if network then
     debugger.info("[analysis-coordinator] Starting analysis for network " .. tostring(networkdata.id))
+    -- Cache provider count while we have the network reference
+    networkdata.provider_count = #network.providers
     storage.analysing_network = network
     storage.analysing_networkdata = networkdata
     storage.analysis_start_tick = game.tick
@@ -162,6 +164,8 @@ function analysis_coordinator.run_storage_analysis_step()
       ignore_low_storage_when_no_storage=networkdata.ignore_low_storage_when_no_storage
       },
       {}, suggestions_calc.initialise_storage_analysis)
+    -- Cache storage count while we already have the array
+    networkdata.storage_count = the_chunker.processing_count
     return false -- Not done yet
   end
 
@@ -204,6 +208,8 @@ function analysis_coordinator.run_undersupply_step()
     context.ignore_player_demands = global_data.ignore_player_demands_in_undersupply()
 
     the_chunker:initialise_chunking(networkdata.id, network.requesters, context, {}, undersupply.initialise_undersupply)
+    -- Cache requester count while we already have the array
+    networkdata.requester_count = the_chunker.processing_count
     return false -- Not done yet
   end
 

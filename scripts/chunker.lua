@@ -1,6 +1,8 @@
 -- Process lists of entities in chunks to avoid performance issues
 
 local global_data = require("scripts.global-data")
+local debugger = require("scripts.debugger")
+local PERF_LOGGING = debugger.PROFILING
 
 ---@class Progress
 ---@field current number The current progress index
@@ -162,8 +164,9 @@ function chunker:process_chunk(on_process_entity)
   local processing_list = self.processing_list or {}
   local list_size = self.processing_count
   local current_index = self.current_index
+  local start_index = current_index
   local chunk_size = self.CHUNK_SIZE
- 
+
   local consumed = 0
   while (consumed < chunk_size) and (current_index <= list_size) do
     local entity = processing_list[current_index]
@@ -172,6 +175,10 @@ function chunker:process_chunk(on_process_entity)
       consumed = consumed + cost
     end
     current_index = current_index + 1
+  end
+
+  if PERF_LOGGING then
+    log("[perf] chunk n=" .. (current_index - start_index) .. " cost=" .. consumed .. "/" .. chunk_size)
   end
 
   self.current_index = current_index

@@ -11,6 +11,8 @@ local mini_button = require("scripts.mainwin.mini_button")
 
 -- Cache frequently used functions
 local pairs = pairs
+local debugger = require("scripts.debugger")
+local PROFILING = debugger.PROFILING
 
 --- Add the network row to the GUI
 --- @param player_table PlayerData The player's data table
@@ -151,7 +153,7 @@ function network_row.update(player_table)
     tip = tooltips_helper.add_networkid_tip(tip, networkdata.id, is_fixed)
 
     --- Located on: (Planet)
-    tip = tooltips_helper.add_network_surface_tip(tip, player_table.network)
+    tip = tooltips_helper.add_network_surface_tip(tip, networkdata.surface)
 
     -- History data: "Disabled in settings", "Paused", or "Collected for <time>"
     tip = tooltips_helper.add_network_history_tip(tip, player_table, networkdata)
@@ -179,38 +181,51 @@ function network_row.update(player_table)
 
   local networkdata = network_data.get_networkdata(player_table.network)
   if player_table.network and player_table.network.valid and player_table.ui.network and networkdata then
+    local p
     -- Network ID cell and tooltip
+    if PROFILING then p = helpers.create_profiler() end
     local network_id = player_table.network.network_id
     local networkidtip = create_networkid_information_tooltip(player_table, networkdata, player_table.fixed_network, networkidclicktip)
     if player_table.ui.network.id then
       update_key_element(player_table.ui.network.id, network_id, networkidtip)
     end
+    if PROFILING then p.stop() log({"", "[perf] netrow: id=", p}) end
 
     -- Roboports cell and tooltip
+    if PROFILING then p = helpers.create_profiler() end
     player_table.ui.network.roboports.enabled = true
     update_complex_element(player_table.ui.network.roboports, networkdata.total_cells,
       tooltips_helper.create_count_with_qualities_tip("network-row.roboports-tooltip", networkdata.total_cells, networkdata.roboport_qualities),
       "bots-gui.show-location-tooltip")
+    if PROFILING then p.stop() log({"", "[perf] netrow: roboports=", p}) end
 
     --  All Logistic Bots cell and tooltip
+    if PROFILING then p = helpers.create_profiler() end
     local bottip
     if global_data.freeze_highlighting_bots() then
       bottip = "bots-gui.show-location-and-pause-tooltip"
     else
       bottip = "bots-gui.show-location-tooltip"
     end
-    update_complex_element(player_table.ui.network.logistics_bots, player_table.network.all_logistic_robots, 
+    update_complex_element(player_table.ui.network.logistics_bots, player_table.network.all_logistic_robots,
       create_logistic_bots_tooltip(player_table.network, networkdata, true), bottip)
+    if PROFILING then p.stop() log({"", "[perf] netrow: bots=", p}) end
 
     -- Requesters, Providers and Storages cells and tooltips
-    update_element(player_table.ui.network.requesters, table_size(player_table.network.requesters), "network-row.requesters-tooltip", "bots-gui.show-location-tooltip")
+    if PROFILING then p = helpers.create_profiler() end
+    update_element(player_table.ui.network.requesters, networkdata.requester_count or 0, "network-row.requesters-tooltip", "bots-gui.show-location-tooltip")
+    if PROFILING then p.stop() log({"", "[perf] netrow: requesters=", p}) end
 
+    if PROFILING then p = helpers.create_profiler() end
     player_table.ui.network.providers.enabled = true
     -- Count how many providers are not roboports
-    local providers_count = table_size(player_table.network.providers) - (networkdata.total_cells or 0)
+    local providers_count = (networkdata.provider_count or 0) - (networkdata.total_cells or 0)
     update_element(player_table.ui.network.providers, providers_count, "network-row.providers-tooltip", "bots-gui.show-location-tooltip")
+    if PROFILING then p.stop() log({"", "[perf] netrow: providers=", p}) end
 
-    update_element(player_table.ui.network.storages, table_size(player_table.network.storages), "network-row.storages-tooltip", "bots-gui.show-location-tooltip")
+    if PROFILING then p = helpers.create_profiler() end
+    update_element(player_table.ui.network.storages, networkdata.storage_count or 0, "network-row.storages-tooltip", "bots-gui.show-location-tooltip")
+    if PROFILING then p.stop() log({"", "[perf] netrow: storages=", p}) end
   else
     if player_table.ui.network then
       reset_network_buttons(player_table.ui.network, false, true, true, false)

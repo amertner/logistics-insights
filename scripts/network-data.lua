@@ -28,6 +28,9 @@ local utils = require("scripts.utils")
 ---@field ignore_buffer_chests_for_undersupply boolean -- True to ignore buffer chests when calculating undersupply
 ---@field ignore_low_storage_when_no_storage boolean -- True to ignore no storage when calculating suggestions
 ---@ -- Data capture fields
+---@field requester_count number -- Cached count of requester entities in the network
+---@field provider_count number -- Cached count of provider entities in the network
+---@field storage_count number -- Cached count of storage entities in the network
 ---@field last_scanned_tick number -- The last tick this network's cell and bot data was updated
 ---@field last_analysed_tick number -- The last tick this network's suggestios and undersupply were analysed
 ---@field last_pass_bots_seen table<number, number> -- A list of bots seen in the last full pass
@@ -128,6 +131,9 @@ function network_data.create_networkdata(network)
       players_set = {},
       cell_chunker = chunker.new(),
       bot_chunker = chunker.new(),
+      requester_count = 0,
+      provider_count = 0,
+      storage_count = 0,
       last_accessed_tick = game_tick,
       last_scanned_tick = game_tick,
       last_analysed_tick = game_tick,
@@ -387,6 +393,7 @@ function network_data.get_next_player_network()
   end
 
   -- Single-pass selection of the oldest eligible network
+  local threshold_tick = game.tick - 60  -- At least 1 second between scans
   local best = nil
   local best_tick = math.huge
   for _, networkdata in pairs(storage.networks) do
@@ -399,7 +406,7 @@ function network_data.get_next_player_network()
       elseif network_data.players_in_network(networkdata) > 0
         and player_data.players_show_main_window(networkdata.players_set) then
         local tick = networkdata.last_scanned_tick or 0
-        if tick < best_tick then
+        if tick < threshold_tick and tick < best_tick then
           best = networkdata
           best_tick = tick
         end

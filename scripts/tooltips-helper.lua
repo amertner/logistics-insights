@@ -30,41 +30,34 @@ function tooltips_helper.add_networkid_tip(tip, network_id, is_fixed)
   end
 end
 
---- Tooltip with surface sprite and name. Expensive to create, so cached.
----@param network LuaLogisticNetwork The logistics network to get surface info from
+--- Tooltip with surface sprite and name. Uses pre-stored surface name from networkdata
+--- to avoid expensive network.cells access.
+---@param surface_name string The surface name from networkdata.surface
 ---@return table<LocalisedString>|nil The formatted tooltip with surface information
-local function get_network_surface_tip(network)
-  -- If the network has cells, get the first cell's surface
-  if not network or not network.cells or #network.cells == 0 then 
+local function get_network_surface_tip(surface_name)
+  if not surface_name or surface_name == "" then
     return nil
   end
-  local cell = network.cells[1]
-  if cell and cell.valid and cell.owner and cell.owner.valid then
-    local surface = cell.owner.surface
-    if surface and surface.valid then
-      local sprite = surface_cache:get(surface.name)
-      local lname
-      if surface and surface.valid and surface.planet and surface.planet.prototype then
-        -- Use the planet's localised name for the tooltip
-        lname = surface.planet.prototype.localised_name
-      else
-        lname = surface.name
-      end
-      return {"network-row.network-id-surface-tooltip-1icon-2name", sprite, lname}
-    end
+  local sprite = surface_cache:get(surface_name)
+  local surface = game.surfaces[surface_name]
+  local lname
+  if surface and surface.valid and surface.planet and surface.planet.prototype then
+    lname = surface.planet.prototype.localised_name
+  else
+    lname = surface_name
   end
-  return nil
+  return {"network-row.network-id-surface-tooltip-1icon-2name", sprite, lname}
 end
 -- Cache for tooltips so we don't recreate them every update
-local network_surface_tip_cache = Cache.new(function(signature, network)
-  return get_network_surface_tip(network) end)
+local network_surface_tip_cache = Cache.new(function(surface_name)
+  return get_network_surface_tip(surface_name) end)
 
 --- Located on: (Planet)
 ---@param tip table<LocalisedString> Existing tooltip content
----@param network LuaLogisticNetwork The logistics network to get surface info from
+---@param surface_name string The surface name from networkdata.surface
 ---@return table<LocalisedString> The formatted tooltip with surface information
-function tooltips_helper.add_network_surface_tip(tip, network)
-  local nwtip = network_surface_tip_cache:get(network.network_id, network)
+function tooltips_helper.add_network_surface_tip(tip, surface_name)
+  local nwtip = network_surface_tip_cache:get(surface_name)
   if nwtip then
     return {"", tip, "\n", nwtip}
   else
