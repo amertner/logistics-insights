@@ -219,7 +219,7 @@ function network_row.update(player_table)
     if PROFILING then p = helpers.create_profiler() end
     player_table.ui.network.providers.enabled = true
     -- Count how many providers are not roboports
-    local providers_count = (networkdata.provider_count or 0) - (networkdata.total_cells or 0)
+    local providers_count = math.max(0, (networkdata.provider_count or 0) - (networkdata.total_cells or 0))
     update_element(player_table.ui.network.providers, providers_count, "network-row.providers-tooltip", "bots-gui.show-location-tooltip")
     if PROFILING then p.stop() log({"", "[perf] netrow: providers=", p}) end
 

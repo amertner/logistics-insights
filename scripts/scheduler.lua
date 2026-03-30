@@ -224,7 +224,7 @@ function scheduler.on_tick()
     end
   end
   local tasks = task_queue.items[tick]
-  if tasks and table_size(tasks) > 0 then
+  if tasks and next(tasks) then
     -- Execute tasks queued for this tick
     for _, taskjob in pairs(tasks) do
       local player_index = taskjob.player_index
@@ -233,22 +233,19 @@ function scheduler.on_tick()
         local player_table = storage.players[player_index]
         local player = game.get_player(player_index)
         if player and player.valid and player.connected and player_table then
-          local run_task = true
-          if run_task then
-            task.last_run = tick
-            if DEBUG_ENABLED_INFO then
-              debugger.info("[scheduler] Running player task '" .. task.name .. "' for player " .. player_index)
-            end
-            local profiler
-            if PROFILING then profiler = helpers.create_profiler() end
-            local ok, err = pcall(task.fn, player, player_table)
-            if PROFILING then
-              profiler.stop()
-              log({"", "[perf] ", task.name, " p", player_index, " ", profiler})
-            end
-            if not ok then
-              debugger.error("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
-            end
+          task.last_run = tick
+          if DEBUG_ENABLED_INFO then
+            debugger.info("[scheduler] Running player task '" .. task.name .. "' for player " .. player_index)
+          end
+          local profiler
+          if PROFILING then profiler = helpers.create_profiler() end
+          local ok, err = pcall(task.fn, player, player_table)
+          if PROFILING then
+            profiler.stop()
+            log({"", "[perf] ", task.name, " p", player_index, " ", profiler})
+          end
+          if not ok then
+            debugger.error("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
           end
         end
       else

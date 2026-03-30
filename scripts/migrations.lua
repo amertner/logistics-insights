@@ -420,6 +420,9 @@ local li_migrations = {
       if achunker.state == nil then
         if achunker.is_finalised then
           achunker.state = "idle"
+        elseif (achunker.current_index or 1) > (achunker.processing_count or 0) then
+          -- Already consumed all entities but wasn't finalised yet
+          achunker.state = "finalising"
         else
           achunker.state = "processing"
         end
@@ -432,6 +435,10 @@ local li_migrations = {
     for _, nwd in pairs(storage.networks) do
       migrate_chunker_state(nwd.cell_chunker)
       migrate_chunker_state(nwd.bot_chunker)
+      -- Initialize cached count fields added in 1.0.15
+      if nwd.requester_count == nil then nwd.requester_count = 0 end
+      if nwd.provider_count == nil then nwd.provider_count = 0 end
+      if nwd.storage_count == nil then nwd.storage_count = 0 end
     end
     local state = storage.analysis_state
     if state then

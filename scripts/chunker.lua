@@ -4,6 +4,12 @@ local global_data = require("scripts.global-data")
 local debugger = require("scripts.debugger")
 local PERF_LOGGING = debugger.PROFILING
 
+-- State constants
+local STATE_IDLE       = "idle"
+local STATE_FETCHING   = "fetching"
+local STATE_PROCESSING = "processing"
+local STATE_FINALISING = "finalising"
+
 -- Fetcher functions stored outside storage to avoid serialization issues.
 -- Keyed by chunker instance; entries are transient and lost on save/load.
 local pending_fetchers = {}
@@ -73,7 +79,7 @@ function chunker.new()
   self.processing_count = 0
   self.partial_data = {}
   self.network_id = nil
-  self.state = "idle"
+  self.state = STATE_IDLE
   self._progress = { current = 0, total = 0 }
   return self
 end
@@ -105,15 +111,15 @@ function chunker:initialise_chunking(network_id, list_or_fetcher, initial_data, 
     pending_fetchers[self] = list_or_fetcher
     self.processing_list = nil
     self.processing_count = 0
-    self.state = "fetching"
+    self.state = STATE_FETCHING
   else
     pending_fetchers[self] = nil
     self.processing_list = list_or_fetcher
     self.processing_count = list_or_fetcher and #list_or_fetcher or 0
     if self.processing_count > 0 then
-      self.state = "processing"
+      self.state = STATE_PROCESSING
     else
-      self.state = "finalising"
+      self.state = STATE_FINALISING
     end
   end
 
@@ -126,8 +132,8 @@ end
 --- @param on_completion function(partial_data, player_table, network_id)
 function chunker:reset(network_id, on_init, on_completion)
   -- Do whatever needs doing when the list is done
-  if self.state ~= "idle" then
-    self.state = "idle"
+  if self.state ~= STATE_IDLE then
+    self.state = STATE_IDLE
     on_completion(self.partial_data, self.gather, self.network_id)
     self.processing_list = nil -- Save memory by clearing this
   end
@@ -154,25 +160,28 @@ end
 --- Check if the chunker needs new data to work on
 --- @return boolean True if the chunker is idle and ready for new data
 function chunker:needs_data()
-  return self.state == "idle"
+  return self.state == STATE_IDLE
 end
 
 --- Check if the run is done and needs finalisation
 --- @return boolean True if all entities have been processed
 function chunker:needs_finalisation()
-  return self.state == "finalising"
+  -- Also catch "processing" state where all entities were already consumed
+  -- (e.g. after save/load migration where current_index > processing_count)
+  return self.state == STATE_FINALISING
+    or (self.state == STATE_PROCESSING and self.current_index > self.processing_count)
 end
 
 --- Check if the run needs more processing (including pending fetcher resolution)
 --- @return boolean True if processing is needed
 function chunker:needs_processing()
-  return self.state == "fetching" or (self.state == "processing" and self.current_index <= self.processing_count)
+  return self.state == STATE_FETCHING or (self.state == STATE_PROCESSING and self.current_index <= self.processing_count)
 end
 
 --- Check if the chunker has completed its work
 --- @return boolean True if the chunker is idle
 function chunker:is_done_processing()
-  return self.state == "idle"
+  return self.state == STATE_IDLE
 end
 
 --- Get the current processing progress
@@ -196,12 +205,18 @@ function chunker:get_partial_data()
   return self.partial_data
 end
 
+--- Clean up any pending fetcher reference for this chunker.
+--- Call when the owning network is removed to prevent memory leaks.
+function chunker:cleanup()
+  pending_fetchers[self] = nil
+end
+
 --- Finalise the run, if needed, then mark as idle
 --- @param on_completion function(partial_data, player_table)
 function chunker:finalise_run(on_completion)
-  if self.state == "finalising" then
+  if self:needs_finalisation() then
     on_completion(self.partial_data, self.gather, self.network_id)
-    self.state = "idle"
+    self.state = STATE_IDLE
   end
 end
 
@@ -209,7 +224,7 @@ end
 --- @param on_process_entity function(entity, partial_data, gather_options, network_id)
 function chunker:process_chunk(on_process_entity)
   -- Resolve pending fetcher on its own tick
-  if self.state == "fetching" then
+  if self.state == STATE_FETCHING then
     local fetcher = pending_fetchers[self]
     if fetcher then
       local list = fetcher()
@@ -218,14 +233,14 @@ function chunker:process_chunk(on_process_entity)
       pending_fetchers[self] = nil
     end
     if self.processing_count > 0 then
-      self.state = "processing"
+      self.state = STATE_PROCESSING
     else
-      self.state = "finalising" -- Empty or missing list, skip straight to done
+      self.state = STATE_FINALISING -- Empty or missing list, skip straight to done
     end
     return -- Defer actual processing to next call
   end
 
-  if self.state ~= "processing" then
+  if self.state ~= STATE_PROCESSING then
     return -- Nothing to do
   end
 
@@ -253,7 +268,7 @@ function chunker:process_chunk(on_process_entity)
 
   -- Transition to done if all entities have been processed
   if current_index > list_size then
-    self.state = "finalising"
+    self.state = STATE_FINALISING
   end
 end
 

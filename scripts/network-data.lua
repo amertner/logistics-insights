@@ -289,9 +289,27 @@ end
 --- Remove a network from storage, if it exists
 ---@param network_id number The network to remove
 function network_data.remove_network(network_id)
-  -- Remove the network from storage
+  local nwd = storage.networks[network_id]
+  if nwd then
+    -- Clean up pending fetcher references to prevent memory leaks
+    if nwd.bot_chunker then nwd.bot_chunker:cleanup() end
+    if nwd.cell_chunker then nwd.cell_chunker:cleanup() end
+  end
   storage.networks[network_id] = nil
   return true
+end
+
+--- Validate a candidate networkdata: removes it and returns nil if its LuaNetwork is gone.
+---@param networkdata LINetworkData|nil The network data to validate
+---@return LINetworkData|nil The same networkdata if valid, nil if removed
+function network_data.validate_or_remove(networkdata)
+  if not networkdata then return nil end
+  local nw = network_data.get_LuaNetwork(networkdata)
+  if not nw or not nw.valid then
+    network_data.remove_network(networkdata.id)
+    return nil
+  end
+  return networkdata
 end
 
 -- If the setting "li-show-all-networks" is false, purge networks that are not currently observed by any player
@@ -378,15 +396,7 @@ function network_data.get_next_background_network()
       end
     end
   end
-  -- Validate only the selected network; stale entries cleaned up when selected
-  if best then
-    local nw = network_data.get_LuaNetwork(best)
-    if not nw or not nw.valid then
-      network_data.remove_network(best.id)
-      return nil
-    end
-  end
-  return best
+  return network_data.validate_or_remove(best)
 end
 
 -- Return the next player network to scan, if any
@@ -412,15 +422,7 @@ function network_data.get_next_player_network()
       end
     end
   end
-  -- Validate only the selected network; stale entries cleaned up when selected
-  if best then
-    local nw = network_data.get_LuaNetwork(best)
-    if not nw or not nw.valid then
-      network_data.remove_network(best.id)
-      return nil
-    end
-  end
-  return best
+  return network_data.validate_or_remove(best)
 end
 
 ---@param networkdata LINetworkData|nil The network data that has finished updating

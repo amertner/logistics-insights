@@ -36,7 +36,7 @@ function analysis_coordinator.find_network_to_analyse()
 
   for _, networkdata in pairs(storage.networks) do
     if networkdata then
-      local has_players = table_size(networkdata.players_set) > 0
+      local has_players = next(networkdata.players_set) ~= nil
       local threshold_tick = has_players and last_fg_tick or last_bg_tick
 
       local last_analysed = networkdata.last_analysed_tick or 0
@@ -52,16 +52,7 @@ function analysis_coordinator.find_network_to_analyse()
     end
   end
 
-  -- Validate only the selected network; stale entries cleaned up when selected
-  if best_candidate then
-    local nw = network_data.get_LuaNetwork(best_candidate)
-    if not nw or not nw.valid then
-      network_data.remove_network(best_candidate.id)
-      return nil
-    end
-  end
-
-  return best_candidate
+  return network_data.validate_or_remove(best_candidate)
 end
 
 -- Check if we are currently analysing this player's network
@@ -155,9 +146,6 @@ function analysis_coordinator.run_storage_analysis_step()
     storage.analysis_state.storage_chunker = chunker.new()
   end
   local the_chunker = storage.analysis_state.storage_chunker
-  if the_chunker == nil then
-    return true -- Could not create chunker, so abort
-  end
 
   if the_chunker:needs_data() then
     local net = network
@@ -172,16 +160,12 @@ function analysis_coordinator.run_storage_analysis_step()
 
   if the_chunker:needs_processing() then
     the_chunker:process_chunk(suggestions_calc.process_storage_for_analysis)
-    -- Cache storage count after first chunk resolves the list
-    if networkdata.storage_count == 0 then
-      networkdata.storage_count = the_chunker.processing_count
-    end
     return false -- Not done yet
   end
 
   if the_chunker:needs_finalisation() then
+    networkdata.storage_count = the_chunker.processing_count
     the_chunker:finalise_run(suggestions_calc.all_storage_chunks_done)
-
     networkdata.suggestions:update_tick()
   end
 
@@ -201,9 +185,6 @@ function analysis_coordinator.run_undersupply_step()
     storage.analysis_state.undersupply_chunker = chunker.new()
   end
   local the_chunker = storage.analysis_state.undersupply_chunker
-  if the_chunker == nil then
-    return true -- Could not create chunker, so abort
-  end
 
   if the_chunker:needs_data() then
     local context = {deliveries = networkdata.bot_deliveries,
@@ -220,16 +201,12 @@ function analysis_coordinator.run_undersupply_step()
 
   if the_chunker:needs_processing() then
     the_chunker:process_chunk(undersupply.process_one_requester)
-    -- Cache requester count after first chunk resolves the list
-    if networkdata.requester_count == 0 then
-      networkdata.requester_count = the_chunker.processing_count
-    end
     return false -- Not done yet
   end
 
   if the_chunker:needs_finalisation() then
+    networkdata.requester_count = the_chunker.processing_count
     the_chunker:finalise_run(undersupply.all_chunks_done)
-
     networkdata.suggestions:set_cached_list("undersupply", the_chunker:get_partial_data().net_demand)
     networkdata.suggestions:update_tick()
   end
