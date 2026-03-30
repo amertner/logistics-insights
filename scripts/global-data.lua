@@ -46,6 +46,11 @@ function global_data.chunk_size()
   return storage.global.chunk_size or 400
 end
 
+-- Divisor applied to chunk size for all chunked processing.
+-- Higher values = smaller chunks = lower per-tick cost but more ticks to complete.
+-- 1 = full chunk size, 2 = half, 4 = quarter, etc.
+global_data.CHUNK_DIVISOR = 1
+
 ---@return boolean True if quality data gathering is enabled
 function global_data.gather_quality_data()
   return storage.global.gather_quality_data

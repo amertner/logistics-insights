@@ -95,12 +95,12 @@ scheduler.register({ name = "clear-caches", interval = 60*10, is_heavy = false, 
 scheduler.register({ name = "find-next-player-network", interval = 7, is_heavy = false, per_player = false, fn =
   scan_coordinator.initiate_next_player_network_scan
 })
-scheduler.register({ name = "player-network-bot-chunk", interval = 3, is_heavy = true, per_player = false, fn = function()
+scheduler.register({ name = "player-network-bot-chunk", interval = 5, is_heavy = true, per_player = false, fn = function()
   if storage.fg_refreshing_network_id then
     scan_coordinator.foreground_bot_chunk(storage.fg_refreshing_network_id)
   end
 end})
-scheduler.register({ name = "player-network-cell-chunk", interval = 4, is_heavy = true, per_player = false, fn = function()
+scheduler.register({ name = "player-network-cell-chunk", interval = 7, is_heavy = true, per_player = false, fn = function()
   if storage.fg_refreshing_network_id then
     scan_coordinator.foreground_cell_chunk(storage.fg_refreshing_network_id)
   end
@@ -120,7 +120,7 @@ scheduler.register({ name = "pick-network-to-analyse", interval = 31, per_player
 end })
 
 -- Scheduler task for running the currently active derived analysis, if any
-scheduler.register({ name = "run-derived-analysis", interval = 5, per_player = false, is_heavy = true,
+scheduler.register({ name = "run-derived-analysis", interval = 9, per_player = false, is_heavy = true,
   fn = analysis_coordinator.run_analysis_step })
 
 -- Schedulers for updating the UI

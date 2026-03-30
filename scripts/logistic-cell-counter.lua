@@ -194,7 +194,10 @@ function logistic_cell_counter.init_foreground_processing(networkdata, network)
   networkdata.bot_items["logistic-robot-available"] = network.available_logistic_robots
 
   if gather_activity then
-    networkdata.cell_chunker:initialise_chunking(networkdata.id, network.cells, nil, {}, initialise_cell_network_list)
+    local net = network
+    networkdata.cell_chunker:initialise_chunking(networkdata.id,
+      function() return net.valid and net.cells or {} end,
+      nil, {}, initialise_cell_network_list, global_data.CHUNK_DIVISOR, "cell")
   end
 end
 
@@ -213,7 +216,10 @@ function logistic_cell_counter.init_background_processing(networkdata, network)
   networkdata.bot_items["logistic-robot-available"] = network.available_logistic_robots
 
   logistic_cell_counter.restart_counting(networkdata)
-  networkdata.cell_chunker:initialise_chunking(networkdata.id, network.cells, nil, gather_options, initialise_cell_network_list)
+  local net = network
+  networkdata.cell_chunker:initialise_chunking(networkdata.id,
+    function() return net.valid and net.cells or {} end,
+    nil, gather_options, initialise_cell_network_list, global_data.CHUNK_DIVISOR, "cell")
 end
 
 --- NETWORK PROCESSING IN CHUNKS

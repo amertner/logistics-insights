@@ -411,5 +411,33 @@ local li_migrations = {
       end
     end
   end,
+
+  ["1.0.14"] = function()
+    -- Chunker state machine: migrate from is_finalised boolean to state string.
+    -- Reset divisor to 1; correct divisor is now set at initialise_chunking() time.
+    local function migrate_chunker_state(achunker)
+      if not achunker then return end
+      if achunker.state == nil then
+        if achunker.is_finalised then
+          achunker.state = "idle"
+        else
+          achunker.state = "processing"
+        end
+        ---@diagnostic disable-next-line: inject-field
+        achunker.is_finalised = nil
+      end
+      achunker.divisor = 1
+    end
+
+    for _, nwd in pairs(storage.networks) do
+      migrate_chunker_state(nwd.cell_chunker)
+      migrate_chunker_state(nwd.bot_chunker)
+    end
+    local state = storage.analysis_state
+    if state then
+      migrate_chunker_state(state.storage_chunker)
+      migrate_chunker_state(state.undersupply_chunker)
+    end
+  end,
 }
 return li_migrations

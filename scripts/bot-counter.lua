@@ -305,7 +305,10 @@ function bot_counter.init_foreground_processing(networkdata, network)
 
   if gather_options.delivery or gather_options.history then
     gather_options.quality = global_data.gather_quality_data()
-    networkdata.bot_chunker:initialise_chunking(networkdata.id, network.logistic_robots, networkdata.last_pass_bots_seen, gather_options, bot_initialise_chunking)
+    local net = network
+    networkdata.bot_chunker:initialise_chunking(networkdata.id,
+      function() return net.valid and net.logistic_robots or {} end,
+      networkdata.last_pass_bots_seen, gather_options, bot_initialise_chunking, global_data.CHUNK_DIVISOR, "bot")
   else
     networkdata.bot_items["delivering"] = nil
     networkdata.bot_items["picking"] = nil
@@ -322,7 +325,10 @@ function bot_counter.init_background_processing(networkdata, network)
   local gather_options = {}
   gather_options.quality = global_data.gather_quality_data()
 
-  networkdata.bot_chunker:initialise_chunking(networkdata.id, network.logistic_robots, networkdata.last_pass_bots_seen, gather_options, bot_initialise_chunking)
+  local net = network
+  networkdata.bot_chunker:initialise_chunking(networkdata.id,
+    function() return net.valid and net.logistic_robots or {} end,
+    networkdata.last_pass_bots_seen, gather_options, bot_initialise_chunking, global_data.CHUNK_DIVISOR, "bot")
 end
 
 --- NETWORK SCANNING IN CHUNKS ---

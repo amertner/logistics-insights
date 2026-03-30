@@ -152,7 +152,7 @@ function analysis_coordinator.run_storage_analysis_step()
     return true -- Nothing to do, so done
   end
   if not storage.analysis_state.storage_chunker then
-    storage.analysis_state.storage_chunker = chunker.new(2)
+    storage.analysis_state.storage_chunker = chunker.new()
   end
   local the_chunker = storage.analysis_state.storage_chunker
   if the_chunker == nil then
@@ -160,19 +160,22 @@ function analysis_coordinator.run_storage_analysis_step()
   end
 
   if the_chunker:needs_data() then
-    the_chunker:initialise_chunking(networkdata.id, network.storages, {
-      ignored_storages_for_mismatch = networkdata.ignored_storages_for_mismatch,
-      ignore_higher_quality_mismatches=networkdata.ignore_higher_quality_mismatches,
-      ignore_low_storage_when_no_storage=networkdata.ignore_low_storage_when_no_storage
-      },
-      {}, suggestions_calc.initialise_storage_analysis)
-    -- Cache storage count while we already have the array
-    networkdata.storage_count = the_chunker.processing_count
+    local net = network
+    the_chunker:initialise_chunking(networkdata.id,
+      function() return net.valid and net.storages or {} end,
+      { ignored_storages_for_mismatch = networkdata.ignored_storages_for_mismatch,
+        ignore_higher_quality_mismatches=networkdata.ignore_higher_quality_mismatches,
+        ignore_low_storage_when_no_storage=networkdata.ignore_low_storage_when_no_storage },
+      {}, suggestions_calc.initialise_storage_analysis, global_data.CHUNK_DIVISOR, "storage")
     return false -- Not done yet
   end
 
   if the_chunker:needs_processing() then
     the_chunker:process_chunk(suggestions_calc.process_storage_for_analysis)
+    -- Cache storage count after first chunk resolves the list
+    if networkdata.storage_count == 0 then
+      networkdata.storage_count = the_chunker.processing_count
+    end
     return false -- Not done yet
   end
 
@@ -208,14 +211,19 @@ function analysis_coordinator.run_undersupply_step()
       ignore_buffer_chests_for_undersupply = networkdata.ignore_buffer_chests_for_undersupply}
     context.ignore_player_demands = global_data.ignore_player_demands_in_undersupply()
 
-    the_chunker:initialise_chunking(networkdata.id, network.requesters, context, {}, undersupply.initialise_undersupply)
-    -- Cache requester count while we already have the array
-    networkdata.requester_count = the_chunker.processing_count
+    local net = network
+    the_chunker:initialise_chunking(networkdata.id,
+      function() return net.valid and net.requesters or {} end,
+      context, {}, undersupply.initialise_undersupply, global_data.CHUNK_DIVISOR, "undersupply")
     return false -- Not done yet
   end
 
   if the_chunker:needs_processing() then
     the_chunker:process_chunk(undersupply.process_one_requester)
+    -- Cache requester count after first chunk resolves the list
+    if networkdata.requester_count == 0 then
+      networkdata.requester_count = the_chunker.processing_count
+    end
     return false -- Not done yet
   end
 
