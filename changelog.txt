@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.0.15
+Date: 2026-04-03
+  Changes:
+    - Support TFMG mod: Fall back to a default sprite if the logistic system sprite cannot be found. 
+---------------------------------------------------------------------------------------------------
 Version: 1.0.14
 Date: 2026-03-28
   Changes:
