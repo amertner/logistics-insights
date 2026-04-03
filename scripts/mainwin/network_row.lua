@@ -8,6 +8,7 @@ local network_data = require("scripts.network-data")
 local global_data = require("scripts.global-data")
 local tooltips_helper = require("scripts.tooltips-helper")
 local mini_button = require("scripts.mainwin.mini_button")
+local tools = require("scripts.utils")
 
 -- Cache frequently used functions
 local pairs = pairs
@@ -35,9 +36,10 @@ function network_row.add(player_table, gui_table)
   hcell.style.horizontally_stretchable = true
   player_table.ui.network.settings_button = mini_button.add(player_table, hcell, "network", {"network-row.networks-tooltip"}, "settings", false)
 
+  local spr_log_system = tools.get_valid_sprite_path("technology/", "logistic-system", "virtual-signal/signal-N")
   player_table.ui.network.id = gui_table.add {
     type = "sprite-button",
-    sprite = "technology/logistic-system",
+    sprite = spr_log_system,
     style = "slot_button",
     name = "logistics-insights-network-id",
   }

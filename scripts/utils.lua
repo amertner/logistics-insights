@@ -80,13 +80,14 @@ end
 --- @param prefix string Prefix, e.g. "item/" or "entity/"
 --- @param name string Item/entity name
 --- @return SpritePath|string sprite_path Full sprite path, e.g. "item/iron-plate", or "" if not found
-function utils.get_valid_sprite_path(prefix, name)
+function utils.get_valid_sprite_path(prefix, name, fallback)
   local entity_sprite = prefix .. name  ---@type SpritePath
   if helpers.is_valid_sprite_path(entity_sprite) then
     return entity_sprite
   end
-  -- Could add logic here to try different prefixes
-
+  if fallback and helpers.is_valid_sprite_path(fallback) then
+    return fallback
+  end
   return ""
 end
 
