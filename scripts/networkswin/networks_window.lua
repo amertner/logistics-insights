@@ -24,7 +24,7 @@ local WINDOW_HEIGHT_STEP = 24
 local cell_setup = {
   {
     key = "id",
-    header = { type = "sprite", sprite = "technology/logistic-system", tooltip = {"networks-window.id-tooltip"} },
+    header = { type = "sprite", sprite = "technology/logistic-system", fallback = "virtual-signal/signal-N", tooltip = {"networks-window.id-tooltip"} },
     align = "right",
     add_cell = function(table_el, name)
       local el = table_el.add{ type = "label", name = name, caption = "" }
@@ -43,7 +43,7 @@ local cell_setup = {
   },
   {
     key = "surface",
-    header = { type = "sprite", sprite = "space-location/nauvis", tooltip = {"networks-window.surface-tooltip"} },
+    header = { type = "sprite", sprite = "space-location/nauvis", fallback = "entity/biter-spawner", tooltip = {"networks-window.surface-tooltip"} },
     align = "center",
     add_cell = function(table_el, name)
       local cell = table_el.add{ type = "sprite", name = name, sprite = "utility/questionmark" }
@@ -287,7 +287,13 @@ function networks_window.create(player)
 
           for _, col in ipairs(cell_setup) do
             if col.header.type == "sprite" then
-              local e = table_el.add{ type = "sprite", sprite = col.header.sprite, tooltip = col.header.tooltip }
+              local spr
+              if helpers.is_valid_sprite_path(col.header.sprite) then
+                spr = col.header.sprite
+              elseif col.header.fallback and helpers.is_valid_sprite_path(col.header.fallback) then
+                spr = col.header.fallback
+              end
+              local e = table_el.add{ type = "sprite", sprite = spr, tooltip = col.header.tooltip }
               e.style.width = 26
               e.style.height = 26
               e.style.stretch_image_to_widget_size = true

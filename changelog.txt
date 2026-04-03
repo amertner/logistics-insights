@@ -1,8 +1,13 @@
 ---------------------------------------------------------------------------------------------------
-Version: 1.0.15
+Version: 1.0.16
 Date: ????
   Changes:
     - Performance improvements in several places, large bases should see 3-20% improvement.
+---------------------------------------------------------------------------------------------------
+Version: 1.0.15
+Date: 2026-04-03
+  Changes:
+    - Support TFMG mod: Fall back to a default sprite if the logistic system sprite cannot be found.
 ---------------------------------------------------------------------------------------------------
 Version: 1.0.14
 Date: 2026-03-28
