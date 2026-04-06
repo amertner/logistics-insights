@@ -699,3 +699,366 @@ describe("Dynamic scenarios", function()
     end)
   end)
 end)
+
+-------------------------------------------------------------------------------
+-- Suggestion lifecycle: trigger → detect → fix → resolve
+-------------------------------------------------------------------------------
+
+describe("Suggestion lifecycle", function()
+  local builder
+
+  before_each(function()
+    if builder then
+      builder:destroy()
+      builder = nil
+    end
+    local surface = game.surfaces[1]
+    local found = surface.find_entities_filtered{area = {{-20, -20}, {20, 20}}, force = "player"}
+    for _, e in pairs(found) do
+      if e.valid and e.type ~= "character" then e.destroy() end
+    end
+    local stray_bots = surface.find_entities_filtered{type = {"logistic-robot", "construction-robot"}}
+    for _, e in pairs(stray_bots) do
+      if e.valid then e.destroy() end
+    end
+
+    storage.networks = {}
+    storage.fg_refreshing_network_id = nil
+    storage.bg_refreshing_network_id = nil
+    storage.analysing_networkdata = nil
+    storage.analysing_network = nil
+    storage.analysis_state = nil
+    for _, pt in pairs(storage.players or {}) do
+      pt.network = nil
+      pt.fixed_network = false
+    end
+    scheduler.reset_phase()
+
+    helpers.apply_settings({
+      ["li-chunk-size-global"] = 400,
+      ["li-chunk-processing-interval-ticks"] = 3,
+      ["li-calculate-undersupply"] = true,
+      ["li-gather-quality-data-global"] = true,
+      ["li-show-all-networks"] = true,
+      ["li-background-refresh-interval"] = 1,
+      ["li-age-out-suggestions-interval-minutes"] = 3,
+      ["li-ignore-player-demands-in-undersupply"] = true,
+    })
+  end)
+
+  after_each(function()
+    if builder then
+      builder:destroy()
+      builder = nil
+    end
+  end)
+
+  test("insufficient-storage appears when storage > 70% full and ages out when capacity added", function()
+    async(10000)
+    local surface = game.surfaces[1]
+
+    -- 1 roboport, 1 storage chest with 35/48 slots used (72.9% > 70% threshold)
+    builder = NetworkBuilder.new(surface, {0, 0}, "player")
+    builder:add_roboport({0, 0}, {bots = 5})
+    builder:add_storage({4, 4}, {{"iron-plate", 3500}})  -- 35 stacks of 100
+    builder:build()
+
+    helpers.teleport_player({0, 0})
+
+    local network_id
+    local phase = "wait_for_suggestion"
+
+    on_tick(function()
+      if phase == "wait_for_suggestion" then
+        local network = surface.find_logistic_network_by_position({0, 0}, "player")
+        if not network or not network.valid then return end
+        local nwd = storage.networks and storage.networks[network.network_id]
+        if not nwd then return end
+
+        local suggestions = nwd.suggestions:get_suggestions()
+        local s = suggestions["insufficient-storage"]
+        if not s then return end
+
+        network_id = network.network_id
+        assert.are_equal("entity/storage-chest", s.sprite)
+        assert.are_equal("low", s.urgency)  -- 72.9% < 90% threshold
+        assert(s.count > 70, "Expected capacity > 70%, got " .. tostring(s.count))
+        assert(s.count < 80, "Expected capacity < 80%, got " .. tostring(s.count))
+
+        -- Unfiltered storage should also fire (chest has no filter)
+        local us = suggestions["insufficient-unfiltered-storage"]
+        assert.is_not_nil(us, "Unfiltered storage suggestion should also fire")
+
+        -- Fix: add an empty storage chest to drop capacity to 35/96 = 36.5%
+        local extra = surface.create_entity{
+          name = "storage-chest", position = {6, 4}, force = "player"
+        }
+        assert(extra, "Failed to create rescue storage")
+        -- Track via builder so after_each cleans it up
+        table.insert(builder._entities, extra)
+
+        phase = "wait_for_aging"
+        return
+      end
+
+      if phase == "wait_for_aging" then
+        local nwd = storage.networks[network_id]
+        if not nwd then return end
+
+        local suggestions = nwd.suggestions:get_suggestions()
+        local s = suggestions["insufficient-storage"]
+        local us = suggestions["insufficient-unfiltered-storage"]
+        if (not s or s.urgency == "aging") and (not us or us.urgency == "aging") then
+          done()
+        end
+        return
+      end
+    end)
+  end)
+
+  test("insufficient-storage with high urgency when storage > 90% full", function()
+    async(10000)
+    local surface = game.surfaces[1]
+
+    -- 1 roboport, 1 storage chest with 44/48 slots used (91.7% > 90% threshold)
+    builder = NetworkBuilder.new(surface, {0, 0}, "player")
+    builder:add_roboport({0, 0}, {bots = 5})
+    builder:add_storage({4, 4}, {{"iron-plate", 4400}})  -- 44 stacks of 100
+    builder:build()
+
+    helpers.teleport_player({0, 0})
+
+    local network_id
+    local phase = "wait_for_suggestion"
+
+    on_tick(function()
+      if phase == "wait_for_suggestion" then
+        local network = surface.find_logistic_network_by_position({0, 0}, "player")
+        if not network or not network.valid then return end
+        local nwd = storage.networks and storage.networks[network.network_id]
+        if not nwd then return end
+
+        local suggestions = nwd.suggestions:get_suggestions()
+        local s = suggestions["insufficient-storage"]
+        if not s then return end
+
+        network_id = network.network_id
+        assert.are_equal("entity/storage-chest", s.sprite)
+        assert.are_equal("high", s.urgency)  -- 91.7% > 90% threshold
+        assert(s.count > 90, "Expected capacity > 90%, got " .. tostring(s.count))
+
+        -- Fix: add two empty storage chests to drop capacity to 44/144 = 30.6%
+        for _, pos in pairs({{6, 4}, {8, 4}}) do
+          local extra = surface.create_entity{
+            name = "storage-chest", position = pos, force = "player"
+          }
+          assert(extra, "Failed to create rescue storage")
+          table.insert(builder._entities, extra)
+        end
+
+        phase = "wait_for_aging"
+        return
+      end
+
+      if phase == "wait_for_aging" then
+        local nwd = storage.networks[network_id]
+        if not nwd then return end
+
+        local suggestions = nwd.suggestions:get_suggestions()
+        local s = suggestions["insufficient-storage"]
+        if not s or s.urgency == "aging" then
+          done()
+        end
+        return
+      end
+    end)
+  end)
+
+  test("mismatched-storage appears when filtered chest has wrong items and ages out when cleared", function()
+    async(10000)
+    local surface = game.surfaces[1]
+
+    -- 1 roboport, 1 storage chest filtered for iron-plate but filled with copper-plate
+    builder = NetworkBuilder.new(surface, {0, 0}, "player")
+    builder:add_roboport({0, 0}, {bots = 5})
+    builder:add_storage({4, 4}, {{"copper-plate", 500}}, {filter = {name = "iron-plate"}})
+    builder:build()
+
+    helpers.teleport_player({0, 0})
+
+    local network_id
+    local phase = "wait_for_suggestion"
+
+    on_tick(function()
+      if phase == "wait_for_suggestion" then
+        local network = surface.find_logistic_network_by_position({0, 0}, "player")
+        if not network or not network.valid then return end
+        local nwd = storage.networks and storage.networks[network.network_id]
+        if not nwd then return end
+
+        local suggestions = nwd.suggestions:get_suggestions()
+        local s = suggestions["mismatched-storage"]
+        if not s then return end
+
+        network_id = network.network_id
+        assert.are_equal(1, s.count)
+        assert.are_equal("entity/storage-chest", s.sprite)
+        assert.are_equal("low", s.urgency)  -- mismatched is always low
+
+        -- Fix: find the mismatched chest and clear its inventory
+        local chests = surface.find_entities_filtered{
+          name = "storage-chest", area = {{3, 3}, {5, 5}}, force = "player"
+        }
+        assert(#chests > 0, "Could not find storage chest to clear")
+        chests[1].get_inventory(defines.inventory.chest).clear()
+
+        phase = "wait_for_aging"
+        return
+      end
+
+      if phase == "wait_for_aging" then
+        local nwd = storage.networks[network_id]
+        if not nwd then return end
+
+        local suggestions = nwd.suggestions:get_suggestions()
+        local s = suggestions["mismatched-storage"]
+        if not s or s.urgency == "aging" then
+          done()
+        end
+        return
+      end
+    end)
+  end)
+
+  test("too-few-bots appears when all bots busy and ages out when demand removed", function()
+    async(10000)
+    local surface = game.surfaces[1]
+
+    -- 1 roboport with 10 bots, provider with iron, requester wanting 100 iron-plate
+    -- High demand relative to bot count keeps all bots busy (idle <= 2%)
+    builder = NetworkBuilder.new(surface, {0, 0}, "player")
+    builder:add_roboport({0, 0}, {bots = 10})
+    builder:add_provider({8, 0}, {{"iron-plate", 500}})
+    builder:add_requester({-8, 0}, {{"iron-plate", 100, "normal"}})
+    builder:build()
+
+    helpers.teleport_player({0, 0})
+
+    local network_id
+    local phase = "wait_for_suggestion"
+
+    on_tick(function()
+      if phase == "wait_for_suggestion" then
+        local network = surface.find_logistic_network_by_position({0, 0}, "player")
+        if not network or not network.valid then return end
+        local nwd = storage.networks and storage.networks[network.network_id]
+        if not nwd then return end
+
+        local suggestions = nwd.suggestions:get_suggestions()
+        local s = suggestions["too-few-bots"]
+        if not s then return end
+
+        network_id = network.network_id
+        assert.are_equal("entity/logistic-robot", s.sprite)
+        assert.are_equal("low", s.urgency)  -- too-few-bots is always low
+        assert(s.count >= 90, "Expected busy% >= 90, got " .. tostring(s.count))
+
+        -- Fix: destroy the requester so bots go idle
+        local requesters = surface.find_entities_filtered{
+          name = "requester-chest", force = "player"
+        }
+        for _, r in pairs(requesters) do
+          if r.valid then r.destroy() end
+        end
+
+        phase = "wait_for_aging"
+        return
+      end
+
+      if phase == "wait_for_aging" then
+        local nwd = storage.networks[network_id]
+        if not nwd then return end
+
+        local suggestions = nwd.suggestions:get_suggestions()
+        local s = suggestions["too-few-bots"]
+        if not s or s.urgency == "aging" then
+          done()
+        end
+        return
+      end
+    end)
+  end)
+
+  test("too-many-bots appears with rising idle count and clears when bots removed", function()
+    async(15000)
+    local surface = game.surfaces[1]
+
+    -- 1 roboport with 80 bots, no demand — all idle
+    builder = NetworkBuilder.new(surface, {0, 0}, "player")
+    builder:add_roboport({0, 0}, {bots = 80})
+    builder:build()
+
+    helpers.teleport_player({0, 0})
+
+    local network_id
+    local phase = "wait_for_discovery"
+    local roboport
+
+    on_tick(function()
+      -- Phase 0: wait for network discovery and initial scan
+      if phase == "wait_for_discovery" then
+        local network = surface.find_logistic_network_by_position({0, 0}, "player")
+        if not network or not network.valid then return end
+        local nwd = storage.networks and storage.networks[network.network_id]
+        if not nwd or (nwd.total_cells or 0) < 1 then return end
+
+        network_id = network.network_id
+
+        -- Find the roboport to manipulate bot count
+        local rps = surface.find_entities_filtered{
+          name = "roboport", force = "player"
+        }
+        assert(#rps > 0, "Could not find roboport")
+        roboport = rps[1]
+
+        -- Insert 40 more bots to create an increasing trend (80 → 120, above 100 minimum)
+        roboport.insert{name = "logistic-robot", count = 40}
+
+        phase = "wait_for_suggestion"
+        return
+      end
+
+      -- Phase 1: wait for too-many-bots suggestion (needs >= 3 history samples showing increase)
+      if phase == "wait_for_suggestion" then
+        local nwd = storage.networks[network_id]
+        if not nwd then return end
+
+        local suggestions = nwd.suggestions:get_suggestions()
+        local s = suggestions["too-many-bots"]
+        if not s then return end
+
+        assert.are_equal("entity/logistic-robot", s.sprite)
+        assert.are_equal("high", s.urgency)  -- 100% idle > 80% threshold
+
+        -- Fix: remove bots to bring total below 100 (MIN_TOTAL_BOTS_FOR_SUGGESTION)
+        -- This triggers the clear_suggestion path immediately
+        roboport.remove_item{name = "logistic-robot", count = 50}
+
+        phase = "wait_for_cleared"
+        return
+      end
+
+      -- Phase 2: wait for suggestion to be cleared
+      if phase == "wait_for_cleared" then
+        local nwd = storage.networks[network_id]
+        if not nwd then return end
+
+        local suggestions = nwd.suggestions:get_suggestions()
+        if not suggestions["too-many-bots"] then
+          done()
+        end
+        return
+      end
+    end)
+  end)
+end)

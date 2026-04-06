@@ -102,11 +102,11 @@ end
 --- Add a storage chest, optionally pre-filled
 ---@param offset number[] Position offset from origin {dx, dy}
 ---@param items? table[] Array of {name, count} or {name, count, quality}
----@param opts? {quality?: string}
+---@param opts? {quality?: string, filter?: ItemFilter}
 ---@return NetworkBuilder self
 function NetworkBuilder:add_storage(offset, items, opts)
   opts = opts or {}
-  table.insert(self._storages, {offset = offset, items = items or {}, quality = opts.quality})
+  table.insert(self._storages, {offset = offset, items = items or {}, quality = opts.quality, filter = opts.filter})
   return self
 end
 
@@ -229,6 +229,9 @@ function NetworkBuilder:build()
       params.quality = stor.quality
     end
     local entity = self:_place(params)
+    if stor.filter then
+      entity.set_filter(1, stor.filter)
+    end
     if #stor.items > 0 then
       insert_items(entity, stor.items)
     end
