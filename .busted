@@ -1,0 +1,9 @@
+return {
+  default = {
+    ROOT = {"tests"},
+    pattern = "_spec",
+    output = "utfTerminal",
+    helper = "tests/mocks/factorio.lua",
+    lpath = "./?.lua;./?/init.lua",
+  },
+}
