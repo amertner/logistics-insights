@@ -2,11 +2,11 @@
 
 local scan_coordinator = {}
 
-local network_data = require("network-data")
-local player_data = require("player-data")
-local global_data = require("global-data")
-local bot_counter = require("bot-counter")
-local logistic_cell_counter = require("logistic-cell-counter")
+local network_data = require("scripts.network-data")
+local player_data = require("scripts.player-data")
+local global_data = require("scripts.global-data")
+local bot_counter = require("scripts.bot-counter")
+local logistic_cell_counter = require("scripts.logistic-cell-counter")
 local main_window = require("scripts.mainwin.main_window")
 
 -- BACKGROUND SCANNING

@@ -2,13 +2,13 @@
 
 local analysis_coordinator = {}
 
-local network_data = require("network-data")
-local player_data = require("player-data")
-local global_data = require("global-data")
-local chunker = require("chunker")
-local suggestions_calc = require("suggestions-calc")
-local undersupply = require("undersupply")
-local debugger = require("debugger")
+local network_data = require("scripts.network-data")
+local player_data = require("scripts.player-data")
+local global_data = require("scripts.global-data")
+local chunker = require("scripts.chunker")
+local suggestions_calc = require("scripts.suggestions-calc")
+local undersupply = require("scripts.undersupply")
+local debugger = require("scripts.debugger")
 
 
 -- Find network to start analysing, if any
