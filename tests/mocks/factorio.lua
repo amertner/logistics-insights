@@ -26,9 +26,10 @@ function M.reset()
     logistic_member_index = { logistic_container = 1 },
     robot_order_type = {
       deliver = 1,
-      construct = 2,
-      deconstruct = 3,
-      repair = 4,
+      pickup = 2,
+      construct = 3,
+      deconstruct = 4,
+      repair = 5,
     },
   }
 
