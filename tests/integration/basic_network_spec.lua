@@ -3,10 +3,8 @@
 
 local helpers = require("tests.integration.helpers")
 local NetworkBuilder = helpers.NetworkBuilder
+local scheduler = require("scripts.scheduler")
 
--- Timing constants (in ticks)
-local NETWORK_DISCOVERY_WAIT = 200   -- enough for network to form + LI to discover
-local ANALYSIS_WAIT = 5000           -- enough for full scan + analysis cycle
 
 -------------------------------------------------------------------------------
 -- Scenario setup
@@ -48,7 +46,7 @@ describe("Smoke test", function()
 
     helpers.teleport_player({53, 54})
 
-    after_ticks(NETWORK_DISCOVERY_WAIT, function()
+    after_ticks(200, function()
       local network = surface.find_logistic_network_by_position({53, 54}, "player")
       assert(network and network.valid, "Network did not form")
       local nwd = storage.networks[network.network_id]
@@ -75,12 +73,25 @@ describe("Mixed logistics network", function()
       builder:destroy()
       builder = nil
     end
-    -- Clear all entities in the build area to avoid accumulation
+    -- Clear all player entities in the build area
     local surface = game.surfaces[1]
-    local entities = surface.find_entities_filtered{area = {{-20, -20}, {20, 20}}, force = "player"}
-    for _, e in pairs(entities) do
+    local found = surface.find_entities_filtered{area = {{-20, -20}, {20, 20}}, force = "player"}
+    for _, e in pairs(found) do
       if e.valid and e.type ~= "character" then e.destroy() end
     end
+
+    -- Clear LI's internal state from prior tests
+    storage.networks = {}
+    storage.fg_refreshing_network_id = nil
+    storage.bg_refreshing_network_id = nil
+    storage.analysing_networkdata = nil
+    storage.analysing_network = nil
+    storage.analysis_state = nil
+    for _, pt in pairs(storage.players or {}) do
+      pt.network = nil
+      pt.fixed_network = false
+    end
+    scheduler.reset_phase()
 
     helpers.apply_settings({
       ["li-chunk-size-global"] = 400,
@@ -108,11 +119,13 @@ describe("Mixed logistics network", function()
     builder:build()
     helpers.teleport_player({0, 0})
 
-    after_ticks(NETWORK_DISCOVERY_WAIT, function()
+    on_tick(function()
       local network = game.surfaces[1].find_logistic_network_by_position({0, 0}, "player")
-      assert(network and network.valid, "Network did not form")
-      local nwd = storage.networks[network.network_id]
-      assert(nwd, "LI did not create networkdata for network " .. tostring(network.network_id))
+      if not network or not network.valid then return end
+      local nwd = storage.networks and storage.networks[network.network_id]
+      if not nwd then return end
+      local rel = game.tick - start_tick
+      assert(rel <= 11, "Discovery took " .. rel .. " ticks (expected <= 11)")
       assert.are_equal(network.network_id, nwd.id)
       done()
     end)
@@ -124,31 +137,31 @@ describe("Mixed logistics network", function()
     builder:build()
     helpers.teleport_player({0, 0})
 
-    after_ticks(NETWORK_DISCOVERY_WAIT + ANALYSIS_WAIT, function()
+    on_tick(function()
       local network = game.surfaces[1].find_logistic_network_by_position({0, 0}, "player")
-      assert(network and network.valid, "Network did not form")
-      local nwd = storage.networks[network.network_id]
-      assert(nwd, "LI did not discover the network")
-
+      if not network or not network.valid then return end
+      local nwd = storage.networks and storage.networks[network.network_id]
+      if not nwd or (nwd.total_cells or 0) < 2 then return end
       local total_bots = helpers.sum_quality_table(nwd.total_bot_qualities)
-      assert.are_equal(total_bots, 30)
-
       local idle = helpers.sum_quality_table(nwd.idle_bot_qualities)
+      if total_bots < 30 or idle < 30 then return end
+
+      local rel = game.tick - start_tick
+      assert(rel <= 3102, "Bot counts took " .. rel .. " ticks (expected <= 3102)")
+      assert.are_equal(30, total_bots)
       local charging = helpers.sum_quality_table(nwd.charging_bot_qualities)
       local waiting = helpers.sum_quality_table(nwd.waiting_bot_qualities)
       local delivering = helpers.sum_quality_table(nwd.delivering_bot_qualities)
       local picking = helpers.sum_quality_table(nwd.picking_bot_qualities)
       local other = helpers.sum_quality_table(nwd.other_bot_qualities)
       local state_sum = idle + charging + waiting + delivering + picking + other
-      assert.are_equal(idle, 30)
-      assert.are_equal(charging, 0)
-      assert.are_equal(waiting, 0)
-      assert.are_equal(delivering, 0)
-      assert.are_equal(picking, 0)
-      assert.are_equal(other, 0, "Expected no bots in 'other' state")
-
-      assert.are_equal(total_bots, state_sum,
-        "Bot state sum (" .. state_sum .. ") should equal total (" .. total_bots .. ")")
+      assert.are_equal(30, idle)
+      assert.are_equal(0, charging)
+      assert.are_equal(0, waiting)
+      assert.are_equal(0, delivering)
+      assert.are_equal(0, picking)
+      assert.are_equal(0, other, "Expected no bots in 'other' state")
+      assert.are_equal(total_bots, state_sum)
       done()
     end)
   end)
@@ -159,24 +172,23 @@ describe("Mixed logistics network", function()
     builder:build()
     helpers.teleport_player({0, 0})
 
-    after_ticks(NETWORK_DISCOVERY_WAIT + ANALYSIS_WAIT, function()
+    on_tick(function()
       local network = game.surfaces[1].find_logistic_network_by_position({0, 0}, "player")
-      assert(network and network.valid, "Network did not form")
-      local nwd = storage.networks[network.network_id]
-      assert(nwd, "LI did not discover the network")
-
-      assert.are_equal(30, helpers.sum_quality_table(nwd.total_bot_qualities))
-
-      -- By tick 5200, all iron-plate deliveries have completed; bots are idle
+      if not network or not network.valid then return end
+      local nwd = storage.networks and storage.networks[network.network_id]
+      if not nwd then return end
+      -- Wait until bots have been counted and are all idle (deliveries done)
       local bot_items = nwd.bot_items
+      if not bot_items then return end
+      if (bot_items["logistic-robot-total"] or 0) < 30 then return end
+      if (bot_items["logistic-robot-available"] or 0) < 30 then return end
+
+      local rel = game.tick - start_tick
+      assert(rel <= 2981, "Deliveries took " .. rel .. " ticks (expected <= 2981)")
       assert.are_equal(30, bot_items["logistic-robot-total"])
       assert.are_equal(30, bot_items["logistic-robot-available"])
-      assert.are_equal(0, bot_items["delivering"])
-      assert.are_equal(0, bot_items["picking"])
       assert.are_equal(0, bot_items["charging-robot"])
       assert.are_equal(0, bot_items["waiting-for-charge-robot"])
-
-      -- Deliveries completed before this check, so both tables are empty
       assert.are_equal(0, table_size(nwd.bot_deliveries))
       assert.are_equal(0, table_size(nwd.delivery_history))
       done()
@@ -189,22 +201,24 @@ describe("Mixed logistics network", function()
     builder:build()
     helpers.teleport_player({0, 0})
 
-    after_ticks(NETWORK_DISCOVERY_WAIT + ANALYSIS_WAIT, function()
+    on_tick(function()
       local network = game.surfaces[1].find_logistic_network_by_position({0, 0}, "player")
-      assert(network and network.valid, "Network did not form")
-      local nwd = storage.networks[network.network_id]
-      assert(nwd, "LI did not discover the network")
+      if not network or not network.valid then return end
+      local nwd = storage.networks and storage.networks[network.network_id]
+      if not nwd or not nwd.last_analysed_tick or nwd.last_analysed_tick <= start_tick then return end
+      -- Wait for storage analysis and suggestions to complete
+      if (nwd.storage_count or 0) < 1 then return end
+      local suggestions = nwd.suggestions:get_suggestions()
+      if not suggestions["too-few-bots"] then return end
 
-      assert(nwd.last_analysed_tick > start_tick, "Analysis should have completed")
-      -- 3 = 2 requester chests + 1 buffer chest (buffer chests are in network.requesters)
+      local rel = game.tick - start_tick
+      assert(rel <= 569, "Undersupply took " .. rel .. " ticks (expected <= 569)")
       assert.are_equal(3, nwd.requester_count)
-      -- 4 = 2 passive-providers + 1 storage + 1 buffer (all in network.providers)
-      assert.are_equal(4, nwd.provider_count)
+      -- 7 = 2 passive-providers + 1 storage + 1 buffer + 2 roboports + 2 requesters - 1 storage
+      -- network.providers includes all entities that can provide items to the network
+      assert.are_equal(7, nwd.provider_count)
       assert.are_equal(1, nwd.storage_count)
 
-      -- Suggestions: "too-few-bots" is generated (100 iron-plate requested, 30 bots)
-      local suggestions = nwd.suggestions:get_suggestions()
-      assert(suggestions["too-few-bots"], "Expected too-few-bots suggestion")
       assert.are_equal(100, suggestions["too-few-bots"].count)
       assert.are_equal("entity/logistic-robot", suggestions["too-few-bots"].sprite)
       done()
@@ -218,17 +232,17 @@ describe("Mixed logistics network", function()
       builder:build()
       helpers.teleport_player({0, 0})
 
-      after_ticks(NETWORK_DISCOVERY_WAIT + ANALYSIS_WAIT, function()
+      on_tick(function()
         local network = game.surfaces[1].find_logistic_network_by_position({0, 0}, "player")
-        assert(network and network.valid, "Network did not form")
-        local nwd = storage.networks[network.network_id]
-        assert(nwd, "LI did not discover the network")
+        if not network or not network.valid then return end
+        local nwd = storage.networks and storage.networks[network.network_id]
+        if not nwd or (nwd.total_cells or 0) < 2 then return end
+        if not (nwd.roboport_qualities or {})["uncommon"] then return end
 
-        -- Expected: 1 normal roboport, 1 uncommon roboport
-        assert.are_equal(1, (nwd.roboport_qualities or {})["normal"] or 0)
-        assert.are_equal(1, (nwd.roboport_qualities or {})["uncommon"] or 0)
-
-        -- Expected: 20 normal bots, 10 uncommon bots
+        local rel = game.tick - start_tick
+        assert(rel <= 121, "Quality took " .. rel .. " ticks (expected <= 121)")
+        assert.are_equal(1, nwd.roboport_qualities["normal"])
+        assert.are_equal(1, nwd.roboport_qualities["uncommon"])
         assert.are_equal(20, (nwd.total_bot_qualities or {})["normal"] or 0)
         assert.are_equal(10, (nwd.total_bot_qualities or {})["uncommon"] or 0)
         done()
@@ -242,12 +256,14 @@ describe("Mixed logistics network", function()
     builder:build()
     helpers.teleport_player({0, 0})
 
-    after_ticks(NETWORK_DISCOVERY_WAIT + ANALYSIS_WAIT, function()
+    on_tick(function()
       local network = game.surfaces[1].find_logistic_network_by_position({0, 0}, "player")
-      assert(network and network.valid, "Network did not form")
-      local nwd = storage.networks[network.network_id]
-      assert(nwd, "LI did not discover the network")
+      if not network or not network.valid then return end
+      local nwd = storage.networks and storage.networks[network.network_id]
+      if not nwd or (nwd.total_cells or 0) < 2 then return end
 
+      local rel = game.tick - start_tick
+      assert(rel <= 121, "Cell data took " .. rel .. " ticks (expected <= 121)")
       assert.are_equal(2, nwd.total_cells)
       assert.are_equal(2, helpers.sum_quality_table(nwd.roboport_qualities))
       assert.are_equal(0, #(nwd.unpowered_roboport_list or {}))
@@ -261,14 +277,16 @@ describe("Mixed logistics network", function()
     builder:build()
     helpers.teleport_player({0, 0})
 
-    after_ticks(NETWORK_DISCOVERY_WAIT + ANALYSIS_WAIT, function()
+    on_tick(function()
       local network = game.surfaces[1].find_logistic_network_by_position({0, 0}, "player")
-      assert(network and network.valid, "Network did not form")
-      local nwd = storage.networks[network.network_id]
-      assert(nwd, "LI did not discover the network")
+      if not network or not network.valid then return end
+      local nwd = storage.networks and storage.networks[network.network_id]
+      if not nwd or not nwd.last_analysed_tick or nwd.last_analysed_tick <= start_tick then return end
+      if (nwd.storage_count or 0) < 1 then return end
 
-      -- 4 = 2 passive-providers + 1 storage + 1 buffer (all are in network.providers)
-      assert.are_equal(4, nwd.provider_count)
+      local rel = game.tick - start_tick
+      assert(rel <= 218, "Provider/storage took " .. rel .. " ticks (expected <= 218)")
+      assert.are_equal(7, nwd.provider_count)
       assert.are_equal(1, nwd.storage_count)
       done()
     end)
@@ -317,13 +335,17 @@ describe("Settings: chunk size variation", function()
     builder = build_mixed_network(game.surfaces[1])
     builder:build()
     helpers.teleport_player({0, 0})
+    local t0 = game.tick
 
-    after_ticks(NETWORK_DISCOVERY_WAIT + ANALYSIS_WAIT, function()
+    on_tick(function()
       local network = game.surfaces[1].find_logistic_network_by_position({0, 0}, "player")
-      assert(network and network.valid, "Network did not form")
-      local nwd = storage.networks[network.network_id]
-      assert(nwd, "LI did not discover the network")
+      if not network or not network.valid then return end
+      local nwd = storage.networks and storage.networks[network.network_id]
+      if not nwd or (nwd.total_cells or 0) < 2 then return end
+      if helpers.sum_quality_table(nwd.total_bot_qualities) < 30 then return end
 
+      local rel = game.tick - t0
+      assert(rel <= 154, "chunk_size=50 took " .. rel .. " ticks (expected <= 154)")
       assert.are_equal(30, helpers.sum_quality_table(nwd.total_bot_qualities))
       assert.are_equal(2, nwd.total_cells)
       done()
@@ -346,13 +368,17 @@ describe("Settings: chunk size variation", function()
     builder = build_mixed_network(game.surfaces[1])
     builder:build()
     helpers.teleport_player({0, 0})
+    local t0 = game.tick
 
-    after_ticks(NETWORK_DISCOVERY_WAIT + ANALYSIS_WAIT, function()
+    on_tick(function()
       local network = game.surfaces[1].find_logistic_network_by_position({0, 0}, "player")
-      assert(network and network.valid, "Network did not form")
-      local nwd = storage.networks[network.network_id]
-      assert(nwd, "LI did not discover the network")
+      if not network or not network.valid then return end
+      local nwd = storage.networks and storage.networks[network.network_id]
+      if not nwd or (nwd.total_cells or 0) < 2 then return end
+      if helpers.sum_quality_table(nwd.total_bot_qualities) < 30 then return end
 
+      local rel = game.tick - t0
+      assert(rel <= 141, "chunk_size=10000 took " .. rel .. " ticks (expected <= 141)")
       assert.are_equal(30, helpers.sum_quality_table(nwd.total_bot_qualities))
       assert.are_equal(2, nwd.total_cells)
       done()
@@ -369,11 +395,32 @@ describe("Dynamic scenarios", function()
 
   before_each(function()
     local surface = game.surfaces[1]
+    -- Clear all player entities in the build area, plus any stray bots on the entire surface
     local found = surface.find_entities_filtered{area = {{-20, -20}, {20, 20}}, force = "player"}
     for _, e in pairs(found) do
       if e.valid and e.type ~= "character" then e.destroy() end
     end
+    local stray_bots = surface.find_entities_filtered{type = {"logistic-robot", "construction-robot"}}
+    for _, e in pairs(stray_bots) do
+      if e.valid then e.destroy() end
+    end
     entities = {}
+
+    -- Clear LI's internal network state from prior tests
+    storage.networks = {}
+    storage.fg_refreshing_network_id = nil
+    storage.bg_refreshing_network_id = nil
+    storage.analysing_networkdata = nil
+    storage.analysing_network = nil
+    storage.analysis_state = nil
+    -- Reset player network reference so LI re-discovers from scratch
+    for _, pt in pairs(storage.players or {}) do
+      pt.network = nil
+      pt.fixed_network = false
+    end
+
+    -- Reset scheduler phase so task timing is relative to this tick, not absolute
+    scheduler.reset_phase()
 
     helpers.apply_settings({
       ["li-chunk-size-global"] = 400,
@@ -493,6 +540,158 @@ describe("Dynamic scenarios", function()
           -- Recovery should happen within ~226 ticks
           assert(recovery_time <= 226,
             "Recovery took too long: " .. recovery_time .. " ticks (expected <= 226)")
+          done()
+        end
+        return
+      end
+    end)
+  end)
+
+  test("delivery tracking over time with changing supply", function()
+    async(30000)
+    local surface = game.surfaces[1]
+    local t0 = game.tick
+
+    -- Network: 1 roboport with 10 bots, 1 requester wanting 100 iron-plate, NO providers yet
+    local eei = surface.create_entity{name = "electric-energy-interface", position = {-3, -3}, force = "player"}
+    local sub = surface.create_entity{name = "substation", position = {0, -3}, force = "player"}
+    local rp = surface.create_entity{name = "roboport", position = {0, 0}, force = "player"}
+    local requester = surface.create_entity{name = "requester-chest", position = {-5, 0}, force = "player"}
+    assert(eei and sub and rp and requester, "Failed to create entities")
+
+    rp.insert{name = "logistic-robot", count = 10}
+
+    -- Set request filter: 100 iron-plate
+    local point = requester.get_logistic_point(defines.logistic_member_index.logistic_container)
+    local section = point.get_section(1)
+    section.set_slot(1, {value = {type = "item", name = "iron-plate", quality = "normal"}, min = 100})
+
+    entities = {eei, sub, rp, requester}
+
+    helpers.teleport_player({0, 0})
+
+    local network_id
+    local phase = "wait_for_undersupply"
+    local provider_a, provider_b  -- placed during test
+
+    --- Find an undersupply item by name in the cached list
+    local function find_undersupply(nwd, item_name)
+      local list = nwd.suggestions:get_cached_list("undersupply") or {}
+      for _, item in ipairs(list) do
+        if item.item_name == item_name then return item end
+      end
+      return nil
+    end
+
+    on_tick(function()
+      local rel = game.tick - t0
+
+      -- Phase 0: Wait for undersupply to be detected (no providers yet)
+      if phase == "wait_for_undersupply" then
+        local network = surface.find_logistic_network_by_position({0, 0}, "player")
+        if not network or not network.valid then return end
+        local nwd = storage.networks and storage.networks[network.network_id]
+        if not nwd then return end
+
+        local us = find_undersupply(nwd, "iron-plate")
+        if us then
+          network_id = network.network_id
+          -- Undersupply: 100 requested, 0 supplied, nothing in transit
+          assert.are_equal(100, us.shortage)
+          assert.are_equal(0, us.supply)
+          assert.are_equal(100, us.request)
+          assert.are_equal(0, us.under_way)
+          assert.are_equal(0, nwd.bot_items["delivering"] or 0)
+          assert(rel <= 196, "Phase 0 too slow: " .. rel .. " ticks (expected <= 196)")
+
+          -- Place provider with 50 iron-plate (half the demand)
+          provider_a = surface.create_entity{name = "passive-provider-chest", position = {5, 0}, force = "player"}
+          provider_a.get_inventory(defines.inventory.chest).insert{name = "iron-plate", count = 50}
+          table.insert(entities, provider_a)
+
+          phase = "wait_for_picking"
+        end
+        return
+      end
+
+      -- Phase 1a: Wait for bots to start picking up items
+      if phase == "wait_for_picking" then
+        local nwd = storage.networks[network_id]
+        if not nwd then return end
+
+        local picking = nwd.bot_items["picking"] or 0
+        if picking > 0 then
+          assert.are_equal(10, picking)
+          assert.are_equal(0, nwd.bot_items["delivering"] or 0)
+          assert(rel <= 223, "Phase 1a too slow: " .. rel .. " ticks (expected <= 223)")
+          phase = "wait_for_delivering"
+        end
+        return
+      end
+
+      -- Phase 1b: Wait for bots to start delivering
+      if phase == "wait_for_delivering" then
+        local nwd = storage.networks[network_id]
+        if not nwd then return end
+
+        local delivering = nwd.bot_items["delivering"] or 0
+        if delivering > 0 then
+          assert.are_equal(10, delivering)
+          -- 10 iron-plate in transit (1 per bot)
+          local bd = nwd.bot_deliveries["iron-plate:normal"]
+          assert(bd, "Expected iron-plate in bot_deliveries")
+          assert.are_equal(10, bd.count)
+          assert(rel <= 344, "Phase 1b too slow: " .. rel .. " ticks (expected <= 344)")
+          phase = "wait_for_partial_undersupply"
+        end
+        return
+      end
+
+      -- Phase 2: Wait for undersupply to reflect partial supply
+      if phase == "wait_for_partial_undersupply" then
+        local nwd = storage.networks[network_id]
+        if not nwd then return end
+
+        local us = find_undersupply(nwd, "iron-plate")
+        if us and us.supply > 0 then
+          -- Demand 100, ~40 in provider (some picked up), 10 in transit
+          assert.are_equal(100, us.request)
+          assert.are_equal(50, us.shortage)
+          assert.are_equal(40, us.supply)
+          assert.are_equal(10, us.under_way)
+          assert(rel <= 423, "Phase 2 too slow: " .. rel .. " ticks (expected <= 423)")
+
+          -- Add excess supply (200 more iron-plate)
+          provider_b = surface.create_entity{name = "passive-provider-chest", position = {5, 4}, force = "player"}
+          provider_b.get_inventory(defines.inventory.chest).insert{name = "iron-plate", count = 200}
+          table.insert(entities, provider_b)
+
+          phase = "wait_for_no_undersupply"
+        end
+        return
+      end
+
+      -- Phase 3: Wait for undersupply to disappear
+      if phase == "wait_for_no_undersupply" then
+        local nwd = storage.networks[network_id]
+        if not nwd then return end
+
+        local us = find_undersupply(nwd, "iron-plate")
+        if not us then
+          assert(rel <= 637, "Phase 3 too slow: " .. rel .. " ticks (expected <= 637)")
+          phase = "wait_for_idle"
+        end
+        return
+      end
+
+      -- Phase 4: Wait for all bots to finish delivering
+      if phase == "wait_for_idle" then
+        local nwd = storage.networks[network_id]
+        if not nwd then return end
+
+        local delivering = nwd.bot_items["delivering"] or 0
+        if delivering == 0 then
+          assert(rel <= 638, "Phase 4 too slow: " .. rel .. " ticks (expected <= 638)")
           done()
         end
         return

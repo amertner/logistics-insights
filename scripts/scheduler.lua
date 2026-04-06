@@ -21,6 +21,8 @@ local global_tasks = {}   ---@type table<string, SchedulerTask>
 local player_tasks = {}   ---@type table<string, SchedulerTask>
 -- Per-player interval overrides: player_index -> task_name -> interval
 local player_intervals = {} ---@type table<number, table<string, number>>
+-- Tick offset for phase alignment (normally 0; tests can set this to game.tick to get deterministic scheduling)
+local tick_offset = 0
 
 ---@class TaskQueue
 ---@field last_tick number The last tick the queue was built for
@@ -149,7 +151,7 @@ local function build_task_queue(first_tick)
   -- Add global tasks to the tick
   for name, task in pairs(global_tasks) do
     for tick = first_tick, task_queue.last_tick do
-      if tick % task.interval == 0 then
+      if (tick - tick_offset) % task.interval == 0 then
         table.insert(task_queue.items[tick], {player_index = nil, task = task})
         if task.is_heavy then
           heavy_task_count = heavy_task_count + 1
@@ -166,7 +168,7 @@ local function build_task_queue(first_tick)
       for tick = first_tick, task_queue.last_tick do
         for name, task in pairs(player_tasks) do
           local effective_interval = overrides[name] or task.interval
-          if tick % effective_interval == 0 then
+          if (tick - tick_offset) % effective_interval == 0 then
             table.insert(task_queue.items[tick], {player_index = player_index, task = task})
             if task.is_heavy then
               heavy_task_count = heavy_task_count + 1
@@ -266,6 +268,14 @@ function scheduler.on_tick()
       end
     end
   end
+end
+
+--- Reset scheduler phase to align with the current tick.
+--- After calling this, all task intervals are relative to game.tick,
+--- making scheduling deterministic regardless of absolute tick.
+function scheduler.reset_phase()
+  tick_offset = game.tick
+  task_queue.last_tick = 0  -- force rebuild on next on_tick
 end
 
 return scheduler
