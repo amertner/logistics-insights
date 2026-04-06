@@ -19,7 +19,9 @@
       "package-lock.json",
       "CLAUDE.md",
       "luacov*",
-      "tests/**"
+      "tests/**",
+      "factorio-test-data-dir/**",
+      "factorio-test.json"
     ]
   }
 }
