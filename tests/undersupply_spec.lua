@@ -522,4 +522,231 @@ describe("undersupply", function()
       end)
     end)
   end)
+
+  -- ─── all_chunks_done() ──────────────────────────────────────────
+  -- Tests the net demand calculation: demand vs network supply vs in-transit.
+
+  describe("all_chunks_done()", function()
+    --- Create a mock LuaLogisticNetwork with get_contents()
+    --- @param supply_items table Array of { name, quality, count }
+    local function make_mock_network(supply_items)
+      return {
+        valid = true,
+        get_contents = function()
+          return supply_items or {}
+        end,
+      }
+    end
+
+    --- Set up storage.networks with a networkdata that has a cached network
+    local function setup_network(id, supply_items)
+      local mock_network = make_mock_network(supply_items)
+      storage.networks = storage.networks or {}
+      storage.networks[id] = {
+        id = id,
+        _lua_network = mock_network,
+      }
+    end
+
+    --- Build an accumulator with demand and optional bot_deliveries
+    local function make_accumulator(demand, bot_deliveries)
+      return {
+        demand = demand or {},
+        bot_deliveries = bot_deliveries or {},
+        net_demand = {},
+      }
+    end
+
+    --- Find an entry in net_demand by item_name:quality_name
+    local function find_demand(net_demand, item_name, quality_name)
+      for _, entry in ipairs(net_demand) do
+        if entry.item_name == item_name and entry.quality_name == quality_name then
+          return entry
+        end
+      end
+      return nil
+    end
+
+    it("produces shortage when demand exceeds supply", function()
+      setup_network(1, {
+        { name = "iron-plate", quality = "normal", count = 30 },
+      })
+      local acc = make_accumulator({
+        ["iron-plate:normal"] = 100,
+      })
+
+      undersupply.all_chunks_done(acc, {}, 1)
+
+      assert.are.equal(1, #acc.net_demand)
+      local entry = acc.net_demand[1]
+      assert.are.equal("iron-plate", entry.item_name)
+      assert.are.equal("normal", entry.quality_name)
+      assert.are.equal(70, entry.shortage)  -- 100 - 30
+      assert.are.equal(100, entry.request)
+      assert.are.equal(30, entry.supply)
+      assert.are.equal(0, entry.under_way)
+    end)
+
+    it("produces no entry when supply meets demand", function()
+      setup_network(1, {
+        { name = "iron-plate", quality = "normal", count = 100 },
+      })
+      local acc = make_accumulator({
+        ["iron-plate:normal"] = 50,
+      })
+
+      undersupply.all_chunks_done(acc, {}, 1)
+      assert.are.equal(0, #acc.net_demand)
+    end)
+
+    it("produces no entry when supply exceeds demand", function()
+      setup_network(1, {
+        { name = "iron-plate", quality = "normal", count = 200 },
+      })
+      local acc = make_accumulator({
+        ["iron-plate:normal"] = 50,
+      })
+
+      undersupply.all_chunks_done(acc, {}, 1)
+      assert.are.equal(0, #acc.net_demand)
+    end)
+
+    it("reduces shortage by in-transit deliveries", function()
+      setup_network(1, {
+        { name = "iron-plate", quality = "normal", count = 30 },
+      })
+      local acc = make_accumulator(
+        { ["iron-plate:normal"] = 100 },
+        { ["iron-plate:normal"] = { count = 20 } }  -- 20 in transit
+      )
+
+      undersupply.all_chunks_done(acc, {}, 1)
+
+      assert.are.equal(1, #acc.net_demand)
+      local entry = acc.net_demand[1]
+      assert.are.equal(50, entry.shortage)  -- 100 - 30 - 20
+      assert.are.equal(20, entry.under_way)
+    end)
+
+    it("eliminates entry when in-transit covers the shortage", function()
+      setup_network(1, {
+        { name = "iron-plate", quality = "normal", count = 30 },
+      })
+      local acc = make_accumulator(
+        { ["iron-plate:normal"] = 100 },
+        { ["iron-plate:normal"] = { count = 80 } }  -- covers the 70 gap
+      )
+
+      undersupply.all_chunks_done(acc, {}, 1)
+      assert.are.equal(0, #acc.net_demand)
+    end)
+
+    it("handles multiple items with mixed shortage and surplus", function()
+      setup_network(1, {
+        { name = "iron-plate", quality = "normal", count = 50 },
+        { name = "copper-plate", quality = "normal", count = 200 },
+        { name = "steel-plate", quality = "normal", count = 10 },
+      })
+      local acc = make_accumulator({
+        ["iron-plate:normal"] = 100,   -- shortage: 50
+        ["copper-plate:normal"] = 100, -- surplus: no entry
+        ["steel-plate:normal"] = 40,   -- shortage: 30
+      })
+
+      undersupply.all_chunks_done(acc, {}, 1)
+
+      assert.are.equal(2, #acc.net_demand)
+      local iron = find_demand(acc.net_demand, "iron-plate", "normal")
+      local steel = find_demand(acc.net_demand, "steel-plate", "normal")
+      assert.is_not_nil(iron)
+      assert.is_not_nil(steel)
+      assert.are.equal(50, iron.shortage)
+      assert.are.equal(30, steel.shortage)
+      -- copper should NOT appear
+      assert.is_nil(find_demand(acc.net_demand, "copper-plate", "normal"))
+    end)
+
+    it("tracks quality-specific supply separately", function()
+      setup_network(1, {
+        { name = "iron-plate", quality = "normal", count = 100 },
+        { name = "iron-plate", quality = "uncommon", count = 5 },
+      })
+      local acc = make_accumulator({
+        ["iron-plate:normal"] = 50,     -- surplus
+        ["iron-plate:uncommon"] = 20,   -- shortage: 15
+      })
+
+      undersupply.all_chunks_done(acc, {}, 1)
+
+      assert.are.equal(1, #acc.net_demand)
+      local entry = acc.net_demand[1]
+      assert.are.equal("uncommon", entry.quality_name)
+      assert.are.equal(15, entry.shortage)
+    end)
+
+    it("treats missing supply as zero", function()
+      setup_network(1, {})  -- no supply at all
+      local acc = make_accumulator({
+        ["iron-plate:normal"] = 50,
+      })
+
+      undersupply.all_chunks_done(acc, {}, 1)
+
+      assert.are.equal(1, #acc.net_demand)
+      assert.are.equal(50, acc.net_demand[1].shortage)
+    end)
+
+    it("handles empty demand (no requesters)", function()
+      setup_network(1, {
+        { name = "iron-plate", quality = "normal", count = 100 },
+      })
+      local acc = make_accumulator({})
+
+      undersupply.all_chunks_done(acc, {}, 1)
+      assert.are.equal(0, #acc.net_demand)
+    end)
+
+    it("does not crash when networkdata is nil", function()
+      storage.networks = {}  -- no network for id 1
+      local acc = make_accumulator({ ["iron-plate:normal"] = 50 })
+
+      assert.has_no.errors(function()
+        undersupply.all_chunks_done(acc, {}, 1)
+      end)
+    end)
+
+    it("does not crash when network is invalid", function()
+      -- get_LuaNetwork falls through to slow path when _lua_network.valid is false,
+      -- which calls game.forces[...]. Mock it to return nil (no force found).
+      game.forces = {}
+      storage.networks = {}
+      storage.networks[1] = {
+        id = 1,
+        force_name = "player",
+        surface = "nauvis",
+        _lua_network = { valid = false },
+      }
+      local acc = make_accumulator({ ["iron-plate:normal"] = 50 })
+
+      assert.has_no.errors(function()
+        undersupply.all_chunks_done(acc, {}, 1)
+      end)
+      -- net_demand should be unchanged (empty)
+      assert.are.same({}, acc.net_demand)
+    end)
+
+    it("defaults quality to normal when supply item has no quality", function()
+      setup_network(1, {
+        { name = "iron-plate", count = 80 },  -- no quality field
+      })
+      local acc = make_accumulator({
+        ["iron-plate:normal"] = 100,
+      })
+
+      undersupply.all_chunks_done(acc, {}, 1)
+
+      assert.are.equal(1, #acc.net_demand)
+      assert.are.equal(20, acc.net_demand[1].shortage) -- 100 - 80
+    end)
+  end)
 end)
