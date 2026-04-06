@@ -486,3 +486,14 @@ script.on_event(defines.events.on_gui_location_changed,
       networks_window.gui_location_moved(event.element, player_table)
     end
 end)
+
+-- INTEGRATION TESTING (only active when factorio-test mod is present)
+if script.active_mods["factorio-test"] then
+  require("__factorio-test__/init")({
+    "tests.integration.basic_network_spec",
+  }, {
+    game_speed = 1000,
+    default_timeout = 60 * 60 * 5,  -- 18000 ticks
+    load_luassert = true,
+  })
+end
