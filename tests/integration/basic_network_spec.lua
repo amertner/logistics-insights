@@ -751,6 +751,7 @@ describe("Suggestion lifecycle", function()
       builder:destroy()
       builder = nil
     end
+    game.surfaces[1].always_day = false
   end)
 
   test("insufficient-storage appears when storage > 70% full and ages out when capacity added", function()
@@ -993,9 +994,9 @@ describe("Suggestion lifecycle", function()
     async(15000)
     local surface = game.surfaces[1]
 
-    -- 1 roboport with 80 bots, no demand — all idle
+    -- 1 roboport with 100 bots (at the threshold), no demand — all idle
     builder = NetworkBuilder.new(surface, {0, 0}, "player")
-    builder:add_roboport({0, 0}, {bots = 80})
+    builder:add_roboport({0, 0}, {bots = 100})
     builder:build()
 
     helpers.teleport_player({0, 0})
@@ -1021,15 +1022,15 @@ describe("Suggestion lifecycle", function()
         assert(#rps > 0, "Could not find roboport")
         roboport = rps[1]
 
-        -- Insert 40 more bots to create an increasing trend (80 → 120, above 100 minimum)
-        roboport.insert{name = "logistic-robot", count = 40}
-
         phase = "wait_for_suggestion"
         return
       end
 
-      -- Phase 1: wait for too-many-bots suggestion (needs >= 3 history samples showing increase)
+      -- Phase 1: add 1 bot per tick to create a rising trend, wait for suggestion
       if phase == "wait_for_suggestion" then
+        -- Gradually add bots so analysis cycles see an increasing total
+        roboport.insert{name = "logistic-robot", count = 1}
+
         local nwd = storage.networks[network_id]
         if not nwd then return end
 
@@ -1042,7 +1043,8 @@ describe("Suggestion lifecycle", function()
 
         -- Fix: remove bots to bring total below 100 (MIN_TOTAL_BOTS_FOR_SUGGESTION)
         -- This triggers the clear_suggestion path immediately
-        roboport.remove_item{name = "logistic-robot", count = 50}
+        local total = roboport.get_inventory(defines.inventory.roboport_robot).get_item_count()
+        roboport.remove_item{name = "logistic-robot", count = total - 50}
 
         phase = "wait_for_cleared"
         return
@@ -1055,6 +1057,79 @@ describe("Suggestion lifecycle", function()
 
         local suggestions = nwd.suggestions:get_suggestions()
         if not suggestions["too-many-bots"] then
+          done()
+        end
+        return
+      end
+    end)
+  end)
+
+  test("waiting-to-charge appears with charging congestion and ages out when power restored", function()
+    async(30000)
+    local surface = game.surfaces[1]
+    surface.always_day = true  -- ensure solar panel produces power
+
+    -- Network with 50 bots and high demand, but only a solar panel for power (60 kW).
+    -- A roboport needs ~4 MW for 4 charging pads, so charging is severely throttled.
+    -- Bots deplete energy delivering items and queue up waiting to charge.
+    builder = NetworkBuilder.new(surface, {0, 0}, "player")
+    builder:add_roboport({0, 0}, {bots = 50})
+    builder:add_provider({8, 0}, {{"iron-plate", 10000}})
+    builder:add_requester({-8, 0}, {{"iron-plate", 5000, "normal"}})
+    builder:build()
+
+    -- Replace EEI (infinite power) with solar panel (60 kW) to throttle charging
+    local eeis = surface.find_entities_filtered{
+      name = "electric-energy-interface", area = {{-5, -5}, {5, 5}}, force = "player"
+    }
+    for _, e in pairs(eeis) do e.destroy() end
+    local solar = surface.create_entity{
+      name = "solar-panel", position = {-3, -3}, force = "player"
+    }
+    assert(solar, "Failed to create solar panel")
+    table.insert(builder._entities, solar)
+
+    helpers.teleport_player({0, 0})
+
+    local network_id
+    local phase = "wait_for_suggestion"
+
+    on_tick(function()
+      -- Phase 0: wait for suggestion (needs ~9000 ticks of history with >9 bots waiting)
+      if phase == "wait_for_suggestion" then
+        local network = surface.find_logistic_network_by_position({0, 0}, "player")
+        if not network or not network.valid then return end
+        local nwd = storage.networks and storage.networks[network.network_id]
+        if not nwd then return end
+
+        local suggestions = nwd.suggestions:get_suggestions()
+        local s = suggestions["waiting-to-charge"]
+        if not s then return end
+
+        network_id = network.network_id
+        assert.are_equal("entity/roboport", s.sprite)
+        assert(s.count > 0, "Expected suggested roboports > 0, got " .. tostring(s.count))
+
+        -- Fix: restore full power by adding an EEI (within substation wire reach)
+        local eei = surface.create_entity{
+          name = "electric-energy-interface", position = {-6, -3}, force = "player"
+        }
+        assert(eei, "Failed to create EEI for fix")
+        table.insert(builder._entities, eei)
+
+        phase = "wait_for_aging"
+        return
+      end
+
+      -- Phase 1: wait for suggestion to age out (bots charge quickly with full power)
+      if phase == "wait_for_aging" then
+        local nwd = storage.networks[network_id]
+        if not nwd then return end
+
+        local suggestions = nwd.suggestions:get_suggestions()
+        local s = suggestions["waiting-to-charge"]
+        if not s or s.urgency == "aging" then
+          surface.always_day = false
           done()
         end
         return
