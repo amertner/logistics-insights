@@ -384,6 +384,122 @@ describe("undersupply", function()
       end)
     end)
 
+    describe("ignore_buffer_chests_for_undersupply (per-network)", function()
+      before_each(function()
+        settings.global["li-ignore-player-demands-in-undersupply"] = { value = false }
+        global_data.settings_changed()
+      end)
+
+      local function make_buffer_requester()
+        return make_requester({
+          type = "logistic-container",
+          name = "buffer-chest",
+          sections = {{
+            filters = {{ value = { type = "item", name = "copper-plate", quality = "normal" }, min = 80 }},
+          }},
+          inventory = {},
+        })
+      end
+
+      it("ignores buffer chest demand when enabled", function()
+        local acc = {}
+        local nwd = { ignore_buffer_chests_for_undersupply = true }
+        undersupply.initialise_undersupply(acc, build_context(nwd))
+        undersupply.process_one_requester(make_buffer_requester(), acc)
+        assert.is_nil(acc.demand["copper-plate:normal"])
+      end)
+
+      it("still counts requester chest demand when buffer chests ignored", function()
+        local acc = {}
+        local nwd = { ignore_buffer_chests_for_undersupply = true }
+        undersupply.initialise_undersupply(acc, build_context(nwd))
+        undersupply.process_one_requester(make_chest_requester(), acc)
+        assert.are.equal(50, acc.demand["iron-plate:normal"])
+      end)
+
+      it("counts buffer chest demand when disabled", function()
+        local acc = {}
+        local nwd = { ignore_buffer_chests_for_undersupply = false }
+        undersupply.initialise_undersupply(acc, build_context(nwd))
+        undersupply.process_one_requester(make_buffer_requester(), acc)
+        assert.are.equal(80, acc.demand["copper-plate:normal"])
+      end)
+
+      it("counts both buffer and requester demand when disabled", function()
+        local acc = {}
+        local nwd = { ignore_buffer_chests_for_undersupply = false }
+        undersupply.initialise_undersupply(acc, build_context(nwd))
+        undersupply.process_one_requester(make_buffer_requester(), acc)
+        undersupply.process_one_requester(make_chest_requester(), acc)
+        assert.are.equal(80, acc.demand["copper-plate:normal"])
+        assert.are.equal(50, acc.demand["iron-plate:normal"])
+      end)
+    end)
+
+    describe("ignored_items_for_undersupply (per-network)", function()
+      before_each(function()
+        settings.global["li-ignore-player-demands-in-undersupply"] = { value = false }
+        global_data.settings_changed()
+      end)
+
+      it("skips ignored items but counts others", function()
+        local acc = {}
+        local nwd = { ignored_items_for_undersupply = { ["iron-plate:normal"] = true } }
+        undersupply.initialise_undersupply(acc, build_context(nwd))
+
+        local requester = make_requester({
+          sections = {{
+            filters = {
+              { value = { type = "item", name = "iron-plate", quality = "normal" }, min = 100 },
+              { value = { type = "item", name = "copper-plate", quality = "normal" }, min = 50 },
+            },
+          }},
+          inventory = {},
+        })
+        undersupply.process_one_requester(requester, acc)
+        assert.is_nil(acc.demand["iron-plate:normal"])
+        assert.are.equal(50, acc.demand["copper-plate:normal"])
+      end)
+
+      it("counts everything when ignore list is empty", function()
+        local acc = {}
+        local nwd = { ignored_items_for_undersupply = {} }
+        undersupply.initialise_undersupply(acc, build_context(nwd))
+
+        local requester = make_requester({
+          sections = {{
+            filters = {
+              { value = { type = "item", name = "iron-plate", quality = "normal" }, min = 100 },
+              { value = { type = "item", name = "copper-plate", quality = "normal" }, min = 50 },
+            },
+          }},
+          inventory = {},
+        })
+        undersupply.process_one_requester(requester, acc)
+        assert.are.equal(100, acc.demand["iron-plate:normal"])
+        assert.are.equal(50, acc.demand["copper-plate:normal"])
+      end)
+
+      it("ignores quality-specific entries only", function()
+        local acc = {}
+        local nwd = { ignored_items_for_undersupply = { ["iron-plate:uncommon"] = true } }
+        undersupply.initialise_undersupply(acc, build_context(nwd))
+
+        local requester = make_requester({
+          sections = {{
+            filters = {
+              { value = { type = "item", name = "iron-plate", quality = "normal" }, min = 100 },
+              { value = { type = "item", name = "iron-plate", quality = "uncommon" }, min = 30 },
+            },
+          }},
+          inventory = {},
+        })
+        undersupply.process_one_requester(requester, acc)
+        assert.are.equal(100, acc.demand["iron-plate:normal"])
+        assert.is_nil(acc.demand["iron-plate:uncommon"])
+      end)
+    end)
+
     describe("li-ignore-player-demands-in-undersupply = false", function()
       before_each(function()
         settings.global["li-ignore-player-demands-in-undersupply"] = { value = false }

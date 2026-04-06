@@ -264,6 +264,40 @@ describe("chunker", function()
     end)
   end)
 
+  describe("gather_quality_data setting", function()
+    it("sets gather.quality = true when setting is enabled", function()
+      storage.global.gather_quality_data = true
+      mock.unload("scripts.")
+      chunker = require("scripts.chunker")
+
+      local c = chunker.new()
+      assert.is_true(c.gather.quality)
+    end)
+
+    it("sets gather.quality = false when setting is disabled", function()
+      storage.global.gather_quality_data = false
+      mock.unload("scripts.")
+      chunker = require("scripts.chunker")
+
+      local c = chunker.new()
+      assert.is_false(c.gather.quality)
+    end)
+
+    it("updates gather.quality on initialise_chunking", function()
+      storage.global.gather_quality_data = false
+      mock.unload("scripts.")
+      chunker = require("scripts.chunker")
+
+      local c = chunker.new()
+      assert.is_false(c.gather.quality)
+
+      -- Change the setting and re-initialise
+      storage.global.gather_quality_data = true
+      c:initialise_chunking(1, nil, nil, {}, function() end)
+      assert.is_true(c.gather.quality)
+    end)
+  end)
+
   describe("reset()", function()
     it("completes current run and re-initialises", function()
       local c = chunker.new()
