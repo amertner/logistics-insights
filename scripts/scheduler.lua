@@ -6,6 +6,7 @@ local scheduler = {}
 local player_data = require("scripts.player-data")
 local global_data = require("scripts.global-data")
 local debugger = require("scripts.debugger")
+local bench_profiler = require("scripts.bench-profiler")
 local DEBUG_ENABLED_INFO = debugger.debug_level > 1
 local PROFILING = debugger.PROFILING
 
@@ -36,6 +37,17 @@ local TASK_QUEUE_TICKS = 60 -- How many ticks ahead to queue tasks
 function scheduler.register(opts)
   if not opts or not opts.name or not opts.interval or not opts.fn then
     debugger.error("scheduler.register: missing required fields")
+  end
+  -- Bench profiler interval override hook. When the harness wants to disable
+  -- a task during a benchmark (to isolate one heavy task from another), it
+  -- sets bench_profiler.task_interval_overrides[name] to a very large number.
+  -- Patching here is the cleanest hook because bench-overrides.lua loads before
+  -- any register() call, and we don't need any on_init / runtime gymnastics.
+  if bench_profiler.enabled and bench_profiler.task_interval_overrides then
+    local override = bench_profiler.task_interval_overrides[opts.name]
+    if override then
+      opts.interval = override
+    end
   end
   local task = {
     name = opts.name,
@@ -206,10 +218,41 @@ local function build_task_queue(first_tick)
     end
   end
 
-  -- Pass 3: Add any excess heavy tasks to the last tick. Yuck, but what can we do? Hopefully rare.
-  local last_items = task_queue.items[task_queue.last_tick]
-  for _, item in pairs(excess_heavy_tasks) do
-    last_items[#last_items + 1] = item
+  -- Pass 3: Distribute remaining excess heavy tasks round-robin across all
+  -- ticks in the queue, instead of dumping them all on the last tick. This
+  -- still doesn't guarantee staying under max_heavy_per_tick (if the queue
+  -- is genuinely full there's nothing we can do), but it spreads the damage
+  -- evenly rather than creating one fat spike tick that dominates p99.
+  local overflow_count = #excess_heavy_tasks
+  if overflow_count > 0 then
+    local rr_tick = first_tick
+    for _, item in pairs(excess_heavy_tasks) do
+      local items = task_queue.items[rr_tick]
+      items[#items + 1] = item
+      rr_tick = rr_tick + 1
+      if rr_tick > task_queue.last_tick then rr_tick = first_tick end
+    end
+  end
+
+  -- Diagnostic: when bench profiling is enabled, record per-queue stats so we
+  -- can correlate per-tick spikes with the queue that scheduled them. Counts
+  -- "heavy slots" (a heavy task scheduled to fire on a tick), not actual run
+  -- time. This runs once per 60 ticks, costs ~60 table reads, and only happens
+  -- when bench profiler is active.
+  if bench_profiler.enabled then
+    local max_heavy, max_heavy_tick = 0, first_tick
+    for tick = first_tick, task_queue.last_tick do
+      local items = task_queue.items[tick]
+      local h = 0
+      for _, it in pairs(items) do
+        if it.task.is_heavy then h = h + 1 end
+      end
+      if h > max_heavy then
+        max_heavy = h
+        max_heavy_tick = tick
+      end
+    end
+    bench_profiler.record_queue(first_tick, task_queue.last_tick, max_heavy, max_heavy_tick, overflow_count)
   end
 end
 
@@ -240,11 +283,17 @@ function scheduler.on_tick()
             debugger.info("[scheduler] Running player task '" .. task.name .. "' for player " .. player_index)
           end
           local profiler
-          if PROFILING then profiler = helpers.create_profiler() end
+          local needs_timing = PROFILING or bench_profiler.enabled
+          if needs_timing then profiler = bench_profiler.start_timing() end
           local ok, err = pcall(task.fn, player, player_table)
-          if PROFILING then
+          if needs_timing then
             profiler.stop()
-            log({"", "[perf] ", task.name, " p", player_index, " ", profiler})
+            if PROFILING then
+              log({"", "[perf] ", task.name, " p", player_index, " ", profiler})
+            end
+            if bench_profiler.enabled then
+              bench_profiler.record(task.name, profiler, task.is_heavy)
+            end
           end
           if not ok then
             debugger.error("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
@@ -256,11 +305,17 @@ function scheduler.on_tick()
           debugger.info("[scheduler] Running task " .. task.name)
         end
         local profiler
-        if PROFILING then profiler = helpers.create_profiler() end
+        local needs_timing = PROFILING or bench_profiler.enabled
+        if needs_timing then profiler = bench_profiler.start_timing() end
         local ok, err = pcall(task.fn)
-        if PROFILING then
+        if needs_timing then
           profiler.stop()
-          log({"", "[perf] ", task.name, " ", profiler})
+          if PROFILING then
+            log({"", "[perf] ", task.name, " ", profiler})
+          end
+          if bench_profiler.enabled then
+            bench_profiler.record(task.name, profiler, task.is_heavy)
+          end
         end
         if not ok then
           debugger.error("[scheduler] Task '" .. task.name .. "' failed: " .. tostring(err))

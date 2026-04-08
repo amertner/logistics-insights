@@ -21,7 +21,10 @@
       "luacov*",
       "tests/**",
       "factorio-test-data-dir/**",
-      "factorio-test.json"
+      "factorio-test.json",
+      "bench/**",
+      "bench-overrides.lua",
+      "bench-overrides.lua.example"
     ]
   }
 }

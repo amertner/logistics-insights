@@ -1,0 +1,48 @@
+-- Copy this file to bench-overrides.lua to activate. The active file is
+-- gitignored. When present, scripts/global-data.lua picks it up at mod load
+-- time and replaces accessor functions, so the overrides are visible from
+-- tick 0 with no warmup period.
+--
+-- The bench/run-benchmarks.ps1 harness rewrites bench-overrides.lua between
+-- Factorio invocations to sweep configurations. You can also edit it by hand
+-- for one-off experiments.
+--
+-- See scripts/global-data.lua for the full list of accessors that can be
+-- overridden. Only runtime-global settings are supported this way; startup
+-- settings would require regenerating mod-settings.dat.
+
+-- Enable the in-memory benchmark profiler. When true, scripts/scheduler.lua
+-- accumulates per-task counts and timings in memory and emits one log line
+-- per second containing the running totals. The harness parses the highest-tick
+-- dump from factorio-current.log.
+--
+-- This must be set at module load time (i.e. here, not inside the returned
+-- function), because scripts/scheduler.lua captures the enabled flag at its
+-- own load time.
+local bench_profiler = require("scripts.bench-profiler")
+bench_profiler.enabled = true
+
+-- Optional: dump exactly once after this many ticks have elapsed since the
+-- first instrumented call, instead of once per second. The harness sets this
+-- to (BenchmarkTicks - 60) to drop ~45ms of measurement self-overhead per run.
+-- Leave commented out for manual experimentation: dumps will then fire every
+-- second so you can watch totals accumulate live in factorio-current.log.
+-- bench_profiler.dump_after_ticks = 5940
+
+-- Optional: replace specific scheduler task intervals at register() time, so
+-- the named tasks effectively never run during the benchmark. Use this to
+-- isolate one heavy task from another (e.g. disable background-refresh so
+-- every spike is attributable to run-derived-analysis only).
+-- bench_profiler.task_interval_overrides = {
+--   ["background-refresh"] = 999999999,
+-- }
+
+return function(global_data)
+  -- global_data.chunk_size = function() return 1000 end
+  -- global_data.chunk_interval_ticks = function() return 5 end
+  global_data.calculate_undersupply = function() return true end
+  -- global_data.gather_quality_data = function() return false end
+  -- global_data.background_refresh_interval_ticks = function() return 600 end
+  -- global_data.show_all_networks = function() return true end
+  -- global_data.ignore_player_demands_in_undersupply = function() return false end
+end

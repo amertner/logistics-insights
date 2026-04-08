@@ -1,6 +1,15 @@
 -- Main script for Logistics Insights mod
 local flib_migration = require("__flib__.migration")
 
+-- Optional benchmark override hook. Loaded BEFORE any scripts.* require so the
+-- overrides (e.g. bench_profiler.enabled = true) are in place before scheduler.lua
+-- captures debugger.PROFILING / bench_profiler.enabled at module load time.
+-- The bench-overrides.lua file is gitignored and only present when the bench
+-- harness is sweeping configurations. It returns a function that monkey-patches
+-- accessor functions on global_data; that function is invoked further down,
+-- after global_data is required.
+local _bench_ok, _bench_overrides = pcall(require, "bench-overrides")
+
 local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
 local global_data = require("scripts.global-data")
@@ -18,6 +27,14 @@ local tooltips_helper = require("scripts.tooltips-helper")
 local analysis_coordinator = require("scripts.analysis-coordinator")
 local scan_coordinator = require("scripts.scan-coordinator")
 local events = require("scripts.events")
+local bench_profiler = require("scripts.bench-profiler")
+
+-- Apply bench-overrides accessor patches now that global_data is loaded.
+-- The early require above already executed any module-load-time side effects
+-- (e.g. setting bench_profiler.enabled = true) before scheduler was loaded.
+if _bench_ok and type(_bench_overrides) == "function" then
+  _bench_overrides(global_data)
+end
 
 ---@alias SurfaceName string
 
@@ -35,6 +52,18 @@ script.on_init(
   global_data.init()
   player_data.init_storages()
   network_data.init()
+  -- Apply runtime-global setting overrides to the scheduler. Without this,
+  -- li-background-refresh-interval (and any future global-task interval
+  -- settings) silently has no effect until the user changes it in-game,
+  -- because tasks are registered with hardcoded defaults at module load.
+  scheduler.apply_global_settings()
+end)
+
+script.on_load(function()
+  -- Re-apply scheduler interval overrides for existing saves. Tasks are
+  -- registered fresh on every load with hardcoded intervals; this re-points
+  -- them at the cached storage.global values. Read-only — safe in on_load.
+  scheduler.apply_global_settings()
 end)
 
 local PROFILING = debugger.PROFILING
@@ -90,6 +119,15 @@ scheduler.register({ name = "background-refresh", interval = 11, is_heavy = true
 scheduler.register({ name = "clear-caches", interval = 60*10, is_heavy = false, per_player = false,
   fn = tooltips_helper.clear_caches
 })
+
+-- When the bench harness has enabled the in-memory profiler, dump accumulated
+-- per-task counts and times once per second. This is the only output during a
+-- benchmark run; the harness reads the highest-tick dump from factorio-current.log.
+if bench_profiler.enabled then
+  scheduler.register({ name = "bench-profiler-dump", interval = 60, is_heavy = false, per_player = false,
+    fn = bench_profiler.dump
+  })
+end
 
 -- Scheduler tasks for refreshing the foreground networks
 scheduler.register({ name = "find-next-player-network", interval = 7, is_heavy = false, per_player = false, fn =
@@ -235,6 +273,10 @@ script.on_configuration_changed(
   -- Run migrations if the mod version has changed
   global_data.init()
   flib_migration.on_config_changed(e, li_migrations)
+  -- Re-apply scheduler interval overrides after config change. Mod version
+  -- upgrades may register new tasks or change defaults; this ensures the
+  -- runtime-global interval settings still take effect.
+  scheduler.apply_global_settings()
 end)
 
 script.on_event(defines.events.on_runtime_mod_setting_changed,

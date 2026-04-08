@@ -96,6 +96,8 @@ Tasks are spread across ticks to avoid lag spikes. Key tasks: `network-check` (2
 
 Large collections (bots, cells, requesters, storage) are processed in chunks across multiple ticks. Default chunk size: 400 (configurable 10–100k). Used by `bot-counter`, `logistic-cell-counter`, `undersupply`, and `suggestions-calc`.
 
+**Chunk size tradeoff (important — counterintuitive):** A naive read of CPU benchmarks suggests small chunks are cheaper. They are not. Smaller chunks delay results (a 300-bot scan takes 150 ticks at chunk_size=10 vs 1 tick at chunk_size=400) and produce *inconsistent* snapshots — the same bot can be observed in two different states across chunks of one scan, getting double-counted. Larger chunks give a single coherent moment-in-time snapshot. The right framing is "what is the **largest** chunk size whose per-call cost still fits inside one tick?" — not "what is cheapest?". Per-bot cost (not per-tick cost) is the meaningful efficiency metric: chunk_size=400 is roughly 10× more efficient per bot than chunk_size=10. The default of 400 reflects this. See [bench/README.md](bench/README.md) for the full discussion.
+
 ### Scanning Pipeline
 
 1. **Foreground scan** — Active player's network, high priority (every 7 ticks)
