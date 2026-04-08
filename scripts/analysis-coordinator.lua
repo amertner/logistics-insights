@@ -9,6 +9,7 @@ local chunker = require("scripts.chunker")
 local suggestions_calc = require("scripts.suggestions-calc")
 local undersupply = require("scripts.undersupply")
 local debugger = require("scripts.debugger")
+local bench_profiler = require("scripts.bench-profiler")
 
 
 -- Find network to start analysing, if any
@@ -109,11 +110,11 @@ function analysis_coordinator.run_analysis_step()
 
   local state = storage.analysis_state
   if state.free_suggestions_done == false then
-    state.free_suggestions_done = analysis_coordinator.run_free_suggestions_step()
+    state.free_suggestions_done = bench_profiler.measure("analysis:free-suggestions", analysis_coordinator.run_free_suggestions_step)
   elseif state.undersupply_analysis_done == false then
-    state.undersupply_analysis_done = analysis_coordinator.run_undersupply_step()
+    state.undersupply_analysis_done = bench_profiler.measure("analysis:undersupply", analysis_coordinator.run_undersupply_step)
   elseif state.storage_analysis_done == false then
-    state.storage_analysis_done = analysis_coordinator.run_storage_analysis_step()
+    state.storage_analysis_done = bench_profiler.measure("analysis:storage", analysis_coordinator.run_storage_analysis_step)
   else
     -- All steps are done
     debugger.info("[analysis-coordinator] Complete for network " .. tostring(storage.analysing_networkdata.id))
@@ -187,9 +188,21 @@ function analysis_coordinator.run_undersupply_step()
   local the_chunker = storage.analysis_state.undersupply_chunker
 
   if the_chunker:needs_data() then
+    -- Drop stale cache entries when size exceeds 2x live count (rare).
+    local cache = networkdata.requester_cache
+    local live_count = networkdata.requester_count or 0
+    if table_size(cache) > 2 * (live_count + 16) then
+      for unit_number, entry in pairs(cache) do
+        if game.tick - entry.refresh_tick > 60 * 60 * 5 then
+          cache[unit_number] = nil
+        end
+      end
+    end
+
     local context = {deliveries = networkdata.bot_deliveries,
       ignored_items = networkdata.ignored_items_for_undersupply,
-      ignore_buffer_chests_for_undersupply = networkdata.ignore_buffer_chests_for_undersupply}
+      ignore_buffer_chests_for_undersupply = networkdata.ignore_buffer_chests_for_undersupply,
+      requester_cache = cache}
     context.ignore_player_demands = global_data.ignore_player_demands_in_undersupply()
 
     local net = network

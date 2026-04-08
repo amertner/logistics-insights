@@ -134,6 +134,22 @@ function M.record(name, profiler, is_heavy)
   end
 end
 
+--- Time one named call by wrapping fn(). Caller-side helper that hides the
+--- start_timing/stop/record boilerplate so timed call sites stay one-liners.
+--- When bench profiler is disabled, this is a tail call to fn() with one
+--- extra boolean check.
+--- @param name string Synthetic task name to record under
+--- @param fn function Zero-arg function to time
+--- @return any Whatever fn() returns
+function M.measure(name, fn)
+  if not M.enabled then return fn() end
+  local p = M.start_timing()
+  local result = fn()
+  p.stop()
+  M.record(name, p, true)
+  return result
+end
+
 --- Reset all accumulators. Called between benchmark runs if multiple runs share
 --- a Factorio process (which we currently avoid by forcing --benchmark-runs 1).
 function M.reset()

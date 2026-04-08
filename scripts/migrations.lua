@@ -446,5 +446,14 @@ local li_migrations = {
       migrate_chunker_state(state.undersupply_chunker)
     end
   end,
+
+  ["1.0.17"] = function()
+    -- Backfill requester_cache (added in undersupply.lua filter-cache optimization)
+    if storage.networks then
+      for _, nwd in pairs(storage.networks) do
+        if nwd then nwd.requester_cache = nwd.requester_cache or {} end
+      end
+    end
+  end,
 }
 return li_migrations
