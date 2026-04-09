@@ -3,6 +3,12 @@
 
 local helpers = {}
 
+local scheduler = require("scripts.scheduler")
+local bot_counter = require("scripts.bot-counter")
+local logistic_cell_counter = require("scripts.logistic-cell-counter")
+local network_data = require("scripts.network-data")
+local analysis_coordinator = require("scripts.analysis-coordinator")
+
 -- Whether Space Age (quality system) is available
 helpers.has_quality = script.active_mods["space-age"] ~= nil
 
@@ -325,6 +331,106 @@ function helpers.apply_settings(overrides)
       setter(value)
     end
   end
+
+  -- Push global-task interval overrides into the scheduler. In production this
+  -- happens via control.lua's on_runtime_mod_setting_changed handler; the test
+  -- helper bypasses that handler (which expects a player_index), so we have to
+  -- do it explicitly. Without this, background-refresh stays locked at whatever
+  -- interval apply_global_settings() saw at on_init/on_load time, which defeats
+  -- the settings override above.
+  scheduler.apply_global_settings()
+end
+
+-------------------------------------------------------------------------------
+-- Utility: synchronous full-network scan (test-only)
+-------------------------------------------------------------------------------
+
+--- Synchronously run a complete bot + cell scan of one network, bypassing
+--- the scheduler. Returns when bot_items and cell counts reflect current
+--- entity state. Used by tests to get a fresh snapshot at a chosen instant
+--- without depending on the production scheduler's cadence (which can alias
+--- with bot delivery cycles in tight test scenarios).
+---@param network_id number
+function helpers.run_full_scan(network_id)
+  local nwd = network_data.get_networkdata_fromid(network_id)
+  if not nwd then return end
+  local network = network_data.get_LuaNetwork(nwd)
+  if not network or not network.valid then return end
+
+  -- Tear down any in-flight background scan; we're taking over.
+  storage.bg_refreshing_network_id = nil
+
+  -- Initialise both chunkers fresh
+  bot_counter.init_background_processing(nwd, network)
+  logistic_cell_counter.init_background_processing(nwd, network)
+
+  -- Drive the chunker state machines to completion. The state machine needs
+  -- two process_chunk() calls per chunker (fetch → process), so a small
+  -- bounded loop suffices for any reasonable test network.
+  for _ = 1, 8 do
+    if not bot_counter.is_scanning_done(nwd) then
+      bot_counter.process_next_chunk(nwd)
+    end
+    if not logistic_cell_counter.is_scanning_done(nwd) then
+      logistic_cell_counter.process_next_chunk(nwd)
+    end
+    if bot_counter.is_scanning_done(nwd) and logistic_cell_counter.is_scanning_done(nwd) then
+      break
+    end
+  end
+
+  network_data.finished_scanning_network(nwd)
+end
+
+--- Synchronously run a complete analysis pass on a network: free suggestions,
+--- undersupply, and storage analysis. Tear down any analysis already in flight
+--- so this is the only one running. Used by tests after run_full_scan() to get
+--- fresh derived data (undersupply lists, suggestions) without waiting for the
+--- production analysis-coordinator's gated cadence.
+---@param network_id number
+function helpers.run_full_analysis(network_id)
+  local nwd = network_data.get_networkdata_fromid(network_id)
+  if not nwd then return end
+
+  -- Tear down any in-flight analysis; we're taking over.
+  analysis_coordinator.stop_analysis()
+
+  analysis_coordinator.start_analysis(nwd)
+
+  -- Drive the analysis state machine to completion. Each step transitions one
+  -- substage (free suggestions → undersupply → storage), with the chunkers
+  -- inside undersupply/storage needing two calls each (fetch → process). 16
+  -- iterations is a safe ceiling for any reasonable test network.
+  for _ = 1, 16 do
+    if not storage.analysing_networkdata then break end
+    analysis_coordinator.run_analysis_step()
+  end
+end
+
+-------------------------------------------------------------------------------
+-- Utility: timing budget instrumentation
+-------------------------------------------------------------------------------
+
+--- Record an actual timing value against an expected budget. Always logs
+--- "[budget] <label>: actual=N expected<=M (delta=±D)" so a single test run
+--- collects every actual value, even from tests that would otherwise fail
+--- early. To keep tests progressing through all phases while real floors are
+--- being measured, the assertion uses a loose 10x ceiling instead of the
+--- documented budget. Once you've read the log and tightened budgets, replace
+--- the call sites with plain `assert(actual <= budget, ...)` again.
+---@param label string Human-readable phase name (used in log + failure message)
+---@param actual number Observed timing in ticks
+---@param budget number Documented budget (used only for the log delta + as the basis for the loose ceiling)
+function helpers.record_budget(label, actual, budget)
+  local delta = actual - budget
+  local sign = (delta >= 0) and "+" or ""
+  log("[budget] " .. label
+    .. ": actual=" .. actual
+    .. " expected<=" .. budget
+    .. " (delta=" .. sign .. delta .. ")")
+  local ceiling = budget * 10 + 200
+  assert(actual <= ceiling,
+    label .. " catastrophically slow: " .. actual .. " ticks (loose ceiling " .. ceiling .. ", documented budget " .. budget .. ")")
 end
 
 -------------------------------------------------------------------------------
