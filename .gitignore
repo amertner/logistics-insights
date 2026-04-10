@@ -2,6 +2,7 @@
 logistics-insights*.zip
 *.pxd
 .vscode/*
+.claude/
 node_modules/
 package.json
 package-lock.json
