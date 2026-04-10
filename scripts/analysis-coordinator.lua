@@ -31,22 +31,28 @@ function analysis_coordinator.find_network_to_analyse()
     return nil -- No networks available
   end
 
-  -- Single-pass selection of the oldest eligible network
+  -- Single-pass selection: foreground networks (with active players) always
+  -- take priority over background networks; within the same tier, oldest wins.
   local best_candidate = nil
   local best_last_analysed = nil
+  local best_is_foreground = false
 
   for _, networkdata in pairs(storage.networks) do
     if networkdata then
       local has_players = next(networkdata.players_set) ~= nil
+      local is_foreground = has_players and player_data.players_show_main_window(networkdata.players_set)
       local threshold_tick = has_players and last_fg_tick or last_bg_tick
 
       local last_analysed = networkdata.last_analysed_tick or 0
       if last_analysed < threshold_tick then
-        -- Candidate must be visible to at least one player or allowed for background scans
-        if (has_players and player_data.players_show_main_window(networkdata.players_set)) or global_data.background_scans_enabled() then
-          if not best_candidate or last_analysed < best_last_analysed then
+        if is_foreground or global_data.background_scans_enabled() then
+          -- Foreground always beats background; within same tier, oldest wins
+          if not best_candidate
+              or (is_foreground and not best_is_foreground)
+              or (is_foreground == best_is_foreground and last_analysed < best_last_analysed) then
             best_candidate = networkdata
             best_last_analysed = last_analysed
+            best_is_foreground = is_foreground
           end
         end
       end
@@ -111,10 +117,10 @@ function analysis_coordinator.run_analysis_step()
   local state = storage.analysis_state
   if state.free_suggestions_done == false then
     state.free_suggestions_done = bench_profiler.measure("analysis:free-suggestions", analysis_coordinator.run_free_suggestions_step)
-  elseif state.undersupply_analysis_done == false then
-    state.undersupply_analysis_done = bench_profiler.measure("analysis:undersupply", analysis_coordinator.run_undersupply_step)
   elseif state.storage_analysis_done == false then
     state.storage_analysis_done = bench_profiler.measure("analysis:storage", analysis_coordinator.run_storage_analysis_step)
+  elseif state.undersupply_analysis_done == false then
+    state.undersupply_analysis_done = bench_profiler.measure("analysis:undersupply", analysis_coordinator.run_undersupply_step)
   else
     -- All steps are done
     debugger.info("[analysis-coordinator] Complete for network " .. tostring(storage.analysing_networkdata.id))

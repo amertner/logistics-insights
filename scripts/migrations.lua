@@ -454,16 +454,26 @@ local li_migrations = {
         if nwd then nwd.requester_cache = nwd.requester_cache or {} end
       end
     end
-    -- Clear any in-flight analysis chunkers with missing state (can happen when
-    -- upgrading from saves where the undersupply/storage chunker didn't exist
-    -- or had a different field layout). They'll be recreated on the next cycle.
-    local astate = storage.analysis_state
-    if astate then
-      if astate.undersupply_chunker and not astate.undersupply_chunker.state then
-        astate.undersupply_chunker = nil
-      end
-      if astate.storage_chunker and not astate.storage_chunker.state then
-        astate.storage_chunker = nil
+    -- Force any in-flight analysis to restart cleanly. The analysis order and
+    -- chunker layout may have changed between versions, and provider_count
+    -- (set in start_analysis) would be stale from the previous session.
+    storage.analysing_networkdata = nil
+    storage.analysing_network = nil
+    storage.analysis_start_tick = nil
+    storage.analysis_state = nil
+    -- Refresh cached entity counts from the Factorio API (available during
+    -- on_configuration_changed) so the UI shows correct values immediately
+    -- rather than stale zeros until the first analysis cycle completes.
+    if storage.networks then
+      for _, nwd in pairs(storage.networks) do
+        if nwd then
+          local network = network_data.get_LuaNetwork(nwd)
+          if network then
+            nwd.provider_count = #network.providers
+            nwd.storage_count = #network.storages
+            nwd.requester_count = #network.requesters
+          end
+        end
       end
     end
   end,
