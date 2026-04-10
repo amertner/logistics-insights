@@ -92,8 +92,10 @@ end
 
 -- Apply global settings to relevant schedules
 function scheduler.apply_global_settings()
-  -- On this schedule, update a background network, if applicable
-  scheduler.update_interval( "background-refresh", global_data.background_refresh_interval_ticks() )
+  -- Background-refresh keeps its hardcoded 11-tick interval.
+  -- The user's "background refresh interval" setting controls *eligibility*
+  -- (how old a scan must be before re-scanning) via get_next_background_network(),
+  -- not the chunk-processing cadence.
 end
 
 -- Apply player-specific intervals based on current settings.

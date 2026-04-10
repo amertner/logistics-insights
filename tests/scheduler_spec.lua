@@ -453,24 +453,24 @@ describe("scheduler", function()
   -- ─── apply_global_settings() ──────────────────────────────────────
 
   describe("apply_global_settings()", function()
-    it("updates background-refresh interval from global_data", function()
-      -- Register background-refresh task (like control.lua does)
-      local called = false
+    it("does not override background-refresh scheduler interval", function()
+      -- Register background-refresh task with its hardcoded interval (like control.lua does)
+      local call_count = 0
       scheduler.register({
         name = "background-refresh",
-        interval = 600, -- 10 seconds default
+        interval = 11,
         is_heavy = true,
-        fn = function() called = true end,
+        fn = function() call_count = call_count + 1 end,
       })
 
-      -- Change the setting
+      -- Change the eligibility setting — should NOT affect scheduler interval
       storage.global.background_refresh_interval_ticks = 120
       scheduler.apply_global_settings()
 
-      -- Force queue rebuild and check tick 120 fires
-      game.tick = 120
+      -- Task should still fire at its hardcoded 11-tick interval, not 120
+      game.tick = 11
       scheduler.on_tick()
-      assert.is_true(called)
+      assert.are.equal(1, call_count)
     end)
   end)
 
