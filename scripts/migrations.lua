@@ -476,6 +476,13 @@ local li_migrations = {
         end
       end
     end
+    -- Default for background refresh interval changed from 10s to 30s;
+    -- update saves still on the old default
+    local bg_interval = settings.global["li-background-refresh-interval"].value
+    if bg_interval == 10 then
+      settings.global["li-background-refresh-interval"] = {value = 30}
+    end
+    global_data.settings_changed()
   end,
 }
 return li_migrations

@@ -11,17 +11,29 @@ local main_window = require("scripts.mainwin.main_window")
 
 -- BACKGROUND SCANNING
 
+local MIN_BG_GAP_TICKS = 60  -- 1 second minimum between consecutive background scans
+
+-- Compute the gap (in ticks) between consecutive background scans.
+-- Distributes scans evenly across the refresh interval, with a minimum gap.
+local function bg_gap_ticks()
+  local interval = global_data.background_refresh_interval_ticks()
+  if interval == 0 then return 0 end
+  local count = table_size(storage.networks or {})
+  return math.max(MIN_BG_GAP_TICKS, math.floor(interval / math.max(count, 1)))
+end
+
 -- Called often to refresh background networks. Do at most one chunk of work per call.
 function scan_coordinator.background_refresh()
   if storage.bg_refreshing_network_id then
     -- We're refreshing a network already
     local networkdata = network_data.get_networkdata_fromid(storage.bg_refreshing_network_id)
     if networkdata then
-      if bot_counter.is_scanning_done(networkdata) then        
+      if bot_counter.is_scanning_done(networkdata) then
         -- The bot counter is finished; process the logistic cells
         if logistic_cell_counter.is_scanning_done(networkdata) then
           -- Signal that the background refresh is done
           storage.bg_refreshing_network_id = nil
+          storage.bg_scan_completed_tick = game.tick
           network_data.finished_scanning_network(networkdata)
         else
           logistic_cell_counter.process_next_chunk(networkdata)
@@ -34,6 +46,11 @@ function scan_coordinator.background_refresh()
       storage.bg_refreshing_network_id = nil
     end
   else
+    -- Cooldown: distribute scans evenly across the refresh interval
+    local gap = bg_gap_ticks()
+    if game.tick - (storage.bg_scan_completed_tick or 0) < gap then
+      return
+    end
     -- No background network is being refreshed; find one to refresh
     local networkdata = network_data.get_next_background_network()
     if networkdata then
