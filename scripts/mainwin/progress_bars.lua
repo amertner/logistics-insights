@@ -43,7 +43,7 @@ function progress_bars.update_progressbar(player_table, progressbar_name, progre
   local lcount = player_table.ui.progress_count[progressbar_name]
   if lcount and lcount.valid then
     local total = math.max(progress.total, 1)
-    local percent = math_floor(((progress.current-1) / total) * 100)
+    local percent = math.max(0, math_floor(((progress.current-1) / total) * 100))
     lcount.caption = {"bots-gui.progress-percent", percent}
   end
 end
