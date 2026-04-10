@@ -2,12 +2,15 @@
 Version: 1.1.0
 Date: 2026-04-10
   Features:
+    - Logistics Insights now is much easier on performance, adding optimisations and new settings to better control the performance/accuracy tradeoff
     - New setting to reduce the impact of undersupply and suggestion calculations, by reducing the chunk size by a factor compared to the (much cheaper) bot activity scanning. The default is 4, which reduces the overhead and delays the appearance of data but should be good for most bases.
     - New setting to scan only every Nth requester for undersupply calculations each sweep, which further reduces the overhead and delays the appearance of undersupply data. The default is 3, which is a good tradeoff between timeliness and performance.
   Changes:
     - Performance improvements in scanning bot and roboport networks as well as UI updates, reducing CPU usage by 3-25%.
     - Reduced UI update overhead through caching and skip-when-unchanged logic, for smoother performance with windows open.
     - Improvements to the task scheduler, which spreads analysis overhead across more ticks, reducing the size of spikes in CPU usage.
+    - Increased the default background refresh interval from 10 to 30 seconds
+    - Stopped calculating # of providers for background networks, and reduced the frequency for foreground networks. This turned out to be quite expensive!
   Bugfixes:
     - Fixed edge cases in migration from earlier versions.
 ---------------------------------------------------------------------------------------------------

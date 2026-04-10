@@ -131,6 +131,9 @@ function scan_coordinator.initiate_next_player_network_scan()
         -- The previous network is fully processed, so we can move to the next one
         storage.fg_refreshing_network_id = nil
         network_data.finished_scanning_network(networkdata)
+        -- Cache provider count only for foreground networks (expensive: ~5ms on large saves)
+        local nw = network_data.get_LuaNetwork(networkdata)
+        if nw then networkdata.provider_count = #nw.providers end
       else
         return -- Still processing the current network, so don't switch yet
       end

@@ -157,7 +157,7 @@ data:extend(
       type = "int-setting",
       name = "li-background-refresh-interval",
       setting_type = "runtime-global",
-      default_value = 10,
+      default_value = 30,
       minimum_value = 0,
       maximum_value = 3600,
       order = "5"

@@ -53,11 +53,11 @@ M.tick_records = {}  -- array of { tick = integer, profiler = LuaProfiler }
 --- the user can correlate per-tick spikes with the queue that scheduled them.
 M.queue_records = {}
 
---- Per-call records for heavy tasks. When record() is called with is_heavy=true
---- and M.track_per_call is set, allocate a fresh profiler holding just that
---- call's time and append it here. Dumped at end as one log line per record.
---- Cost: ~3us per heavy call (allocation + add). At ~1200 heavy calls/run,
---- this is ~4ms total self-overhead concentrated on the heavy tasks.
+--- Per-call records for all tasks. When record() is called and M.track_per_call
+--- is set, allocate a fresh profiler holding just that call's time and append
+--- it here. Dumped at end as one log line per record.
+--- Cost: ~3us per call (allocation + add). At ~5000 calls/run,
+--- this is ~15ms total self-overhead spread across all tasks.
 M.track_per_call = true
 M.per_call_records = {}  -- array of { task = string, tick = integer, profiler = LuaProfiler }
 
@@ -125,9 +125,9 @@ function M.record(name, profiler, is_heavy)
   entry.time.add(profiler)
   entry.count = entry.count + 1
 
-  -- Per-call capture for heavy tasks. We need a fresh profiler we can retain
+  -- Per-call capture for all tasks. We need a fresh profiler we can retain
   -- until dump time, since the caller's profiler is the reused scratch.
-  if is_heavy and M.track_per_call then
+  if M.track_per_call then
     local snap = helpers.create_profiler(true)
     snap.add(profiler)
     M.per_call_records[#M.per_call_records + 1] = { task = name, tick = tick, profiler = snap }

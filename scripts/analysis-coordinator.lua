@@ -76,8 +76,6 @@ function analysis_coordinator.start_analysis(networkdata)
   local network = network_data.get_LuaNetwork(networkdata)
   if network then
     debugger.info("[analysis-coordinator] Starting analysis for network " .. tostring(networkdata.id))
-    -- Cache provider count while we have the network reference
-    networkdata.provider_count = #network.providers
     storage.analysing_network = network
     storage.analysing_networkdata = networkdata
     storage.analysis_start_tick = game.tick
