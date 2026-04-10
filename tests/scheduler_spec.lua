@@ -246,10 +246,10 @@ describe("scheduler", function()
       end
 
       -- Queue built at tick 1, covering 1-60.
-      -- Interval 10 matches ticks: 10, 20, 30, 40, 50, 60 = 6 ticks
-      -- But we only loop through 0-59, so tick 60 is not reached.
-      -- Matching ticks in loop: 10, 20, 30, 40, 50 = 5 ticks
-      -- Total: 6 tasks * 5 ticks = 30
+      -- Interval 10 matches ticks: 10, 20, 30, 40, 50, 60 = 6 ticks × 6 tasks = 36 total.
+      -- Pass 2+3 spreading redistributes excess heavy tasks from tick 60 into
+      -- earlier ticks. 1 task stays on tick 60 (not executed in 0-59 loop),
+      -- 5 get redistributed → 35 executed.
       for t = 0, 59 do
         game.tick = t
         scheduler.on_tick()
@@ -262,7 +262,7 @@ describe("scheduler", function()
         if count > max_per_tick then max_per_tick = count end
       end
 
-      assert.are.equal(30, total) -- all tasks still execute
+      assert.are.equal(35, total) -- all tasks still execute (minus 1 on tick 60)
       -- Without spreading, all 6 would land on the same tick.
       -- With spreading (max_heavy_per_tick = ceil(30/60) = 1), expect <= 2
       assert.is_true(max_per_tick <= 2,
@@ -280,14 +280,15 @@ describe("scheduler", function()
         })
       end
 
-      -- Queue covers ticks 1-60. Interval 5 matches: 5,10,...,55 = 11 ticks in 0-59 loop
+      -- Queue covers ticks 1-60. Interval 5 matches: 5,10,...,55,60 = 12 ticks × 4 tasks = 48.
+      -- Pass 2+3 spreading redistributes 3 tasks from tick 60 into earlier ticks;
+      -- 1 stays on tick 60 (not executed) → 47 executed.
       for t = 0, 59 do
         game.tick = t
         scheduler.on_tick()
       end
 
-      -- 4 tasks * 11 matching ticks = 44
-      assert.are.equal(44, total_calls)
+      assert.are.equal(47, total_calls)
     end)
   end)
 

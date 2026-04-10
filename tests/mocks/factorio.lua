@@ -65,6 +65,7 @@ function M.reset()
   -- Metatable registration (no-op outside Factorio)
   _G.script = {
     register_metatable = function() end,
+    active_mods = {},
   }
 
   -- Logging (no-op by default; tests can replace to capture)

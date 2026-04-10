@@ -12,9 +12,12 @@ describe("undersupply", function()
     undersupply = require("scripts.undersupply")
   end)
 
+  local next_unit_number = 0
+
   --- Build a mock requester entity with logistic point sections
   local function make_requester(opts)
     opts = opts or {}
+    next_unit_number = next_unit_number + 1
     local sections = opts.sections or {}
     local inventory_contents = opts.inventory or {}
 
@@ -48,6 +51,7 @@ describe("undersupply", function()
       type = opts.type or "logistic-container",
       name = opts.name or "requester-chest",
       status = opts.status or "working",
+      unit_number = opts.unit_number or next_unit_number,
       get_logistic_point = function(member_index)
         return mock_logistic_point
       end,
@@ -64,6 +68,7 @@ describe("undersupply", function()
         deliveries = {},
         ignored_items = {},
         ignore_player_demands = false,
+        requester_cache = {},
       })
       assert.are.same({}, acc.demand)
       assert.are.same({}, acc.net_demand)
@@ -78,6 +83,7 @@ describe("undersupply", function()
         ignored_items = ignored,
         ignore_player_demands = true,
         ignore_buffer_chests_for_undersupply = true,
+        requester_cache = {},
       })
       assert.is_true(acc.ignore_player_demands)
       assert.is_true(acc.ignore_buffer_chests_for_undersupply)
@@ -92,6 +98,7 @@ describe("undersupply", function()
         deliveries = {},
         ignored_items = {},
         ignore_player_demands = false,
+        requester_cache = {},
       })
 
       local requester = make_requester({
@@ -116,6 +123,7 @@ describe("undersupply", function()
         deliveries = {},
         ignored_items = {},
         ignore_player_demands = true,
+        requester_cache = {},
       })
 
       local requester = make_requester({
@@ -137,6 +145,7 @@ describe("undersupply", function()
         ignored_items = {},
         ignore_player_demands = false,
         ignore_buffer_chests_for_undersupply = true,
+        requester_cache = {},
       })
 
       local requester = make_requester({
@@ -157,6 +166,7 @@ describe("undersupply", function()
         deliveries = {},
         ignored_items = {},
         ignore_player_demands = false,
+        requester_cache = {},
       })
 
       local requester = make_requester({
@@ -176,6 +186,7 @@ describe("undersupply", function()
         deliveries = {},
         ignored_items = { ["iron-plate:normal"] = true },
         ignore_player_demands = false,
+        requester_cache = {},
       })
 
       local requester = make_requester({
@@ -195,6 +206,7 @@ describe("undersupply", function()
         deliveries = {},
         ignored_items = {},
         ignore_player_demands = false,
+        requester_cache = {},
       })
 
       local requester = make_requester({
@@ -218,6 +230,7 @@ describe("undersupply", function()
         deliveries = {},
         ignored_items = {},
         ignore_player_demands = false,
+        requester_cache = {},
       })
 
       local requester = make_requester({
@@ -239,6 +252,7 @@ describe("undersupply", function()
         deliveries = {},
         ignored_items = {},
         ignore_player_demands = false,
+        requester_cache = {},
       })
 
       local requester = make_requester({
@@ -259,6 +273,7 @@ describe("undersupply", function()
         deliveries = {},
         ignored_items = {},
         ignore_player_demands = false,
+        requester_cache = {},
       })
 
       local requester = make_requester({
@@ -278,6 +293,7 @@ describe("undersupply", function()
         deliveries = {},
         ignored_items = {},
         ignore_player_demands = false,
+        requester_cache = {},
       })
 
       local r1 = make_requester({
@@ -305,6 +321,7 @@ describe("undersupply", function()
         deliveries = {},
         ignored_items = {},
         ignore_player_demands = false,
+        requester_cache = {},
       })
       -- Invalid entity — the function checks .valid first and the code
       -- returns 1 at end of the outer block. But actually for invalid
@@ -504,6 +521,7 @@ describe("undersupply", function()
         deliveries = networkdata.bot_deliveries or {},
         ignored_items = networkdata.ignored_items_for_undersupply or {},
         ignore_buffer_chests_for_undersupply = networkdata.ignore_buffer_chests_for_undersupply,
+        requester_cache = {},
       }
       context.ignore_player_demands = global_data.ignore_player_demands_in_undersupply()
       return context

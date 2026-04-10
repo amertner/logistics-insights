@@ -2,7 +2,7 @@
 local cache = {}
 
 -- Use Factorio's table_size if available, or define our own
-local table_size = _ENV.table_size or function(tbl)
+local table_size = _G.table_size or function(tbl)
   local count = 0
   for _ in pairs(tbl) do count = count + 1 end
   return count

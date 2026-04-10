@@ -284,13 +284,13 @@ describe("suggestions_calc", function()
       local filters = opts.filters or {}
       local is_empty = #contents == 0
 
-      local mock_inventory = {
-        count_empty_stacks = function() return free end,
-        is_empty = function() return is_empty end,
-        get_contents = function() return contents end,
-      }
-      -- Make # operator work on inventory to return capacity
-      setmetatable(mock_inventory, { __len = function() return capacity end })
+      -- Build inventory with array slots so # returns capacity in Lua 5.1
+      -- (Lua 5.1 does not support __len on tables)
+      local mock_inventory = {}
+      for i = 1, capacity do mock_inventory[i] = false end
+      mock_inventory.count_empty_stacks = function() return free end
+      mock_inventory.is_empty = function() return is_empty end
+      mock_inventory.get_contents = function() return contents end
 
       return {
         valid = opts.valid ~= false,
