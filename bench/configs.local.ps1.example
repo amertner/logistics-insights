@@ -1,0 +1,38 @@
+# Per-machine / per-sweep harness config template.
+#
+# Copy this file to bench/configs.local.ps1 (gitignored) and edit. The harness
+# dot-sources configs.local.ps1 automatically if it exists, so anything you set
+# here overrides the placeholder defaults in run-benchmarks.ps1.
+#
+# Keeping per-machine paths and sweep configurations out of run-benchmarks.ps1
+# means your sweep edits never show up in `git status` and never need to be
+# stashed before pulling main.
+
+# --- Per-machine paths ---
+
+# Path to factorio.exe
+$FactorioExe = "C:\Program Files\Factorio\bin\x64\factorio.exe"
+
+# Save file to benchmark against (must already exist)
+$SaveFile = "$env:APPDATA\Factorio\saves\bench.zip"
+
+# factorio-current.log location. The harness reads bench profiler dumps from
+# this file. Standard install: $env:APPDATA\Factorio\factorio-current.log.
+# Portable install: usually next to factorio.exe.
+$FactorioLog = "$env:APPDATA\Factorio\factorio-current.log"
+
+# --- Sweep configuration ---
+
+# Tasks to effectively disable during the benchmark by registering them with
+# a huge interval. Use to isolate one heavy task from another. Empty = no
+# overrides.
+$DisableTasks = @()
+
+# Configurations to sweep. Each entry is a hashtable; "label" names the run
+# in the CSVs, every other key maps to a global_data accessor name and the
+# value the accessor should return.
+$Configurations = @(
+  @{ label = "default";    chunk_size =  400 }
+  @{ label = "small";      chunk_size =  100 }
+  @{ label = "no-us";      chunk_size =  400; calculate_undersupply = $false }
+)

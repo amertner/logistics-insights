@@ -6,6 +6,7 @@ local scheduler = {}
 local player_data = require("scripts.player-data")
 local global_data = require("scripts.global-data")
 local debugger = require("scripts.debugger")
+local bench_profiler = require("scripts.bench-profiler")
 local DEBUG_ENABLED_INFO = debugger.debug_level > 1
 
 ---@class SchedulerTask
@@ -33,6 +34,16 @@ local TASK_QUEUE_TICKS = 60 -- How many ticks ahead to queue tasks
 function scheduler.register(opts)
   if not opts or not opts.name or not opts.interval or not opts.fn then
     debugger.error("scheduler.register: missing required fields")
+  end
+  -- Bench profiler interval override hook. When the harness wants to disable
+  -- a task during a benchmark, it sets bench_profiler.task_interval_overrides[name]
+  -- to a very large number. Patching here is the cleanest hook because
+  -- bench-overrides.lua loads before any register() call.
+  if bench_profiler.enabled and bench_profiler.task_interval_overrides then
+    local override = bench_profiler.task_interval_overrides[opts.name]
+    if override then
+      opts.interval = override
+    end
   end
   local task = {
     name = opts.name,
@@ -204,9 +215,28 @@ local function build_task_queue(first_tick)
   end
 
   -- Pass 3: Add any excess heavy tasks to the last tick. Yuck, but what can we do? Hopefully rare.
+  local overflow_count = #excess_heavy_tasks
   local last_items = task_queue.items[task_queue.last_tick]
   for _, item in pairs(excess_heavy_tasks) do
     last_items[#last_items + 1] = item
+  end
+
+  -- Bench profiler queue diagnostics: record per-queue stats so the harness
+  -- can correlate per-tick spikes with the queue that scheduled them.
+  if bench_profiler.enabled then
+    local max_heavy, max_heavy_tick = 0, first_tick
+    for tick = first_tick, task_queue.last_tick do
+      local items = task_queue.items[tick]
+      local h = 0
+      for _, it in pairs(items) do
+        if it.task.is_heavy then h = h + 1 end
+      end
+      if h > max_heavy then
+        max_heavy = h
+        max_heavy_tick = tick
+      end
+    end
+    bench_profiler.record_queue(first_tick, task_queue.last_tick, max_heavy, max_heavy_tick, overflow_count)
   end
 end
 
@@ -226,16 +256,19 @@ function scheduler.on_tick()
         local player_table = storage.players[player_index]
         local player = game.get_player(player_index)
         if player and player.valid and player.connected and player_table then
-          local run_task = true
-          if run_task then
-            task.last_run = tick
-            if DEBUG_ENABLED_INFO then
-              debugger.info("[scheduler] Running player task '" .. task.name .. "' for player " .. player_index)
-            end
-            local ok, err = pcall(task.fn, player, player_table)
-            if not ok then
-              debugger.error("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
-            end
+          task.last_run = tick
+          if DEBUG_ENABLED_INFO then
+            debugger.info("[scheduler] Running player task '" .. task.name .. "' for player " .. player_index)
+          end
+          local bp_prof
+          if bench_profiler.enabled then bp_prof = bench_profiler.start_timing() end
+          local ok, err = pcall(task.fn, player, player_table)
+          if bp_prof then
+            bp_prof.stop()
+            bench_profiler.record(task.name, bp_prof, task.is_heavy)
+          end
+          if not ok then
+            debugger.error("[scheduler] Player task '" .. task.name .. "' failed for player " .. player_index .. ": " .. tostring(err))
           end
         end
       else
@@ -243,7 +276,13 @@ function scheduler.on_tick()
         if DEBUG_ENABLED_INFO then
           debugger.info("[scheduler] Running task " .. task.name)
         end
+        local bp_prof
+        if bench_profiler.enabled then bp_prof = bench_profiler.start_timing() end
         local ok, err = pcall(task.fn)
+        if bp_prof then
+          bp_prof.stop()
+          bench_profiler.record(task.name, bp_prof, task.is_heavy)
+        end
         if not ok then
           debugger.error("[scheduler] Task '" .. task.name .. "' failed: " .. tostring(err))
         end

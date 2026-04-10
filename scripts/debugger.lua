@@ -3,6 +3,7 @@ local debugger = {}
 
 -- This level of message will be added to the Factorio log
 debugger.debug_level = 1 -- 0 = none, 1 = errors, 2 = warnings, 3 = info, 4 = debug
+debugger.PROFILING = false -- Set to true to enable performance profiling to factorio-current.log
 
 local function message(level, msg)
   if debugger.debug_level >= level then
