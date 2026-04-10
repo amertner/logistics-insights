@@ -108,13 +108,21 @@ end
 --- Clear the sprite path cache.
 function utils.clear_caches()
   sprite_path_cache = {}
+  localised_names_cache = {}
 end
+
+-- Cache of localised name lookups to avoid repeated prototype C API calls.
+--- @type table<string, { iname: LocalisedString, qname: LocalisedString }>
+local localised_names_cache = {}
 
 -- Get the localised item and quality names
 ---@param entry DeliveryItem|DeliveredItems|UndersupplyItem
 ---@return { iname: LocalisedString, qname: LocalisedString }
 function utils.get_localised_names(entry)
   if entry.item_name and entry.quality_name then
+    local key = entry.item_name .. ":" .. entry.quality_name
+    local cached = localised_names_cache[key]
+    if cached then return cached end
     local localised_name
     if prototypes.item[entry.item_name] then
       localised_name = prototypes.item[entry.item_name].localised_name
@@ -124,7 +132,9 @@ function utils.get_localised_names(entry)
       localised_name = entry.item_name
     end
     local localised_quality_name = prototypes.quality[entry.quality_name].localised_name
-    return { iname = localised_name, qname = localised_quality_name }
+    local result = { iname = localised_name, qname = localised_quality_name }
+    localised_names_cache[key] = result
+    return result
   end
   return { iname = entry.item_name, qname = entry.quality_name }
 end
