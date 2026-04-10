@@ -11,20 +11,43 @@ Each configuration runs in its own `factorio --benchmark` process. Before each l
 ## Setup
 
 1. Create a Factorio save you want to benchmark against. A mid-to-late-game base with active logistics traffic gives the most useful signal. Note its path.
-2. Copy [bench/configs.local.ps1.example](configs.local.ps1.example) to `bench/configs.local.ps1` and edit:
+2. Make sure no other Factorio instance is running.
+
+### PowerShell (Windows)
+
+3. Copy [bench/configs.local.ps1.example](configs.local.ps1.example) to `bench/configs.local.ps1` and edit:
    - `$FactorioExe` — path to `factorio.exe`
    - `$SaveFile` — absolute path to your save
    - `$FactorioLog` — `factorio-current.log` location (standard install puts it in `%APPDATA%\Factorio\`; portable installs put it next to the exe)
    - `$DisableTasks` — scheduler task names to suppress for the run (see below)
    - `$Configurations` — the list of configurations to sweep
-3. `bench/configs.local.ps1` is gitignored. Your edits never appear in `git status` and never need stashing before pulling main. The harness dot-sources it automatically if present.
-4. Make sure no other Factorio instance is running.
+4. `bench/configs.local.ps1` is gitignored. Your edits never appear in `git status` and never need stashing before pulling main. The harness dot-sources it automatically if present.
+
+### Bash (macOS / Linux / Git Bash)
+
+3. Copy [bench/configs.local.sh.example](configs.local.sh.example) to `bench/configs.local.sh` and edit:
+   - `FACTORIO_EXE` — path to the Factorio executable (see the example file for common macOS/Windows paths)
+   - `SAVE_FILE` — absolute path to your save
+   - `FACTORIO_LOG` — `factorio-current.log` location
+   - `DISABLE_TASKS` — bash array of scheduler task names to suppress
+   - `CONFIGURATIONS` — bash array of space-separated `key=value` strings (see the example file)
+4. `bench/configs.local.sh` is gitignored. The harness sources it automatically if present.
 
 ## Running
+
+### PowerShell
 
 ```powershell
 cd <mod folder>
 .\bench\run-benchmarks.ps1
+```
+
+### Bash
+
+```bash
+cd <mod folder>
+bash bench/run-benchmarks.sh
+# or: chmod +x bench/run-benchmarks.sh && ./bench/run-benchmarks.sh
 ```
 
 Results are appended to `bench/results.csv` (gitignored). Existing rows are kept so you can compare across sweeps.
@@ -114,13 +137,29 @@ For networks larger than the chunk size, the staleness/accuracy problem reappear
 
 ## Adding configurations
 
+### PowerShell
+
 Each entry in `$Configurations` is a hashtable. The `label` field is used in the CSV. Every other field maps to an accessor name on `global_data` and a value the accessor should return:
 
 ```powershell
 @{ label = "fast-bg"; chunk_size = 800; background_refresh_interval_ticks = 300 }
 ```
 
-The harness emits Lua like:
+Boolean values (`$true`/`$false`) are converted to Lua `true`/`false`.
+
+### Bash
+
+Each entry in `CONFIGURATIONS` is a space-separated string of `key=value` pairs:
+
+```bash
+"label=fast-bg chunk_size=800 background_refresh_interval_ticks=300"
+```
+
+Use literal `true`/`false` for booleans (they map directly to Lua keywords).
+
+### Generated Lua
+
+Both harnesses emit the same Lua:
 
 ```lua
 return function(global_data)
@@ -129,7 +168,7 @@ return function(global_data)
 end
 ```
 
-See [scripts/global-data.lua](../scripts/global-data.lua) for the full list of accessors. Boolean values (`$true`/`$false`) are converted to Lua `true`/`false`.
+See [scripts/global-data.lua](../scripts/global-data.lua) for the full list of accessors.
 
 ## Limitations
 
