@@ -247,9 +247,8 @@ describe("scheduler", function()
 
       -- Queue built at tick 1, covering 1-60.
       -- Interval 10 matches ticks: 10, 20, 30, 40, 50, 60 = 6 ticks × 6 tasks = 36 total.
-      -- Pass 2+3 spreading redistributes excess heavy tasks from tick 60 into
-      -- earlier ticks. 1 task stays on tick 60 (not executed in 0-59 loop),
-      -- 5 get redistributed → 35 executed.
+      -- Greedy least-loaded spreads them across 36 distinct ticks (36 < 60).
+      -- 1 task lands on tick 60 (not executed in 0-59 loop) → 35 executed.
       for t = 0, 59 do
         game.tick = t
         scheduler.on_tick()
@@ -263,10 +262,9 @@ describe("scheduler", function()
       end
 
       assert.are.equal(35, total) -- all tasks still execute (minus 1 on tick 60)
-      -- Without spreading, all 6 would land on the same tick.
-      -- With spreading (max_heavy_per_tick = ceil(30/60) = 1), expect <= 2
-      assert.is_true(max_per_tick <= 2,
-        "expected max 2 heavy per tick after spreading, got " .. max_per_tick)
+      -- 36 heavy occurrences in 60 ticks → greedy guarantees max 1 per tick
+      assert.is_true(max_per_tick <= 1,
+        "expected max 1 heavy per tick after spreading, got " .. max_per_tick)
     end)
 
     it("does not drop any heavy tasks during redistribution", function()
@@ -281,8 +279,8 @@ describe("scheduler", function()
       end
 
       -- Queue covers ticks 1-60. Interval 5 matches: 5,10,...,55,60 = 12 ticks × 4 tasks = 48.
-      -- Pass 2+3 spreading redistributes 3 tasks from tick 60 into earlier ticks;
-      -- 1 stays on tick 60 (not executed) → 47 executed.
+      -- Greedy least-loaded spreads them across 48 distinct ticks (48 < 60).
+      -- 1 task lands on tick 60 (not executed in 0-59 loop) → 47 executed.
       for t = 0, 59 do
         game.tick = t
         scheduler.on_tick()
@@ -557,12 +555,10 @@ describe("scheduler", function()
 
     -- ─── Congestion checks ───────────────────────────────────────
 
-    it("never exceeds 3 heavy tasks in any single tick", function()
-      -- 4 heavy tasks at intervals 5, 7, 9, 11. Without spreading, ticks
-      -- like LCM(5,7,9) = 315 would have 3+ simultaneous heavy tasks.
-      -- The scheduler redistributes excess, but can't always achieve 1 per
-      -- tick due to window boundaries and LCM collisions. 3 is a solid
-      -- improvement over the unspread worst case of 4.
+    it("never exceeds 1 heavy task in any single tick", function()
+      -- 4 heavy tasks at intervals 5, 7, 9, 11 → 12+8+6+5 = 31 heavy
+      -- occurrences per 60-tick window. Since 31 < 60, greedy least-loaded
+      -- assignment guarantees at most 1 heavy task per tick.
       local max_heavy = 0
       local worst_tick = 0
       for t, count in pairs(heavy_per_tick) do
@@ -571,8 +567,8 @@ describe("scheduler", function()
           worst_tick = t
         end
       end
-      assert.is_true(max_heavy <= 3,
-        "tick " .. worst_tick .. " had " .. max_heavy .. " heavy tasks (max allowed: 3)")
+      assert.is_true(max_heavy <= 1,
+        "tick " .. worst_tick .. " had " .. max_heavy .. " heavy tasks (max allowed: 1)")
     end)
 
     it("keeps total tasks per tick reasonable (no pathological spikes)", function()
@@ -601,14 +597,11 @@ describe("scheduler", function()
         + counts["player-network-bot-chunk"]
         + counts["player-network-cell-chunk"]
         + counts["run-derived-analysis"]
-      -- If perfectly spread with max 1 per tick, we'd need total_heavy ticks.
-      -- With max 2 per tick, at least total_heavy/2 ticks.
-      -- Assert we're using at least 40% of the theoretical minimum spread
-      -- (generous margin for the redistribution algorithm).
-      local min_spread = math.ceil(total_heavy / 2)
-      assert.is_true(ticks_with_heavy >= min_spread * 0.4,
+      -- With max 1 per tick guaranteed, ticks_with_heavy == total_heavy.
+      -- Allow small margin for boundary effects.
+      assert.is_true(ticks_with_heavy >= total_heavy * 0.95,
         "heavy tasks concentrated in only " .. ticks_with_heavy ..
-        " ticks out of " .. min_spread .. " minimum needed")
+        " ticks, expected ~" .. total_heavy .. " (1 per tick)")
     end)
   end)
 end)

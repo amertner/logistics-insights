@@ -161,14 +161,20 @@ local function build_task_queue(first_tick)
     task_queue.items[tick] = {}
   end
 
-  -- Pass 1: Add all tasks to their default ticks
-  -- Add global tasks to the tick
+  -- Pass 1: Place non-heavy tasks at their natural ticks.
+  -- Collect heavy tasks into a separate list with their natural tick.
+  local heavy_occurrences = {} -- {natural_tick, item}[]
+
+  -- Add global tasks
   for name, task in pairs(global_tasks) do
     for tick = first_tick, task_queue.last_tick do
       if (tick - tick_offset) % task.interval == 0 then
-        table.insert(task_queue.items[tick], {player_index = nil, task = task})
+        local item = {player_index = nil, task = task}
         if task.is_heavy then
+          heavy_occurrences[#heavy_occurrences + 1] = {natural_tick = tick, item = item}
           heavy_task_count = heavy_task_count + 1
+        else
+          table.insert(task_queue.items[tick], item)
         end
       end
     end
@@ -183,9 +189,12 @@ local function build_task_queue(first_tick)
         for name, task in pairs(player_tasks) do
           local effective_interval = overrides[name] or task.interval
           if (tick - tick_offset) % effective_interval == 0 then
-            table.insert(task_queue.items[tick], {player_index = player_index, task = task})
+            local item = {player_index = player_index, task = task}
             if task.is_heavy then
+              heavy_occurrences[#heavy_occurrences + 1] = {natural_tick = tick, item = item}
               heavy_task_count = heavy_task_count + 1
+            else
+              table.insert(task_queue.items[tick], item)
             end
           end
         end
@@ -193,48 +202,36 @@ local function build_task_queue(first_tick)
     end
   end
 
-  -- Pass 2: Delay excess heavy tasks to a later tick
-  local max_heavy_per_tick = math.max(1, math.ceil(heavy_task_count / TASK_QUEUE_TICKS))
-  local excess_heavy_tasks = {}
+  -- Pass 2: Greedy least-loaded assignment of heavy tasks.
+  -- Assign each heavy occurrence to the tick with the fewest heavy tasks,
+  -- breaking ties by proximity to the task's natural tick.
+  local heavy_counts = {} -- tick -> number of heavy tasks assigned
   for tick = first_tick, task_queue.last_tick do
-    local items = task_queue.items[tick]
-    local heavies = 0
-    for i = 1, #items do
-      if items[i].task.is_heavy then
-        heavies = heavies + 1
-        if heavies > max_heavy_per_tick then
-          excess_heavy_tasks[#excess_heavy_tasks + 1] = items[i]
-          items[i] = nil -- Mark for removal
-        end
-      end
-    end
-    if heavies < max_heavy_per_tick and #excess_heavy_tasks > 0 then
-      -- Move some excess heavy tasks to this tick
-      local can_take = max_heavy_per_tick - heavies
-      for i = 1, can_take do
-        if #excess_heavy_tasks > 0 then
-          local item = table.remove(excess_heavy_tasks, 1)
-          items[#items + 1] = item
-        end
-      end
-    end
+    heavy_counts[tick] = 0
   end
 
-  -- Pass 3: Distribute remaining excess heavy tasks round-robin across all
-  -- ticks in the queue, instead of dumping them all on the last tick. This
-  -- still doesn't guarantee staying under max_heavy_per_tick (if the queue
-  -- is genuinely full there's nothing we can do), but it spreads the damage
-  -- evenly rather than creating one fat spike tick that dominates p99.
-  local overflow_count = #excess_heavy_tasks
-  if overflow_count > 0 then
-    local rr_tick = first_tick
-    for _, item in pairs(excess_heavy_tasks) do
-      local items = task_queue.items[rr_tick]
-      items[#items + 1] = item
-      rr_tick = rr_tick + 1
-      if rr_tick > task_queue.last_tick then rr_tick = first_tick end
+  -- Sort by natural tick for stable, deterministic assignment
+  table.sort(heavy_occurrences, function(a, b) return a.natural_tick < b.natural_tick end)
+
+  for _, occ in ipairs(heavy_occurrences) do
+    -- Find the tick with the minimum heavy count, ties broken by proximity to natural_tick
+    local best_tick = first_tick
+    local best_count = heavy_counts[first_tick]
+    local best_dist = math.abs(first_tick - occ.natural_tick)
+    for tick = first_tick + 1, task_queue.last_tick do
+      local c = heavy_counts[tick]
+      local d = math.abs(tick - occ.natural_tick)
+      if c < best_count or (c == best_count and d < best_dist) then
+        best_tick = tick
+        best_count = c
+        best_dist = d
+      end
     end
+    table.insert(task_queue.items[best_tick], occ.item)
+    heavy_counts[best_tick] = best_count + 1
   end
+
+  local overflow_count = 0 -- greedy assignment has no overflow
 
   -- Diagnostic: when bench profiling is enabled, record per-queue stats so we
   -- can correlate per-tick spikes with the queue that scheduled them. Counts
