@@ -75,20 +75,39 @@ function utils.get_ItemQuality_key(iq)
   return utils.get_item_quality_key(iq.name, iq.quality)
 end
 
+--- Cache of validated sprite paths to avoid repeated C API calls.
+--- @type table<string, string>
+local sprite_path_cache = {}
+
 --- Get the sprite path for a given prefix/item.
 --- If the sprite does not exist, returns "".
 --- @param prefix string Prefix, e.g. "item/" or "entity/"
 --- @param name string Item/entity name
 --- @return SpritePath|string sprite_path Full sprite path, e.g. "item/iron-plate", or "" if not found
 function utils.get_valid_sprite_path(prefix, name, fallback)
-  local entity_sprite = prefix .. name  ---@type SpritePath
-  if helpers.is_valid_sprite_path(entity_sprite) then
-    return entity_sprite
+  local full_path = prefix .. name  ---@type SpritePath
+  local cached = sprite_path_cache[full_path]
+  if cached ~= nil then return cached end
+  if helpers.is_valid_sprite_path(full_path) then
+    sprite_path_cache[full_path] = full_path
+    return full_path
   end
-  if fallback and helpers.is_valid_sprite_path(fallback) then
-    return fallback
+  if fallback then
+    local fb_cached = sprite_path_cache[fallback]
+    if fb_cached ~= nil then return fb_cached end
+    if helpers.is_valid_sprite_path(fallback) then
+      sprite_path_cache[fallback] = fallback
+      sprite_path_cache[full_path] = fallback
+      return fallback
+    end
   end
+  sprite_path_cache[full_path] = ""
   return ""
+end
+
+--- Clear the sprite path cache.
+function utils.clear_caches()
+  sprite_path_cache = {}
 end
 
 -- Get the localised item and quality names

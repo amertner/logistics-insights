@@ -6,6 +6,7 @@ local flib_format = require("__flib__.format")
 local player_data = require("scripts.player-data")
 local global_data = require("scripts.global-data")
 local Cache = require("scripts.cache")
+local utils = require("scripts.utils")
 -- Cache for surface names to avoid repeated string concatenation
 local surface_cache = Cache.new(function(surface_name) return "[space-location=" .. surface_name .. "]" end)
 
@@ -195,6 +196,7 @@ function tooltips_helper.clear_caches()
   network_surface_tip_cache:clear()
   quality_tip_cache:clear()
   surface_cache:clear()
+  utils.clear_caches()
 end
 
 return tooltips_helper
