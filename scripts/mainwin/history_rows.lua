@@ -32,7 +32,8 @@ function history_rows.update(player_table, clearing)
         sort_by_count_desc,
         "count",
         clearing,
-        nil
+        nil,
+        networkdata.delivery_history_gen
       )
 
       sorted_item_row.update(
@@ -42,7 +43,8 @@ function history_rows.update(player_table, clearing)
         sort_by_avg_desc,
         "avg",
         clearing,
-        nil
+        nil,
+        networkdata.delivery_history_gen
       )
     else
       sorted_item_row.clear_cells(player_table, "totals-row")

@@ -43,9 +43,11 @@ local utils = require("scripts.utils")
 ---@field total_cells number Total number of cells in the network
 ---@ -- Fields populated by bot_counter
 ---@field bot_deliveries table<string, DeliveryItem> A list of items being delivered right now
+---@field bot_deliveries_gen number Generation counter for bot_deliveries, incremented on each update
 ---@field bot_items table<string, number> Real time data about bots: Very cheap to keep track of
 ---@field bot_active_deliveries table<number, BotDeliveringInFlight> A list of bots currently delivering items
 ---@field delivery_history table<string, DeliveredItems> A list of past delivered items
+---@field delivery_history_gen number Generation counter for delivery_history, incremented on each mutation
 ---@field picking_bot_qualities QualityTable Quality of bots currently picking items
 ---@field delivering_bot_qualities QualityTable Quality of bots currently delivering items
 ---@field other_bot_qualities QualityTable Quality of bots doing anything else 
@@ -157,9 +159,11 @@ function network_data.create_networkdata(network)
       roboport_qualities = {},
       unpowered_roboport_list = {},
       bot_deliveries = {},
+      bot_deliveries_gen = 0,
       bot_items = {},
       bot_active_deliveries = {},
       delivery_history = {},
+      delivery_history_gen = 0,
       picking_bot_qualities = {},
       delivering_bot_qualities = {},
       other_bot_qualities = {},
@@ -176,6 +180,7 @@ function network_data.clear_delivery_history(network)
   local nwd = network_data.get_networkdata(network)
   if nwd then
     nwd.delivery_history = {} -- Clear the delivery history
+    nwd.delivery_history_gen = (nwd.delivery_history_gen or 0) + 1
     nwd.history_timer:reset() -- Reset the history timer
   end
 end
@@ -185,6 +190,7 @@ end
 function network_data.clear_history_from_nwd(networkdata)
   if networkdata then
     networkdata.delivery_history = {} -- Clear the delivery history
+    networkdata.delivery_history_gen = (networkdata.delivery_history_gen or 0) + 1
   end
 end
 

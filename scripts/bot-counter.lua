@@ -94,6 +94,7 @@ local function add_bot_to_active_deliveries(networkdata, unit_number, order, ite
       (botorder.targetpos.x ~= target_pos.x or botorder.targetpos.y ~= target_pos.y) then
       -- New target position, so order has changed since last time
       add_delivered_order_to_history(networkdata.delivery_history, botorder)
+      networkdata.delivery_history_gen = (networkdata.delivery_history_gen or 0) + 1
       networkdata.bot_active_deliveries[unit_number] = nil
     else
       -- Just note that we've seen this order again
@@ -123,6 +124,7 @@ local function check_if_no_order_bot_finished_delivery(networkdata, unit_number,
   if delivered_order then
     if show_history then
       add_delivered_order_to_history(networkdata.delivery_history, delivered_order)
+      networkdata.delivery_history_gen = (networkdata.delivery_history_gen or 0) + 1
     end
 
     -- Remove from active deliveries being tracked
@@ -235,6 +237,7 @@ local function bot_chunks_done(accumulator, gather, network_id)
     networkdata.bot_items["delivering"] = accumulator.delivering_bots or nil
     networkdata.bot_items["picking"] = accumulator.picking_bots or nil
     networkdata.bot_deliveries = accumulator.item_deliveries or {}
+    networkdata.bot_deliveries_gen = (networkdata.bot_deliveries_gen or 0) + 1
     networkdata.delivering_bot_qualities = accumulator.delivering_bot_qualities or {}
     networkdata.picking_bot_qualities = accumulator.picking_bot_qualities or {}
     networkdata.other_bot_qualities = accumulator.other_bot_qualities or {}

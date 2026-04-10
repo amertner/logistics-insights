@@ -36,7 +36,8 @@ function delivery_row.update(player_table, clearing)
       sort_by_count_desc,
       "count",
       clearing,
-      clicktip
+      clicktip,
+      networkdata.bot_deliveries_gen
     )
   else
     -- If no network data, clear the delivery row

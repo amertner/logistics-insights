@@ -92,6 +92,11 @@ end
 
 function Suggestions:set_cached_list(suggestion_name, list)
   self._cached_data[suggestion_name] = list
+  self._cached_data_gen = (self._cached_data_gen or 0) + 1
+end
+
+function Suggestions:get_cached_data_gen()
+  return self._cached_data_gen or 0
 end
 
 function Suggestions:is_aging(suggestion_name)

@@ -29,7 +29,11 @@ function undersupply_row.update(player_table, clearing)
   if not player_table then return end
   if player_table.settings.show_undersupply and global_data.calculate_undersupply() then
     local networkdata = network_data.get_networkdata(player_table.network)
-    local in_demand = networkdata and networkdata.suggestions:get_cached_list("undersupply")
+    if not networkdata then
+      sorted_item_row.clear_cells(player_table, ROW_TITLE)
+      return
+    end
+    local in_demand = networkdata.suggestions:get_cached_list("undersupply")
     if in_demand then
       local has_factory_search = remote.interfaces["factory-search"] ~= nil
       local tooltip = nil
@@ -45,7 +49,8 @@ function undersupply_row.update(player_table, clearing)
         sort_by_shortage_desc,
         "shortage",
         clearing or false,
-        tooltip
+        tooltip,
+        networkdata.suggestions:get_cached_data_gen()
       )
     else
       sorted_item_row.clear_cells(player_table, ROW_TITLE)

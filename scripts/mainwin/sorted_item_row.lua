@@ -76,7 +76,16 @@ end -- add
 --- @param number_field string The field name to display as number ("count", "ticks", "avg")
 --- @param clearing boolean Whether this update is due to clearing history
 --- @param show_click_tip LocalisedString|nil String to show if the cell is clickable
-function sorted_item_row.update(player_table, title, all_entries, sort_fn, number_field, clearing, show_click_tip)
+--- @param generation number|nil Optional generation counter; skips update if unchanged since last call
+function sorted_item_row.update(player_table, title, all_entries, sort_fn, number_field, clearing, show_click_tip, generation)
+  -- Skip update if data generation hasn't changed since last render
+  if generation and player_table.ui[title] then
+    if player_table.ui[title].last_gen == generation then
+      return
+    end
+    player_table.ui[title].last_gen = generation
+  end
+
   --- Generate tooltip text for a cell based on the entry data and number field type
   --- @param entry DeliveryItem|DeliveredItems|UndersupplyItem The entry containing item data
   --- @return LocalisedString The formatted tooltip for the cell
