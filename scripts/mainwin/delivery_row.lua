@@ -7,6 +7,8 @@ local global_data = require("scripts.global-data")
 
 local sorted_item_row = require("scripts.mainwin.sorted_item_row")
 
+local sort_by_count_desc = function(a, b) return a.count > b.count end
+
 --- Add a delivery row to the GUI
 --- @param player_table PlayerData The player's data table
 --- @param gui_table LuaGuiElement The GUI table to add the row to
@@ -31,7 +33,7 @@ function delivery_row.update(player_table, clearing)
       player_table,
       "deliveries-row",
       networkdata.bot_deliveries,
-      function(a, b) return a.count > b.count end,
+      sort_by_count_desc,
       "count",
       clearing,
       clicktip

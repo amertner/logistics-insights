@@ -6,6 +6,9 @@ local history_rows = {}
 local network_data = require("scripts.network-data")
 local sorted_item_row = require("scripts.mainwin.sorted_item_row")
 
+local sort_by_count_desc = function(a, b) return a.count > b.count end
+local sort_by_avg_desc = function(a, b) return a.avg > b.avg end
+
 --- Add history rows to the GUI (totals and average ticks)
 --- @param player_table PlayerData The player's data table
 --- @param gui_table LuaGuiElement The GUI table to add the rows to
@@ -26,7 +29,7 @@ function history_rows.update(player_table, clearing)
         player_table,
         "totals-row",
         networkdata.delivery_history,
-        function(a, b) return a.count > b.count end,
+        sort_by_count_desc,
         "count",
         clearing,
         nil
@@ -36,7 +39,7 @@ function history_rows.update(player_table, clearing)
         player_table,
         "avgticks-row",
         networkdata.delivery_history,
-        function(a, b) return a.avg > b.avg end,
+        sort_by_avg_desc,
         "avg",
         clearing,
         nil

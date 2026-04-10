@@ -14,3 +14,4 @@ bench/per-task-results.csv
 bench/per-tick-stats.csv
 bench/per-call-stats.csv
 bench/configs.local.ps1
+bench/configs.local.sh

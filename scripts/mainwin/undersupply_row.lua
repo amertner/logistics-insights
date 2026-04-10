@@ -10,6 +10,7 @@ local global_data = require("scripts.global-data")
 ---@class undersupply_row
 local undersupply_row = {}
 local ROW_TITLE = "undersupply-row"
+local sort_by_shortage_desc = function(a, b) return a.shortage > b.shortage end
 
 ---@param player_table PlayerData The player's data table
 ---@param gui_table LuaGuiElement The GUI table to add the row to
@@ -41,7 +42,7 @@ function undersupply_row.update(player_table, clearing)
         player_table,
         ROW_TITLE,
         in_demand or {},
-        function(a, b) return a.shortage > b.shortage end,
+        sort_by_shortage_desc,
         "shortage",
         clearing or false,
         tooltip

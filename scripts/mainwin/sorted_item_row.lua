@@ -11,6 +11,9 @@ local table_sort = table.sort
 local math_floor = math.floor
 local math_min = math.min
 
+local TAGS_FOLLOW = { follow = true }
+local TAGS_EMPTY = {}
+
 --- Add a sorted item row (deliveries, totals, or average ticks) to the GUI
 --- @param player_table PlayerData The player's data table
 --- @param gui_table LuaGuiElement The GUI table to add the row to
@@ -166,11 +169,9 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
       cell.tooltip = getcelltooltip(entry)
       cell.enabled = true
       if show_click_tip then
-        -- Enables following click in main_window.
-        cell.tags = { follow = true }
+        cell.tags = TAGS_FOLLOW
       else
-        -- No click tip, so no need for tags
-        cell.tags = {}
+        cell.tags = TAGS_EMPTY
       end
     end
     count = count + 1
@@ -204,7 +205,7 @@ function sorted_item_row.clear_cells(player_table, title)
       cell.tooltip = ""
       cell.number = nil
       cell.enabled = false
-      cell.tags = {} -- Clear tags to avoid confusion
+      cell.tags = TAGS_EMPTY
     end
   end
 end
