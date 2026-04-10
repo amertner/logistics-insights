@@ -71,15 +71,23 @@ end
 ---@field ignore_player_demands boolean True to ignore player demands when calculating undersupply
 ---@field ignore_buffer_chests_for_undersupply boolean True to ignore buffer chests when calculating undersupply
 ---@field requester_cache table<number, CachedRequester> Per-network cache injected via context (not per-cycle data)
+---@field rolling_divisor integer Rolling 1/N divisor: each sweep visits 1/N of requesters fresh and reuses cached_demand for the rest. 1 = no rolling.
+---@field slice_id integer Index in [0, rolling_divisor-1] identifying which slice this sweep visits fresh
 
 ---@class CachedRequester
 ---@field refresh_tick integer Tick when this entry was built
 ---@field items CachedRequestItem[] Pre-aggregated (item-quality, requested_count) tuples across all sections
 ---@field skip_kind "character"|"buffer-chest"|nil Set once at build time so the hot path can short-circuit before any per-cycle userdata reads
+---@field cached_demand table<string, number>|nil Last fresh-sample per-item-quality demand contribution. nil means "never sampled"; an EMPTY table means "sampled, contributed nothing" (satisfied requester). The distinction matters: a satisfied requester must store an empty table, not nil, otherwise the slice predicate forces it through the in-slice path on every sweep and rolling sampling never kicks in for satisfied chests — which is exactly the steady-state population that should benefit most.
 
 ---@class CachedRequestItem
 ---@field key string Interned item-quality key (item_name:quality_name)
 ---@field requested_count integer Total requested count, summed across all sections × multipliers
+
+-- Knuth multiplicative hash constant. Used to scatter unit_numbers across rolling
+-- slices evenly even when chests are built in consecutive runs (which gives
+-- consecutive unit_numbers and would otherwise cluster into the same slice).
+local SLICE_HASH_MULT = 2654435761
 
 --- Initialize the cell network accumulator
 --- @param accumulator Undersupply_Accumulator The accumulator to initialize
@@ -92,10 +100,15 @@ function undersupply.initialise_undersupply(accumulator, context)
   accumulator.ignore_player_demands = context.ignore_player_demands
   accumulator.ignore_buffer_chests_for_undersupply = context.ignore_buffer_chests_for_undersupply
   accumulator.requester_cache = context.requester_cache
+  -- Rolling 1/N sampling. Tests/legacy callers may omit these; default to "no rolling".
+  accumulator.rolling_divisor = context.rolling_divisor or 1
+  accumulator.slice_id = context.slice_id or 0
 end
 
 --- Process one requester to gather demand statistics. Uses the per-network
---- requester_cache to skip filter parsing on cache hit.
+--- requester_cache to skip filter parsing on cache hit, and the rolling 1/N
+--- sampling scheme to skip the fresh inventory read on (N-1)/N of requesters
+--- per sweep — those reuse their previously-sampled `cached_demand` instead.
 --- @param requester LuaEntity The requester entity to process
 --- @param accumulator Undersupply_Accumulator The accumulator for gathering statistics
 --- @return number Return number of "processing units" consumed, default is 1
@@ -110,8 +123,16 @@ function undersupply.process_one_requester(requester, accumulator)
   local entry = cache[unit_number]
   local now = game.tick
   if not entry or now - entry.refresh_tick > CACHE_TTL_TICKS then
+    -- Preserve cached_demand across filter rebuilds. The filter TTL refreshes
+    -- the filter configuration (sections, multipliers, skip_kind) — it has
+    -- nothing to do with whether the last-sampled demand contribution is still
+    -- valid. Without this, every rebuild wipes cached_demand to nil, which
+    -- forces the requester back into the in-slice path on the next visit and
+    -- defeats rolling for ~59% of in-slice visits (measured).
+    local old_cached_demand = entry and entry.cached_demand
     entry = build_requester_cache_entry(requester)
     if not entry then return 1 end
+    entry.cached_demand = old_cached_demand
     cache[unit_number] = entry
   end
 
@@ -123,6 +144,9 @@ function undersupply.process_one_requester(requester, accumulator)
   end
 
   -- Status is NOT cached: circuit-controlled requesters can toggle at runtime.
+  -- This check runs unconditionally — circuit-controlled requesters are exempt
+  -- from rolling 1/N sampling because their on/off state is precisely what the
+  -- user is watching to detect.
   if requester.status == defines.entity_status.disabled_by_control_behavior then
     return 0
   end
@@ -131,11 +155,44 @@ function undersupply.process_one_requester(requester, accumulator)
   local n_items = #items
   if n_items == 0 then return 1 end
 
-  -- Inventory contents change every bot delivery, so we read fresh and build
-  -- the lookup lazily on the first non-ignored item.
-  local inventory_counts
-  local ignored_items = accumulator.ignored_items_for_undersupply
   local demand = accumulator.demand
+  local ignored_items = accumulator.ignored_items_for_undersupply
+
+  -- Rolling 1/N slice decision. A requester is in-slice (gets a fresh inventory
+  -- read) iff:
+  --   - rolling_divisor == 1 (rolling disabled), OR
+  --   - cached_demand == nil (never sampled), OR
+  --   - its hashed slice matches the current sweep's slice_id.
+  -- Otherwise we fold the cached contribution into accumulator.demand and return.
+  --
+  -- A satisfied requester stores an EMPTY table (not nil). nil specifically
+  -- means "never sampled yet" — the empty/non-empty distinction is what lets
+  -- satisfied requesters skip on (N-1)/N of sweeps instead of always being
+  -- forced fresh by a nil check. The `pairs()` over an empty table on the
+  -- skip path is essentially free.
+  local N = accumulator.rolling_divisor
+  local cached_demand = entry.cached_demand
+  local in_slice = (N == 1)
+    or (cached_demand == nil)
+    or (((unit_number * SLICE_HASH_MULT) % N) == accumulator.slice_id)
+
+  if not in_slice then
+    -- Skip path: requester is out-of-slice this sweep, reuse last fresh sample.
+    -- cached_demand is non-nil here by the in_slice check above (may be empty).
+    ---@cast cached_demand -nil
+    for key, count in pairs(cached_demand) do
+      if not ignored_items[key] then
+        demand[key] = (demand[key] or 0) + count
+      end
+    end
+    return 1
+  end
+
+  -- In-slice path: do the fresh inventory read and update both
+  -- accumulator.demand and the per-entry cached_demand. Allocate fresh_demand
+  -- up front so satisfied requesters get an empty (but non-nil) cached_demand.
+  local inventory_counts
+  local fresh_demand = {}
 
   for i = 1, n_items do
     local item = items[i]
@@ -143,7 +200,11 @@ function undersupply.process_one_requester(requester, accumulator)
     if not ignored_items[key] then
       if not inventory_counts then
         local inventory = requester.get_inventory(defines.inventory.chest)
-        if not inventory then return 1 end
+        if not inventory then
+          -- Couldn't read inventory: leave cached_demand untouched so the
+          -- next visit can retry. Don't poison the cache with a half-built table.
+          return 1
+        end
         inventory_counts = {}
         local contents = inventory.get_contents()
         for ci = 1, #contents do
@@ -156,9 +217,12 @@ function undersupply.process_one_requester(requester, accumulator)
       local actual_demand = math_max(0, item.requested_count - current_count)
       if actual_demand > 0 then
         demand[key] = (demand[key] or 0) + actual_demand
+        fresh_demand[key] = actual_demand
       end
     end
   end
+
+  entry.cached_demand = fresh_demand
   return 1
 end
 

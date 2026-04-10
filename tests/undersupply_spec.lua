@@ -316,6 +316,179 @@ describe("undersupply", function()
     end)
   end)
 
+  -- Tests for the rolling 1/N sampling scheme. These supply unit_number on
+  -- the mock requester so the cache lookup actually runs (most other tests
+  -- in this file omit it and exit early — pre-existing limitation).
+  describe("rolling 1/N sampling", function()
+    --- Build a requester with a unit_number so the cache + slice path runs
+    local function make_id_requester(unit_number, opts)
+      local r = make_requester(opts)
+      r.unit_number = unit_number
+      return r
+    end
+
+    it("N=1 always samples fresh and never reads from cached_demand", function()
+      local acc = {}
+      undersupply.initialise_undersupply(acc, {
+        deliveries = {},
+        ignored_items = {},
+        ignore_player_demands = false,
+        requester_cache = {},
+        rolling_divisor = 1,
+        slice_id = 0,
+      })
+      local r = make_id_requester(42, {
+        sections = {{ filters = {{ value = { type = "item", name = "iron-plate", quality = "normal" }, min = 100 }} }},
+        inventory = {{ name = "iron-plate", quality = "normal", count = 30 }},
+      })
+      undersupply.process_one_requester(r, acc)
+      assert.are.equal(70, acc.demand["iron-plate:normal"])
+      -- Second call: change the inventory mock to a fully-satisfied state.
+      -- N=1 means we always sample fresh, so demand should reflect the new reality.
+      r.get_inventory = function()
+        return { get_contents = function() return {{ name = "iron-plate", quality = "normal", count = 100 }} end }
+      end
+      acc.demand = {}
+      undersupply.process_one_requester(r, acc)
+      assert.is_nil(acc.demand["iron-plate:normal"])
+    end)
+
+    it("N>1 caches demand on first visit and reuses it on out-of-slice visits", function()
+      local cache = {}
+      local acc = {}
+      undersupply.initialise_undersupply(acc, {
+        deliveries = {},
+        ignored_items = {},
+        ignore_player_demands = false,
+        requester_cache = cache,
+        rolling_divisor = 3,
+        slice_id = 0,
+      })
+      -- First visit: cached_demand is nil, so the requester is in-slice
+      -- regardless of its hashed slice. It should sample fresh.
+      local r = make_id_requester(42, {
+        sections = {{ filters = {{ value = { type = "item", name = "iron-plate", quality = "normal" }, min = 100 }} }},
+        inventory = {{ name = "iron-plate", quality = "normal", count = 30 }},
+      })
+      undersupply.process_one_requester(r, acc)
+      assert.are.equal(70, acc.demand["iron-plate:normal"])
+      assert.is_not_nil(cache[42].cached_demand)
+      assert.are.equal(70, cache[42].cached_demand["iron-plate:normal"])
+
+      -- Second visit on a sweep where this requester is OUT of slice:
+      -- the inventory should NOT be re-read. We change the inventory to a
+      -- satisfied state, and rotate slice_id away from the requester's hash slice.
+      r.get_inventory = function()
+        return { get_contents = function() return {{ name = "iron-plate", quality = "normal", count = 100 }} end }
+      end
+      local hash_slice = (42 * 2654435761) % 3
+      acc.slice_id = (hash_slice + 1) % 3 -- guaranteed out-of-slice
+      acc.demand = {}
+      undersupply.process_one_requester(r, acc)
+      -- The cached value (70) should still be folded in, even though
+      -- inventory is now fully satisfied.
+      assert.are.equal(70, acc.demand["iron-plate:normal"])
+    end)
+
+    it("N>1 re-samples when slice_id matches the requester's hash slice", function()
+      local cache = {}
+      local acc = {}
+      undersupply.initialise_undersupply(acc, {
+        deliveries = {},
+        ignored_items = {},
+        ignore_player_demands = false,
+        requester_cache = cache,
+        rolling_divisor = 3,
+        slice_id = 0,
+      })
+      local r = make_id_requester(42, {
+        sections = {{ filters = {{ value = { type = "item", name = "iron-plate", quality = "normal" }, min = 100 }} }},
+        inventory = {{ name = "iron-plate", quality = "normal", count = 30 }},
+      })
+      -- Prime the cache.
+      undersupply.process_one_requester(r, acc)
+      assert.are.equal(70, cache[42].cached_demand["iron-plate:normal"])
+
+      -- Now rotate slice_id to match the requester's hash slice and change inventory.
+      acc.slice_id = (42 * 2654435761) % 3
+      r.get_inventory = function()
+        return { get_contents = function() return {{ name = "iron-plate", quality = "normal", count = 100 }} end }
+      end
+      acc.demand = {}
+      undersupply.process_one_requester(r, acc)
+      -- Fresh sample says satisfied. cached_demand should now be an EMPTY
+      -- table (not nil) — nil would mean "never sampled" and would force the
+      -- requester back into the in-slice path on every subsequent sweep,
+      -- defeating rolling for satisfied (steady-state) requesters.
+      assert.is_nil(acc.demand["iron-plate:normal"])
+      assert.is_not_nil(cache[42].cached_demand)
+      assert.are.equal(0, table_size(cache[42].cached_demand))
+    end)
+
+    it("satisfied requesters use the skip path on subsequent out-of-slice sweeps", function()
+      -- This is the regression test for the bug found in the first benchmark
+      -- run: a satisfied requester was getting cached_demand = nil, which made
+      -- the slice predicate force it through the in-slice (fresh-sample) path
+      -- on every sweep, completely defeating the rolling optimisation for the
+      -- steady-state population that should benefit most.
+      local cache = {}
+      local acc = {}
+      undersupply.initialise_undersupply(acc, {
+        deliveries = {},
+        ignored_items = {},
+        ignore_player_demands = false,
+        requester_cache = cache,
+        rolling_divisor = 3,
+        slice_id = 0,
+      })
+      -- A fully satisfied requester (request 50, has 100).
+      local r = make_id_requester(42, {
+        sections = {{ filters = {{ value = { type = "item", name = "iron-plate", quality = "normal" }, min = 50 }} }},
+        inventory = {{ name = "iron-plate", quality = "normal", count = 100 }},
+      })
+      -- First visit: cached_demand is nil → in-slice → sample fresh.
+      local read_count = 0
+      local original_get_inventory = r.get_inventory
+      r.get_inventory = function(...)
+        read_count = read_count + 1
+        return original_get_inventory(...)
+      end
+      undersupply.process_one_requester(r, acc)
+      assert.are.equal(1, read_count) -- one fresh read on first visit
+      assert.is_not_nil(cache[42].cached_demand) -- empty table, not nil
+      assert.are.equal(0, table_size(cache[42].cached_demand))
+
+      -- Now rotate to an out-of-slice sweep. The requester should NOT be re-read.
+      local hash_slice = (42 * 2654435761) % 3
+      acc.slice_id = (hash_slice + 1) % 3
+      acc.demand = {}
+      undersupply.process_one_requester(r, acc)
+      assert.are.equal(1, read_count) -- still 1 — the skip path took over
+      assert.is_nil(acc.demand["iron-plate:normal"]) -- empty cached, nothing folded
+    end)
+
+    it("circuit-disabled requesters short-circuit before the slice predicate", function()
+      local cache = {}
+      local acc = {}
+      undersupply.initialise_undersupply(acc, {
+        deliveries = {},
+        ignored_items = {},
+        ignore_player_demands = false,
+        requester_cache = cache,
+        rolling_divisor = 3,
+        slice_id = 0,
+      })
+      local r = make_id_requester(42, {
+        status = defines.entity_status.disabled_by_control_behavior,
+        sections = {{ filters = {{ value = { type = "item", name = "iron-plate", quality = "normal" }, min = 100 }} }},
+        inventory = {},
+      })
+      local cost = undersupply.process_one_requester(r, acc)
+      assert.are.equal(0, cost)
+      assert.is_nil(acc.demand["iron-plate:normal"])
+    end)
+  end)
+
   -- Integration-style tests that build context through global_data,
   -- mirroring how analysis-coordinator.lua sets up undersupply processing.
   describe("with global settings driving context", function()

@@ -56,7 +56,9 @@ function progress_bars.clear_all_progressbars(player_table)
   end
   local labels = player_table.ui.progress_count
   for _, label in pairs(labels) do
-    label.caption = ""
+    if label.valid then
+      label.caption = ""
+    end
   end
 end
 

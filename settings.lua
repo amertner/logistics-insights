@@ -119,6 +119,24 @@ data:extend(
     ,
     {
       type = "int-setting",
+      name = "li-undersupply-rolling-divisor",
+      setting_type = "runtime-global",
+      default_value = 3,
+      allowed_values = {1, 2, 3, 4, 5, 8},
+      order = "3.5"
+    }
+    ,
+    {
+      type = "int-setting",
+      name = "li-analysis-chunk-divisor",
+      setting_type = "runtime-global",
+      default_value = 4,
+      allowed_values = {1, 2, 4, 8},
+      order = "3.7"
+    }
+    ,
+    {
+      type = "int-setting",
       name = "li-chunk-processing-interval-ticks",
       setting_type = "runtime-global",
       default_value = 3,

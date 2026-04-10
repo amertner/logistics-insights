@@ -39,6 +39,8 @@ function M.reset()
       ["li-chunk-processing-interval-ticks"]           = { value = 7 },
       ["li-background-refresh-interval"]               = { value = 10 },
       ["li-chunk-size-global"]                         = { value = 400 },
+      ["li-undersupply-rolling-divisor"]               = { value = 3 },
+      ["li-analysis-chunk-divisor"]                    = { value = 4 },
       ["li-gather-quality-data-global"]                = { value = true },
       ["li-calculate-undersupply"]                     = { value = true },
       ["li-show-all-networks"]                         = { value = true },

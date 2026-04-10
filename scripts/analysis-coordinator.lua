@@ -143,7 +143,7 @@ function analysis_coordinator.run_storage_analysis_step()
   if not networkdata or not network or not network.valid then
     return true -- Nothing to do, so done
   end
-  if not storage.analysis_state.storage_chunker then
+  if not storage.analysis_state.storage_chunker or not storage.analysis_state.storage_chunker.state then
     storage.analysis_state.storage_chunker = chunker.new()
   end
   local the_chunker = storage.analysis_state.storage_chunker
@@ -155,7 +155,7 @@ function analysis_coordinator.run_storage_analysis_step()
       { ignored_storages_for_mismatch = networkdata.ignored_storages_for_mismatch,
         ignore_higher_quality_mismatches=networkdata.ignore_higher_quality_mismatches,
         ignore_low_storage_when_no_storage=networkdata.ignore_low_storage_when_no_storage },
-      {}, suggestions_calc.initialise_storage_analysis, global_data.CHUNK_DIVISOR, "storage")
+      {}, suggestions_calc.initialise_storage_analysis, global_data.analysis_chunk_divisor(), "storage")
     return false -- Not done yet
   end
 
@@ -182,7 +182,7 @@ function analysis_coordinator.run_undersupply_step()
   if not networkdata or not network or not network.valid then
     return true -- Nothing to do, so done
   end
-  if not storage.analysis_state.undersupply_chunker then
+  if not storage.analysis_state.undersupply_chunker or not storage.analysis_state.undersupply_chunker.state then
     storage.analysis_state.undersupply_chunker = chunker.new()
   end
   local the_chunker = storage.analysis_state.undersupply_chunker
@@ -199,16 +199,26 @@ function analysis_coordinator.run_undersupply_step()
       end
     end
 
+    -- Bump the per-network rolling-sweep counter once per undersupply pass.
+    -- Per-network (not global) so that re-analysing the same network back-to-back
+    -- still rotates through different slices, preserving the N-sweep coverage
+    -- guarantee. Lazy-init for save/load migration safety on older networks.
+    local sweep = (networkdata.undersupply_sweep_counter or 0) + 1
+    networkdata.undersupply_sweep_counter = sweep
+    local rolling_divisor = global_data.undersupply_rolling_divisor()
+
     local context = {deliveries = networkdata.bot_deliveries,
       ignored_items = networkdata.ignored_items_for_undersupply,
       ignore_buffer_chests_for_undersupply = networkdata.ignore_buffer_chests_for_undersupply,
-      requester_cache = cache}
+      requester_cache = cache,
+      rolling_divisor = rolling_divisor,
+      slice_id = sweep % rolling_divisor}
     context.ignore_player_demands = global_data.ignore_player_demands_in_undersupply()
 
     local net = network
     the_chunker:initialise_chunking(networkdata.id,
       function() return net.valid and net.requesters or {} end,
-      context, {}, undersupply.initialise_undersupply, global_data.CHUNK_DIVISOR, "undersupply")
+      context, {}, undersupply.initialise_undersupply, global_data.analysis_chunk_divisor(), "undersupply")
     return false -- Not done yet
   end
 

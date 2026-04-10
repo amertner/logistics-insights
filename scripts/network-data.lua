@@ -52,6 +52,7 @@ local utils = require("scripts.utils")
 ---@field total_bot_qualities QualityTable Quality of all bots counted
 ---@field _lua_network LuaLogisticNetwork|nil Cached network reference (valid check required before use)
 ---@field requester_cache table<number, CachedRequester> Per-network cache of parsed requester filters (lazy-init by analysis-coordinator)
+---@field undersupply_sweep_counter integer Monotonic counter incremented at the start of each undersupply analysis pass; used for rolling 1/N slice selection
 
 -- Record used to show items being delivered right now
 ---@class DeliveryItem
@@ -136,6 +137,7 @@ function network_data.create_networkdata(network)
       provider_count = 0,
       storage_count = 0,
       requester_cache = {},
+      undersupply_sweep_counter = 0,
       last_accessed_tick = game_tick,
       last_scanned_tick = game_tick,
       last_analysed_tick = game_tick,

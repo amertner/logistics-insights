@@ -18,6 +18,8 @@ function global_data.settings_changed()
   storage.global.background_refresh_interval_secs = tonumber(settings.global["li-background-refresh-interval"].value) or 10
   storage.global.background_refresh_interval_ticks = storage.global.background_refresh_interval_secs * 60
   storage.global.chunk_size = tonumber(settings.global["li-chunk-size-global"].value) or 400
+  storage.global.undersupply_rolling_divisor = tonumber(settings.global["li-undersupply-rolling-divisor"].value) or 3
+  storage.global.analysis_chunk_divisor = tonumber(settings.global["li-analysis-chunk-divisor"].value) or 4
   storage.global.gather_quality_data = settings.global["li-gather-quality-data-global"].value ~= false
   storage.global.calculate_undersupply = settings.global["li-calculate-undersupply"].value ~= false
   storage.global.show_all_networks = settings.global["li-show-all-networks"].value ~= false
@@ -46,10 +48,20 @@ function global_data.chunk_size()
   return storage.global.chunk_size or 400
 end
 
+---@return integer The rolling-divisor for undersupply per-requester sampling (1 = disabled, sample everyone every sweep)
+function global_data.undersupply_rolling_divisor()
+  return storage.global.undersupply_rolling_divisor or 3
+end
+
 -- Divisor applied to chunk size for all chunked processing.
 -- Higher values = smaller chunks = lower per-tick cost but more ticks to complete.
 -- 1 = full chunk size, 2 = half, 4 = quarter, etc.
 global_data.CHUNK_DIVISOR = 1
+
+---@return integer Divisor for analysis-phase chunk size (undersupply + storage). Scanning uses CHUNK_DIVISOR instead.
+function global_data.analysis_chunk_divisor()
+  return storage.global.analysis_chunk_divisor or 4
+end
 
 ---@return boolean True if quality data gathering is enabled
 function global_data.gather_quality_data()
