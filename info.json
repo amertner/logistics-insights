@@ -24,7 +24,8 @@
       "factorio-test.json",
       "bench/**",
       "bench-overrides.lua",
-      "bench-overrides.lua.example"
+      "bench-overrides.lua.example",
+      ".DS_Store"
     ]
   }
 }

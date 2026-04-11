@@ -12,6 +12,7 @@ Date: 2026-04-10
     - Increased the default background refresh interval from 10 to 30 seconds
     - Stopped calculating # of providers for background networks, and reduced the frequency for foreground networks. This turned out to be disproportionately expensive!
     - Background scans are now distributed evenly across the refresh interval, instead of running back-to-back in bursts
+    - Added benchmarking framework for dev use that can be used to find bottlenecks and quantify improvements.
   Bugfixes:
     - Fixed edge cases in migration from earlier versions.
     - Fix that progress indicators could briefly show "-100%", which obviously doesn't make sense.
