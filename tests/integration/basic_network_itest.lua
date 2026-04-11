@@ -90,6 +90,9 @@ describe("Mixed logistics network", function()
     for _, pt in pairs(storage.players or {}) do
       pt.network = nil
       pt.fixed_network = false
+      -- Simulate an open main window so the foreground scan path runs.
+      -- provider_count is only cached during foreground scans.
+      pt.bots_window_visible = true
     end
     scheduler.reset_phase()
 
@@ -187,8 +190,8 @@ describe("Mixed logistics network", function()
       helpers.record_budget("deliveries tracked", rel, 2981)
       assert.are_equal(30, bot_items["logistic-robot-total"])
       assert.are_equal(30, bot_items["logistic-robot-available"])
-      assert.are_equal(0, bot_items["charging-robot"])
-      assert.are_equal(0, bot_items["waiting-for-charge-robot"])
+      assert.are_equal(0, (bot_items["charging-robot"] or 0))
+      assert.are_equal(0, (bot_items["waiting-for-charge-robot"] or 0))
       assert.are_equal(0, table_size(nwd.bot_deliveries))
       assert.are_equal(0, table_size(nwd.delivery_history))
       done()
@@ -417,6 +420,9 @@ describe("Dynamic scenarios", function()
     for _, pt in pairs(storage.players or {}) do
       pt.network = nil
       pt.fixed_network = false
+      -- Simulate an open main window so the foreground scan path runs.
+      -- provider_count is only cached during foreground scans.
+      pt.bots_window_visible = true
     end
 
     -- Reset scheduler phase so task timing is relative to this tick, not absolute
@@ -749,6 +755,9 @@ describe("Suggestion lifecycle", function()
     for _, pt in pairs(storage.players or {}) do
       pt.network = nil
       pt.fixed_network = false
+      -- Simulate an open main window so the foreground scan path runs.
+      -- provider_count is only cached during foreground scans.
+      pt.bots_window_visible = true
     end
     scheduler.reset_phase()
 
