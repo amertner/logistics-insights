@@ -484,5 +484,15 @@ local li_migrations = {
     end
     global_data.settings_changed()
   end,
+
+
+  ["1.1.1"] = function()
+    -- Added pipette support for network row items, need to recreate UI
+    for player_index, player_table in pairs(storage.players) do
+      local player = game.get_player(player_index)
+      reinitialise_ui(player, player_table)
+    end
+  end,
+
 }
 return li_migrations

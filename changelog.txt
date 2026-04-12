@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.1.1
+Date: ????
+  Features:
+    - Added pipette support for items in the network rows, so you can use Q to pick up items for searching, placing, etc.
+---------------------------------------------------------------------------------------------------
 Version: 1.1.0
 Date: 2026-04-10
   Features:

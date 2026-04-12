@@ -47,16 +47,18 @@ function network_row.add(player_table, gui_table)
   }
   player_table.ui.network.roboports = gui_table.add {
     type = "sprite-button",
-    sprite = "entity/roboport",
+    sprite = "item/roboport",
     style = "slot_button",
     name = "logistics-insights-roboports",
+    raise_hover_events = true,
     tags = { follow = false }
   }
   player_table.ui.network.logistics_bots = gui_table.add {
     type = "sprite-button",
-    sprite = "entity/logistic-robot",
+    sprite = "item/logistic-robot",
     style = "slot_button",
     name = "logistics-insights-logistics_bots",
+    raise_hover_events = true,
     tags = { follow = true }
   }
   player_table.ui.network.requesters = gui_table.add {
@@ -64,6 +66,7 @@ function network_row.add(player_table, gui_table)
     sprite = "item/requester-chest",
     style = "slot_button",
     name = "logistics-insights-requesters",
+    raise_hover_events = true,
     tags = { follow = false }
   }
   player_table.ui.network.providers = gui_table.add {
@@ -71,6 +74,7 @@ function network_row.add(player_table, gui_table)
     sprite = "item/passive-provider-chest",
     style = "slot_button",
     name = "logistics-insights-providers",
+    raise_hover_events = true,
     tags = { follow = false }
   }
   player_table.ui.network.storages = gui_table.add {
@@ -78,6 +82,7 @@ function network_row.add(player_table, gui_table)
     sprite = "item/storage-chest",
     style = "slot_button",
     name = "logistics-insights-storages",
+    raise_hover_events = true,
     tags = { follow = false }
   }
 
