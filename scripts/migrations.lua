@@ -495,4 +495,37 @@ local li_migrations = {
   end,
 
 }
-return li_migrations
+
+-- Run all migrations newer than old_version, in ascending version order.
+-- Replaces the removed flib migration module using the native
+-- helpers.compare_versions API.
+---@param old_version string
+local function run_migrations(old_version)
+  local versions = {}
+  for version in pairs(li_migrations) do
+    versions[#versions + 1] = version
+  end
+  table.sort(versions, function(a, b)
+    return helpers.compare_versions(a, b) < 0
+  end)
+  for _, version in ipairs(versions) do
+    if helpers.compare_versions(old_version, version) < 0 then
+      li_migrations[version]()
+    end
+  end
+end
+
+-- Entry point for script.on_configuration_changed. Runs migrations only when
+-- THIS mod was upgraded (old_version present); fresh installs run nothing.
+---@param e ConfigurationChangedData
+local function on_config_changed(e)
+  local changes = e.mod_changes and e.mod_changes[script.mod_name]
+  if changes and changes.old_version then
+    run_migrations(changes.old_version)
+  end
+end
+
+return {
+  migrations = li_migrations,
+  on_config_changed = on_config_changed,
+}

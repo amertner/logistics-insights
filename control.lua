@@ -1,5 +1,4 @@
 -- Main script for Logistics Insights mod
-local flib_migration = require("__flib__.migration")
 
 -- Optional benchmark override hook. Loaded BEFORE any scripts.* require so the
 -- overrides (e.g. bench_profiler.enabled = true) are in place before scheduler.lua
@@ -18,7 +17,7 @@ local bot_counter = require("scripts.bot-counter")
 local logistic_cell_counter = require("scripts.logistic-cell-counter")
 local controller_gui = require("scripts.controller-gui")
 local utils = require("scripts.utils")
-local li_migrations = require("scripts.migrations")
+local migrations = require("scripts.migrations")
 local main_window = require("scripts.mainwin.main_window")
 local scheduler = require("scripts.scheduler")
 local networks_window= require("scripts.networkswin.networks_window")
@@ -272,7 +271,7 @@ script.on_configuration_changed(
 
   -- Run migrations if the mod version has changed
   global_data.init()
-  flib_migration.on_config_changed(e, li_migrations)
+  migrations.on_config_changed(e)
   -- Re-apply scheduler interval overrides after config change. Mod version
   -- upgrades may register new tasks or change defaults; this ensures the
   -- runtime-global interval settings still take effect.
