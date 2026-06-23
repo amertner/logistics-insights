@@ -1,8 +1,9 @@
 ---------------------------------------------------------------------------------------------------
 Version: 1.1.2
 Date: 2026-06-23
+  Info:
+    - Updated to Factorio v2.1
   Changes:
-    - Added support for Factorio v2.1 (no changes needed)
     - Removed dependency on deprecated flib.migration script
 ---------------------------------------------------------------------------------------------------
 Version: 1.1.1
