@@ -1,4 +1,9 @@
 ---------------------------------------------------------------------------------------------------
+Version: 1.1.3
+Date: 2026-06-24
+  Bugfixes:
+    - ESC and E keys sometimes did not work to open the game menu, because the mod did not clear player.opened consistently.
+---------------------------------------------------------------------------------------------------
 Version: 1.1.2
 Date: 2026-06-23
   Info:

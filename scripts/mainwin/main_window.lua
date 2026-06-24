@@ -367,6 +367,10 @@ end
 --- @param player_table PlayerData The player's data table
 function main_window.destroy(player, player_table)
   if player.valid and player.gui.screen.logistics_insights_window then
+    -- Release player.opened first so destroying doesn't re-enter on_gui_closed for our window
+    if player.opened == player.gui.screen.logistics_insights_window then
+      player.opened = nil
+    end
     player.gui.screen.logistics_insights_window.destroy()
   end
   player_table.window = nil
@@ -390,6 +394,9 @@ function main_window.set_window_visible(player, player_table, visible)
     gui.logistics_insights_window.visible = player_table.bots_window_visible
     if player_table.bots_window_visible and not player_table.main_window_pinned then
       player.opened = gui.logistics_insights_window
+    elseif not player_table.bots_window_visible and player.opened == gui.logistics_insights_window then
+      -- Hiding the window: release player.opened so E/ESC reach the game, not our (hidden) window
+      player.opened = nil
     end
   end
 end

@@ -331,7 +331,13 @@ end
 function networks_window.destroy(player)
   if not player or not player.valid then return end
   local w = player.gui.screen[WINDOW_NAME]
-  if w then w.destroy() end
+  if w then
+    -- Release player.opened first so destroying doesn't re-enter on_gui_closed for our window
+    if player.opened == w then
+      player.opened = nil
+    end
+    w.destroy()
+  end
 
   local player_table = player_data.get_player_table(player.index)
   if player_table and player_table.ui and player_table.ui.networks then
@@ -345,10 +351,23 @@ end
 --- @param visible boolean Whether the window should be visible
 function networks_window.set_window_visible(player, player_table, visible)
   if not player or not player.valid or not player_table then return end
-  player_table.networks_window_visible = not visible
-  networks_window.toggle_window_visible(player)
-  if player_table.networks_window_visible ~= visible then
-    networks_window.toggle_window_visible(player)
+  local w = player.gui.screen[WINDOW_NAME]
+  if not w then
+    if not visible then
+      player_table.networks_window_visible = false
+      return
+    end
+    networks_window.create(player)
+    w = player.gui.screen[WINDOW_NAME]
+    if not w then return end
+  end
+  w.visible = visible
+  player_table.networks_window_visible = visible
+  if visible and not player_table.networks_window_pinned then
+    player.opened = w
+  elseif not visible and player.opened == w then
+    -- Hiding the window: release player.opened so E/ESC reach the game, not our (hidden) window
+    player.opened = nil
   end
 end
 
@@ -357,19 +376,11 @@ end
 function networks_window.toggle_window_visible(player)
   if not player or not player.valid then return end
   local player_table = player_data.get_player_table(player.index)
+  if not player_table then return end
+  -- Desired state is the opposite of whatever the window currently shows
   local w = player.gui.screen[WINDOW_NAME]
-  if not w then
-    player_table.networks_window_visible = false
-    networks_window.create(player)
-    w = player.gui.screen[WINDOW_NAME]
-    if not w then return end
-    -- Fall through to toggle below
-  end
-  w.visible = not w.visible
-  player_table.networks_window_visible = w.visible
-  if w.visible and not player_table.networks_window_pinned then
-    player.opened = w
-  end
+  local currently_visible = (w and w.visible) or false
+  networks_window.set_window_visible(player, player_table, not currently_visible)
 end
 
 --- Ensure the Networks table has exactly `count` data rows (below the header).
