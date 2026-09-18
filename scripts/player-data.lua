@@ -25,6 +25,7 @@ local math_ceil = math.ceil
 ---@field ignored_storages_for_mismatch_shown number -- The tick when the exclusion list was last shown
 ---@field main_window_pinned boolean -- Whether the main window is pinned (ignores E/ESC close)
 ---@field networks_window_pinned boolean -- Whether the networks window is pinned (ignores E/ESC close)
+---@field haul_view {key: string, index: integer, tick: uint}|nil -- Which of an item's longest hauls was last shown, and when
 ---@param player_index uint
 ---@return nil
 function player_data.init(player_index)

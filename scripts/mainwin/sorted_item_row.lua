@@ -102,7 +102,17 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
       local ticks_formatted = math_floor(tenths / 10) .. "." .. (tenths % 10)
       tip = {"", {"item-row.avg-field-tooltip-1ticks-2count-3quality-4itemname", ticks_formatted, entry.count, localised.qname, localised.iname}}
     elseif number_field == "max_dist" then
-      local estimated = entry.max_exact == false and {"item-row.haul-estimated-suffix"} or ""
+      local hauls = entry.top_hauls or {}
+      local estimated = hauls[1] and not hauls[1].exact and {"item-row.haul-estimated-suffix"} or ""
+      -- List the longest hauls when there is more than one
+      local list = ""
+      if #hauls > 1 then
+        local dists = {}
+        for i, haul in ipairs(hauls) do
+          dists[i] = math_floor(haul.dist + 0.5)
+        end
+        list = {"", "\n", {"item-row.haul-list-1dists", table.concat(dists, ", ")}}
+      end
       local exact = entry.dist_exact or 0
       -- Only spell out measured vs estimated when the hauls are a mix of both
       local coverage
@@ -113,8 +123,8 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
       else
         coverage = {"item-row.haul-coverage-1exact-2count", exact, entry.dist_count}
       end
-      tip = {"", {"item-row.maxdist-field-tooltip-1max-2estimated-3avg-4coverage-5quality-6itemname",
-        math_floor(entry.max_dist + 0.5), estimated, math_floor(entry.avg_dist + 0.5),
+      tip = {"", {"item-row.maxdist-field-tooltip-1max-2estimated-3list-4avg-5coverage-6quality-7itemname",
+        math_floor(entry.max_dist + 0.5), estimated, list, math_floor(entry.avg_dist + 0.5),
         coverage, localised.qname, localised.iname}}
     elseif number_field == "shortage" then
       tip = {"", {"undersupply-row.shortage-tooltip-1shortage_2item_3quality_4requested_5storage_6underway",

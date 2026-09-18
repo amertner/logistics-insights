@@ -33,7 +33,9 @@ end
 ---@param player LuaPlayer
 ---@param surface SurfaceName
 ---@param items LuaEntity[]
-function ResultLocation.draw_markers(player, surface, items)
+---@param color? Color Defaults to the usual highlight green
+function ResultLocation.draw_markers(player, surface, items, color)
+  color = color or LINE_COLOR
   local time_to_live = player.mod_settings["li-highlight-duration"].value * 60
   -- Draw new markers
   for _, item in pairs(items) do
@@ -70,7 +72,7 @@ function ResultLocation.draw_markers(player, surface, items)
         local rotated_to = add_vector(rotate_vector(subtract_vector(line.to, center), angle), center)
 
         rendering.draw_line{
-          color = LINE_COLOR,
+          color = color,
           width = LINE_WIDTH,
           from = rotated_from,
           to = rotated_to,
@@ -81,7 +83,7 @@ function ResultLocation.draw_markers(player, surface, items)
       end
     else
       rendering.draw_rectangle{
-        color = LINE_COLOR,
+        color = color,
         width = LINE_WIDTH,
         filled = false,
         left_top = selection_box.left_top,
@@ -155,6 +157,7 @@ function ResultLocation.highlight(player, data, draw)
 end
 
 local HAUL_TEXT_COLOR = { r = 1, g = 1, b = 1, a = 1 }
+local OTHER_HAUL_COLOR = { r = 0, g = 0.45, b = 0, a = 1 } -- Hauls other than the one being looked at
 local HAUL_LABEL_SCALE = 2 -- Large enough for the item icon in the label to stand out from the ground
 local HAUL_LABEL_GAP_TILES = 0.3 -- Between an end's outline and its label
 local ARROW_SIZE_TILES = 0.6 -- Size of direction arrows close in
@@ -208,15 +211,16 @@ end
 ---@param centre MapPosition
 ---@param dir {x: number, y: number} Unit vector the arrow points along
 ---@param size number Arrow size in tiles
+---@param color Color
 ---@param time_to_live number
 ---@param render_mode ScriptRenderMode
-local function draw_arrowhead(player, surface_name, centre, dir, size, time_to_live, render_mode)
+local function draw_arrowhead(player, surface_name, centre, dir, size, color, time_to_live, render_mode)
   local half = size / 2
   local tip = { x = centre.x + dir.x * half, y = centre.y + dir.y * half }
   -- The two arms sweep back from the tip, one on each side of the line
   for _, side in pairs({ 1, -1 }) do
     rendering.draw_line{
-      color = LINE_COLOR,
+      color = color,
       width = LINE_WIDTH,
       from = {
         x = centre.x - dir.x * half - dir.y * half * side,
@@ -236,8 +240,9 @@ end
 ---@param surface_name string
 ---@param from MapPosition
 ---@param to MapPosition
+---@param color Color
 ---@param time_to_live number
-local function draw_haul_arrows(player, surface_name, from, to, time_to_live)
+local function draw_haul_arrows(player, surface_name, from, to, color, time_to_live)
   local length = utils.distance(from, to)
   if length < ARROW_SIZE_TILES * 2 then return end
   local dir = { x = (to.x - from.x) / length, y = (to.y - from.y) / length }
@@ -248,82 +253,116 @@ local function draw_haul_arrows(player, surface_name, from, to, time_to_live)
   -- Close in: an arrow per chunk, or one in the middle of a shorter haul
   local count = math.max(1, math.floor(length / math.max(ARROW_SPACING_TILES, length / ARROW_MAX_COUNT)))
   for i = 1, count do
-    draw_arrowhead(player, surface_name, along((i - 0.5) * length / count), dir, ARROW_SIZE_TILES, time_to_live, "game")
+    draw_arrowhead(player, surface_name, along((i - 0.5) * length / count), dir, ARROW_SIZE_TILES, color, time_to_live, "game")
   end
 
   -- Map view: a few arrows sized to the haul, visible when zoomed out to see all of it
   local map_size = math.max(ARROW_SIZE_TILES, length / 60)
   for i = 1, MAP_ARROW_COUNT do
-    draw_arrowhead(player, surface_name, along(i * length / (MAP_ARROW_COUNT + 1)), dir, map_size, time_to_live, "chart")
+    draw_arrowhead(player, surface_name, along(i * length / (MAP_ARROW_COUNT + 1)), dir, map_size, color, time_to_live, "chart")
   end
 end
 
---- Show a haul on the map: outline both ends, join them with an arrowed line, label them,
---- and move the player's view to one end
+--- Draw a label beside one end of a haul, in both game and map view
 ---@param player LuaPlayer
 ---@param surface_name string
----@param from MapPosition Where the haul started
----@param to MapPosition Where the haul ended
----@param exact boolean True if `from` is the pickup chest, false if it's where the bot was first seen
----@param item ItemQuality The item that was hauled, shown in the labels
----@param dist number The haul distance in tiles
----@param focus_on_start boolean True to go to where the haul started, false to go to the delivery end
-function ResultLocation.show_haul(player, surface_name, from, to, exact, item, dist, focus_on_start)
-  local surface = game.surfaces[surface_name]
-  if not surface then return end
-  ResultLocation.clear_markers(player)
-  local time_to_live = player.mod_settings["li-highlight-duration"].value * 60
-
-  local from_marker = haul_endpoint_marker(surface, from, exact)
-  local to_marker = haul_endpoint_marker(surface, to, true)
-  ResultLocation.draw_markers(player, surface_name, { from_marker, to_marker })
-
-  -- Label both ends, naming the item with its icon so it's clear what the haul was once the
-  -- window is out of sight
-  local icon = item.quality == "normal" and ("[item=" .. item.name .. "]")
-    or ("[item=" .. item.name .. ",quality=" .. item.quality .. "]")
-  local labels = {
-    { marker = from_marker, other_end = to,
-      text = { exact and "item-row.haul-from-label" or "item-row.haul-first-seen-label", icon } },
-    { marker = to_marker, other_end = from,
-      text = { "item-row.haul-to-label", icon, math.floor(dist + 0.5) } },
-  }
-
-  -- Markers only show up close in, so draw the line and labels in map view too
+---@param marker {selection_box: BoundingBox} The end's outline
+---@param other_end MapPosition The other end of the haul, so the label can avoid the line
+---@param text LocalisedString
+---@param time_to_live number
+local function draw_haul_label(player, surface_name, marker, other_end, text, time_to_live)
+  local anchor, alignment = haul_label_anchor(marker, other_end)
   for _, render_mode in pairs({ "game", "chart" }) do
-    rendering.draw_line{
-      color = LINE_COLOR,
-      width = LINE_WIDTH,
-      from = from,
-      to = to,
+    rendering.draw_text{
+      text = text,
+      target = anchor,
       surface = surface_name,
+      color = HAUL_TEXT_COLOR,
+      scale = HAUL_LABEL_SCALE,
+      scale_with_zoom = true,
+      alignment = alignment,
+      vertical_alignment = "middle",
+      use_rich_text = true,
       time_to_live = time_to_live,
       players = {player},
       render_mode = render_mode,
     }
-    for _, label in pairs(labels) do
-      local anchor, alignment = haul_label_anchor(label.marker, label.other_end)
-      rendering.draw_text{
-        text = label.text,
-        target = anchor,
+  end
+end
+
+--- Show an item's longest hauls on the map, and move the player's view to one end of one of them.
+--- Each haul's ends are outlined and joined by an arrowed line. The haul being looked at is
+--- highlighted and labelled with the item; the others are dimmer and just numbered.
+---@param player LuaPlayer
+---@param surface_name string
+---@param hauls HaulRecord[] Longest first
+---@param focus integer Which haul to highlight and move the view to
+---@param item ItemQuality The item that was hauled, shown in the labels
+---@param focus_on_start boolean True to go to where the haul started, false to go to the delivery end
+function ResultLocation.show_hauls(player, surface_name, hauls, focus, item, focus_on_start)
+  local surface = game.surfaces[surface_name]
+  if not surface or not hauls[focus] then return end
+  ResultLocation.clear_markers(player)
+  local time_to_live = player.mod_settings["li-highlight-duration"].value * 60
+  local icon = item.quality == "normal" and ("[item=" .. item.name .. "]")
+    or ("[item=" .. item.name .. ",quality=" .. item.quality .. "]")
+  local numbered = #hauls > 1
+
+  -- Draw the highlighted haul last, so it's on top where hauls overlap
+  local order = {}
+  for i = 1, #hauls do
+    if i ~= focus then order[#order + 1] = i end
+  end
+  order[#order + 1] = focus
+
+  for _, i in ipairs(order) do
+    local haul = hauls[i]
+    local from = { x = haul.from_x, y = haul.from_y }
+    local to = { x = haul.to_x, y = haul.to_y }
+    local is_focus = i == focus
+    local color = is_focus and LINE_COLOR or OTHER_HAUL_COLOR
+
+    local from_marker = haul_endpoint_marker(surface, from, haul.exact)
+    local to_marker = haul_endpoint_marker(surface, to, true)
+    ResultLocation.draw_markers(player, surface_name, { from_marker, to_marker }, color)
+    -- Markers only show up close in, so draw the line in map view too
+    for _, render_mode in pairs({ "game", "chart" }) do
+      rendering.draw_line{
+        color = color,
+        width = LINE_WIDTH,
+        from = from,
+        to = to,
         surface = surface_name,
-        color = HAUL_TEXT_COLOR,
-        scale = HAUL_LABEL_SCALE,
-        scale_with_zoom = true,
-        alignment = alignment,
-        vertical_alignment = "middle",
-        use_rich_text = true,
         time_to_live = time_to_live,
         players = {player},
         render_mode = render_mode,
       }
     end
-  end
-  draw_haul_arrows(player, surface_name, from, to, time_to_live)
+    draw_haul_arrows(player, surface_name, from, to, color, time_to_live)
 
+    local number = numbered and {"item-row.haul-number-1n", i} or nil
+    local from_text, to_text
+    if is_focus then
+      -- Name the item with its icon, so it's clear what the haul was once the window is out of sight
+      from_text = { haul.exact and "item-row.haul-from-label" or "item-row.haul-first-seen-label", icon }
+      to_text = { "item-row.haul-to-label", icon, math.floor(haul.dist + 0.5) }
+      if number then
+        from_text = { "", number, " ", from_text }
+        to_text = { "", number, " ", to_text }
+      end
+    elseif number then
+      from_text, to_text = number, number
+    end
+    if from_text then
+      draw_haul_label(player, surface_name, from_marker, to, from_text, time_to_live)
+      draw_haul_label(player, surface_name, to_marker, from, to_text, time_to_live)
+    end
+  end
+
+  local target = hauls[focus]
   player.set_controller{
     type = defines.controllers.remote,
-    position = focus_on_start and from or to,
+    position = focus_on_start and { x = target.from_x, y = target.from_y } or { x = target.to_x, y = target.to_y },
     surface = surface_name,
   }
   player.zoom = default_zoom(player)

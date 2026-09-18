@@ -14,6 +14,7 @@ local distance = utils.distance
 local defines_robot_order_type_deliver = defines.robot_order_type.deliver
 local defines_robot_order_type_pickup = defines.robot_order_type.pickup
 local seen_bot_this_pass = 2
+local TOP_HAULS = 5 -- How many of each item's longest hauls to keep
 local seen_bot_last_pass = 1
 
 --- @class Accumulator -- Used by the chunker to accumulate data over multiple passes
@@ -27,6 +28,42 @@ local seen_bot_last_pass = 1
 --- @field other_bot_qualities QualityTable
 --- @field networkdata LINetworkData|nil Cached network data for this chunk pass
 --- @field current_tick number The game tick at the start of this chunk pass
+
+--- Keep an item's longest hauls, longest first, with at most one per destination so a route
+--- that is used again and again doesn't fill the list
+--- @param history_order DeliveredItems
+--- @param dist number The haul distance
+--- @param from MapPosition Where the haul started
+--- @param to MapPosition Where the haul ended
+--- @param exact boolean True if `from` is the pickup chest rather than an estimate
+local function record_top_haul(history_order, dist, from, to, exact)
+  local hauls = history_order.top_hauls
+  if not hauls then
+    hauls = {}
+    history_order.top_hauls = hauls
+  end
+  local count = #hauls
+  -- Most hauls are no longer than any already kept
+  if count >= TOP_HAULS and dist <= hauls[count].dist then return end
+
+  for i = 1, count do
+    local haul = hauls[i]
+    if haul.to_x == to.x and haul.to_y == to.y then
+      -- Same destination: keep whichever haul is longer
+      if dist <= haul.dist then return end
+      table.remove(hauls, i)
+      count = count - 1
+      break
+    end
+  end
+
+  local pos = count + 1
+  while pos > 1 and hauls[pos - 1].dist < dist do
+    pos = pos - 1
+  end
+  table.insert(hauls, pos, { dist = dist, from_x = from.x, from_y = from.y, to_x = to.x, to_y = to.y, exact = exact })
+  hauls[TOP_HAULS + 1] = nil
+end
 
 --- Add a completed delivery order to the history storage
 --- @param delivery_history table<string, DeliveredItems> The delivery history storage table
@@ -75,13 +112,10 @@ local function add_delivered_order_to_history(delivery_history, order)
       history_order.dist_exact = (history_order.dist_exact or 0) + 1
     end
     if haul_dist > (history_order.max_dist or 0) then
-      -- Keep both ends of the longest haul so it can be shown on the map
-      local from, to = order.haul_from, order.targetpos
       history_order.max_dist = haul_dist
-      history_order.max_from = { x = from.x, y = from.y }
-      history_order.max_to = { x = to.x, y = to.y }
-      history_order.max_exact = order.haul_exact or false
     end
+    -- Keep both ends of the longest hauls so they can be shown on the map
+    record_top_haul(history_order, haul_dist, order.haul_from, order.targetpos, order.haul_exact or false)
   end
 end
 

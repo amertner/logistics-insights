@@ -449,10 +449,21 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
     local iq = extract_item_quality()
     if not iq then return false end
     local networkdata = network_data.get_networkdata(player_table.network)
-    local entry = networkdata and networkdata.delivery_history[utils.get_item_quality_key(iq.name, iq.quality)]
-    if networkdata and entry and entry.max_from and entry.max_to then
-      ResultLocation.show_haul(player, networkdata.surface, entry.max_from, entry.max_to, entry.max_exact,
-        iq, entry.max_dist, is_right_click)
+    local key = utils.get_item_quality_key(iq.name, iq.quality)
+    local entry = networkdata and networkdata.delivery_history[key]
+    local hauls = entry and entry.top_hauls
+    if networkdata and hauls and #hauls > 0 then
+      -- Left-click steps on to the next haul; right-click stays on the current one to show its
+      -- pickup end. Start again from the longest once the previous highlight has expired
+      local view = player_table.haul_view
+      local index = 1
+      if view and view.key == key
+        and game.tick - view.tick <= player.mod_settings["li-highlight-duration"].value * 60 then
+        index = is_right_click and view.index or view.index + 1
+        if index > #hauls then index = 1 end
+      end
+      player_table.haul_view = { key = key, index = index, tick = game.tick }
+      ResultLocation.show_hauls(player, networkdata.surface, hauls, index, iq, is_right_click)
     end
     return true
   end

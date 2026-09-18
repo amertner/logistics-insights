@@ -448,10 +448,41 @@ describe("bot_counter", function()
       assert.are.equal(5, history.dist_exact)
       assert.are.equal((4 * 3 + 603) / 5, history.avg_dist) -- 123, not dragged towards 3 by item count
       assert.are.equal(603, history.max_dist)
-      -- Both ends of the longest haul are kept, so it can be shown on the map
-      assert.are.same({ x = 0, y = 0 }, history.max_from)
-      assert.are.same({ x = 603, y = 0 }, history.max_to)
-      assert.is_true(history.max_exact)
+      -- Both ends of the longest hauls are kept so they can be shown on the map. The four mall
+      -- trips all went to the same chest, so only one of them is kept
+      assert.are.same({
+        { dist = 603, from_x = 0, from_y = 0, to_x = 603, to_y = 0, exact = true },
+        { dist = 3, from_x = 0, from_y = 0, to_x = 3, to_y = 0, exact = true },
+      }, history.top_hauls)
+    end)
+
+    it("keeps the five longest hauls, longest first", function()
+      local nwd = make_networkdata()
+      for i = 1, 7 do
+        -- Hauls of 10, 20 ... 70 tiles, each to a different chest, in a mixed-up order
+        local dist = ((i * 3) % 7 + 1) * 10
+        run_trip(nwd, i, "iron-plate", 1, { x = 0, y = 0 }, { x = dist, y = 0 }, 100 * i)
+      end
+
+      local dists = {}
+      for _, haul in ipairs(nwd.delivery_history["iron-plate:normal"].top_hauls) do
+        dists[#dists + 1] = haul.dist
+      end
+      assert.are.same({ 70, 60, 50, 40, 30 }, dists)
+    end)
+
+    it("keeps only the longest haul to each destination", function()
+      local nwd = make_networkdata()
+      local chest = { x = 100, y = 0 }
+      run_trip(nwd, 1, "iron-plate", 1, { x = 50, y = 0 }, chest, 100)   -- 50 tiles
+      run_trip(nwd, 2, "iron-plate", 1, { x = 60, y = 0 }, chest, 200)   -- 40: shorter, ignored
+      run_trip(nwd, 3, "iron-plate", 1, { x = 0, y = 0 }, { x = 70, y = 0 }, 300) -- 70, elsewhere
+      run_trip(nwd, 4, "iron-plate", 1, { x = 20, y = 0 }, chest, 400)   -- 80: replaces the 50
+
+      local hauls = nwd.delivery_history["iron-plate:normal"].top_hauls
+      assert.are.equal(2, #hauls)
+      assert.are.same({ 80, 20 }, { hauls[1].dist, hauls[1].from_x })
+      assert.are.same({ 70, 70 }, { hauls[2].dist, hauls[2].to_x })
     end)
 
     it("estimates the haul from where the bot was first seen when the pickup was missed", function()
@@ -468,8 +499,7 @@ describe("bot_counter", function()
       assert.are.equal(1, history.dist_count)
       assert.are.equal(0, history.dist_exact)
       assert.are.equal(50, history.max_dist)
-      assert.are.same({ x = 0, y = 0 }, history.max_from)
-      assert.is_false(history.max_exact)
+      assert.are.same({ 0, 0, false }, { history.top_hauls[1].from_x, history.top_hauls[1].from_y, history.top_hauls[1].exact })
     end)
 
     it("prefers the pickup chest over the bot's position", function()

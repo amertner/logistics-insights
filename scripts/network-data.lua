@@ -76,9 +76,7 @@ local utils = require("scripts.utils")
 ---@field dist_sum number -- Total haul distance in tiles over those deliveries
 ---@field avg_dist number -- Average haul distance per delivery, equal to dist_sum/dist_count
 ---@field max_dist number -- Longest haul distance seen for this item
----@field max_from? MapPosition -- Start of the longest haul: the pickup chest, or where the bot was first seen
----@field max_to? MapPosition -- End of the longest haul
----@field max_exact? boolean -- True if the longest haul was measured from the pickup chest
+---@field top_hauls? HaulRecord[] -- The longest hauls, longest first, at most one per destination
 
 -- Record used to record items being delivered, before they are added to history
 ---@class BotDeliveringInFlight
@@ -91,6 +89,15 @@ local utils = require("scripts.utils")
 ---@field haul_exact? boolean -- True if haul_from is the pickup chest rather than an estimate
 ---@field first_seen number -- The first tick this bot was seen delivering it
 ---@field last_seen number -- The last tick this bot was seen delivering it
+
+-- One of an item's longest hauls, flat to keep it small
+---@class HaulRecord
+---@field dist number -- Haul distance in tiles
+---@field from_x number -- Where the haul started: the pickup chest, or where the bot was first seen
+---@field from_y number
+---@field to_x number -- Where the haul was delivered
+---@field to_y number
+---@field exact boolean -- True if the start is the pickup chest rather than an estimate
 
 -- Record of where a bot is picking up, kept until its delivery starts
 ---@class PendingPickup
