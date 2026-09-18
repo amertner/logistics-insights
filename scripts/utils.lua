@@ -40,6 +40,18 @@ function utils.accumulate_quality(quality_table, quality, count)
   quality_table[quality] = quality_table[quality] + count
 end
 
+local math_sqrt = math.sqrt
+
+--- Straight-line distance between two map positions, in tiles.
+--- @param a MapPosition
+--- @param b MapPosition
+--- @return number
+function utils.distance(a, b)
+  local dx = a.x - b.x
+  local dy = a.y - b.y
+  return math_sqrt(dx * dx + dy * dy)
+end
+
 --- Clear a table in place by removing all keys.
 --- @param t table
 function utils.table_clear(t)

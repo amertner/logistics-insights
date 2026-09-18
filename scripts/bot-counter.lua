@@ -10,6 +10,7 @@ local utils = require("scripts.utils")
 local pairs = pairs
 local table_size = table_size
 local accumulate_quality = utils.accumulate_quality
+local distance = utils.distance
 local defines_robot_order_type_deliver = defines.robot_order_type.deliver
 local defines_robot_order_type_pickup = defines.robot_order_type.pickup
 local seen_bot_this_pass = 2
@@ -40,6 +41,12 @@ local function add_delivered_order_to_history(delivery_history, order)
       count = 0,
       ticks = 0,
       avg = 0,
+      deliveries = 0,
+      dist_count = 0,
+      dist_exact = 0,
+      dist_sum = 0,
+      avg_dist = 0,
+      max_dist = 0,
     }
   end
 
@@ -53,6 +60,29 @@ local function add_delivered_order_to_history(delivery_history, order)
   -- Update history stats
   history_order.ticks = (history_order.ticks or 0) + ticks
   history_order.avg = history_order.ticks / history_order.count
+  history_order.deliveries = (history_order.deliveries or 0) + 1
+
+  -- Distance is averaged per delivery, not per item, so bulk short hauls can't drown out long ones.
+  -- Fields may be missing on history recorded before haul distance was tracked.
+  local haul_dist = order.haul_dist
+  if haul_dist then
+    local dist_count = (history_order.dist_count or 0) + 1
+    local dist_sum = (history_order.dist_sum or 0) + haul_dist
+    history_order.dist_count = dist_count
+    history_order.dist_sum = dist_sum
+    history_order.avg_dist = dist_sum / dist_count
+    if order.haul_exact then
+      history_order.dist_exact = (history_order.dist_exact or 0) + 1
+    end
+    if haul_dist > (history_order.max_dist or 0) then
+      -- Keep both ends of the longest haul so it can be shown on the map
+      local from, to = order.haul_from, order.targetpos
+      history_order.max_dist = haul_dist
+      history_order.max_from = { x = from.x, y = from.y }
+      history_order.max_to = { x = to.x, y = to.y }
+      history_order.max_exact = order.haul_exact or false
+    end
+  end
 end
 
 --- Keep track of how many items of each type is being delivered right now
@@ -82,7 +112,8 @@ end
 --- @param quality string The quality name of the item
 --- @param count number The number of items being delivered
 --- @param current_tick number The current game tick
-local function add_bot_to_active_deliveries(networkdata, unit_number, order, item_name, quality, count, current_tick)
+--- @param bot LuaEntity|nil The robot, if its position may be used to estimate the haul distance
+local function add_bot_to_active_deliveries(networkdata, unit_number, order, item_name, quality, count, current_tick, bot)
   local botorder = networkdata.bot_active_deliveries[unit_number]
   -- Hoist target and position to avoid repeated table lookups
   local target = order.target
@@ -101,7 +132,23 @@ local function add_bot_to_active_deliveries(networkdata, unit_number, order, ite
       botorder.last_seen = current_tick
     end
   else
-    -- No order for this bot, so add it
+    -- No order for this bot, so add it, measuring the haul from where it picked up this item
+    local haul_from, haul_exact
+    local pickups = networkdata.bot_pickup_positions
+    local pickup = pickups and pickups[unit_number]
+    if pickup then
+      pickups[unit_number] = nil
+      if pickup.item_name == item_name then
+        haul_from = pickup
+        haul_exact = true
+      end
+    end
+    if not haul_from and bot then
+      -- Pickup not seen, so estimate from where the bot is now. It has already flown part
+      -- of the way, so this is a lower bound, short by at most one scan interval of flight
+      haul_from = bot.position
+    end
+    local haul_dist = (haul_from and target_pos) and distance(haul_from, target_pos) or nil
     networkdata.bot_active_deliveries[unit_number] = {
       item_name = item_name,
       quality_name = quality,
@@ -109,7 +156,35 @@ local function add_bot_to_active_deliveries(networkdata, unit_number, order, ite
       first_seen = current_tick,
       last_seen = current_tick,
       targetpos = target_pos,
+      haul_dist = haul_dist,
+      haul_from = haul_dist and haul_from or nil,
+      haul_exact = haul_dist and haul_exact or nil,
     }
+  end
+end
+
+--- Remember where a bot is picking up, so the haul distance can be calculated when its delivery starts
+--- @param networkdata LINetworkData The network being processed
+--- @param unit_number number The unique identifier of the robot
+--- @param order table The robot's pickup order
+--- @param item_name string The name of the item being picked up
+--- @param current_tick number The current game tick
+local function record_pickup_position(networkdata, unit_number, order, item_name, current_tick)
+  local target = order.target
+  local pos = target and target.position
+  if not pos then return end
+
+  local pickups = networkdata.bot_pickup_positions
+  if not pickups then
+    pickups = {}
+    networkdata.bot_pickup_positions = pickups
+  end
+  local pending = pickups[unit_number]
+  if pending and pending.x == pos.x and pending.y == pos.y and pending.item_name == item_name then
+    -- Same pickup seen again, avoid allocating a new record
+    pending.seen = current_tick
+  else
+    pickups[unit_number] = { x = pos.x, y = pos.y, item_name = item_name, seen = current_tick }
   end
 end
 
@@ -192,8 +267,12 @@ local function process_one_bot(bot, accumulator, gather, network_id)
             -- Record current deliveries
             add_item_to_current_deliveries(item_name, item_quality, item_count, accumulator.item_deliveries)
             -- Record delivery for history purposes
-            add_bot_to_active_deliveries(networkdata, unit_number, order, item_name, item_quality, item_count, accumulator.current_tick)
+            add_bot_to_active_deliveries(networkdata, unit_number, order, item_name, item_quality, item_count,
+              accumulator.current_tick, gather.history and bot or nil)
           else
+            if gather.history and order.type == defines_robot_order_type_pickup then
+              record_pickup_position(networkdata, unit_number, order, item_name, accumulator.current_tick)
+            end
             -- Check if the bot was delivering last time we saw it, and record the delivery
             check_if_no_order_bot_finished_delivery(networkdata, unit_number, gather.history)
           end
@@ -205,6 +284,11 @@ local function process_one_bot(bot, accumulator, gather, network_id)
     else
       -- No orders, check if it's because the bot has finished its delivery
       check_if_no_order_bot_finished_delivery(networkdata, unit_number, gather.history)
+      -- An idle bot is not on its way to deliver anything it picked up earlier
+      local pickups = networkdata.bot_pickup_positions
+      if pickups and pickups[unit_number] then
+        pickups[unit_number] = nil
+      end
       if quality then accumulate_quality(accumulator.other_bot_qualities, quality, 1) end
     end
   end

@@ -46,6 +46,7 @@ local utils = require("scripts.utils")
 ---@field bot_deliveries_gen number Generation counter for bot_deliveries, incremented on each update
 ---@field bot_items table<string, number> Real time data about bots: Very cheap to keep track of
 ---@field bot_active_deliveries table<number, BotDeliveringInFlight> A list of bots currently delivering items
+---@field bot_pickup_positions table<number, PendingPickup>|nil Where each bot is picking up, until its delivery starts (foreground only)
 ---@field delivery_history table<string, DeliveredItems> A list of past delivered items
 ---@field delivery_history_gen number Generation counter for delivery_history, incremented on each mutation
 ---@field picking_bot_qualities QualityTable Quality of bots currently picking items
@@ -68,7 +69,16 @@ local utils = require("scripts.utils")
 ---@field quality_name? string -- The quality of the item, if applicable
 ---@field count number -- How many of this item have been delivered
 ---@field ticks number -- Total ticks for all deliveries of this item
----@field avg number -- Average ticks per delivery, equal to ticks/count
+---@field avg number -- Average ticks per item delivered, equal to ticks/count
+---@field deliveries number -- Number of deliveries of this item
+---@field dist_count number -- Number of deliveries with a haul distance, measured or estimated
+---@field dist_exact number -- How many of those were measured from the pickup chest
+---@field dist_sum number -- Total haul distance in tiles over those deliveries
+---@field avg_dist number -- Average haul distance per delivery, equal to dist_sum/dist_count
+---@field max_dist number -- Longest haul distance seen for this item
+---@field max_from? MapPosition -- Start of the longest haul: the pickup chest, or where the bot was first seen
+---@field max_to? MapPosition -- End of the longest haul
+---@field max_exact? boolean -- True if the longest haul was measured from the pickup chest
 
 -- Record used to record items being delivered, before they are added to history
 ---@class BotDeliveringInFlight
@@ -76,8 +86,18 @@ local utils = require("scripts.utils")
 ---@field quality_name? string -- The quality of the item, if applicable
 ---@field count number -- How many of this item it is delivering
 ---@field targetpos MapPosition -- The target position for the delivery
+---@field haul_dist? number -- Haul distance in tiles, if known
+---@field haul_from? MapPosition -- Where the haul started: the pickup chest, or where the bot was first seen
+---@field haul_exact? boolean -- True if haul_from is the pickup chest rather than an estimate
 ---@field first_seen number -- The first tick this bot was seen delivering it
 ---@field last_seen number -- The last tick this bot was seen delivering it
+
+-- Record of where a bot is picking up, kept until its delivery starts
+---@class PendingPickup
+---@field x number -- Pickup target position
+---@field y number
+---@field item_name string -- The item being picked up; must match the delivery
+---@field seen number -- The last tick this bot was seen picking it up
 
 -- Record used to store list of undersupplied items
 ---@class UndersupplyItem
@@ -162,6 +182,7 @@ function network_data.create_networkdata(network)
       bot_deliveries_gen = 0,
       bot_items = {},
       bot_active_deliveries = {},
+      bot_pickup_positions = {},
       delivery_history = {},
       delivery_history_gen = 0,
       picking_bot_qualities = {},
@@ -539,6 +560,17 @@ function network_data.prune_old_data(networkdata, is_migration)
       debugger.warn("[Migration]: Pruned " .. tostring(removed) .. " old bot deliveries from network ID " .. tostring(networkdata.id))
     else
       debugger.info("Pruned " .. tostring(removed) .. " old bot deliveries from network ID " .. tostring(networkdata.id))
+    end
+  end
+
+  -- Drop pickups whose delivery was never observed within a scan, so they can't be
+  -- matched to a later, unrelated delivery
+  local pickups = networkdata.bot_pickup_positions
+  if pickups then
+    for unit_number, pickup in pairs(pickups) do
+      if pickup.seen < last_scan_tick then
+        pickups[unit_number] = nil
+      end
     end
   end
 end

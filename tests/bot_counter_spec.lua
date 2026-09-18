@@ -50,6 +50,7 @@ describe("bot_counter", function()
       unit_number = opts.unit_number,
       quality = opts.quality or { name = "normal" },
       robot_order_queue = opts.orders or {},
+      position = opts.position,
     }
   end
 
@@ -70,7 +71,8 @@ describe("bot_counter", function()
   end
 
   --- Create a pickup order
-  local function pickup_order(item_name)
+  local function pickup_order(item_name, opts)
+    opts = opts or {}
     return {
       type = defines.robot_order_type.pickup,
       target_item = {
@@ -78,6 +80,7 @@ describe("bot_counter", function()
         quality = { name = "normal" },
       },
       target_count = 0,
+      target = opts.target_pos and { position = opts.target_pos } or nil,
     }
   end
 
@@ -398,6 +401,207 @@ describe("bot_counter", function()
       -- Active delivery cleared, but no history recorded
       assert.is_nil(nwd.bot_active_deliveries[1])
       assert.is_nil(nwd.delivery_history["iron-plate:normal"])
+    end)
+  end)
+
+  -- ─── Haul distance ────────────────────────────────────────────────
+
+  describe("haul distance", function()
+    --- Run one full delivery for a bot: pickup, deliver, then idle
+    local function run_trip(nwd, unit_number, item_name, count, pickup_pos, target_pos, start_tick)
+      game.tick = start_tick
+      process_all_foreground(nwd, {
+        make_bot({ unit_number = unit_number, orders = { pickup_order(item_name, { target_pos = pickup_pos }) } }),
+      })
+      game.tick = start_tick + 10
+      process_all_foreground(nwd, {
+        make_bot({ unit_number = unit_number, orders = { deliver_order(item_name, count, { target_pos = target_pos }) } }),
+      })
+      game.tick = start_tick + 20
+      process_all_foreground(nwd, { make_bot({ unit_number = unit_number }) })
+    end
+
+    it("records pickup-to-target distance for a delivery", function()
+      local nwd = make_networkdata()
+      run_trip(nwd, 1, "iron-plate", 10, { x = 0, y = 0 }, { x = 30, y = 40 }, 100)
+
+      local history = nwd.delivery_history["iron-plate:normal"]
+      assert.are.equal(1, history.dist_count)
+      assert.are.equal(50, history.dist_sum)
+      assert.are.equal(50, history.avg_dist)
+      assert.are.equal(50, history.max_dist)
+    end)
+
+    it("averages distance per delivery, so bulk short hauls don't hide long ones", function()
+      local nwd = make_networkdata()
+      -- Mall: 4 short hauls of 200 items, 3 tiles each
+      for i = 1, 4 do
+        run_trip(nwd, i, "iron-plate", 200, { x = 0, y = 0 }, { x = 3, y = 0 }, 100 * i)
+      end
+      -- Outpost: 1 long haul of 10 items, 603 tiles
+      run_trip(nwd, 9, "iron-plate", 10, { x = 0, y = 0 }, { x = 603, y = 0 }, 1000)
+
+      local history = nwd.delivery_history["iron-plate:normal"]
+      assert.are.equal(810, history.count)
+      assert.are.equal(5, history.deliveries)
+      assert.are.equal(5, history.dist_count)
+      assert.are.equal(5, history.dist_exact)
+      assert.are.equal((4 * 3 + 603) / 5, history.avg_dist) -- 123, not dragged towards 3 by item count
+      assert.are.equal(603, history.max_dist)
+      -- Both ends of the longest haul are kept, so it can be shown on the map
+      assert.are.same({ x = 0, y = 0 }, history.max_from)
+      assert.are.same({ x = 603, y = 0 }, history.max_to)
+      assert.is_true(history.max_exact)
+    end)
+
+    it("estimates the haul from where the bot was first seen when the pickup was missed", function()
+      local nwd = make_networkdata()
+      game.tick = 100
+      process_all_foreground(nwd, {
+        make_bot({ unit_number = 1, position = { x = 0, y = 0 },
+          orders = { deliver_order("iron-plate", 10, { target_pos = { x = 30, y = 40 } }) } }),
+      })
+      game.tick = 200
+      process_all_foreground(nwd, { make_bot({ unit_number = 1 }) })
+
+      local history = nwd.delivery_history["iron-plate:normal"]
+      assert.are.equal(1, history.dist_count)
+      assert.are.equal(0, history.dist_exact)
+      assert.are.equal(50, history.max_dist)
+      assert.are.same({ x = 0, y = 0 }, history.max_from)
+      assert.is_false(history.max_exact)
+    end)
+
+    it("prefers the pickup chest over the bot's position", function()
+      local nwd = make_networkdata()
+      game.tick = 100
+      process_all_foreground(nwd, {
+        make_bot({ unit_number = 1, position = { x = 5, y = 5 },
+          orders = { pickup_order("iron-plate", { target_pos = { x = 0, y = 0 } }) } }),
+      })
+      game.tick = 110
+      process_all_foreground(nwd, {
+        make_bot({ unit_number = 1, position = { x = 20, y = 20 },
+          orders = { deliver_order("iron-plate", 10, { target_pos = { x = 30, y = 40 } }) } }),
+      })
+      game.tick = 120
+      process_all_foreground(nwd, { make_bot({ unit_number = 1 }) })
+
+      local history = nwd.delivery_history["iron-plate:normal"]
+      assert.are.equal(50, history.max_dist) -- From the chest at 0,0, not the bot at 20,20
+      assert.are.equal(1, history.dist_exact)
+    end)
+
+    it("does not estimate hauls in background mode", function()
+      local nwd = make_networkdata()
+      game.tick = 100
+      process_all(nwd, {
+        make_bot({ unit_number = 1, position = { x = 0, y = 0 },
+          orders = { deliver_order("iron-plate", 10, { target_pos = { x = 30, y = 40 } }) } }),
+      })
+      assert.is_nil(nwd.bot_active_deliveries[1].haul_dist)
+    end)
+
+    it("does not use a pickup of a different item", function()
+      local nwd = make_networkdata()
+      game.tick = 100
+      process_all_foreground(nwd, {
+        make_bot({ unit_number = 1, orders = { pickup_order("copper-plate", { target_pos = { x = 0, y = 0 } }) } }),
+      })
+      game.tick = 110
+      process_all_foreground(nwd, {
+        make_bot({ unit_number = 1, orders = { deliver_order("iron-plate", 10, { target_pos = { x = 30, y = 40 } }) } }),
+      })
+      game.tick = 120
+      process_all_foreground(nwd, { make_bot({ unit_number = 1 }) })
+
+      local history = nwd.delivery_history["iron-plate:normal"]
+      assert.are.equal(10, history.count)
+      assert.are.equal(0, history.dist_count)
+      assert.is_nil(nwd.bot_pickup_positions[1]) -- Consumed even though it didn't match
+    end)
+
+    it("still records count and ticks when the pickup was not observed", function()
+      local nwd = make_networkdata()
+      game.tick = 100
+      process_all_foreground(nwd, {
+        make_bot({ unit_number = 1, orders = { deliver_order("iron-plate", 10, { target_pos = { x = 1, y = 1 } }) } }),
+      })
+      game.tick = 200
+      process_all_foreground(nwd, {
+        make_bot({ unit_number = 1, orders = { deliver_order("iron-plate", 10, { target_pos = { x = 1, y = 1 } }) } }),
+      })
+      game.tick = 300
+      process_all_foreground(nwd, { make_bot({ unit_number = 1 }) })
+
+      local history = nwd.delivery_history["iron-plate:normal"]
+      assert.are.equal(10, history.count)
+      assert.are.equal(100, history.ticks)
+      assert.are.equal(1, history.deliveries) -- Counted, so the tooltip can show distance coverage
+      assert.are.equal(0, history.dist_count)
+      assert.are.equal(0, history.max_dist)
+    end)
+
+    it("ignores pickup orders without a target", function()
+      local nwd = make_networkdata()
+      game.tick = 100
+      process_all_foreground(nwd, {
+        make_bot({ unit_number = 1, orders = { pickup_order("iron-plate") } }),
+      })
+      assert.is_nil(nwd.bot_pickup_positions and nwd.bot_pickup_positions[1])
+    end)
+
+    it("does not record pickups in background mode", function()
+      local nwd = make_networkdata()
+      game.tick = 100
+      process_all(nwd, {
+        make_bot({ unit_number = 1, orders = { pickup_order("iron-plate", { target_pos = { x = 0, y = 0 } }) } }),
+      })
+      assert.is_nil(nwd.bot_pickup_positions and nwd.bot_pickup_positions[1])
+    end)
+
+    it("forgets a pickup when the bot is seen idle", function()
+      local nwd = make_networkdata()
+      game.tick = 100
+      process_all_foreground(nwd, {
+        make_bot({ unit_number = 1, orders = { pickup_order("iron-plate", { target_pos = { x = 0, y = 0 } }) } }),
+      })
+      assert.is_not_nil(nwd.bot_pickup_positions[1])
+
+      game.tick = 110
+      process_all_foreground(nwd, { make_bot({ unit_number = 1 }) })
+      assert.is_nil(nwd.bot_pickup_positions[1])
+    end)
+
+    it("reuses the pending record when the same pickup is seen again", function()
+      local nwd = make_networkdata()
+      local pickup = pickup_order("iron-plate", { target_pos = { x = 5, y = 5 } })
+      game.tick = 100
+      process_all_foreground(nwd, { make_bot({ unit_number = 1, orders = { pickup } }) })
+      local first = nwd.bot_pickup_positions[1]
+
+      game.tick = 107
+      process_all_foreground(nwd, { make_bot({ unit_number = 1, orders = { pickup } }) })
+      assert.are.equal(first, nwd.bot_pickup_positions[1])
+      assert.are.equal(107, first.seen)
+    end)
+
+    it("prunes pickups not refreshed since the last completed scan", function()
+      local nwd = make_networkdata()
+      game.tick = 100
+      process_all_foreground(nwd, {
+        make_bot({ unit_number = 1, orders = { pickup_order("iron-plate", { target_pos = { x = 0, y = 0 } }) } }),
+      })
+      assert.is_not_nil(nwd.bot_pickup_positions[1])
+
+      -- A later scan completes without seeing this bot picking up
+      nwd.last_scanned_tick = 150
+      game.tick = 200
+      process_all_foreground(nwd, {
+        make_bot({ unit_number = 2, orders = { pickup_order("iron-plate", { target_pos = { x = 9, y = 9 } }) } }),
+      })
+      assert.is_nil(nwd.bot_pickup_positions[1])
+      assert.is_not_nil(nwd.bot_pickup_positions[2])
     end)
   end)
 
