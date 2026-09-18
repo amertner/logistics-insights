@@ -73,7 +73,7 @@ end -- add
 --- @param title string The title/key for this row type
 --- @param all_entries table<string, DeliveryItem|DeliveredItems> All entries to sort and display
 --- @param sort_fn function(a, b): boolean Sorting function to determine order
---- @param number_field string The field name to display as number ("count", "ticks", "avg")
+--- @param number_field string The field name to display as number ("count", "ticks", "avg", "max_dist")
 --- @param clearing boolean Whether this update is due to clearing history
 --- @param show_click_tip LocalisedString|nil String to show if the cell is clickable
 --- @param generation number|nil Optional generation counter; skips update if unchanged since last call
@@ -101,6 +101,11 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
       local tenths = math_floor(entry.avg * 10 + 0.5)
       local ticks_formatted = math_floor(tenths / 10) .. "." .. (tenths % 10)
       tip = {"", {"item-row.avg-field-tooltip-1ticks-2count-3quality-4itemname", ticks_formatted, entry.count, localised.qname, localised.iname}}
+    elseif number_field == "max_dist" then
+      local estimated = entry.max_exact == false and {"item-row.haul-estimated-suffix"} or ""
+      tip = {"", {"item-row.maxdist-field-tooltip-1max-2estimated-3avg-4exact-5withdist-6quality-7itemname",
+        math_floor(entry.max_dist + 0.5), estimated, math_floor(entry.avg_dist + 0.5),
+        entry.dist_exact or 0, entry.dist_count, localised.qname, localised.iname}}
     elseif number_field == "shortage" then
       tip = {"", {"undersupply-row.shortage-tooltip-1shortage_2item_3quality_4requested_5storage_6underway",
         entry.shortage, localised.iname, localised.qname, entry.request, entry.supply, entry.under_way}}
@@ -174,7 +179,11 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
     if cell and cell.valid then
       cell.sprite = utils.get_valid_sprite_path("item/", entry.item_name)
       cell.quality = entry.quality_name or "normal"
-      cell.number = entry[number_field]
+      local number = entry[number_field]
+      if number_field == "max_dist" then
+        number = math_floor(number + 0.5) -- Whole tiles; fractions are noise on a slot button
+      end
+      cell.number = number
       cell.tooltip = getcelltooltip(entry)
       cell.enabled = true
       if show_click_tip then

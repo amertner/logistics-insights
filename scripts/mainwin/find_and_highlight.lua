@@ -444,6 +444,19 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
     return true
   end
 
+  -- Longest haul row item buttons: logistics-insights-haul/<index>
+  if rowname == "logistics-insights-haul" then
+    local iq = extract_item_quality()
+    if not iq then return false end
+    local networkdata = network_data.get_networkdata(player_table.network)
+    local entry = networkdata and networkdata.delivery_history[utils.get_item_quality_key(iq.name, iq.quality)]
+    if networkdata and entry and entry.max_from and entry.max_to then
+      ResultLocation.show_haul(player, networkdata.surface, entry.max_from, entry.max_to, entry.max_exact,
+        iq, entry.max_dist, is_right_click)
+    end
+    return true
+  end
+
   -- Suggestion buttons: logistics-insights-suggestion/<index>
   if rowname == "logistics-insights-suggestion" then
     local tags = element.tags

@@ -494,6 +494,14 @@ local li_migrations = {
     end
   end,
 
+  ["1.1.4"] = function()
+    -- Added longest haul history row, need to recreate UI
+    for player_index, player_table in pairs(storage.players) do
+      local player = game.get_player(player_index)
+      reinitialise_ui(player, player_table)
+    end
+  end,
+
 }
 
 -- Run all migrations newer than old_version, in ascending version order.

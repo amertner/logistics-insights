@@ -1,6 +1,7 @@
 -- This code is originally from FactorySearch v1.13.3
 -- In Logistics Insights, it's a reduced function used to highlight bots and entities on the map
 local math2d = require("math2d")
+local utils = require("scripts.utils")
 
 local add_vector = math2d.position.add
 local subtract_vector = math2d.position.subtract
@@ -153,12 +154,212 @@ function ResultLocation.highlight(player, data, draw)
   end
 end
 
+local HAUL_TEXT_COLOR = { r = 1, g = 1, b = 1, a = 1 }
+local ARROW_SIZE_TILES = 0.6 -- Size of direction arrows close in
+local ARROW_SPACING_TILES = 64 -- Close in, one arrow per chunk
+local ARROW_MAX_COUNT = 60 -- Spread arrows further apart on very long hauls
+local MAP_ARROW_COUNT = 5 -- Arrows along the line in map view
+
+--- The zoom level set by the player's highlight zoom setting
+---@param player LuaPlayer
+local function default_zoom(player)
+  return player.mod_settings["li-initial-zoom"].value * player.display_resolution.width / 1920
+end
+
+--- The entity at a position to outline, or a tile-sized box if there is none (or it's gone)
+---@param surface LuaSurface
+---@param pos MapPosition
+---@param look_for_entity boolean False if the position is not expected to be an entity
+local function haul_endpoint_marker(surface, pos, look_for_entity)
+  if look_for_entity then
+    for _, entity in pairs(surface.find_entities_filtered{ position = pos }) do
+      if entity.type ~= "logistic-robot" and entity.type ~= "construction-robot" then
+        return entity
+      end
+    end
+  end
+  return { selection_box = {
+    left_top = { x = pos.x - 0.5, y = pos.y - 0.5 },
+    right_bottom = { x = pos.x + 0.5, y = pos.y + 0.5 },
+  } }
+end
+
+local ICON_BACKGROUND_SPRITE = "utility/entity_info_dark_background" -- The backing used by alt-mode icons
+local ICON_BACKGROUND_SCALE = 0.6 -- 53 pixel sprite, about one tile
+local ICON_SCALE = 0.4 -- 64 pixel item icon, a bit smaller than its backing
+local QUALITY_ICON_SCALE = 0.2
+local QUALITY_ICON_OFFSET = { -0.25, 0.25 } -- Bottom left, as in the GUI
+
+--- Draw an item's icon on a dark backing at a position, like alt-mode, so it stands out from the ground
+---@param player LuaPlayer
+---@param surface_name string
+---@param pos MapPosition
+---@param item ItemQuality
+---@param time_to_live number
+local function draw_item_icon(player, surface_name, pos, item, time_to_live)
+  local sprites = {
+    { utils.get_valid_sprite_path("", ICON_BACKGROUND_SPRITE), ICON_BACKGROUND_SCALE },
+    { utils.get_valid_sprite_path("item/", item.name), ICON_SCALE },
+  }
+  if item.quality ~= "normal" then
+    sprites[3] = { utils.get_valid_sprite_path("quality/", item.quality), QUALITY_ICON_SCALE, QUALITY_ICON_OFFSET }
+  end
+  -- Later sprites draw on top of earlier ones
+  for _, sprite in ipairs(sprites) do
+    if sprite[1] ~= "" then
+      local offset = sprite[3] or { 0, 0 }
+      rendering.draw_sprite{
+        sprite = sprite[1],
+        x_scale = sprite[2],
+        y_scale = sprite[2],
+        target = { x = pos.x + offset[1], y = pos.y + offset[2] },
+        surface = surface_name,
+        time_to_live = time_to_live,
+        players = {player},
+        render_layer = "entity-info-icon",
+      }
+    end
+  end
+end
+
+--- Draw an arrowhead (two short lines) centred on a point, pointing along a unit vector
+---@param player LuaPlayer
+---@param surface_name string
+---@param centre MapPosition
+---@param dir {x: number, y: number} Unit vector the arrow points along
+---@param size number Arrow size in tiles
+---@param time_to_live number
+---@param render_mode ScriptRenderMode
+local function draw_arrowhead(player, surface_name, centre, dir, size, time_to_live, render_mode)
+  local half = size / 2
+  local tip = { x = centre.x + dir.x * half, y = centre.y + dir.y * half }
+  -- The two arms sweep back from the tip, one on each side of the line
+  for _, side in pairs({ 1, -1 }) do
+    rendering.draw_line{
+      color = LINE_COLOR,
+      width = LINE_WIDTH,
+      from = {
+        x = centre.x - dir.x * half - dir.y * half * side,
+        y = centre.y - dir.y * half + dir.x * half * side,
+      },
+      to = tip,
+      surface = surface_name,
+      time_to_live = time_to_live,
+      players = {player},
+      render_mode = render_mode,
+    }
+  end
+end
+
+--- Draw evenly spaced arrows along a haul, pointing from its start to its end
+---@param player LuaPlayer
+---@param surface_name string
+---@param from MapPosition
+---@param to MapPosition
+---@param time_to_live number
+local function draw_haul_arrows(player, surface_name, from, to, time_to_live)
+  local length = utils.distance(from, to)
+  if length < ARROW_SIZE_TILES * 2 then return end
+  local dir = { x = (to.x - from.x) / length, y = (to.y - from.y) / length }
+  local function along(dist)
+    return { x = from.x + dir.x * dist, y = from.y + dir.y * dist }
+  end
+
+  -- Close in: an arrow per chunk, or one in the middle of a shorter haul
+  local count = math.max(1, math.floor(length / math.max(ARROW_SPACING_TILES, length / ARROW_MAX_COUNT)))
+  for i = 1, count do
+    draw_arrowhead(player, surface_name, along((i - 0.5) * length / count), dir, ARROW_SIZE_TILES, time_to_live, "game")
+  end
+
+  -- Map view: a few arrows sized to the haul, visible when zoomed out to see all of it
+  local map_size = math.max(ARROW_SIZE_TILES, length / 60)
+  for i = 1, MAP_ARROW_COUNT do
+    draw_arrowhead(player, surface_name, along(i * length / (MAP_ARROW_COUNT + 1)), dir, map_size, time_to_live, "chart")
+  end
+end
+
+--- Show a haul on the map: outline both ends, join them with an arrowed line, label them,
+--- and move the player's view to one end
+---@param player LuaPlayer
+---@param surface_name string
+---@param from MapPosition Where the haul started
+---@param to MapPosition Where the haul ended
+---@param exact boolean True if `from` is the pickup chest, false if it's where the bot was first seen
+---@param item ItemQuality The item that was hauled, shown in the labels
+---@param dist number The haul distance in tiles
+---@param focus_on_start boolean True to go to where the haul started, false to go to the delivery end
+function ResultLocation.show_haul(player, surface_name, from, to, exact, item, dist, focus_on_start)
+  local surface = game.surfaces[surface_name]
+  if not surface then return end
+  ResultLocation.clear_markers(player)
+  local time_to_live = player.mod_settings["li-highlight-duration"].value * 60
+
+  ResultLocation.draw_markers(player, surface_name, {
+    haul_endpoint_marker(surface, from, exact),
+    haul_endpoint_marker(surface, to, true),
+  })
+
+  -- Show the item at both ends, so it's clear what the haul was once the window is out of sight.
+  -- Close in, a backed icon stands out from the ground; sprites don't scale with zoom, so in map
+  -- view the icon goes in the labels instead, which do
+  draw_item_icon(player, surface_name, from, item, time_to_live)
+  draw_item_icon(player, surface_name, to, item, time_to_live)
+  local label_icon = {
+    game = "",
+    chart = item.quality == "normal" and ("[item=" .. item.name .. "] ")
+      or ("[item=" .. item.name .. ",quality=" .. item.quality .. "] "),
+  }
+  local from_key = exact and "item-row.haul-from-label" or "item-row.haul-first-seen-label"
+  local tiles = math.floor(dist + 0.5)
+
+  -- Markers only show up close in, so draw the line and labels in map view too
+  for _, render_mode in pairs({ "game", "chart" }) do
+    local icon = label_icon[render_mode]
+    local from_label = { from_key, icon }
+    local to_label = { "item-row.haul-to-label", icon, tiles }
+    rendering.draw_line{
+      color = LINE_COLOR,
+      width = LINE_WIDTH,
+      from = from,
+      to = to,
+      surface = surface_name,
+      time_to_live = time_to_live,
+      players = {player},
+      render_mode = render_mode,
+    }
+    for _, label in pairs({ { from, from_label }, { to, to_label } }) do
+      rendering.draw_text{
+        text = label[2],
+        target = { x = label[1].x, y = label[1].y - 1 },
+        surface = surface_name,
+        color = HAUL_TEXT_COLOR,
+        scale = 1.5,
+        scale_with_zoom = true,
+        alignment = "center",
+        vertical_alignment = "bottom",
+        use_rich_text = true,
+        time_to_live = time_to_live,
+        players = {player},
+        render_mode = render_mode,
+      }
+    end
+  end
+  draw_haul_arrows(player, surface_name, from, to, time_to_live)
+
+  player.set_controller{
+    type = defines.controllers.remote,
+    position = focus_on_start and from or to,
+    surface = surface_name,
+  }
+  player.zoom = default_zoom(player)
+end
+
 ---@param player LuaPlayer
 ---@param results ResultLocationData
 function ResultLocation.open(player, results, change_position)
   local surface_name = results.surface
   local position = results.position
-  local zoom_level = player.mod_settings["li-initial-zoom"].value * player.display_resolution.width / 1920
+  local zoom_level = default_zoom(player)
 
   if change_position then
     player.set_controller{
