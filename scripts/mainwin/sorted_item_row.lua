@@ -97,9 +97,9 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
     elseif number_field == "ticks" then
       tip = {"", {"item-row.ticks-field-tooltip-1ticks-2count-3quality-4itemname", entry.ticks, entry.count, localised.qname, localised.iname}}
     elseif number_field == "avg" then
-      local int_part = math_floor(entry.avg)
-      local decimal_part = math_floor((entry.avg - int_part) * 10 + 0.5)
-      local ticks_formatted = int_part .. "." .. decimal_part
+      -- Round to tenths before splitting, so e.g. 4.97 carries to "5.0" rather than "4.10"
+      local tenths = math_floor(entry.avg * 10 + 0.5)
+      local ticks_formatted = math_floor(tenths / 10) .. "." .. (tenths % 10)
       tip = {"", {"item-row.avg-field-tooltip-1ticks-2count-3quality-4itemname", ticks_formatted, entry.count, localised.qname, localised.iname}}
     elseif number_field == "shortage" then
       tip = {"", {"undersupply-row.shortage-tooltip-1shortage_2item_3quality_4requested_5storage_6underway",
