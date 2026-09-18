@@ -103,9 +103,19 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
       tip = {"", {"item-row.avg-field-tooltip-1ticks-2count-3quality-4itemname", ticks_formatted, entry.count, localised.qname, localised.iname}}
     elseif number_field == "max_dist" then
       local estimated = entry.max_exact == false and {"item-row.haul-estimated-suffix"} or ""
-      tip = {"", {"item-row.maxdist-field-tooltip-1max-2estimated-3avg-4exact-5withdist-6quality-7itemname",
+      local exact = entry.dist_exact or 0
+      -- Only spell out measured vs estimated when the hauls are a mix of both
+      local coverage
+      if exact == entry.dist_count then
+        coverage = {"item-row.haul-count-1count", entry.dist_count}
+      elseif exact == 0 then
+        coverage = {"item-row.haul-all-estimated-1count", entry.dist_count}
+      else
+        coverage = {"item-row.haul-coverage-1exact-2count", exact, entry.dist_count}
+      end
+      tip = {"", {"item-row.maxdist-field-tooltip-1max-2estimated-3avg-4coverage-5quality-6itemname",
         math_floor(entry.max_dist + 0.5), estimated, math_floor(entry.avg_dist + 0.5),
-        entry.dist_exact or 0, entry.dist_count, localised.qname, localised.iname}}
+        coverage, localised.qname, localised.iname}}
     elseif number_field == "shortage" then
       tip = {"", {"undersupply-row.shortage-tooltip-1shortage_2item_3quality_4requested_5storage_6underway",
         entry.shortage, localised.iname, localised.qname, entry.request, entry.supply, entry.under_way}}

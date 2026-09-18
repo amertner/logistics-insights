@@ -155,6 +155,8 @@ function ResultLocation.highlight(player, data, draw)
 end
 
 local HAUL_TEXT_COLOR = { r = 1, g = 1, b = 1, a = 1 }
+local HAUL_LABEL_SCALE = 2 -- Large enough for the item icon in the label to stand out from the ground
+local HAUL_LABEL_GAP_TILES = 0.3 -- Between an end's outline and its label
 local ARROW_SIZE_TILES = 0.6 -- Size of direction arrows close in
 local ARROW_SPACING_TILES = 64 -- Close in, one arrow per chunk
 local ARROW_MAX_COUNT = 60 -- Spread arrows further apart on very long hauls
@@ -184,42 +186,20 @@ local function haul_endpoint_marker(surface, pos, look_for_entity)
   } }
 end
 
-local ICON_BACKGROUND_SPRITE = "utility/entity_info_dark_background" -- The backing used by alt-mode icons
-local ICON_BACKGROUND_SCALE = 0.6 -- 53 pixel sprite, about one tile
-local ICON_SCALE = 0.4 -- 64 pixel item icon, a bit smaller than its backing
-local QUALITY_ICON_SCALE = 0.2
-local QUALITY_ICON_OFFSET = { -0.25, 0.25 } -- Bottom left, as in the GUI
-
---- Draw an item's icon on a dark backing at a position, like alt-mode, so it stands out from the ground
----@param player LuaPlayer
----@param surface_name string
----@param pos MapPosition
----@param item ItemQuality
----@param time_to_live number
-local function draw_item_icon(player, surface_name, pos, item, time_to_live)
-  local sprites = {
-    { utils.get_valid_sprite_path("", ICON_BACKGROUND_SPRITE), ICON_BACKGROUND_SCALE },
-    { utils.get_valid_sprite_path("item/", item.name), ICON_SCALE },
-  }
-  if item.quality ~= "normal" then
-    sprites[3] = { utils.get_valid_sprite_path("quality/", item.quality), QUALITY_ICON_SCALE, QUALITY_ICON_OFFSET }
+--- Where to put a haul end's label: beside its outline, vertically centred, on the side away from
+--- the haul line so the line doesn't run through the label
+---@param marker {selection_box: BoundingBox} The outlined entity, or a tile-sized box
+---@param other_end MapPosition The other end of the haul
+---@return MapPosition anchor
+---@return TextAlign alignment
+local function haul_label_anchor(marker, other_end)
+  local box = marker.selection_box
+  local left, right = box.left_top.x, box.right_bottom.x
+  local y = (box.left_top.y + box.right_bottom.y) / 2
+  if other_end.x > (left + right) / 2 then
+    return { x = left - HAUL_LABEL_GAP_TILES, y = y }, "right"
   end
-  -- Later sprites draw on top of earlier ones
-  for _, sprite in ipairs(sprites) do
-    if sprite[1] ~= "" then
-      local offset = sprite[3] or { 0, 0 }
-      rendering.draw_sprite{
-        sprite = sprite[1],
-        x_scale = sprite[2],
-        y_scale = sprite[2],
-        target = { x = pos.x + offset[1], y = pos.y + offset[2] },
-        surface = surface_name,
-        time_to_live = time_to_live,
-        players = {player},
-        render_layer = "entity-info-icon",
-      }
-    end
-  end
+  return { x = right + HAUL_LABEL_GAP_TILES, y = y }, "left"
 end
 
 --- Draw an arrowhead (two short lines) centred on a point, pointing along a unit vector
@@ -294,29 +274,23 @@ function ResultLocation.show_haul(player, surface_name, from, to, exact, item, d
   ResultLocation.clear_markers(player)
   local time_to_live = player.mod_settings["li-highlight-duration"].value * 60
 
-  ResultLocation.draw_markers(player, surface_name, {
-    haul_endpoint_marker(surface, from, exact),
-    haul_endpoint_marker(surface, to, true),
-  })
+  local from_marker = haul_endpoint_marker(surface, from, exact)
+  local to_marker = haul_endpoint_marker(surface, to, true)
+  ResultLocation.draw_markers(player, surface_name, { from_marker, to_marker })
 
-  -- Show the item at both ends, so it's clear what the haul was once the window is out of sight.
-  -- Close in, a backed icon stands out from the ground; sprites don't scale with zoom, so in map
-  -- view the icon goes in the labels instead, which do
-  draw_item_icon(player, surface_name, from, item, time_to_live)
-  draw_item_icon(player, surface_name, to, item, time_to_live)
-  local label_icon = {
-    game = "",
-    chart = item.quality == "normal" and ("[item=" .. item.name .. "] ")
-      or ("[item=" .. item.name .. ",quality=" .. item.quality .. "] "),
+  -- Label both ends, naming the item with its icon so it's clear what the haul was once the
+  -- window is out of sight
+  local icon = item.quality == "normal" and ("[item=" .. item.name .. "]")
+    or ("[item=" .. item.name .. ",quality=" .. item.quality .. "]")
+  local labels = {
+    { marker = from_marker, other_end = to,
+      text = { exact and "item-row.haul-from-label" or "item-row.haul-first-seen-label", icon } },
+    { marker = to_marker, other_end = from,
+      text = { "item-row.haul-to-label", icon, math.floor(dist + 0.5) } },
   }
-  local from_key = exact and "item-row.haul-from-label" or "item-row.haul-first-seen-label"
-  local tiles = math.floor(dist + 0.5)
 
   -- Markers only show up close in, so draw the line and labels in map view too
   for _, render_mode in pairs({ "game", "chart" }) do
-    local icon = label_icon[render_mode]
-    local from_label = { from_key, icon }
-    local to_label = { "item-row.haul-to-label", icon, tiles }
     rendering.draw_line{
       color = LINE_COLOR,
       width = LINE_WIDTH,
@@ -327,16 +301,17 @@ function ResultLocation.show_haul(player, surface_name, from, to, exact, item, d
       players = {player},
       render_mode = render_mode,
     }
-    for _, label in pairs({ { from, from_label }, { to, to_label } }) do
+    for _, label in pairs(labels) do
+      local anchor, alignment = haul_label_anchor(label.marker, label.other_end)
       rendering.draw_text{
-        text = label[2],
-        target = { x = label[1].x, y = label[1].y - 1 },
+        text = label.text,
+        target = anchor,
         surface = surface_name,
         color = HAUL_TEXT_COLOR,
-        scale = 1.5,
+        scale = HAUL_LABEL_SCALE,
         scale_with_zoom = true,
-        alignment = "center",
-        vertical_alignment = "bottom",
+        alignment = alignment,
+        vertical_alignment = "middle",
         use_rich_text = true,
         time_to_live = time_to_live,
         players = {player},

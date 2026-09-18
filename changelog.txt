@@ -3,7 +3,7 @@ Version: 1.1.4
 Date: 2026-09-18
   Features:
     - New "Longest haul" history row, showing the items that bots carry furthest from pickup to delivery. The tooltip shows the average haul too. Long hauls were easy to miss before, because an item also delivered in bulk over short distances (e.g. to a mall) has a low average Ticks/item.
-    - Click an item in the Longest haul row to show that haul on the map at the delivery end, with both ends marked and joined by a line with direction arrows. Right-click to show it at the pickup end instead.
+    - Click an item in the Longest haul row to show that haul on the map at the delivery end, with both ends outlined, labelled with the item, and joined by a line with direction arrows. Right-click to show it at the pickup end instead.
     - When a bot's pickup is not observed, the haul is estimated from where the bot was first seen delivering. The tooltip shows how many hauls were measured and how many estimated.
   Bugfixes:
     - Ticks/item tooltips showed values like 4.97 as "4.10" instead of "5.0".
