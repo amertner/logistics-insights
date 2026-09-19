@@ -142,5 +142,17 @@ describe("utils", function()
       local result = utils.get_localised_names({ item_name = "unknown-thing", quality_name = "normal" })
       assert.are.equal("unknown-thing", result.iname)
     end)
+
+    it("looks names up again after clear_caches()", function()
+      _G.prototypes.item["copper-plate"] = { localised_name = "Copper plate" }
+      _G.prototypes.quality["normal"] = { localised_name = "Normal" }
+      local entry = { item_name = "copper-plate", quality_name = "normal" }
+      assert.are.equal("Copper plate", utils.get_localised_names(entry).iname)
+
+      -- A changed name is only picked up once the cache is cleared
+      _G.prototypes.item["copper-plate"] = { localised_name = "Kobberplade" }
+      utils.clear_caches()
+      assert.are.equal("Kobberplade", utils.get_localised_names(entry).iname)
+    end)
   end)
 end)

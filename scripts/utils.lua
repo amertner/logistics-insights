@@ -137,15 +137,16 @@ function utils.get_valid_sprite_path(prefix, name, fallback)
   return ""
 end
 
---- Clear the sprite path cache.
+-- Cache of localised name lookups to avoid repeated prototype C API calls.
+-- Declared before clear_caches(), which would otherwise clear a global of the same name instead.
+--- @type table<string, { iname: LocalisedString, qname: LocalisedString }>
+local localised_names_cache = {}
+
+--- Clear the sprite path and localised name caches.
 function utils.clear_caches()
   sprite_path_cache = {}
   localised_names_cache = {}
 end
-
--- Cache of localised name lookups to avoid repeated prototype C API calls.
---- @type table<string, { iname: LocalisedString, qname: LocalisedString }>
-local localised_names_cache = {}
 
 -- Get the localised item and quality names
 ---@param entry DeliveryItem|DeliveredItems|UndersupplyItem
