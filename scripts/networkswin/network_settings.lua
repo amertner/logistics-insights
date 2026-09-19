@@ -45,7 +45,7 @@ end
 ---@returns LuaGuiElement The revert button created
 local function add_label_with_revert_button(table, setting_name)
   local hflow = table.add{type="flow", direction="horizontal"}
-  local revert_button = hflow.add {type="sprite-button", style="mini_tool_button_red", sprite="utility/reset_white", tooltip={"network-settings.seting-has-default-value"}, 
+  local revert_button = hflow.add {type="sprite-button", style="mini_tool_button_red", sprite="utility/reset_white", tooltip={"network-settings.setting-has-default-value"}, 
     tags={name=setting_name, action="revert", pane=PANE_NAME}}
   revert_button.enabled = false
   revert_button.style.top_margin = 4

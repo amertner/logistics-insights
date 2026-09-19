@@ -7,6 +7,7 @@ Date: 2026-09-18
     - When a bot's pickup is not observed, the haul is estimated from where the bot was first seen delivering. The tooltip shows how many hauls were measured and how many estimated.
   Bugfixes:
     - Ticks/item tooltips showed values like 4.97 as "4.10" instead of "5.0".
+    - The reset buttons in the network settings could show a missing-text tooltip.
 ---------------------------------------------------------------------------------------------------
 Version: 1.1.3
 Date: 2026-06-24
