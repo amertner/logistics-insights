@@ -10,6 +10,7 @@ local game_state = require("scripts.game-state")
 local ResultLocation = require("scripts.result-location")
 local suggestions = require("scripts.suggestions")
 local events = require("scripts.events")
+local history_rows = require("scripts.mainwin.history_rows")
 
 ---@class ViewData
 ---@field items LuaEntity[]|nil List of entities to highlight
@@ -456,14 +457,31 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
       -- Left-click steps on to the next haul; right-click stays on the current one to show its
       -- pickup end. Start again from the longest once the previous highlight has expired
       local view = player_table.haul_view
+      -- Shown means still drawn: not expired, and not replaced by another highlight
+      local showing = view and view.key == key and hauls[view.index] and ResultLocation.is_shown(view.object_id)
       local index = 1
-      if view and view.key == key
-        and game.tick - view.tick <= player.mod_settings["li-highlight-duration"].value * 60 then
+      if showing and is_shift_click and not is_right_click then
+        -- Ignore the haul being shown: it's expected. Only ever what's on the map, never blind
+        local haul = hauls[view.index]
+        network_data.ignore_haul(networkdata, iq.name, iq.quality, haul.to_x, haul.to_y)
+        events.emit(events.on_ignorelist_changed, player.index)
+        player.create_local_flying_text{text = {"item-row.haul-ignored-flying-text"}, create_at_cursor = true}
+        if #hauls == 0 then
+          player_table.haul_view = nil
+          ResultLocation.clear_markers(player)
+          history_rows.update(player_table, false)
+          return true
+        end
+        -- The next haul has moved up into its place
+        index = math.min(view.index, #hauls)
+      elseif showing then
         index = is_right_click and view.index or view.index + 1
         if index > #hauls then index = 1 end
       end
-      player_table.haul_view = { key = key, index = index, tick = game.tick }
-      ResultLocation.show_hauls(player, networkdata.surface, hauls, index, iq, is_right_click)
+      local object_id = ResultLocation.show_hauls(player, networkdata.surface, hauls, index, iq, is_right_click)
+      player_table.haul_view = { key = key, index = index, object_id = object_id }
+      -- Update the row now, so its tooltip offers to ignore the haul just shown
+      history_rows.update(player_table, false)
     end
     return true
   end

@@ -32,11 +32,13 @@ local seen_bot_last_pass = 1
 --- Keep an item's longest hauls, longest first, with at most one per destination so a route
 --- that is used again and again doesn't fill the list
 --- @param history_order DeliveredItems
+--- @param item_key string The history key of the item
 --- @param dist number The haul distance
 --- @param from MapPosition Where the haul started
 --- @param to MapPosition Where the haul ended
 --- @param exact boolean True if `from` is the pickup chest rather than an estimate
-local function record_top_haul(history_order, dist, from, to, exact)
+--- @param ignored_hauls table<string, IgnoredHaul>|nil Hauls accepted as expected, which are not listed
+local function record_top_haul(history_order, item_key, dist, from, to, exact, ignored_hauls)
   local hauls = history_order.top_hauls
   if not hauls then
     hauls = {}
@@ -45,6 +47,7 @@ local function record_top_haul(history_order, dist, from, to, exact)
   local count = #hauls
   -- Most hauls are no longer than any already kept
   if count >= TOP_HAULS and dist <= hauls[count].dist then return end
+  if ignored_hauls and ignored_hauls[network_data.haul_ignore_key(item_key, to.x, to.y)] then return end
 
   for i = 1, count do
     local haul = hauls[i]
@@ -63,12 +66,14 @@ local function record_top_haul(history_order, dist, from, to, exact)
   end
   table.insert(hauls, pos, { dist = dist, from_x = from.x, from_y = from.y, to_x = to.x, to_y = to.y, exact = exact })
   hauls[TOP_HAULS + 1] = nil
+  history_order.top_dist = hauls[1].dist
 end
 
 --- Add a completed delivery order to the history storage
 --- @param delivery_history table<string, DeliveredItems> The delivery history storage table
 --- @param order BotDeliveringInFlight The completed order
-local function add_delivered_order_to_history(delivery_history, order)
+--- @param ignored_hauls table<string, IgnoredHaul>|nil Long hauls accepted as expected, which are not listed
+local function add_delivered_order_to_history(delivery_history, order, ignored_hauls)
   local key = utils.get_item_quality_key(order.item_name, order.quality_name)
   if not delivery_history[key] then
     -- It's the first time this item has been delivered
@@ -84,6 +89,8 @@ local function add_delivered_order_to_history(delivery_history, order)
       dist_sum = 0,
       avg_dist = 0,
       max_dist = 0,
+      top_dist = 0,
+      ignored_count = network_data.count_ignored_hauls(ignored_hauls, order.item_name, order.quality_name),
     }
   end
 
@@ -115,7 +122,7 @@ local function add_delivered_order_to_history(delivery_history, order)
       history_order.max_dist = haul_dist
     end
     -- Keep both ends of the longest hauls so they can be shown on the map
-    record_top_haul(history_order, haul_dist, order.haul_from, order.targetpos, order.haul_exact or false)
+    record_top_haul(history_order, key, haul_dist, order.haul_from, order.targetpos, order.haul_exact or false, ignored_hauls)
   end
 end
 
@@ -158,7 +165,7 @@ local function add_bot_to_active_deliveries(networkdata, unit_number, order, ite
     if botorder.targetpos and target_pos and
       (botorder.targetpos.x ~= target_pos.x or botorder.targetpos.y ~= target_pos.y) then
       -- New target position, so order has changed since last time
-      add_delivered_order_to_history(networkdata.delivery_history, botorder)
+      add_delivered_order_to_history(networkdata.delivery_history, botorder, networkdata.ignored_hauls)
       networkdata.delivery_history_gen = (networkdata.delivery_history_gen or 0) + 1
       networkdata.bot_active_deliveries[unit_number] = nil
     else
@@ -232,7 +239,7 @@ local function check_if_no_order_bot_finished_delivery(networkdata, unit_number,
   local delivered_order = networkdata.bot_active_deliveries[unit_number]
   if delivered_order then
     if show_history then
-      add_delivered_order_to_history(networkdata.delivery_history, delivered_order)
+      add_delivered_order_to_history(networkdata.delivery_history, delivered_order, networkdata.ignored_hauls)
       networkdata.delivery_history_gen = (networkdata.delivery_history_gen or 0) + 1
     end
 

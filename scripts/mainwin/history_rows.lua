@@ -5,18 +5,21 @@ local history_rows = {}
 
 local network_data = require("scripts.network-data")
 local sorted_item_row = require("scripts.mainwin.sorted_item_row")
+local ResultLocation = require("scripts.result-location")
+local utils = require("scripts.utils")
 
 local sort_by_count_desc = function(a, b) return a.count > b.count end
 local sort_by_avg_desc = function(a, b) return a.avg > b.avg end
-local sort_by_max_dist_desc = function(a, b) return a.max_dist > b.max_dist end
+local sort_by_top_dist_desc = function(a, b) return a.top_dist > b.top_dist end
 
---- Only items with a known haul distance belong in the longest haul row
+--- Only items with a haul to list belong in the longest haul row: one with a known distance,
+--- to a destination not on the ignore list
 --- @param delivery_history table<string, DeliveredItems>
 --- @return table<string, DeliveredItems>
 local function with_haul_distance(delivery_history)
   local entries = {}
   for key, entry in pairs(delivery_history) do
-    if (entry.max_dist or 0) > 0 then
+    if (entry.top_dist or 0) > 0 then
       entries[key] = entry
     end
   end
@@ -62,18 +65,28 @@ function history_rows.update(player_table, clearing)
         networkdata.delivery_history_gen
       )
 
-      -- Filtering allocates, so only do it when the history has changed since the row was drawn
-      local gen = networkdata.delivery_history_gen
+      -- Offer to ignore a haul only on the item whose haul is on the map
+      local view = player_table.haul_view
+      local shown_key = view and ResultLocation.is_shown(view.object_id) and view.key or ""
+      local function click_tip(entry)
+        if utils.get_item_quality_key(entry.item_name, entry.quality_name or "normal") == shown_key then
+          return {"", {"item-row.maxdist-click-tip"}, "\n", {"item-row.maxdist-ignore-tip"}}
+        end
+        return {"item-row.maxdist-click-tip"}
+      end
+
+      -- Filtering allocates, so only do it when the history, or which haul is shown, has changed
+      local gen = (networkdata.delivery_history_gen or 0) .. "|" .. shown_key
       local ui = player_table.ui["maxdist-row"]
-      if gen == nil or not ui or ui.last_gen ~= gen then
+      if not ui or ui.last_gen ~= gen then
         sorted_item_row.update(
           player_table,
           "maxdist-row",
           with_haul_distance(networkdata.delivery_history),
-          sort_by_max_dist_desc,
-          "max_dist",
+          sort_by_top_dist_desc,
+          "top_dist",
           clearing,
-          {"item-row.maxdist-click-tip"},
+          click_tip,
           gen
         )
       end

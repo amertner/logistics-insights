@@ -485,6 +485,98 @@ describe("bot_counter", function()
       assert.are.same({ 70, 70 }, { hauls[2].dist, hauls[2].to_x })
     end)
 
+    describe("ignored hauls", function()
+      local network_data
+      before_each(function()
+        network_data = require("scripts.network-data")
+      end)
+
+      local function dists(nwd)
+        local result = {}
+        for _, haul in ipairs(nwd.delivery_history["iron-plate:normal"].top_hauls) do
+          result[#result + 1] = haul.dist
+        end
+        return result
+      end
+
+      it("stops listing an ignored haul straight away, and the next one moves up", function()
+        local nwd = make_networkdata()
+        run_trip(nwd, 1, "iron-plate", 1, { x = 0, y = 0 }, { x = 600, y = 0 }, 100)
+        run_trip(nwd, 2, "iron-plate", 1, { x = 0, y = 0 }, { x = 400, y = 0 }, 200)
+        local gen = nwd.delivery_history_gen
+
+        network_data.ignore_haul(nwd, "iron-plate", "normal", 600, 0)
+
+        local history = nwd.delivery_history["iron-plate:normal"]
+        assert.are.same({ 400 }, dists(nwd))
+        assert.are.equal(400, history.top_dist)
+        assert.are.equal(1, history.ignored_count)
+        assert.is_true(nwd.delivery_history_gen > gen) -- So the row is redrawn
+        -- The statistics still include it
+        assert.are.equal(600, history.max_dist)
+        assert.are.equal(2, history.dist_count)
+      end)
+
+      it("doesn't list new hauls to an ignored destination, but counts them", function()
+        local nwd = make_networkdata()
+        run_trip(nwd, 1, "iron-plate", 1, { x = 0, y = 0 }, { x = 100, y = 0 }, 100)
+        network_data.ignore_haul(nwd, "iron-plate", "normal", 600, 0)
+        run_trip(nwd, 2, "iron-plate", 1, { x = 0, y = 0 }, { x = 600, y = 0 }, 200)
+
+        local history = nwd.delivery_history["iron-plate:normal"]
+        assert.are.same({ 100 }, dists(nwd))
+        assert.are.equal(600, history.max_dist)
+        assert.are.equal(2, history.dist_count)
+      end)
+
+      it("only ignores that item's hauls to that destination", function()
+        local nwd = make_networkdata()
+        network_data.ignore_haul(nwd, "iron-plate", "normal", 600, 0)
+        run_trip(nwd, 1, "copper-plate", 1, { x = 0, y = 0 }, { x = 600, y = 0 }, 100)
+        run_trip(nwd, 2, "iron-plate", 1, { x = 0, y = 0 }, { x = 600, y = 1 }, 200)
+
+        assert.are.equal(600, nwd.delivery_history["copper-plate:normal"].top_dist)
+        assert.are.equal(1, #nwd.delivery_history["iron-plate:normal"].top_hauls)
+      end)
+
+      it("counts ignores for an item first delivered after they were made", function()
+        local nwd = make_networkdata()
+        network_data.ignore_haul(nwd, "iron-plate", "normal", 600, 0)
+        network_data.ignore_haul(nwd, "iron-plate", "normal", 700, 0)
+        network_data.ignore_haul(nwd, "iron-plate", "normal", 700, 0) -- Already ignored
+        network_data.ignore_haul(nwd, "copper-plate", "normal", 600, 0)
+        run_trip(nwd, 1, "iron-plate", 1, { x = 0, y = 0 }, { x = 100, y = 0 }, 100)
+
+        assert.are.equal(2, nwd.delivery_history["iron-plate:normal"].ignored_count)
+        assert.are.equal(3, table_size(nwd.ignored_hauls))
+      end)
+
+      it("lists hauls again from their next delivery once un-ignored", function()
+        local nwd = make_networkdata()
+        run_trip(nwd, 1, "iron-plate", 1, { x = 0, y = 0 }, { x = 600, y = 0 }, 100)
+        network_data.ignore_haul(nwd, "iron-plate", "normal", 600, 0)
+        local key = network_data.haul_ignore_key("iron-plate:normal", 600, 0)
+
+        network_data.unignore_haul(nwd, key)
+        local history = nwd.delivery_history["iron-plate:normal"]
+        assert.are.equal(0, history.ignored_count)
+        assert.are.same({}, dists(nwd)) -- Past hauls aren't brought back
+
+        run_trip(nwd, 2, "iron-plate", 1, { x = 0, y = 0 }, { x = 600, y = 0 }, 200)
+        assert.are.same({ 600 }, dists(nwd))
+      end)
+
+      it("clears the whole list", function()
+        local nwd = make_networkdata()
+        run_trip(nwd, 1, "iron-plate", 1, { x = 0, y = 0 }, { x = 100, y = 0 }, 100)
+        network_data.ignore_haul(nwd, "iron-plate", "normal", 600, 0)
+        network_data.clear_ignored_hauls(nwd)
+
+        assert.are.equal(0, table_size(nwd.ignored_hauls))
+        assert.are.equal(0, nwd.delivery_history["iron-plate:normal"].ignored_count)
+      end)
+    end)
+
     it("estimates the haul from where the bot was first seen when the pickup was missed", function()
       local nwd = make_networkdata()
       game.tick = 100

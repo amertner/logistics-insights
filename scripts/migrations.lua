@@ -495,6 +495,11 @@ local li_migrations = {
   end,
 
   ["1.1.4"] = function()
+    -- Added the haul ignore list
+    for _, nwd in pairs(storage.networks or {}) do
+      nwd.ignored_hauls = nwd.ignored_hauls or {}
+      nwd.ignored_hauls_changed = game.tick
+    end
     -- Added longest haul history row, need to recreate UI
     for player_index, player_table in pairs(storage.players) do
       local player = game.get_player(player_index)

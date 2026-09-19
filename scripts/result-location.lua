@@ -34,9 +34,10 @@ end
 ---@param surface SurfaceName
 ---@param items LuaEntity[]
 ---@param color? Color Defaults to the usual highlight green
-function ResultLocation.draw_markers(player, surface, items, color)
+---@param time_to_live? number Ticks; defaults to the player's highlight duration
+function ResultLocation.draw_markers(player, surface, items, color, time_to_live)
   color = color or LINE_COLOR
-  local time_to_live = player.mod_settings["li-highlight-duration"].value * 60
+  time_to_live = time_to_live or player.mod_settings["li-highlight-duration"].value * 60
   -- Draw new markers
   for _, item in pairs(items) do
     local selection_box
@@ -164,6 +165,23 @@ local ARROW_SIZE_TILES = 0.6 -- Size of direction arrows close in
 local ARROW_SPACING_TILES = 64 -- Close in, one arrow per chunk
 local ARROW_MAX_COUNT = 60 -- Spread arrows further apart on very long hauls
 local MAP_ARROW_COUNT = 5 -- Arrows along the line in map view
+local HAUL_DURATION_FACTOR = 3 -- Hauls take longer to follow than other highlights take to look at
+
+--- How long hauls stay on the map, in ticks: longer than other highlights. 0 means forever
+---@param player LuaPlayer
+---@return number
+function ResultLocation.haul_time_to_live(player)
+  return player.mod_settings["li-highlight-duration"].value * 60 * HAUL_DURATION_FACTOR
+end
+
+--- Whether something drawn on the map is still there: it may have expired, or been cleared by
+--- another highlight
+---@param object_id uint64|nil
+---@return boolean
+function ResultLocation.is_shown(object_id)
+  local object = object_id and rendering.get_object_by_id(object_id)
+  return object ~= nil and object.valid
+end
 
 --- The zoom level set by the player's highlight zoom setting
 ---@param player LuaPlayer
@@ -299,11 +317,13 @@ end
 ---@param focus integer Which haul to highlight and move the view to
 ---@param item ItemQuality The item that was hauled, shown in the labels
 ---@param focus_on_start boolean True to go to where the haul started, false to go to the delivery end
+---@return uint64|nil focus_id Id of the highlighted haul's line, to tell whether it is still shown
 function ResultLocation.show_hauls(player, surface_name, hauls, focus, item, focus_on_start)
   local surface = game.surfaces[surface_name]
-  if not surface or not hauls[focus] then return end
+  if not surface or not hauls[focus] then return nil end
   ResultLocation.clear_markers(player)
-  local time_to_live = player.mod_settings["li-highlight-duration"].value * 60
+  local time_to_live = ResultLocation.haul_time_to_live(player)
+  local focus_id
   local icon = item.quality == "normal" and ("[item=" .. item.name .. "]")
     or ("[item=" .. item.name .. ",quality=" .. item.quality .. "]")
   local numbered = #hauls > 1
@@ -324,10 +344,10 @@ function ResultLocation.show_hauls(player, surface_name, hauls, focus, item, foc
 
     local from_marker = haul_endpoint_marker(surface, from, haul.exact)
     local to_marker = haul_endpoint_marker(surface, to, true)
-    ResultLocation.draw_markers(player, surface_name, { from_marker, to_marker }, color)
+    ResultLocation.draw_markers(player, surface_name, { from_marker, to_marker }, color, time_to_live)
     -- Markers only show up close in, so draw the line in map view too
     for _, render_mode in pairs({ "game", "chart" }) do
-      rendering.draw_line{
+      local line = rendering.draw_line{
         color = color,
         width = LINE_WIDTH,
         from = from,
@@ -337,6 +357,9 @@ function ResultLocation.show_hauls(player, surface_name, hauls, focus, item, foc
         players = {player},
         render_mode = render_mode,
       }
+      if is_focus and render_mode == "game" then
+        focus_id = line.id
+      end
     end
     draw_haul_arrows(player, surface_name, from, to, color, time_to_live)
 
@@ -366,6 +389,7 @@ function ResultLocation.show_hauls(player, surface_name, hauls, focus, item, foc
     surface = surface_name,
   }
   player.zoom = default_zoom(player)
+  return focus_id
 end
 
 ---@param player LuaPlayer

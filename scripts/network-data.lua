@@ -25,6 +25,8 @@ local utils = require("scripts.utils")
 ---@field ignored_storages_for_mismatch_changed number -- The tick when the filter ignore lists were last changed
 ---@field ignore_higher_quality_mismatches boolean -- Whether to ignore higher quality mismatches
 ---@field ignored_items_for_undersupply table<string, boolean> -- A list of "item name:quality" to ignore for undersupply suggestion
+---@field ignored_hauls table<string, IgnoredHaul>|nil -- Long hauls accepted as expected, so they are not listed. Key from network_data.haul_ignore_key
+---@field ignored_hauls_changed number|nil -- The tick when the haul ignore list was last changed
 ---@field ignore_buffer_chests_for_undersupply boolean -- True to ignore buffer chests when calculating undersupply
 ---@field ignore_low_storage_when_no_storage boolean -- True to ignore no storage when calculating suggestions
 ---@ -- Data capture fields
@@ -76,7 +78,9 @@ local utils = require("scripts.utils")
 ---@field dist_sum number -- Total haul distance in tiles over those deliveries
 ---@field avg_dist number -- Average haul distance per delivery, equal to dist_sum/dist_count
 ---@field max_dist number -- Longest haul distance seen for this item
----@field top_hauls? HaulRecord[] -- The longest hauls, longest first, at most one per destination
+---@field top_hauls? HaulRecord[] -- The longest hauls not on the ignore list, longest first, at most one per destination
+---@field top_dist? number -- Distance of the first of top_hauls, or 0 if there are none
+---@field ignored_count? number -- How many of this item's destinations are on the haul ignore list
 
 -- Record used to record items being delivered, before they are added to history
 ---@class BotDeliveringInFlight
@@ -98,6 +102,13 @@ local utils = require("scripts.utils")
 ---@field to_x number -- Where the haul was delivered
 ---@field to_y number
 ---@field exact boolean -- True if the start is the pickup chest rather than an estimate
+
+-- A long haul accepted as expected: hauls of this item to this destination are no longer listed
+---@class IgnoredHaul
+---@field item_name string
+---@field quality string
+---@field x number -- The destination
+---@field y number
 
 -- Record of where a bot is picking up, kept until its delivery starts
 ---@class PendingPickup
@@ -177,6 +188,8 @@ function network_data.create_networkdata(network)
       ignored_storages_for_mismatch_changed = game.tick,
       ignore_higher_quality_mismatches = false,
       ignored_items_for_undersupply = {},
+      ignored_hauls = {},
+      ignored_hauls_changed = game.tick,
       ignore_buffer_chests_for_undersupply = false,
       ignore_low_storage_when_no_storage = false,
       last_pass_bots_seen = {},
@@ -530,6 +543,103 @@ function network_data.add_item_to_ignorelist_for_undersupply(networkdata, iq)
   end
   -- The list is a table<string>, which allows O(1) lookups
   networkdata.ignored_items_for_undersupply[utils.get_ItemQuality_key(iq)] = true
+end
+
+--- The key for a haul on the ignore list: the item and its destination
+---@param item_key string From utils.get_item_quality_key
+---@param x number The destination
+---@param y number
+---@return string
+function network_data.haul_ignore_key(item_key, x, y)
+  return item_key .. "@" .. x .. "," .. y
+end
+
+--- Update the distance an item's Longest haul button shows, after its list of hauls changed
+---@param entry DeliveredItems|nil
+local function refresh_top_dist(entry)
+  if entry and entry.top_hauls then
+    entry.top_dist = entry.top_hauls[1] and entry.top_hauls[1].dist or 0
+  end
+end
+
+---@param networkdata LINetworkData
+---@param item_key string
+---@param delta number
+local function change_ignored_count(networkdata, item_key, delta)
+  local entry = networkdata.delivery_history[item_key]
+  if entry then
+    entry.ignored_count = math.max(0, (entry.ignored_count or 0) + delta)
+  end
+end
+
+---@param networkdata LINetworkData
+local function haul_ignore_list_changed(networkdata)
+  networkdata.ignored_hauls_changed = game.tick
+  networkdata.delivery_history_gen = (networkdata.delivery_history_gen or 0) + 1
+end
+
+--- Accept an item's hauls to a destination as expected, so they are no longer listed. The haul
+--- statistics (count, average, longest) still include them
+---@param networkdata LINetworkData
+---@param item_name string
+---@param quality string
+---@param x number The destination
+---@param y number
+function network_data.ignore_haul(networkdata, item_name, quality, x, y)
+  local item_key = utils.get_item_quality_key(item_name, quality)
+  local key = network_data.haul_ignore_key(item_key, x, y)
+  networkdata.ignored_hauls = networkdata.ignored_hauls or {}
+  if networkdata.ignored_hauls[key] then return end
+  networkdata.ignored_hauls[key] = { item_name = item_name, quality = quality, x = x, y = y }
+
+  -- Stop listing it straight away
+  local entry = networkdata.delivery_history[item_key]
+  if entry and entry.top_hauls then
+    for i = #entry.top_hauls, 1, -1 do
+      local haul = entry.top_hauls[i]
+      if haul.to_x == x and haul.to_y == y then
+        table.remove(entry.top_hauls, i)
+      end
+    end
+    refresh_top_dist(entry)
+  end
+  change_ignored_count(networkdata, item_key, 1)
+  haul_ignore_list_changed(networkdata)
+end
+
+--- Remove a haul from the ignore list. Its hauls are listed again from the next delivery on
+---@param networkdata LINetworkData
+---@param key string From network_data.haul_ignore_key
+function network_data.unignore_haul(networkdata, key)
+  local ignored = networkdata.ignored_hauls and networkdata.ignored_hauls[key]
+  if not ignored then return end
+  networkdata.ignored_hauls[key] = nil
+  change_ignored_count(networkdata, utils.get_item_quality_key(ignored.item_name, ignored.quality), -1)
+  haul_ignore_list_changed(networkdata)
+end
+
+---@param networkdata LINetworkData
+function network_data.clear_ignored_hauls(networkdata)
+  networkdata.ignored_hauls = {}
+  for _, entry in pairs(networkdata.delivery_history) do
+    entry.ignored_count = 0
+  end
+  haul_ignore_list_changed(networkdata)
+end
+
+--- How many of an item's destinations are on the haul ignore list
+---@param ignored_hauls table<string, IgnoredHaul>|nil
+---@param item_name string
+---@param quality string
+---@return number
+function network_data.count_ignored_hauls(ignored_hauls, item_name, quality)
+  local count = 0
+  for _, ignored in pairs(ignored_hauls or {}) do
+    if ignored.item_name == item_name and ignored.quality == quality then
+      count = count + 1
+    end
+  end
+  return count
 end
 
 -- Remove all data that should not be there as it's too old

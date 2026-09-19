@@ -73,10 +73,10 @@ end -- add
 --- @param title string The title/key for this row type
 --- @param all_entries table<string, DeliveryItem|DeliveredItems> All entries to sort and display
 --- @param sort_fn function(a, b): boolean Sorting function to determine order
---- @param number_field string The field name to display as number ("count", "ticks", "avg", "max_dist")
+--- @param number_field string The field name to display as number ("count", "ticks", "avg", "top_dist")
 --- @param clearing boolean Whether this update is due to clearing history
---- @param show_click_tip LocalisedString|nil String to show if the cell is clickable
---- @param generation number|nil Optional generation counter; skips update if unchanged since last call
+--- @param show_click_tip LocalisedString|fun(entry: table): LocalisedString|nil String to show if the cell is clickable, or a function giving each entry's string
+--- @param generation number|string|nil Optional generation counter; skips update if unchanged since last call
 function sorted_item_row.update(player_table, title, all_entries, sort_fn, number_field, clearing, show_click_tip, generation)
   -- Skip update if data generation hasn't changed since last render
   if generation and player_table.ui[title] then
@@ -101,7 +101,7 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
       local tenths = math_floor(entry.avg * 10 + 0.5)
       local ticks_formatted = math_floor(tenths / 10) .. "." .. (tenths % 10)
       tip = {"", {"item-row.avg-field-tooltip-1ticks-2count-3quality-4itemname", ticks_formatted, entry.count, localised.qname, localised.iname}}
-    elseif number_field == "max_dist" then
+    elseif number_field == "top_dist" then
       local hauls = entry.top_hauls or {}
       local estimated = hauls[1] and not hauls[1].exact and {"item-row.haul-estimated-suffix"} or ""
       -- List the longest hauls when there is more than one
@@ -123,16 +123,22 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
       else
         coverage = {"item-row.haul-coverage-1exact-2count", exact, entry.dist_count}
       end
-      tip = {"", {"item-row.maxdist-field-tooltip-1max-2estimated-3list-4avg-5coverage-6quality-7itemname",
-        math_floor(entry.max_dist + 0.5), estimated, list, math_floor(entry.avg_dist + 0.5),
-        coverage, localised.qname, localised.iname}}
+      -- The list leaves out ignored destinations; the statistics don't, so say which is which
+      local ignored = ""
+      if (entry.ignored_count or 0) > 0 then
+        ignored = {"", "\n", {"item-row.haul-ignored-1count", entry.ignored_count}}
+      end
+      tip = {"", {"item-row.maxdist-field-tooltip-1max-2estimated-3list-4avg-5coverage-6ignored-7quality-8itemname",
+        math_floor(entry.top_dist + 0.5), estimated, list, math_floor(entry.avg_dist + 0.5),
+        coverage, ignored, localised.qname, localised.iname}}
     elseif number_field == "shortage" then
       tip = {"", {"undersupply-row.shortage-tooltip-1shortage_2item_3quality_4requested_5storage_6underway",
         entry.shortage, localised.iname, localised.qname, entry.request, entry.supply, entry.under_way}}
     end
     if show_click_tip then
       -- Add a click tip if provided
-      tip = {"", tip, "\n", show_click_tip}
+      local click_tip = type(show_click_tip) == "function" and show_click_tip(entry) or show_click_tip
+      tip = {"", tip, "\n", click_tip}
     end
     return tip
   end
@@ -200,7 +206,7 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
       cell.sprite = utils.get_valid_sprite_path("item/", entry.item_name)
       cell.quality = entry.quality_name or "normal"
       local number = entry[number_field]
-      if number_field == "max_dist" then
+      if number_field == "top_dist" then
         number = math_floor(number + 0.5) -- Whole tiles; fractions are noise on a slot button
       end
       cell.number = number
