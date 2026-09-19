@@ -52,24 +52,33 @@ function utils.distance(a, b)
   return math_sqrt(dx * dx + dy * dy)
 end
 
-local SHORT_NUMBER_UNITS = { { size = 1e9, suffix = "G" }, { size = 1e6, suffix = "M" }, { size = 1e3, suffix = "k" } }
+local TILES_PER_KM = 1000 -- One tile is one metre
 
---- Format a number the way item buttons show it, e.g. 7.4k or 173k, rather than implying more
---- precision than a tooltip needs
---- @param n number
---- @return string
-function utils.format_short_number(n)
-  for _, unit in ipairs(SHORT_NUMBER_UNITS) do
-    -- Include values that round up to 1.0 of this unit, so 999,700 is 1.0M rather than 1000k
-    if n >= unit.size * 0.9995 then
-      local value = n / unit.size
-      if value < 9.95 then
-        return string.format("%.1f%s", value, unit.suffix)
-      end
-      return string.format("%.0f%s", value, unit.suffix)
+--- Format distances for display, in metres or kilometres with the unit shown once. One tile is
+--- one metre, so the numbers are the same as in tiles. The largest value picks the unit, so a
+--- list or a pair doesn't mix them
+--- @param tiles number[] One or more distances in tiles
+--- @param separator? string Between values, default ", "
+--- @return LocalisedString
+function utils.format_distances(tiles, separator)
+  local largest = 0
+  for _, value in ipairs(tiles) do
+    if value > largest then largest = value end
+  end
+  local formatted = {}
+  for i, value in ipairs(tiles) do
+    if largest >= TILES_PER_KM then
+      local km = value / TILES_PER_KM
+      formatted[i] = string.format(km < 9.95 and "%.1f" or "%.0f", km)
+    else
+      formatted[i] = tostring(math.floor(value + 0.5))
     end
   end
-  return tostring(math.floor(n + 0.5))
+  local joined = table.concat(formatted, separator or ", ")
+  if largest >= TILES_PER_KM then
+    return {"si-unit-kilometer", joined}
+  end
+  return {"si-unit-meter", joined}
 end
 
 --- Clear a table in place by removing all keys.

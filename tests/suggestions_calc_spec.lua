@@ -169,6 +169,95 @@ describe("suggestions_calc", function()
 
   -- ─── analyse_too_many_bots ──────────────────────────────────────
 
+  -- ─── analyse_long_hauls ─────────────────────────────────────────
+
+  describe("analyse_long_hauls()", function()
+    local network_data
+    local NOW = 100000
+    before_each(function()
+      network_data = require("scripts.network-data")
+      game.tick = NOW
+      _G.prototypes.quality["normal"] = { localised_name = "Normal" }
+      _G.helpers = { is_valid_sprite_path = function() return true end }
+    end)
+
+    --- An item's history: many short hauls (the median), plus its longest hauls
+    local function item(name, median_dist, hauls)
+      local entry = { item_name = name, quality_name = "normal", top_hauls = hauls }
+      for _ = 1, 50 do network_data.record_haul_distance(entry, median_dist) end
+      return entry
+    end
+    local function haul(dist, deliveries, ticks_ago)
+      return { dist = dist, from_x = 0, from_y = 0, to_x = dist, to_y = 0, exact = true,
+        deliveries = deliveries, last_tick = NOW - (ticks_ago or 0) }
+    end
+    local function analyse(history)
+      local s = make_suggestions(NOW)
+      suggestions_calc.analyse_long_hauls(s, { delivery_history = history })
+      return s, s:get_suggestions()[Suggestions.long_haul_key]
+    end
+
+    it("suggests a long haul made regularly, far beyond the item's typical haul", function()
+      local s, suggestion = analyse({ ["iron-plate:normal"] = item("iron-plate", 9, { haul(603, 5) }) })
+      assert.is_not_nil(suggestion)
+      assert.are.equal(603, suggestion.count)
+      assert.are.equal("low", suggestion.urgency)
+      assert.are.equal(Suggestions.long_haul_key, suggestion.clickname)
+      assert.are.same({ item_name = "iron-plate", quality = "normal", index = 1 }, s:get_cached_list(Suggestions.long_haul_key))
+    end)
+
+    it("ignores one-off hauls", function()
+      local _, suggestion = analyse({ ["iron-plate:normal"] = item("iron-plate", 9, { haul(603, 2) }) })
+      assert.is_nil(suggestion)
+    end)
+
+    it("ignores hauls not seen for a while, so it goes away once fixed", function()
+      local _, suggestion = analyse({ ["iron-plate:normal"] = item("iron-plate", 9, { haul(603, 5, 6 * 60 * 60) }) })
+      assert.is_nil(suggestion)
+    end)
+
+    it("ignores hauls that are typical for the item", function()
+      -- Everything goes to a far outpost: 603 is only twice the typical 300
+      local _, suggestion = analyse({ ["iron-plate:normal"] = item("iron-plate", 300, { haul(603, 5) }) })
+      assert.is_nil(suggestion)
+    end)
+
+    it("ignores hauls that aren't long in themselves", function()
+      local _, suggestion = analyse({ ["iron-plate:normal"] = item("iron-plate", 2, { haul(150, 5) }) })
+      assert.is_nil(suggestion)
+    end)
+
+    it("uses an item's longest haul that qualifies", function()
+      -- The longest was a one-off; the second is regular
+      local s, suggestion = analyse({ ["iron-plate:normal"] = item("iron-plate", 9, { haul(900, 1), haul(603, 5) }) })
+      assert.are.equal(603, suggestion.count)
+      assert.are.equal(2, s:get_cached_list(Suggestions.long_haul_key).index)
+    end)
+
+    it("features the worst item, and is red for very long hauls", function()
+      local s, suggestion = analyse({
+        ["iron-plate:normal"] = item("iron-plate", 9, { haul(603, 5) }),
+        ["copper-cable:normal"] = item("copper-cable", 20, { haul(1250, 3) }),
+      })
+      assert.are.equal(1250, suggestion.count)
+      assert.are.equal("high", suggestion.urgency)
+      assert.are.equal("copper-cable", s:get_cached_list(Suggestions.long_haul_key).item_name)
+      -- The other item is listed with its distance: {"", "\n", {"...-others", {"", icon, dist}}}
+      local list = suggestion.action[7][3][2]
+      assert.are.equal("[item=iron-plate] ", list[2])
+      assert.are.same({ "si-unit-meter", "603" }, list[3])
+    end)
+
+    it("ages out once nothing qualifies", function()
+      local s = make_suggestions(NOW)
+      local history = { ["iron-plate:normal"] = item("iron-plate", 9, { haul(603, 5) }) }
+      suggestions_calc.analyse_long_hauls(s, { delivery_history = history })
+      history["iron-plate:normal"].top_hauls = {}
+      suggestions_calc.analyse_long_hauls(s, { delivery_history = history })
+      assert.are.equal("aging", s:get_suggestions()[Suggestions.long_haul_key].urgency)
+    end)
+  end)
+
   describe("analyse_too_many_bots()", function()
     local function make_network(total, idle)
       return {

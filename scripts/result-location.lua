@@ -368,7 +368,7 @@ function ResultLocation.show_hauls(player, surface_name, hauls, focus, item, foc
     if is_focus then
       -- Name the item with its icon, so it's clear what the haul was once the window is out of sight
       from_text = { haul.exact and "item-row.haul-from-label" or "item-row.haul-first-seen-label", icon }
-      to_text = { "item-row.haul-to-label", icon, math.floor(haul.dist + 0.5) }
+      to_text = { "item-row.haul-to-label", icon, utils.format_distances({haul.dist}) }
       if number then
         from_text = { "", number, " ", from_text }
         to_text = { "", number, " ", to_text }

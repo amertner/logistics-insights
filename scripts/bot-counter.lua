@@ -30,41 +30,55 @@ local seen_bot_last_pass = 1
 --- @field current_tick number The game tick at the start of this chunk pass
 
 --- Keep an item's longest hauls, longest first, with at most one per destination so a route
---- that is used again and again doesn't fill the list
+--- that is used again and again doesn't fill the list. Hauls to a destination already listed
+--- are counted, so it's known which long hauls happen regularly
 --- @param history_order DeliveredItems
 --- @param item_key string The history key of the item
 --- @param dist number The haul distance
 --- @param from MapPosition Where the haul started
 --- @param to MapPosition Where the haul ended
 --- @param exact boolean True if `from` is the pickup chest rather than an estimate
+--- @param tick number When the haul was last seen
 --- @param ignored_hauls table<string, IgnoredHaul>|nil Hauls accepted as expected, which are not listed
-local function record_top_haul(history_order, item_key, dist, from, to, exact, ignored_hauls)
+local function record_top_haul(history_order, item_key, dist, from, to, exact, tick, ignored_hauls)
   local hauls = history_order.top_hauls
   if not hauls then
     hauls = {}
     history_order.top_hauls = hauls
   end
   local count = #hauls
-  -- Most hauls are no longer than any already kept
-  if count >= TOP_HAULS and dist <= hauls[count].dist then return end
-  if ignored_hauls and ignored_hauls[network_data.haul_ignore_key(item_key, to.x, to.y)] then return end
 
+  -- Same destination as one already listed: count it, and keep whichever haul is longer.
+  -- Checked first, as a repeat of the shortest haul listed would otherwise be turned away below
   for i = 1, count do
     local haul = hauls[i]
     if haul.to_x == to.x and haul.to_y == to.y then
-      -- Same destination: keep whichever haul is longer
-      if dist <= haul.dist then return end
-      table.remove(hauls, i)
-      count = count - 1
-      break
+      haul.deliveries = (haul.deliveries or 1) + 1
+      haul.last_tick = tick
+      if dist > haul.dist then
+        haul.dist, haul.from_x, haul.from_y, haul.exact = dist, from.x, from.y, exact
+        -- Now longer, it may need to move up the list
+        local pos = i
+        while pos > 1 and hauls[pos - 1].dist < dist do
+          hauls[pos], hauls[pos - 1] = hauls[pos - 1], hauls[pos]
+          pos = pos - 1
+        end
+        history_order.top_dist = hauls[1].dist
+      end
+      return
     end
   end
+
+  -- Most hauls are no longer than any already kept
+  if count >= TOP_HAULS and dist <= hauls[count].dist then return end
+  if ignored_hauls and ignored_hauls[network_data.haul_ignore_key(item_key, to.x, to.y)] then return end
 
   local pos = count + 1
   while pos > 1 and hauls[pos - 1].dist < dist do
     pos = pos - 1
   end
-  table.insert(hauls, pos, { dist = dist, from_x = from.x, from_y = from.y, to_x = to.x, to_y = to.y, exact = exact })
+  table.insert(hauls, pos, { dist = dist, from_x = from.x, from_y = from.y, to_x = to.x, to_y = to.y,
+    exact = exact, deliveries = 1, last_tick = tick })
   hauls[TOP_HAULS + 1] = nil
   history_order.top_dist = hauls[1].dist
 end
@@ -115,7 +129,8 @@ local function add_delivered_order_to_history(delivery_history, order, ignored_h
       history_order.max_dist = haul_dist
     end
     -- Keep both ends of the longest hauls so they can be shown on the map
-    record_top_haul(history_order, key, haul_dist, order.haul_from, order.targetpos, order.haul_exact or false, ignored_hauls)
+    record_top_haul(history_order, key, haul_dist, order.haul_from, order.targetpos, order.haul_exact or false,
+      order.last_seen, ignored_hauls)
   end
 end
 

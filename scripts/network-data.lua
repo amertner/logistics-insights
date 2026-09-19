@@ -105,6 +105,8 @@ local utils = require("scripts.utils")
 ---@field to_x number -- Where the haul was delivered
 ---@field to_y number
 ---@field exact boolean -- True if the start is the pickup chest rather than an estimate
+---@field deliveries? number -- How many hauls of this item went to this destination while it was listed
+---@field last_tick? number -- When a haul to this destination was last seen
 
 -- A long haul accepted as expected: hauls of this item to this destination are no longer listed
 ---@class IgnoredHaul

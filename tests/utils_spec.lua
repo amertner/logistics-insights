@@ -49,16 +49,20 @@ describe("utils", function()
     end)
   end)
 
-  describe("format_short_number()", function()
-    it("formats numbers the way item buttons show them", function()
-      local cases = {
-        { 0, "0" }, { 7.4, "7" }, { 999, "999" },
-        { 999.6, "1.0k" }, { 7412, "7.4k" }, { 9949, "9.9k" }, { 9950, "10k" }, { 173124, "173k" },
-        { 999700, "1.0M" }, { 1234567, "1.2M" }, { 45600000, "46M" }, { 2.5e9, "2.5G" },
-      }
-      for _, case in ipairs(cases) do
-        assert.are.equal(case[2], utils.format_short_number(case[1]), "for " .. case[1])
-      end
+  describe("format_distances()", function()
+    it("uses metres, and kilometres for long distances", function()
+      assert.are.same({ "si-unit-meter", "0" }, utils.format_distances({ 0 }))
+      assert.are.same({ "si-unit-meter", "603" }, utils.format_distances({ 602.6 }))
+      assert.are.same({ "si-unit-meter", "999" }, utils.format_distances({ 999 }))
+      assert.are.same({ "si-unit-kilometer", "1.3" }, utils.format_distances({ 1251 }))
+      assert.are.same({ "si-unit-kilometer", "173" }, utils.format_distances({ 173124 }))
+    end)
+
+    it("shows one unit for several distances, chosen by the largest", function()
+      assert.are.same({ "si-unit-meter", "850/620" }, utils.format_distances({ 850, 620 }, "/"))
+      -- A short distance alongside a long one is shown in kilometres too, not mixed units
+      assert.are.same({ "si-unit-kilometer", "2.0/0.1" }, utils.format_distances({ 1980, 62 }, "/"))
+      assert.are.same({ "si-unit-meter", "603, 410, 220" }, utils.format_distances({ 603, 410, 220 }))
     end)
   end)
 

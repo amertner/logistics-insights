@@ -19,12 +19,12 @@ local TAGS_EMPTY = {}
 --- @param entry DeliveredItems
 --- @return LocalisedString
 local function haul_average_line(entry)
-  local average = math_floor(entry.avg_dist + 0.5)
   local median = network_data.median_haul(entry)
   if median then
-    return {"item-row.haul-average-median-1avg-2median", average, math_floor(median + 0.5)}
+    return {"item-row.haul-average-median-1avg", utils.format_distances({entry.avg_dist, median}, "/")}
   end
-  return {"item-row.haul-average-1avg", average} -- History from before the median was tracked
+  -- History from before the median was tracked
+  return {"item-row.haul-average-1avg", utils.format_distances({entry.avg_dist})}
 end
 
 --- Add a sorted item row (deliveries, totals, distance carried or longest haul) to the GUI
@@ -109,7 +109,7 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
       tip = {"", {"item-row.count-field-tooltip-1count-2quality-3itemname", entry.count, localised.qname, localised.iname}}
     elseif number_field == "dist_sum" then
       tip = {"", {"item-row.distance-field-tooltip-1quality-2itemname-3total-4hauls-5average",
-        localised.qname, localised.iname, utils.format_short_number(entry.dist_sum), entry.dist_count,
+        localised.qname, localised.iname, utils.format_distances({entry.dist_sum}), entry.dist_count,
         haul_average_line(entry)}}
     elseif number_field == "top_dist" then
       local hauls = entry.top_hauls or {}
@@ -119,9 +119,9 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
       if #hauls > 1 then
         local dists = {}
         for i, haul in ipairs(hauls) do
-          dists[i] = math_floor(haul.dist + 0.5)
+          dists[i] = haul.dist
         end
-        list = {"", "\n", {"item-row.haul-list-1dists", table.concat(dists, ", ")}}
+        list = {"", "\n", {"item-row.haul-list-1dists", utils.format_distances(dists)}}
       end
       local exact = entry.dist_exact or 0
       -- Only spell out measured vs estimated when the hauls are a mix of both
@@ -139,7 +139,7 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
         ignored = {"", "\n", {"item-row.haul-ignored-1count", entry.ignored_count}}
       end
       tip = {"", {"item-row.maxdist-field-tooltip-1max-2estimated-3list-4average-5coverage-6ignored-7quality-8itemname",
-        math_floor(entry.top_dist + 0.5), estimated, list, haul_average_line(entry),
+        utils.format_distances({entry.top_dist}), estimated, list, haul_average_line(entry),
         coverage, ignored, localised.qname, localised.iname}}
     elseif number_field == "shortage" then
       tip = {"", {"undersupply-row.shortage-tooltip-1shortage_2item_3quality_4requested_5storage_6underway",

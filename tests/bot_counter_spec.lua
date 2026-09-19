@@ -427,9 +427,10 @@ describe("bot_counter", function()
       assert.are.equal(603, history.max_dist)
       -- Both ends of the longest hauls are kept so they can be shown on the map. The four mall
       -- trips all went to the same chest, so only one of them is kept
+      -- The mall chest's deliveries are counted, and when it was last delivered to is kept
       assert.are.same({
-        { dist = 603, from_x = 0, from_y = 0, to_x = 603, to_y = 0, exact = true },
-        { dist = 3, from_x = 0, from_y = 0, to_x = 3, to_y = 0, exact = true },
+        { dist = 603, from_x = 0, from_y = 0, to_x = 603, to_y = 0, exact = true, deliveries = 1, last_tick = 1010 },
+        { dist = 3, from_x = 0, from_y = 0, to_x = 3, to_y = 0, exact = true, deliveries = 4, last_tick = 410 },
       }, history.top_hauls)
     end)
 
@@ -441,6 +442,29 @@ describe("bot_counter", function()
       end
       local median = require("scripts.network-data").median_haul(nwd.delivery_history["iron-plate:normal"])
       assert.is_true(math.abs(median - 600) / 600 < 0.1, "median estimate " .. median)
+    end)
+
+    it("counts repeat hauls to a destination, even when it's the shortest one listed", function()
+      local nwd = make_networkdata()
+      for i = 1, 5 do -- Fill the list: 100 ... 500 tiles
+        run_trip(nwd, i, "iron-plate", 1, { x = 0, y = 0 }, { x = i * 100, y = 0 }, 100 * i)
+      end
+      run_trip(nwd, 6, "iron-plate", 1, { x = 0, y = 0 }, { x = 100, y = 0 }, 1000) -- Repeat of the shortest
+
+      local hauls = nwd.delivery_history["iron-plate:normal"].top_hauls
+      assert.are.same({ 100, 2, 1010 }, { hauls[5].dist, hauls[5].deliveries, hauls[5].last_tick })
+    end)
+
+    it("moves a destination up the list when a longer haul goes there", function()
+      local nwd = make_networkdata()
+      run_trip(nwd, 1, "iron-plate", 1, { x = 0, y = 0 }, { x = 300, y = 0 }, 100)   -- 300
+      run_trip(nwd, 2, "iron-plate", 1, { x = 200, y = 0 }, { x = 400, y = 0 }, 200) -- 200
+      run_trip(nwd, 3, "iron-plate", 1, { x = 0, y = 0 }, { x = 400, y = 0 }, 300)   -- 400: same chest, longer
+
+      local history = nwd.delivery_history["iron-plate:normal"]
+      assert.are.same({ 400, 2 }, { history.top_hauls[1].dist, history.top_hauls[1].deliveries })
+      assert.are.equal(300, history.top_hauls[2].dist)
+      assert.are.equal(400, history.top_dist)
     end)
 
     it("keeps the five longest hauls, longest first", function()

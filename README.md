@@ -43,6 +43,7 @@ There are several types of suggestions, depending on what is happening in your n
 - **Build more unfiltered storage.** Filtered storage is great, but you may be running out of storage that isn't filtered. LI uses same thresholds as for total storage here.
 - **Filtered storage mismatch.** If your filtered storage has items that don't match the filter, LI suggests you fix it. You can click/right-click on the suggestion to see which chests show the problem, which is otherwise hard to find.
 - **Too few bots**. Sometimes, you just don't have enough bots to do everything, and you might get this suggestion.
+- **Items carried unusually far.** If bots regularly carry an item much further than they usually do, e.g. to an outpost when the item mostly goes to a nearby mall, LI suggests a supply closer to that destination, or a belt or train. Click the suggestion to see the haul on the map. If the long haul is expected, Shift+click to exclude it. This suggestion uses the delivery history, so it only appears for networks you have viewed with the History rows shown.
 
 Note that "fullness" of storage is measured by stacks, so you may have more storage available than LI suggests as it only looks for empty stacks.
 
@@ -54,7 +55,7 @@ Before a base reaches megabase level, keep the Networks window open to keep an e
 
 - If there is some item that's being transported unnecessarily (i.e. it shows up early in the Totals list), perhaps could belt that item instead. For example, in one case I found that my bots were transporting iron ore 90% of the time, filling up my storage chests, all because I accidentally put ore in an active provider chest.
 - Distance carried shows which items take up most of your bots' work: the total distance bots have flown carrying each one. The items at the top are the best candidates for belts or trains, or for a source closer to where they're needed.
-- Longest haul shows the items that bots carry furthest in a single trip. A long haul can be hidden among many short ones, e.g. iron plates carried a few tiles to a mall and occasionally hundreds of tiles to an outpost, so look for items with an average haul much higher than the median.
+- Longest haul shows the items that bots carry furthest in a single trip. A long haul can be hidden among many short ones, e.g. iron plates carried a few metres to a mall and occasionally hundreds of metres to an outpost, so look for items with an average haul much higher than the median. Distances are shown in metres and kilometres; one tile is one metre.
 - Click an item in Longest haul to show the destinations of its 5 longest hauls on the map, one at a time, and right-click to show where the haul being shown starts. If a long haul is expected, Shift+click to exclude it; excluded hauls can be managed in the network settings.
 - If you don't need the History, Undersupply or Suggestions, change the setting to remove those rows entirely.
 
