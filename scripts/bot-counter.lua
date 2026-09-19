@@ -14,7 +14,7 @@ local distance = utils.distance
 local defines_robot_order_type_deliver = defines.robot_order_type.deliver
 local defines_robot_order_type_pickup = defines.robot_order_type.pickup
 local seen_bot_this_pass = 2
-local TOP_HAULS = 5 -- How many of each item's longest hauls to keep
+local TOP_HAULS = network_data.TOP_HAULS
 local seen_bot_last_pass = 1
 
 --- @class Accumulator -- Used by the chunker to accumulate data over multiple passes
@@ -81,8 +81,6 @@ local function add_delivered_order_to_history(delivery_history, order, ignored_h
       item_name = order.item_name,
       quality_name = order.quality_name,
       count = 0,
-      ticks = 0,
-      avg = 0,
       deliveries = 0,
       dist_count = 0,
       dist_exact = 0,
@@ -98,12 +96,6 @@ local function add_delivered_order_to_history(delivery_history, order, ignored_h
   local order_count = order.count
   history_order.count = (history_order.count or 0) + order_count
 
-  local ticks = order.last_seen - order.first_seen
-  if ticks < 1 then ticks = 1 end
-
-  -- Update history stats
-  history_order.ticks = (history_order.ticks or 0) + ticks
-  history_order.avg = history_order.ticks / history_order.count
   history_order.deliveries = (history_order.deliveries or 0) + 1
 
   -- Distance is averaged per delivery, not per item, so bulk short hauls can't drown out long ones.
@@ -118,6 +110,7 @@ local function add_delivered_order_to_history(delivery_history, order, ignored_h
     if order.haul_exact then
       history_order.dist_exact = (history_order.dist_exact or 0) + 1
     end
+    network_data.record_haul_distance(history_order, haul_dist)
     if haul_dist > (history_order.max_dist or 0) then
       history_order.max_dist = haul_dist
     end
@@ -194,7 +187,6 @@ local function add_bot_to_active_deliveries(networkdata, unit_number, order, ite
       item_name = item_name,
       quality_name = quality,
       count = count,
-      first_seen = current_tick,
       last_seen = current_tick,
       targetpos = target_pos,
       haul_dist = haul_dist,

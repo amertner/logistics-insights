@@ -1,5 +1,5 @@
 -- History rows functionality for the logistics insights GUI
--- Handles historical delivery data display (totals, average ticks and longest haul)
+-- Handles historical delivery data display (totals, distance carried and longest haul)
 
 local history_rows = {}
 
@@ -9,8 +9,21 @@ local ResultLocation = require("scripts.result-location")
 local utils = require("scripts.utils")
 
 local sort_by_count_desc = function(a, b) return a.count > b.count end
-local sort_by_avg_desc = function(a, b) return a.avg > b.avg end
+local sort_by_dist_sum_desc = function(a, b) return a.dist_sum > b.dist_sum end
 local sort_by_top_dist_desc = function(a, b) return a.top_dist > b.top_dist end
+
+--- Only items with a known haul distance belong in the distance carried row
+--- @param delivery_history table<string, DeliveredItems>
+--- @return table<string, DeliveredItems>
+local function with_distance_carried(delivery_history)
+  local entries = {}
+  for key, entry in pairs(delivery_history) do
+    if (entry.dist_sum or 0) > 0 then
+      entries[key] = entry
+    end
+  end
+  return entries
+end
 
 --- Only items with a haul to list belong in the longest haul row: one with a known distance,
 --- to a destination not on the ignore list
@@ -26,13 +39,13 @@ local function with_haul_distance(delivery_history)
   return entries
 end
 
---- Add history rows to the GUI (totals, average ticks and longest haul)
+--- Add history rows to the GUI (totals, distance carried and longest haul)
 --- @param player_table PlayerData The player's data table
 --- @param gui_table LuaGuiElement The GUI table to add the rows to
 function history_rows.add(player_table, gui_table)
   if player_table.settings.show_history then
     sorted_item_row.add(player_table, gui_table, "totals-row", "clear", false)
-    sorted_item_row.add(player_table, gui_table, "avgticks-row", "ticks", false)
+    sorted_item_row.add(player_table, gui_table, "distance-row", "distance", false)
     sorted_item_row.add(player_table, gui_table, "maxdist-row", "haul", false)
     return 3
   end
@@ -54,25 +67,30 @@ function history_rows.update(player_table, clearing)
         networkdata.delivery_history_gen
       )
 
-      sorted_item_row.update(
-        player_table,
-        "avgticks-row",
-        networkdata.delivery_history,
-        sort_by_avg_desc,
-        "avg",
-        clearing,
-        nil,
-        networkdata.delivery_history_gen
-      )
+      -- Filtering allocates, so only do it when the history has changed since the row was drawn
+      local distance_ui = player_table.ui["distance-row"]
+      if not distance_ui or distance_ui.last_gen ~= networkdata.delivery_history_gen then
+        sorted_item_row.update(
+          player_table,
+          "distance-row",
+          with_distance_carried(networkdata.delivery_history),
+          sort_by_dist_sum_desc,
+          "dist_sum",
+          clearing,
+          nil,
+          networkdata.delivery_history_gen
+        )
+      end
 
       -- Offer to ignore a haul only on the item whose haul is on the map
       local view = player_table.haul_view
       local shown_key = view and ResultLocation.is_shown(view.object_id) and view.key or ""
+      local tip = {"item-row.maxdist-click-tip-1count", network_data.TOP_HAULS}
       local function click_tip(entry)
         if utils.get_item_quality_key(entry.item_name, entry.quality_name or "normal") == shown_key then
-          return {"", {"item-row.maxdist-click-tip"}, "\n", {"item-row.maxdist-ignore-tip"}}
+          return {"", tip, "\n", {"item-row.maxdist-ignore-tip"}}
         end
-        return {"item-row.maxdist-click-tip"}
+        return tip
       end
 
       -- Filtering allocates, so only do it when the history, or which haul is shown, has changed
@@ -92,7 +110,7 @@ function history_rows.update(player_table, clearing)
       end
     else
       sorted_item_row.clear_cells(player_table, "totals-row")
-      sorted_item_row.clear_cells(player_table, "avgticks-row")
+      sorted_item_row.clear_cells(player_table, "distance-row")
       sorted_item_row.clear_cells(player_table, "maxdist-row")
     end
   end

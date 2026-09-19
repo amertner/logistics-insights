@@ -52,6 +52,26 @@ function utils.distance(a, b)
   return math_sqrt(dx * dx + dy * dy)
 end
 
+local SHORT_NUMBER_UNITS = { { size = 1e9, suffix = "G" }, { size = 1e6, suffix = "M" }, { size = 1e3, suffix = "k" } }
+
+--- Format a number the way item buttons show it, e.g. 7.4k or 173k, rather than implying more
+--- precision than a tooltip needs
+--- @param n number
+--- @return string
+function utils.format_short_number(n)
+  for _, unit in ipairs(SHORT_NUMBER_UNITS) do
+    -- Include values that round up to 1.0 of this unit, so 999,700 is 1.0M rather than 1000k
+    if n >= unit.size * 0.9995 then
+      local value = n / unit.size
+      if value < 9.95 then
+        return string.format("%.1f%s", value, unit.suffix)
+      end
+      return string.format("%.0f%s", value, unit.suffix)
+    end
+  end
+  return tostring(math.floor(n + 0.5))
+end
+
 --- Clear a table in place by removing all keys.
 --- @param t table
 function utils.table_clear(t)

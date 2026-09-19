@@ -500,6 +500,17 @@ local li_migrations = {
       nwd.ignored_hauls = nwd.ignored_hauls or {}
       nwd.ignored_hauls_changed = game.tick
     end
+    -- Ticks/item was replaced by distance carried, so trip times are no longer kept
+    for _, nwd in pairs(storage.networks or {}) do
+      for _, entry in pairs(nwd.delivery_history or {}) do
+        ---@diagnostic disable-next-line: inject-field
+        entry.ticks, entry.avg = nil, nil
+      end
+      for _, order in pairs(nwd.bot_active_deliveries or {}) do
+        ---@diagnostic disable-next-line: inject-field
+        order.first_seen = nil
+      end
+    end
     -- Added longest haul history row, need to recreate UI
     for player_index, player_table in pairs(storage.players) do
       local player = game.get_player(player_index)

@@ -1,6 +1,11 @@
 --- Manage storage of network data analysed by LI
 local network_data = {}
 
+network_data.TOP_HAULS = 5 -- How many of each item's longest hauls are kept and shown
+-- Haul distances are counted in buckets on a log scale, to estimate the median: bucket i holds
+-- hauls from 2^(i/N) to 2^((i+1)/N) tiles. 4 per doubling puts the estimate within a few percent
+local HAUL_BUCKETS_PER_DOUBLING = 4
+
 local suggestions = require("scripts.suggestions")
 local chunker = require("scripts.chunker")
 local tick_counter = require("scripts.tick-counter")
@@ -70,14 +75,13 @@ local utils = require("scripts.utils")
 ---@field item_name string -- The name of the item being delivered
 ---@field quality_name? string -- The quality of the item, if applicable
 ---@field count number -- How many of this item have been delivered
----@field ticks number -- Total ticks for all deliveries of this item
----@field avg number -- Average ticks per item delivered, equal to ticks/count
 ---@field deliveries number -- Number of deliveries of this item
 ---@field dist_count number -- Number of deliveries with a haul distance, measured or estimated
 ---@field dist_exact number -- How many of those were measured from the pickup chest
 ---@field dist_sum number -- Total haul distance in tiles over those deliveries
 ---@field avg_dist number -- Average haul distance per delivery, equal to dist_sum/dist_count
 ---@field max_dist number -- Longest haul distance seen for this item
+---@field dist_buckets? table<integer, number> -- How many hauls fell in each distance bucket, to estimate the median
 ---@field top_hauls? HaulRecord[] -- The longest hauls not on the ignore list, longest first, at most one per destination
 ---@field top_dist? number -- Distance of the first of top_hauls, or 0 if there are none
 ---@field ignored_count? number -- How many of this item's destinations are on the haul ignore list
@@ -91,7 +95,6 @@ local utils = require("scripts.utils")
 ---@field haul_dist? number -- Haul distance in tiles, if known
 ---@field haul_from? MapPosition -- Where the haul started: the pickup chest, or where the bot was first seen
 ---@field haul_exact? boolean -- True if haul_from is the pickup chest rather than an estimate
----@field first_seen number -- The first tick this bot was seen delivering it
 ---@field last_seen number -- The last tick this bot was seen delivering it
 
 -- One of an item's longest hauls, flat to keep it small
@@ -543,6 +546,44 @@ function network_data.add_item_to_ignorelist_for_undersupply(networkdata, iq)
   end
   -- The list is a table<string>, which allows O(1) lookups
   networkdata.ignored_items_for_undersupply[utils.get_ItemQuality_key(iq)] = true
+end
+
+--- Count a haul in its item's distance histogram
+---@param entry DeliveredItems
+---@param dist number The haul distance in tiles
+function network_data.record_haul_distance(entry, dist)
+  local buckets = entry.dist_buckets
+  if not buckets then
+    buckets = {}
+    entry.dist_buckets = buckets
+  end
+  local i = dist > 1 and math.floor(math.log(dist, 2) * HAUL_BUCKETS_PER_DOUBLING) or 0
+  buckets[i] = (buckets[i] or 0) + 1
+end
+
+--- Estimate an item's median haul from its distance histogram
+---@param entry DeliveredItems
+---@return number|nil median Tiles, or nil if there are no hauls to go on
+function network_data.median_haul(entry)
+  local buckets = entry.dist_buckets
+  if not buckets then return nil end
+  local indexes, total = {}, 0
+  for i, count in pairs(buckets) do
+    indexes[#indexes + 1] = i
+    total = total + count
+  end
+  if total == 0 then return nil end
+  table.sort(indexes)
+
+  local half, below = total / 2, 0
+  for _, i in ipairs(indexes) do
+    local count = buckets[i]
+    if below + count >= half then
+      -- Assume the hauls are spread evenly through the bucket, on the same log scale
+      return 2 ^ ((i + (half - below) / count) / HAUL_BUCKETS_PER_DOUBLING)
+    end
+    below = below + count
+  end
 end
 
 --- The key for a haul on the ignore list: the item and its destination

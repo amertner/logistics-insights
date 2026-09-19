@@ -2,12 +2,14 @@
 Version: 1.1.4
 Date: 2026-09-18
   Features:
-    - New "Longest haul" history row, showing the items that bots carry furthest from pickup to delivery. The tooltip shows the average haul too. Long hauls were easy to miss before, because an item also delivered in bulk over short distances (e.g. to a mall) has a low average Ticks/item.
+    - New "Longest haul" history row, showing the items that bots carry furthest from pickup to delivery. The tooltip shows the average and median haul too. Long hauls were easy to miss before, because an item also delivered in bulk over short distances (e.g. to a mall) has a low average Ticks/item.
     - Click an item in the Longest haul row to show its 5 longest hauls on the map, at most one per destination. Each haul's ends are outlined and joined by a line with direction arrows, and the one shown is labelled with the item. Click again to move on to the next haul, or right-click to go to the pickup end of the one shown. Hauls stay on the map three times as long as other highlights, 30 seconds by default. The tooltip lists the longest hauls too.
     - Shift+click an item in the Longest haul row to ignore the haul shown on the map, when that long haul is expected. Hauls of that item to that destination are then no longer listed, though they still count in the item's statistics. Ignored hauls are listed in the network settings, where they can be shown on the map or removed.
     - When a bot's pickup is not observed, the haul is estimated from where the bot was first seen delivering. The tooltip shows how many hauls were measured and how many estimated.
+  Changes:
+    - The Ticks/item row is replaced by Distance carried: the total distance bots have carried each item. Ticks/item mixed up distance, time spent waiting to charge, and how many items each trip carried, and a few long trips were easily hidden by many short ones. Distance carried shows which items take up most of your bots' work, and Longest haul finds the long trips. Charging delays are still shown in the Activity row and suggestions.
+    - Item tooltips in Distance carried and Longest haul show the median haul next to the average. An average much higher than the median means a few long hauls among many short ones.
   Bugfixes:
-    - Ticks/item tooltips showed values like 4.97 as "4.10" instead of "5.0".
     - The reset buttons in the network settings could show a missing-text tooltip.
 ---------------------------------------------------------------------------------------------------
 Version: 1.1.3

@@ -49,6 +49,19 @@ describe("utils", function()
     end)
   end)
 
+  describe("format_short_number()", function()
+    it("formats numbers the way item buttons show them", function()
+      local cases = {
+        { 0, "0" }, { 7.4, "7" }, { 999, "999" },
+        { 999.6, "1.0k" }, { 7412, "7.4k" }, { 9949, "9.9k" }, { 9950, "10k" }, { 173124, "173k" },
+        { 999700, "1.0M" }, { 1234567, "1.2M" }, { 45600000, "46M" }, { 2.5e9, "2.5G" },
+      }
+      for _, case in ipairs(cases) do
+        assert.are.equal(case[2], utils.format_short_number(case[1]), "for " .. case[1])
+      end
+    end)
+  end)
+
   describe("table_clear()", function()
     it("removes all keys from a table", function()
       local t = { a = 1, b = 2, c = 3 }

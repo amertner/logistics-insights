@@ -361,32 +361,6 @@ describe("bot_counter", function()
       assert.are.equal(80, history.count) -- 50 + 30
     end)
 
-    it("computes average delivery time", function()
-      local nwd = make_networkdata()
-
-      -- Pass 1 (tick 1000): bot starts delivering — first_seen = 1000
-      game.tick = 1000
-      process_all_foreground(nwd, {
-        make_bot({ unit_number = 1, orders = { deliver_order("iron-plate", 10, { target_pos = { x = 1, y = 1 } }) } }),
-      })
-
-      -- Pass 2 (tick 1100): bot still delivering same target — last_seen updated to 1100
-      game.tick = 1100
-      process_all_foreground(nwd, {
-        make_bot({ unit_number = 1, orders = { deliver_order("iron-plate", 10, { target_pos = { x = 1, y = 1 } }) } }),
-      })
-
-      -- Pass 3 (tick 1200): bot idle — delivery completed, recorded in history
-      game.tick = 1200
-      process_all_foreground(nwd, { make_bot({ unit_number = 1 }) })
-
-      local history = nwd.delivery_history["iron-plate:normal"]
-      assert.is_not_nil(history)
-      -- ticks = last_seen(1100) - first_seen(1000) = 100, count = 10, avg = 100/10 = 10
-      assert.are.equal(100, history.ticks)
-      assert.are.equal(10, history.avg)
-    end)
-
     it("does NOT record history in background mode when bot stops delivering", function()
       local nwd = make_networkdata()
       game.tick = 100
@@ -447,6 +421,9 @@ describe("bot_counter", function()
       assert.are.equal(5, history.dist_count)
       assert.are.equal(5, history.dist_exact)
       assert.are.equal((4 * 3 + 603) / 5, history.avg_dist) -- 123, not dragged towards 3 by item count
+      assert.are.equal(4 * 3 + 603, history.dist_sum) -- Distance carried
+      -- The median is the typical haul, which the one long haul doesn't pull up
+      assert.are.equal(3, math.floor(require("scripts.network-data").median_haul(history) + 0.5))
       assert.are.equal(603, history.max_dist)
       -- Both ends of the longest hauls are kept so they can be shown on the map. The four mall
       -- trips all went to the same chest, so only one of them is kept
@@ -454,6 +431,16 @@ describe("bot_counter", function()
         { dist = 603, from_x = 0, from_y = 0, to_x = 603, to_y = 0, exact = true },
         { dist = 3, from_x = 0, from_y = 0, to_x = 3, to_y = 0, exact = true },
       }, history.top_hauls)
+    end)
+
+    it("estimates the median haul to within a few percent", function()
+      local nwd = make_networkdata()
+      -- 11 hauls of 100, 200 ... 1100 tiles: the median is 600
+      for i = 1, 11 do
+        run_trip(nwd, i, "iron-plate", 1, { x = 0, y = 0 }, { x = i * 100, y = 0 }, 100 * i)
+      end
+      local median = require("scripts.network-data").median_haul(nwd.delivery_history["iron-plate:normal"])
+      assert.is_true(math.abs(median - 600) / 600 < 0.1, "median estimate " .. median)
     end)
 
     it("keeps the five longest hauls, longest first", function()
@@ -643,7 +630,7 @@ describe("bot_counter", function()
       assert.is_nil(nwd.bot_pickup_positions[1]) -- Consumed even though it didn't match
     end)
 
-    it("still records count and ticks when the pickup was not observed", function()
+    it("still records the delivery when the pickup was not observed", function()
       local nwd = make_networkdata()
       game.tick = 100
       process_all_foreground(nwd, {
@@ -658,7 +645,6 @@ describe("bot_counter", function()
 
       local history = nwd.delivery_history["iron-plate:normal"]
       assert.are.equal(10, history.count)
-      assert.are.equal(100, history.ticks)
       assert.are.equal(1, history.deliveries) -- Counted, so the tooltip can show distance coverage
       assert.are.equal(0, history.dist_count)
       assert.are.equal(0, history.max_dist)

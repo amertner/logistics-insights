@@ -5,6 +5,7 @@ local player_data = require("scripts.player-data")
 local mini_button = require("scripts.mainwin.mini_button")
 local progress_bars = require("scripts.mainwin.progress_bars")
 local utils         = require("scripts.utils")
+local network_data  = require("scripts.network-data")
 
 local pairs = pairs
 local table_sort = table.sort
@@ -14,7 +15,19 @@ local math_min = math.min
 local TAGS_FOLLOW = { follow = true }
 local TAGS_EMPTY = {}
 
---- Add a sorted item row (deliveries, totals, or average ticks) to the GUI
+--- The average and median haul of an item, as a tooltip line
+--- @param entry DeliveredItems
+--- @return LocalisedString
+local function haul_average_line(entry)
+  local average = math_floor(entry.avg_dist + 0.5)
+  local median = network_data.median_haul(entry)
+  if median then
+    return {"item-row.haul-average-median-1avg-2median", average, math_floor(median + 0.5)}
+  end
+  return {"item-row.haul-average-1avg", average} -- History from before the median was tracked
+end
+
+--- Add a sorted item row (deliveries, totals, distance carried or longest haul) to the GUI
 --- @param player_table PlayerData The player's data table
 --- @param gui_table LuaGuiElement The GUI table to add the row to
 --- @param title string The title/key for this row type
@@ -73,7 +86,7 @@ end -- add
 --- @param title string The title/key for this row type
 --- @param all_entries table<string, DeliveryItem|DeliveredItems> All entries to sort and display
 --- @param sort_fn function(a, b): boolean Sorting function to determine order
---- @param number_field string The field name to display as number ("count", "ticks", "avg", "top_dist")
+--- @param number_field string The field name to display as number ("count", "dist_sum", "top_dist")
 --- @param clearing boolean Whether this update is due to clearing history
 --- @param show_click_tip LocalisedString|fun(entry: table): LocalisedString|nil String to show if the cell is clickable, or a function giving each entry's string
 --- @param generation number|string|nil Optional generation counter; skips update if unchanged since last call
@@ -94,13 +107,10 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
     local localised = utils.get_localised_names(entry)
     if number_field == "count" then
       tip = {"", {"item-row.count-field-tooltip-1count-2quality-3itemname", entry.count, localised.qname, localised.iname}}
-    elseif number_field == "ticks" then
-      tip = {"", {"item-row.ticks-field-tooltip-1ticks-2count-3quality-4itemname", entry.ticks, entry.count, localised.qname, localised.iname}}
-    elseif number_field == "avg" then
-      -- Round to tenths before splitting, so e.g. 4.97 carries to "5.0" rather than "4.10"
-      local tenths = math_floor(entry.avg * 10 + 0.5)
-      local ticks_formatted = math_floor(tenths / 10) .. "." .. (tenths % 10)
-      tip = {"", {"item-row.avg-field-tooltip-1ticks-2count-3quality-4itemname", ticks_formatted, entry.count, localised.qname, localised.iname}}
+    elseif number_field == "dist_sum" then
+      tip = {"", {"item-row.distance-field-tooltip-1quality-2itemname-3total-4hauls-5average",
+        localised.qname, localised.iname, utils.format_short_number(entry.dist_sum), entry.dist_count,
+        haul_average_line(entry)}}
     elseif number_field == "top_dist" then
       local hauls = entry.top_hauls or {}
       local estimated = hauls[1] and not hauls[1].exact and {"item-row.haul-estimated-suffix"} or ""
@@ -128,8 +138,8 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
       if (entry.ignored_count or 0) > 0 then
         ignored = {"", "\n", {"item-row.haul-ignored-1count", entry.ignored_count}}
       end
-      tip = {"", {"item-row.maxdist-field-tooltip-1max-2estimated-3list-4avg-5coverage-6ignored-7quality-8itemname",
-        math_floor(entry.top_dist + 0.5), estimated, list, math_floor(entry.avg_dist + 0.5),
+      tip = {"", {"item-row.maxdist-field-tooltip-1max-2estimated-3list-4average-5coverage-6ignored-7quality-8itemname",
+        math_floor(entry.top_dist + 0.5), estimated, list, haul_average_line(entry),
         coverage, ignored, localised.qname, localised.iname}}
     elseif number_field == "shortage" then
       tip = {"", {"undersupply-row.shortage-tooltip-1shortage_2item_3quality_4requested_5storage_6underway",
@@ -206,7 +216,7 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
       cell.sprite = utils.get_valid_sprite_path("item/", entry.item_name)
       cell.quality = entry.quality_name or "normal"
       local number = entry[number_field]
-      if number_field == "top_dist" then
+      if number_field == "top_dist" or number_field == "dist_sum" then
         number = math_floor(number + 0.5) -- Whole tiles; fractions are noise on a slot button
       end
       cell.number = number
