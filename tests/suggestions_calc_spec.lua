@@ -568,23 +568,44 @@ describe("suggestions_calc", function()
     end)
 
     describe("ignore_higher_quality_mismatches (per-network)", function()
+      -- The quality chain: normal -> uncommon -> rare, as prototypes.quality gives it
+      local function quality_chain()
+        local rare = { name = "rare" }
+        local uncommon = { name = "uncommon", next = rare }
+        local normal = { name = "normal", next = uncommon }
+        _G.prototypes.quality = { normal = normal, uncommon = uncommon, rare = rare }
+      end
+
+      -- get_filter gives the quality back as a LuaQualityPrototype (checked in-game 2026-09-20),
+      -- so the walk up the chain starts from the filter value itself
       it("allows higher quality items when enabled", function()
+        quality_chain()
         local acc = {}
         suggestions_calc.initialise_storage_analysis(acc, {
           ignore_higher_quality_mismatches = true,
         })
-        -- Filter set to "normal", item is "uncommon" (higher quality)
-        -- The quality chain: normal -> uncommon -> rare -> ...
         local chest = make_storage_chest({
           capacity = 48, free = 40,
-          filters = {{
-            name = { name = "iron-plate" },
-            quality = { name = "normal", next = { name = "uncommon", next = { name = "rare", next = nil } } },
-          }},
+          filters = {{ name = { name = "iron-plate" }, quality = _G.prototypes.quality.normal }},
           contents = {{ name = "iron-plate", quality = "uncommon" }},
         })
         suggestions_calc.process_storage_for_analysis(chest, acc)
         assert.are.equal(0, #acc.mismatched_storages)
+      end)
+
+      it("still flags a lower quality item when enabled", function()
+        quality_chain()
+        local acc = {}
+        suggestions_calc.initialise_storage_analysis(acc, {
+          ignore_higher_quality_mismatches = true,
+        })
+        local chest = make_storage_chest({
+          capacity = 48, free = 40,
+          filters = {{ name = { name = "iron-plate" }, quality = _G.prototypes.quality.uncommon }},
+          contents = {{ name = "iron-plate", quality = "normal" }},
+        })
+        suggestions_calc.process_storage_for_analysis(chest, acc)
+        assert.are.equal(1, #acc.mismatched_storages)
       end)
 
       it("flags higher quality items as mismatch when disabled", function()
