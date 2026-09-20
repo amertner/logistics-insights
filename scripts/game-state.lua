@@ -3,13 +3,14 @@ local game_state = {}
 
 local player_data = require("scripts.player-data")
 
---- Initialize the game state with UI button references
+--- Remember a player's freeze and unfreeze buttons, so they can be kept in step with the game.
+--- This only records the buttons: whether the game is frozen is shared by every player, and a
+--- window being rebuilt for one of them (a setting change, a new player joining) is no reason to
+--- resume a game someone else froze to look at
 ---@param player_table PlayerData The player's data table
 ---@param ui_unfreeze LuaGuiElement|nil The unfreeze button element
 ---@param ui_freeze LuaGuiElement|nil The freeze button element
 function game_state.init(player_table, ui_unfreeze, ui_freeze)
-  game.tick_paused = false
-  game.ticks_to_run = 0
   player_table.ui["freeze_button"] = ui_freeze
   player_table.ui["unfreeze_button"] = ui_unfreeze
 end
