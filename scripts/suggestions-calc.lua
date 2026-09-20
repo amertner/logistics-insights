@@ -24,10 +24,13 @@ local function qualities_admitted(fqual, comparator, ignore_higher)
   local set = __qualities_admitted[key]
   if set then return set end
 
-  set = { [fqual] = true }
+  set = {}
   local base = prototypes.quality[fqual]
   local level = base and base.level
-  if level then
+  if not level then
+    -- Unknown quality: the best that can be done is to take the filter at its word
+    set[fqual] = true
+  else
     for name, quality in pairs(prototypes.quality) do
       local l = quality.level
       if l and (

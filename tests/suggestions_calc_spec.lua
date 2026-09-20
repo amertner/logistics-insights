@@ -606,6 +606,19 @@ describe("suggestions_calc", function()
         assert.are.equal(0, #acc.mismatched_storages)
       end)
 
+      it("honours the filter's comparator: better than normal rejects normal itself", function()
+        quality_chain()
+        local acc = {}
+        suggestions_calc.initialise_storage_analysis(acc, { ignore_higher_quality_mismatches = false })
+        local chest = make_storage_chest({
+          capacity = 48, free = 40,
+          filters = {{ name = { name = "iron-plate" }, quality = _G.prototypes.quality.normal, comparator = ">" }},
+          contents = {{ name = "iron-plate", quality = "normal" }},
+        })
+        suggestions_calc.process_storage_for_analysis(chest, acc)
+        assert.are.equal(1, #acc.mismatched_storages)
+      end)
+
       it("honours the filter's comparator: at least uncommon rejects normal", function()
         quality_chain()
         local acc = {}
