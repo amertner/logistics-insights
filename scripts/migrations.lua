@@ -511,6 +511,13 @@ local li_migrations = {
         order.first_seen = nil
       end
     end
+    -- Delivery history now outlives the last player leaving a network, for a grace period. Start
+    -- the clock on networks nobody is in, so saves made before this don't keep them for ever
+    for _, nwd in pairs(storage.networks or {}) do
+      ---@diagnostic disable-next-line: inject-field
+      nwd.last_accessed_tick = nil -- Long dead, and too easily confused with unobserved_since
+      network_data.stop_observing_if_empty(nwd)
+    end
     -- Long trip thresholds became settings, and estimated trip starts can now be hidden
     global_data.settings_changed()
     -- Added longest trip history row, need to recreate UI

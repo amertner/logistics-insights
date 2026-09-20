@@ -118,6 +118,11 @@ scheduler.register({ name = "background-refresh", interval = 11, is_heavy = true
 scheduler.register({ name = "clear-caches", interval = 60*10, is_heavy = false, per_player = false,
   fn = tooltips_helper.clear_caches
 })
+-- Drop the delivery history of networks nobody has watched for a while. Swept every 20 seconds, so
+-- the grace period is never overshot by much
+scheduler.register({ name = "expire-unobserved-history", interval = 20*60, is_heavy = false, per_player = false,
+  fn = network_data.expire_unobserved_history
+})
 
 -- When the bench harness has enabled the in-memory profiler, dump accumulated
 -- per-task counts and times once per second. This is the only output during a

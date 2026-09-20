@@ -2,6 +2,12 @@
 local network_data = {}
 
 network_data.TOP_TRIPS = 5 -- How many of each item's longest trips are kept and shown
+-- How long a network's delivery history outlives the last player leaving it. Remote view moves the
+-- player's position, so looking at a trip on the map counts as leaving the network, and so does any
+-- walk or train ride out of coverage. History has to outlive all of those to be worth collecting.
+-- Two minutes is many times the default highlight duration a player clicks through, while a network
+-- left behind for good stops costing memory almost at once
+network_data.UNOBSERVED_HISTORY_GRACE_TICKS = 2 * 60 * 60
 -- Trip distances are counted in buckets on a log scale, to estimate the median: bucket i holds
 -- trips from 2^(i/N) to 2^((i+1)/N) tiles. 4 per doubling puts the estimate within a few percent
 local TRIP_BUCKETS_PER_DOUBLING = 4
@@ -41,6 +47,7 @@ local utils = require("scripts.utils")
 ---@field last_scanned_tick number -- The last tick this network's cell and bot data was updated
 ---@field last_analysed_tick number -- The last tick this network's suggestios and undersupply were analysed
 ---@field last_pass_bots_seen table<number, number> -- A list of bots seen in the last full pass
+---@field unobserved_since number|nil -- The tick the last player stopped watching this network, or nil while it is watched. Its history is frozen, not dropped, until UNOBSERVED_HISTORY_GRACE_TICKS have passed
 ---@ -- Fields populated by analysing cells
 ---@field idle_bot_qualities QualityTable Quality of idle bots in roboports
 ---@field charging_bot_qualities QualityTable Quality of bots currently charging
@@ -187,7 +194,6 @@ function network_data.create_networkdata(network)
       storage_count = 0,
       requester_cache = {},
       undersupply_sweep_counter = 0,
-      last_accessed_tick = game_tick,
       last_scanned_tick = game_tick,
       last_analysed_tick = game_tick,
       history_timer = tick_counter.new(),
@@ -231,7 +237,12 @@ function network_data.clear_delivery_history(network)
   if nwd then
     nwd.delivery_history = {} -- Clear the delivery history
     nwd.delivery_history_gen = (nwd.delivery_history_gen or 0) + 1
-    nwd.history_timer:reset() -- Reset the history timer
+    -- Reset the history timer, without starting it again if nobody is watching the network
+    if nwd.history_timer:is_paused() then
+      nwd.history_timer:reset_keep_pause()
+    else
+      nwd.history_timer:reset()
+    end
   end
 end
 
@@ -294,25 +305,18 @@ function network_data.player_changed_networks(player_table, old_network_id, new_
     return
   end
   local old_nwd = network_data.get_networkdata_fromid(old_network_id)
-  if old_nwd and old_network_id then
+  if old_nwd then
+    -- Leaving does not destroy the history. Remote view moves the player's position, so a look at a
+    -- trip on the map arrives here too; the network is only stamped as unobserved, and
+    -- expire_unobserved_history drops it if nobody comes back within the grace period
     network_data.remove_player_index_from_networkdata(old_nwd, player_table)
-    local count = network_data.players_in_network(old_nwd)
-
-    if count == 0 then
-      -- No more players observing this network, so clear its history and stop gathering history data
-      network_data.clear_history_from_nwd(old_nwd)
-
-      -- As the old network has no players left, potentially remove it
-      if global_data.purge_nonplayer_networks() then
-        storage.networks[old_network_id] = nil
-      end
-    end
   end
   local new_nwd = network_data.get_networkdata(new_network)
   if not new_nwd and new_network and new_network.valid then
     new_nwd = network_data.create_networkdata(new_network)
   end
   if new_nwd then
+    local was_observed = next(new_nwd.players_set) ~= nil
     -- Add the player to the new network's player set
     new_nwd.players_set[player_table.player_index] = true
     debugger.info("Added player index " .. tostring(player_table.player_index) .. " to network ID " .. tostring(new_nwd.id))
@@ -320,16 +324,56 @@ function network_data.player_changed_networks(player_table, old_network_id, new_
     if not new_nwd.history_timer then
       new_nwd.history_timer = tick_counter.new()
     end
-    new_nwd.history_timer:reset() -- Set history timer to 0
+    if new_nwd.unobserved_since then
+      -- Back inside the grace period: the history is still here, so carry on collecting into it and
+      -- resume the clock rather than pretending the network was watched all along
+      new_nwd.unobserved_since = nil
+      new_nwd.history_timer:resume()
+      -- Nothing was recorded while it was unobserved, and a background pass last looked at the bots
+      -- a whole refresh interval ago. Forgetting them stops the first trips recorded after the
+      -- player returns claiming a closely tracked start they never had
+      new_nwd.last_pass_bots_seen = {}
+    elseif not was_observed then
+      -- A network nobody was watching and nothing is kept for: start counting from zero
+      new_nwd.history_timer:reset()
+    end
+    -- Somebody else was already watching it: leave their clock and their history alone
   end
 end
 
---- Remove all references to this player
+--- Nobody is watching this network any more: freeze its history rather than dropping it, and start
+--- the clock that expire_unobserved_history measures the grace period against. Coming back within
+--- that window picks up exactly where the player left off
+---@param networkdata LINetworkData|nil The network the last player just left
+function network_data.stop_observing_if_empty(networkdata)
+  if not networkdata or networkdata.unobserved_since then
+    return -- Already unobserved: don't push the grace period out again
+  end
+  if network_data.players_in_network(networkdata) > 0 then
+    return -- Somebody else is still watching it
+  end
+  networkdata.unobserved_since = game.tick
+  if networkdata.history_timer then
+    -- "Active for" has to count observed time only, so stop the clock as well
+    networkdata.history_timer:pause()
+  end
+  debugger.info("Network ID " .. tostring(networkdata.id) .. " is no longer observed: history frozen")
+end
+
+--- Remove all references to this player. Called on logout and when a player is deleted, so it has
+--- to work from the index alone: on_player_removed clears storage.players before calling this
 --- @param player_index uint The player index to remove
 function network_data.remove_player_index(player_index)
-  for _, networkdata in pairs(storage.networks) do
-    local player_table = player_data.get_player_table(player_index)
-    network_data.remove_player_index_from_networkdata(networkdata, player_table)
+  local player_table = player_data.get_player_table(player_index)
+  if player_table then
+    player_table.network = nil
+  end
+  for _, networkdata in pairs(storage.networks or {}) do
+    if networkdata.players_set and networkdata.players_set[player_index] then
+      networkdata.players_set[player_index] = nil
+      debugger.info("Removed player index " .. tostring(player_index) .. " from network ID " .. tostring(networkdata.id))
+      network_data.stop_observing_if_empty(networkdata)
+    end
   end
 end
 
@@ -338,11 +382,17 @@ end
 --- @param player_table PlayerData|nil The player's data table, if any
 function network_data.remove_player_index_from_networkdata(networkdata, player_table)
   if networkdata and player_table then
+    local was_in_network = false
     if networkdata.players_set then
+      was_in_network = networkdata.players_set[player_table.player_index] ~= nil
       networkdata.players_set[player_table.player_index] = nil
     end
     player_table.network = nil
     debugger.info("Removed player index " .. tostring(player_table.player_index) .. " from network ID " .. tostring(networkdata.id))
+    if was_in_network then
+      -- Only a player who was actually in it can be the one who just left it
+      network_data.stop_observing_if_empty(networkdata)
+    end
   end
 end
 
@@ -370,6 +420,42 @@ function network_data.validate_or_remove(networkdata)
     return nil
   end
   return networkdata
+end
+
+--- Housekeeping: a network whose last player left more than the grace period ago loses its delivery
+--- history, and is removed altogether if its network is gone or if unobserved networks are not being
+--- kept. Registered as the "expire-unobserved-history" task in control.lua
+function network_data.expire_unobserved_history()
+  if not storage.networks then
+    return
+  end
+  local expired_before = game.tick - network_data.UNOBSERVED_HISTORY_GRACE_TICKS
+  local purge = global_data.purge_nonplayer_networks()
+  for network_id, networkdata in pairs(storage.networks) do
+    local unobserved_since = networkdata.unobserved_since
+    if unobserved_since then
+      if network_data.players_in_network(networkdata) > 0 then
+        networkdata.unobserved_since = nil -- Somebody is watching it after all
+      elseif unobserved_since <= expired_before then
+        if purge or not network_data.get_LuaNetwork(networkdata) then
+          -- Not worth keeping. This also releases the chunkers' pending fetcher references
+          network_data.remove_network(network_id)
+        else
+          network_data.clear_history_from_nwd(networkdata)
+          -- Deliveries that were still in the air when the player left will never be recorded now
+          networkdata.bot_active_deliveries = {}
+          networkdata.bot_pickup_positions = {}
+          networkdata.last_pass_bots_seen = {}
+          if networkdata.history_timer then
+            networkdata.history_timer:reset_keep_pause() -- Nothing collected, and still not collecting
+          end
+          -- Expired once is enough: the next visit starts a fresh history and a fresh clock
+          networkdata.unobserved_since = nil
+          debugger.info("Cleared unobserved history for network ID " .. tostring(network_id))
+        end
+      end
+    end
+  end
 end
 
 -- If the setting "li-show-all-networks" is false, purge networks that are not currently observed by any player

@@ -376,6 +376,39 @@ describe("bot_counter", function()
       assert.is_nil(nwd.bot_active_deliveries[1])
       assert.is_nil(nwd.delivery_history["iron-plate:normal"])
     end)
+
+    -- History is kept for a while after the last player leaves a network, and background scans are
+    -- all that runs then. They must leave that history exactly as the player left it
+    it("leaves an existing history untouched in background mode", function()
+      local nwd = make_networkdata()
+      nwd.delivery_history_gen = 0
+
+      -- One delivery recorded while a player was watching
+      game.tick = 100
+      process_all_foreground(nwd, {
+        make_bot({ unit_number = 1, orders = { deliver_order("iron-plate", 50, { target_pos = { x = 1, y = 1 } }) } }),
+      })
+      game.tick = 200
+      process_all_foreground(nwd, { make_bot({ unit_number = 1 }) })
+
+      local history = nwd.delivery_history["iron-plate:normal"]
+      local count, deliveries = history.count, history.deliveries
+      local gen = nwd.delivery_history_gen
+
+      -- The player leaves: from here on only background scans run
+      nwd.players_set = {}
+      game.tick = 300
+      process_all(nwd, {
+        make_bot({ unit_number = 2, orders = { deliver_order("iron-plate", 70, { target_pos = { x = 3, y = 3 } }) } }),
+      })
+      game.tick = 400
+      process_all(nwd, { make_bot({ unit_number = 2 }) })
+
+      assert.are.same(history, nwd.delivery_history["iron-plate:normal"]) -- Same table, frozen
+      assert.are.equal(count, history.count)
+      assert.are.equal(deliveries, history.deliveries)
+      assert.are.equal(gen, nwd.delivery_history_gen) -- So the UI does not redraw the row
+    end)
   end)
 
   -- ─── Trip distance ────────────────────────────────────────────────

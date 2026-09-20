@@ -198,6 +198,51 @@ describe("Mixed logistics network", function()
     end)
   end)
 
+  -- Clicking a long trip puts the player into remote view at the destination, which moves
+  -- player.position and so reads as leaving the network. That used to throw the history away
+  test("history survives the player leaving the network", function()
+    async(10000)
+    builder = build_mixed_network(game.surfaces[1])
+    builder:build()
+    helpers.teleport_player({0, 0})
+
+    local phase, nwd, left_at = "discover", nil, nil
+
+    on_tick(function()
+      if phase == "discover" then
+        local network = game.surfaces[1].find_logistic_network_by_position({0, 0}, "player")
+        if not network or not network.valid then return end
+        nwd = storage.networks and storage.networks[network.network_id]
+        if not nwd or not next(nwd.players_set) then return end
+        -- Plant a history entry, as if a delivery had been recorded while standing here
+        nwd.delivery_history["iron-plate:normal"] = {
+          item_name = "iron-plate", quality_name = "normal", count = 10, deliveries = 2,
+        }
+        helpers.teleport_player({2000, 2000}) -- Out of coverage, as remote view would be
+        left_at = game.tick
+        phase = "left"
+      elseif phase == "left" then
+        -- The network-check task runs every 29 ticks, so give it a comfortable margin
+        if game.tick - left_at < 60 then return end
+        assert.is_not_nil(storage.networks[nwd.id], "Network record was removed on leaving")
+        local history = nwd.delivery_history["iron-plate:normal"]
+        assert.is_not_nil(history, "Delivery history was thrown away on leaving")
+        assert.are_equal(10, history.count)
+        assert.is_not_nil(nwd.unobserved_since, "Leaving did not start the grace period")
+        assert.is_true(nwd.history_timer:is_paused(), "History timer kept running while unobserved")
+        helpers.teleport_player({0, 0})
+        left_at = game.tick
+        phase = "returned"
+      elseif phase == "returned" then
+        if game.tick - left_at < 60 then return end
+        assert.is_nil(nwd.unobserved_since, "Returning did not clear the grace period")
+        assert.is_false(nwd.history_timer:is_paused(), "History timer did not resume on return")
+        assert.are_equal(10, nwd.delivery_history["iron-plate:normal"].count)
+        done()
+      end
+    end)
+  end)
+
   test("undersupply analysis completes", function()
     async(10000)
     builder = build_mixed_network(game.surfaces[1])

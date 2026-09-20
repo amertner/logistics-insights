@@ -16,6 +16,8 @@ Date: 2026-09-18
     - Item tooltips in Distance carried and Longest trip show the median trip next to the average. An average much higher than the median means a few long trips among many short ones.
     - Ignoring an item for undersupply, or ignoring the filter mismatch for a suggestion's chests, now confirms itself where you clicked, the way ignoring a long trip already did. The message says what was ignored and points at the network settings, where the list can be shown on the map or the entry removed again.
   Bugfixes:
+    - Delivery history is no longer lost when you look at a long trip on the map. Showing a trip moves you into remote view at its destination, which counts as leaving the network, and the history was thrown away the moment you did. A network's history is now kept for two minutes after the last player leaves it, so stepping out of coverage or taking a look around and coming back no longer loses it.
+    - "History data: Active for" now stops while nobody is watching a network, and no longer resets when another player walks into a network you are already watching.
     - The reset buttons in the network settings could show a missing-text tooltip.
 ---------------------------------------------------------------------------------------------------
 Version: 1.1.3
