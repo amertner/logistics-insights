@@ -461,11 +461,13 @@ function networks_window.update(player)
 
   local table_el = player_table.ui.networks.table_elements
 
-  -- Always show the networks by ID
+  -- Always show the networks by ID. With "Show all networks" off, only the watched ones
   local list = {}
   if storage and storage.networks then
     for _, nw in pairs(storage.networks) do
-      list[#list+1] = nw
+      if network_data.is_listed(nw) then
+        list[#list+1] = nw
+      end
     end
   end
   table.sort(list, function(a,b) return (a.id or 0) < (b.id or 0) end)

@@ -85,7 +85,7 @@ local function update_networks_tooltip(gui, player_table)
     local total_counts = network_data.get_total_suggestions_and_undersupply()
     gui.logistics_insights_toggle_networks.number = total_counts.suggestions
 
-    local networkcount = table_size(storage.networks)
+    local networkcount = network_data.listed_network_count()
     local tip
     tip = { "", tip, { "controller-gui.networks_1suggestions_2_undersupplies_3networks", total_counts.suggestions, total_counts.undersupplies, networkcount } }
     if global_data.background_scans_disabled() then

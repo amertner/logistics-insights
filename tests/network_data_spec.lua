@@ -57,6 +57,40 @@ describe("network observation", function()
     game.tick = game.tick + ticks
   end
 
+  -- ─── What is listed ───────────────────────────────────────────────
+
+  describe("is_listed", function()
+    it("lists every network while Show all networks is on", function()
+      local p = a_player(1)
+      local nwd = arrive(p, a_network(1))
+      leave(p)
+      assert.is_true(network_data.is_listed(nwd))
+      assert.are.equal(1, network_data.listed_network_count())
+    end)
+
+    it("lists only watched networks when it is off, though the unwatched one is kept for its history", function()
+      storage.global.show_all_networks = false
+      local p1, p2 = a_player(1), a_player(2)
+      local left = arrive(p1, a_network(1))
+      local watched = arrive(p2, a_network(2))
+      leave(p1)
+      assert.is_not_nil(storage.networks[1]) -- Kept, inside the grace period
+      assert.is_false(network_data.is_listed(left))
+      assert.is_true(network_data.is_listed(watched))
+      assert.are.equal(1, network_data.listed_network_count())
+    end)
+
+    it("leaves an unlisted network's suggestions out of the totals", function()
+      storage.global.show_all_networks = false
+      local p = a_player(1)
+      local nwd = arrive(p, a_network(1))
+      nwd.suggestions:create_or_age_suggestion("x", 1, "entity/roboport", "low", false, "")
+      assert.are.equal(1, network_data.get_total_suggestions_and_undersupply().suggestions)
+      leave(p)
+      assert.are.equal(0, network_data.get_total_suggestions_and_undersupply().suggestions)
+    end)
+  end)
+
   -- ─── Background scan selection ────────────────────────────────────
 
   describe("get_next_background_network", function()

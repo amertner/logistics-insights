@@ -587,13 +587,32 @@ function network_data.finished_scanning_network(networkdata)
   end
 end
 
----@return {suggestions: number, undersupplies: number} The total number of suggestions across all networks
+--- Whether a network is shown to players: in the Networks window and in the mini window's counts.
+--- With "Show all networks" off only watched networks are, though an unwatched one is kept for
+--- the history grace period so its history survives a short absence
+---@param networkdata LINetworkData|nil
+---@return boolean
+function network_data.is_listed(networkdata)
+  if not networkdata then return false end
+  return global_data.show_all_networks() or network_data.players_in_network(networkdata) > 0
+end
+
+---@return number How many networks are listed
+function network_data.listed_network_count()
+  local count = 0
+  for _, networkdata in pairs(storage.networks or {}) do
+    if network_data.is_listed(networkdata) then count = count + 1 end
+  end
+  return count
+end
+
+---@return {suggestions: number, undersupplies: number} The total number of suggestions across all listed networks
 function network_data.get_total_suggestions_and_undersupply()
   local num_sug = 0
   local num_us = 0
   if storage.networks then
     for _, networkdata in pairs(storage.networks) do
-      if networkdata and networkdata.suggestions then
+      if networkdata and networkdata.suggestions and network_data.is_listed(networkdata) then
         local undersupply = networkdata.suggestions:get_cached_list("undersupply")
         if undersupply then
           num_us = num_us + #undersupply
