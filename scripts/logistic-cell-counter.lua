@@ -47,18 +47,22 @@ local function process_one_cell(cell, accumulator, gather, network_id)
   accumulator.bots_waiting_for_charge = bots_waiting + cell.to_charge_robot_count
   accumulator.total_cells = accumulator.total_cells + 1
 
-  -- Check the bots stationed at this roboport
   local owner = cell.owner
-  if owner and owner.valid and gather.quality then
+  if not (owner and owner.valid) then
+    return consumed
+  end
+
+  -- An unpowered roboport is worth a suggestion whatever else is being gathered
+  if not owner.is_connected_to_electric_network() then
+    table.insert(accumulator.unpowered_roboport_list, owner)
+  end
+
+  -- Check the bots stationed at this roboport, and the qualities of everything, if wanted
+  if gather.quality then
     -- Count roboport quality
     local rp_quality = (owner.quality and owner.quality.name) or "normal"
     local accq = utils.accumulate_quality
     accq(accumulator.roboport_qualities, rp_quality, 1)
-
-    -- Check if roboport is unpowered
-    if not owner.is_connected_to_electric_network() and accumulator.unpowered_roboport_list then
-      table.insert(accumulator.unpowered_roboport_list, owner)
-    end
 
     -- Count quality of charging bots (fast path: numeric loop + cached locals)
     do
