@@ -456,9 +456,11 @@ function main_window.onclick(event)
         main_window.open_or_close_settings(player, player_table)
         handled = true
       elseif event.element.name == "logistics-insights-sorted-clear" then
-        -- Clear the delivery history and clear the timer
+        -- Clear the delivery history and clear the timer. Bumping the history's generation is
+        -- enough to redraw the rows empty, so don't rebuild the window: that would also close the
+        -- settings pane the player may have open
         network_data.clear_delivery_history(player_table.network)
-        main_window.create(player, player_table)
+        player_table.trip_view = nil -- The trip it names is no longer in the history
         main_window.update(player, player_table)
         handled = true
       else
