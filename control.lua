@@ -74,7 +74,7 @@ local function full_UI_refresh(player, player_table)
   if PROFILING then p1.stop() p2 = helpers.create_profiler() end
   controller_gui.update_window(player, player_table)
   if PROFILING then p2.stop() p3 = helpers.create_profiler() end
-  main_window.update(player, player_table, false)
+  main_window.update(player, player_table)
   if PROFILING then p3.stop() p4 = helpers.create_profiler() end
   networks_window.update(player)
   if PROFILING then
@@ -100,6 +100,8 @@ end
 local function network_check(player, player_table)
   if network_data.check_network_changed(player, player_table) then
     player_table.ignored_storages_for_mismatch_shown = 0
+    -- The new network's generation counters mean nothing to rows drawn from the old one
+    player_data.invalidate_ui_generations(player_table)
     scan_coordinator.prioritise_scanning_new_player_network(player_table)
     main_window.clear_progress(player_table)
     full_UI_refresh(player, player_table)
@@ -392,7 +394,7 @@ script.on_event({events.on_settings_pane_closed},
   local player = game.get_player(e.player_index)
   local player_table = player_data.get_player_table(e.player_index)
   if player and player.valid and player_table then
-    main_window.update(player, player_table, false)
+    main_window.update(player, player_table)
   end
 end)
 
@@ -405,7 +407,7 @@ script.on_event({events.on_forced_network_changed},
   if player and player.valid and player_table then
     network_check(player, player_table)
     main_window.set_window_visible(player, player_table, true)
-    main_window.update(player, player_table, false)
+    main_window.update(player, player_table)
   end
 end)
 
@@ -437,7 +439,7 @@ script.on_event({events.on_suggestions_changed},
   local player = game.get_player(e.player_index)
   local player_table = player_data.get_player_table(e.player_index)
   if player and player.valid and player_table then
-    main_window.update(player, player_table, false)
+    main_window.update(player, player_table)
   end
 end)
 
@@ -462,7 +464,7 @@ script.on_event(defines.events.on_player_controller_changed,
     local player_table = player_data.get_player_table(e.player_index)
 
   if player and player.valid and player_table then
-    main_window.update(player, player_table, false)
+    main_window.update(player, player_table)
   end
 end)
 
@@ -502,7 +504,7 @@ script.on_event(
     local player_table = player_data.get_player_table(e.player_index)
 
     if player and player.valid and player_table then
-      main_window.update(player, player_table, false)
+      main_window.update(player, player_table)
     end
   end
 )

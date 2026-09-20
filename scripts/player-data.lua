@@ -111,6 +111,23 @@ function player_data.register_ui(player_table, name)
   player_table.ui[name] = {}
 end
 
+--- Forget what each row last drew, so the next update redraws it from scratch. Rows skip an update
+--- when the data's generation counter has not moved, but those counters are per network: two
+--- networks can be on the same count, and a row would then keep showing the one the player just
+--- left. Call this whenever the player's network changes
+---@param player_table PlayerData
+---@return nil
+function player_data.invalidate_ui_generations(player_table)
+  if not player_table or not player_table.ui then
+    return
+  end
+  for _, ui in pairs(player_table.ui) do
+    if type(ui) == "table" then
+      ui.last_gen = nil
+    end
+  end
+end
+
 -- Check if any players in the set have their main window open
 ---@param players table<uint, boolean>
 ---@return boolean True if any players in the set have their main window open
