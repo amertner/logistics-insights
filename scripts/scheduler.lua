@@ -99,12 +99,16 @@ function scheduler.get_interval(name)
   return task and task.interval
 end
 
--- Apply global settings to relevant schedules
+-- The task whose cadence the "Chunk interval" setting sets. Bots are counted at this interval,
+-- so it decides how closely deliveries are tracked. Cells change less often and keep their own
+-- interval, and background refresh keeps its hardcoded 11 ticks: the "background refresh interval"
+-- setting controls *eligibility* (how old a scan must be before re-scanning) via
+-- get_next_background_network(), not the chunk-processing cadence
+scheduler.BOT_CHUNK_TASK = "player-network-bot-chunk"
+
+-- Apply global settings to relevant schedules. Safe in on_load: reads only storage.global
 function scheduler.apply_global_settings()
-  -- Background-refresh keeps its hardcoded 11-tick interval.
-  -- The user's "background refresh interval" setting controls *eligibility*
-  -- (how old a scan must be before re-scanning) via get_next_background_network(),
-  -- not the chunk-processing cadence.
+  scheduler.update_interval(scheduler.BOT_CHUNK_TASK, global_data.chunk_interval_ticks())
 end
 
 -- Apply player-specific intervals based on current settings.

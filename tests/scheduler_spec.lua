@@ -451,6 +451,27 @@ describe("scheduler", function()
   -- ─── apply_global_settings() ──────────────────────────────────────
 
   describe("apply_global_settings()", function()
+    it("re-points the bot chunk task at the chunk interval setting", function()
+      local call_count = 0
+      scheduler.register({
+        name = scheduler.BOT_CHUNK_TASK,
+        interval = 7,
+        is_heavy = true,
+        fn = function() call_count = call_count + 1 end,
+      })
+
+      storage.global.chunk_interval_ticks = 13
+      scheduler.apply_global_settings()
+      assert.are.equal(13, scheduler.get_interval(scheduler.BOT_CHUNK_TASK))
+
+      -- Runs once in 13 ticks, not at tick 7 as it would at its registered interval
+      for tick = 1, 13 do
+        game.tick = tick
+        scheduler.on_tick()
+      end
+      assert.are.equal(1, call_count)
+    end)
+
     it("does not override background-refresh scheduler interval", function()
       -- Register background-refresh task with its hardcoded interval (like control.lua does)
       local call_count = 0

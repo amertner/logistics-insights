@@ -30,7 +30,7 @@ function global_data.settings_changed()
   storage.global.long_trip_sensitivity = settings.global["li-long-trip-suggestions"].value or "normal"
 end
 
----@return integer The global bot chunk interval setting
+---@return integer How often a chunk of bots is counted, in ticks (the "Chunk interval" setting)
 function global_data.chunk_interval_ticks()
   return storage.global.chunk_interval_ticks or 7
 end

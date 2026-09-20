@@ -52,9 +52,9 @@ script.on_init(
   player_data.init_storages()
   network_data.init()
   -- Apply runtime-global setting overrides to the scheduler. Without this,
-  -- li-background-refresh-interval (and any future global-task interval
-  -- settings) silently has no effect until the user changes it in-game,
-  -- because tasks are registered with hardcoded defaults at module load.
+  -- li-chunk-processing-interval-ticks silently has no effect until the user
+  -- changes it in-game, because tasks are registered with hardcoded defaults
+  -- at module load.
   scheduler.apply_global_settings()
 end)
 
@@ -85,14 +85,15 @@ end
 
 -- SETTING UP AND HANDLING SCHEDULED EVENTS
 -- All schedules are running every N ticks, where they are spaced out. The scheduler ensures that mostly only one task runs per tick.
--- 3: Bot chunk scanning. Fast, to reduce undercounting. (Can be 3, 7, 13, 23, 37, 53)
--- 5: Run one step of the currently active derived analysis, if any.
--- 7: "analysis-progress-update" to update progress bars
+-- 7: Bot chunk scanning. Set by the "Chunk interval" setting (3, 7, 13, 23, 37 or 53) through
+--    scheduler.apply_global_settings. Lower tracks deliveries more closely, at more CPU
+-- 5: "analysis-progress-update" to update progress bars
+-- 7: Cell chunk scanning, and picking the next foreground network. Cells change less often.
+-- 9: Run one step of the currently active derived analysis, if any.
 -- 11: Background network refresh
 -- 29: Check whether a player's active network has changed
 -- 31: Pick next network to analyse for suggestions and undersupply
--- 59: Cell chunk scanning. Slower is ok, as cells change less often. (Can be 17, 37, 41, 53, 59, 71, 89)
--- 61: Check which derived analysis should run, if any
+-- 60: UI update per player, set by the "UI update interval" setting
 
 --- Check whether a player's active network has changed, and if so, reprioritise scanning and refresh the UI
 --- @param player LuaPlayer
@@ -139,7 +140,8 @@ end
 scheduler.register({ name = "find-next-player-network", interval = 7, is_heavy = false, per_player = false, fn =
   scan_coordinator.initiate_next_player_network_scan
 })
-scheduler.register({ name = "player-network-bot-chunk", interval = 5, is_heavy = true, per_player = false, fn = function()
+-- Registered at the setting's default; apply_global_settings re-points it at the actual setting
+scheduler.register({ name = scheduler.BOT_CHUNK_TASK, interval = 7, is_heavy = true, per_player = false, fn = function()
   if storage.fg_refreshing_network_id then
     scan_coordinator.foreground_bot_chunk(storage.fg_refreshing_network_id)
   end
@@ -302,9 +304,8 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
           logistic_cell_counter.restart_counting(nwd)
         end
       elseif e.setting == "li-chunk-processing-interval-ticks" then
-        -- Update the global bot chunk interval setting
+        -- Re-point the bot chunk task at the new interval
         scheduler.apply_global_settings()
-        scheduler.apply_all_player_intervals()
       elseif e.setting == "li-calculate-undersupply" then
         -- If undersupply calculation was enabled or disabled, recreate the main window
         events.emit(events.on_recreate_main_window, e.player_index)
