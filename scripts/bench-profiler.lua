@@ -72,14 +72,13 @@ M.task_interval_overrides = {}
 --- @param last_tick integer
 --- @param max_heavy integer Maximum heavy tasks landing on any single tick in this queue
 --- @param max_heavy_tick integer The tick where max_heavy occurred
---- @param overflow integer Number of heavy tasks that pass 2 couldn't place and went to pass 3
-function M.record_queue(first_tick, last_tick, max_heavy, max_heavy_tick, overflow)
+function M.record_queue(first_tick, last_tick, max_heavy, max_heavy_tick)
   M.queue_records[#M.queue_records + 1] = {
     first = first_tick,
     last = last_tick,
     max_heavy = max_heavy,
     max_heavy_tick = max_heavy_tick,
-    overflow = overflow,
+    overflow = 0, -- Kept in the output for the harness; the greedy placement never overflows
   }
 end
 

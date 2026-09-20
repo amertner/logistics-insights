@@ -84,9 +84,9 @@ end
 ---@field key string Interned item-quality key (item_name:quality_name)
 ---@field requested_count integer Total requested count, summed across all sections × multipliers
 
--- Knuth multiplicative hash constant. Used to scatter unit_numbers across rolling
--- slices evenly even when chests are built in consecutive runs (which gives
--- consecutive unit_numbers and would otherwise cluster into the same slice).
+-- Multiplier applied to unit numbers before taking them modulo the slice count. With N
+-- coprime to it this is a permutation of unit_number % N, so consecutive unit numbers still
+-- spread across slices; it does no harm and costs nothing
 local SLICE_HASH_MULT = 2654435761
 
 --- Initialize the cell network accumulator
@@ -123,12 +123,9 @@ function undersupply.process_one_requester(requester, accumulator)
   local entry = cache[unit_number]
   local now = game.tick
   if not entry or now - entry.refresh_tick > CACHE_TTL_TICKS then
-    -- Preserve cached_demand across filter rebuilds. The filter TTL refreshes
-    -- the filter configuration (sections, multipliers, skip_kind) — it has
-    -- nothing to do with whether the last-sampled demand contribution is still
-    -- valid. Without this, every rebuild wipes cached_demand to nil, which
-    -- forces the requester back into the in-slice path on the next visit and
-    -- defeats rolling for ~59% of in-slice visits (measured).
+    -- Keep cached_demand across a filter rebuild: the rebuild refreshes the request
+    -- configuration, not the last sample, and losing the sample would force the requester
+    -- back through the fresh-read path on its next visit
     local old_cached_demand = entry and entry.cached_demand
     entry = build_requester_cache_entry(requester)
     if not entry then return 1 end

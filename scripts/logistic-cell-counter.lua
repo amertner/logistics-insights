@@ -63,7 +63,7 @@ local function process_one_cell(cell, accumulator, gather, network_id)
     local accq = utils.accumulate_quality
     accq(accumulator.roboport_qualities, rp_quality, 1)
 
-    -- Count quality of charging bots (fast path: numeric loop + cached locals)
+    -- Count quality of charging bots
     do
       if cell.charging_robot_count > 0 then
         local list = cell.charging_robots
@@ -82,7 +82,7 @@ local function process_one_cell(cell, accumulator, gather, network_id)
       end
     end
 
-    -- Count quality of bots waiting to charge (fast path: numeric loop + cached locals)
+    -- Count quality of bots waiting to charge
     do
       if cell.to_charge_robot_count > 0 then
         local list = cell.to_charge_robots
@@ -185,7 +185,7 @@ end
 ---@param network LuaLogisticNetwork
 function logistic_cell_counter.init_foreground_processing(networkdata, network)
   local gather_activity = false
-  -- If at least one players in the network has not disabled activity, gather it
+  -- Any player in the network wants the Activity row, so the cells are counted for them
   for idx, _ in pairs(networkdata.players_set) do
     local player_table = player_data.get_player_table(idx)
     if player_table then

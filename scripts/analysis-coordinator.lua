@@ -49,7 +49,6 @@ function analysis_coordinator.find_network_to_analyse()
       local last_analysed = networkdata.last_analysed_tick or 0
       if last_analysed < threshold_tick then
         if is_foreground or global_data.background_scans_enabled() then
-          -- Foreground always beats background; within same tier, oldest wins
           if not best_candidate
               or (is_foreground and not best_is_foreground)
               or (is_foreground == best_is_foreground and last_analysed < best_last_analysed) then

@@ -129,10 +129,10 @@ function Suggestions:remember(name, data)
   table.insert(self._historydata[name], {tick = self._current_tick, data = data})
 end
 
---- Get the smallest value from the historical data for a suggestion
---- @param name string The name of the suggestion to get the maximum value for
---- @param need_time_seconds number The number of seconds of data needed to return a value other than 0
---- @return number The average of the smallest 1/4 of the values from the historical data, or 0 if enough values are 0
+--- A cautious estimate from a suggestion's history: the average of its smallest quarter
+--- @param name string The name of the suggestion
+--- @param need_time_seconds number How many seconds of data there must be before anything but 0 is returned
+--- @return number The average of the smallest 1/4 of the values, or 0 if more than one value is 0
 function Suggestions:weighted_min_from_history(name, need_time_seconds)
   local history = self._historydata[name]
   -- Must have at least 2 data points

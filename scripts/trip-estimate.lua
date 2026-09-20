@@ -76,7 +76,7 @@ function trip_estimate.bot_speed(force_name)
   local best = 0
   for _, proto in pairs(prototypes.get_entity_filtered{{filter = "type", type = "logistic-robot"}}) do
     local speed = (proto.speed or 0) * modifier
-    local cap = proto.max_speed -- Already includes research bonuses; the vanilla bot sets none
+    local cap = proto.max_speed -- A prototype ceiling that research cannot raise; the vanilla bot sets none
     if cap and cap > 0 and speed > cap then
       speed = cap
     end

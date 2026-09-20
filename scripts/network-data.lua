@@ -815,7 +815,7 @@ function network_data.prune_old_data(networkdata, is_migration)
   local last_scan_tick = networkdata.last_scanned_tick
   local removed = 0
 
-  -- Check bot_active_deliveries for bots that didn't show ip in the last scan
+  -- Drop deliveries of bots that did not show up in the last scan
   if is_migration then
     -- If it's a migration, we're likely to remove a lot of entries, so create new table
     local new_deliveries = {}

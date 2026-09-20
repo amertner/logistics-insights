@@ -14,7 +14,7 @@ exclusions_window.chests_on_ignore_list_setting = "chests-on-ignore-list"
 exclusions_window.undersupply_ignore_list_setting = "items-on-undersupply-ignore-list"
 exclusions_window.trips_ignore_list_setting = "trips-on-ignore-list"
 
--- Add a Network ID header line
+-- Add the headline saying which list is shown
 ---@param ui LuaGuiElement The parent UI element to add the header to
 ---@param player_table PlayerData The player's data table
 local function add_list_header(ui, player_table)
@@ -169,9 +169,6 @@ local function show_ignored_trips_list(gui_table, networkdata, player_table)
     cell.quality = ignored.quality or "normal"
   end
 end
-
--- ignored_storages_for_mismatch table<number, boolean>
--- ignored_items_for_undersupply table<string, boolean> -- A list of "item name:quality" to ignore for undersupply suggestion
 
 ---@param player_table PlayerData
 function exclusions_window.update(player_table)

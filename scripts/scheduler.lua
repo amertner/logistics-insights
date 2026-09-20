@@ -261,8 +261,6 @@ local function build_task_queue(first_tick)
     heavy_counts[best_tick] = best_count + 1
   end
 
-  local overflow_count = 0 -- greedy assignment has no overflow
-
   -- Diagnostic: when bench profiling is enabled, record per-queue stats so we
   -- can correlate per-tick spikes with the queue that scheduled them. Counts
   -- "heavy slots" (a heavy task scheduled to fire on a tick), not actual run
@@ -281,7 +279,7 @@ local function build_task_queue(first_tick)
         max_heavy_tick = tick
       end
     end
-    bench_profiler.record_queue(first_tick, task_queue.last_tick, max_heavy, max_heavy_tick, overflow_count)
+    bench_profiler.record_queue(first_tick, task_queue.last_tick, max_heavy, max_heavy_tick)
   end
 end
 

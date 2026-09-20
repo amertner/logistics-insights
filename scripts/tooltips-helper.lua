@@ -119,12 +119,8 @@ function tooltips_helper.create_count_with_qualities_tip(formatstr, count, quali
   return tip
 end
 
--- Return a formatted tooltip based on the quality_counts, to be used in a tooltip
--- formatname is the format string for the tooltip, e.g. "network-row.logistic-robot-quality-tooltip-1quality-2count"
--- quality_counts is a table with quality names as keys and their counts as values
--- separator is a string to separate different qualities in the tooltip
--- if include_empty is true, the tip will include qualities with zero count
----@param formatname string The format string for individual quality entries
+-- Return a formatted tooltip listing each quality and its count
+---@param formatname string The format string for individual quality entries, e.g. "network-row.logistic-robot-quality-tooltip-1quality-2count"
 ---@param quality_table table<string, number> Table of quality names to counts
 ---@return table<LocalisedString> The formatted quality tooltip or {""} if no data
 local function getqualitytip(formatname, quality_table)

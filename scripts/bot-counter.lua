@@ -262,7 +262,7 @@ end
 --- @param unit_number number The unique identifier of the robot
 --- @param show_history boolean Whether history tracking is enabled
 local function check_if_no_order_bot_finished_delivery(networkdata, unit_number, show_history)
-  -- The bot has a delivery interval but no delivery, so it's finished or just gone
+  -- A bot we were following that is no longer delivering has finished, or is gone
   local delivered_order = networkdata.bot_active_deliveries[unit_number]
   if delivered_order then
     if show_history then
@@ -324,9 +324,8 @@ local function process_one_bot(bot, accumulator, gather, network_id)
       end
 
       if order.target_item and order.target_item.name then
-        -- Hoist target item and its quality fields to reduce repeated table indexing
         local target_item = order.target_item
-        if target_item then
+        do
           local item_name = target_item.name.name -- string item prototype name
           -- For Deliveries, record the item
           if order.type == defines_robot_order_type_deliver and item_name then
@@ -352,7 +351,7 @@ local function process_one_bot(bot, accumulator, gather, network_id)
           end
         end
       else
-        -- This is a situation that should not occur: we have an order but no target item. Clear it.
+        -- An order with no item, such as charging: whatever it was delivering is done
         check_if_no_order_bot_finished_delivery(networkdata, unit_number, gather.history)
       end
     else
@@ -371,7 +370,7 @@ end
 
 --- Reset counters to be able to process a list of data in chunks
 --- @param accumulator Accumulator The data accumulator to reset
---- @param last_seen table<number,number>|nil The list of bots seen in the last pass (nil if first pass))
+--- @param last_seen table<number,number>|nil The list of bots seen in the last pass (nil if first pass)
 local function bot_initialise_chunking(accumulator, last_seen)
   accumulator.delivering_bots = 0
   accumulator.picking_bots = 0
@@ -421,10 +420,10 @@ local function bot_chunks_done(accumulator, gather, network_id)
     if accumulator.last_seen then
       for unit_number, seen in pairs(accumulator.last_seen) do
         if seen == seen_bot_this_pass then
-          -- We saw this bot in the last pass
+          -- Seen again this pass: carry it forward as known
           accumulator.just_seen[unit_number] = seen_bot_last_pass
         else
-          -- We did not see this bot in the last pass, so it probably finished its delivery
+          -- Not seen this pass: it left the network or finished, so close its delivery
           check_if_no_order_bot_finished_delivery(networkdata, unit_number, gather.history)
         end
       end

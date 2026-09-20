@@ -60,7 +60,6 @@ function suggestions_row.add(player_table, gui_table)
   }
 
   for count = 1, player_table.settings.max_items do
-    -- Add an empty widget for when there is no suggestion
     -- Add sprite button (hidden by default)
     player_table.ui[ROW_TITLE].suggestion_buttons[count] = gui_table.add {
       type = "sprite-button",

@@ -164,8 +164,7 @@ end
 --- Check if the run is done and needs finalisation
 --- @return boolean True if all entities have been processed
 function chunker:needs_finalisation()
-  -- Also catch "processing" state where all entities were already consumed
-  -- (e.g. after save/load migration where current_index > processing_count)
+  -- Also catch "processing" with every entity already consumed
   return self.state == STATE_FINALISING
     or (self.state == STATE_PROCESSING and self.current_index > self.processing_count)
 end

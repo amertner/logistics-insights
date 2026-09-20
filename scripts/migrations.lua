@@ -416,7 +416,7 @@ local li_migrations = {
     for _, nwd in pairs(storage.networks) do
       migrate_chunker_state(nwd.cell_chunker)
       migrate_chunker_state(nwd.bot_chunker)
-      -- Initialize cached count fields added in 1.0.15
+      -- Initialize the cached count fields
       if nwd.requester_count == nil then nwd.requester_count = 0 end
       if nwd.provider_count == nil then nwd.provider_count = 0 end
       if nwd.storage_count == nil then nwd.storage_count = 0 end

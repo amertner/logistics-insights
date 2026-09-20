@@ -21,9 +21,6 @@ local network_settings = require("scripts.networkswin.network_settings")
 local debugger = require("scripts.debugger")
 local PROFILING = debugger.PROFILING
 
--- Control action dispatch (freeze / unfreeze / step)
--- Control button handling moved to game_state.handle_control_button for centralization
-
 -------------------------------------------------------------------------------
 -- Create main window and all rows needed based on settings
 -------------------------------------------------------------------------------
@@ -232,7 +229,7 @@ function main_window._add_all_rows(player_table, content_table)
 end
 
 --- Update all rows with current data
---- @param player LuaPlayer The player whose window to destroy
+--- @param player LuaPlayer The player whose window to update
 --- @param player_table PlayerData The player's data table
 function main_window.update(player, player_table)
   -- Ensure window reference; do NOT assign window to player_table.ui
@@ -320,7 +317,7 @@ function main_window.update_undersupply_progress(player_table, progress)
   progress_bars.update_progressbar(player_table, "undersupply-row", progress)
 end
 
--- Update the Undersupply progress bar
+-- Update the Suggestions progress bar
 --- @param player_table PlayerData The player's data table
 --- @param progress Progress|nil The progress data with current and total values
 function main_window.update_suggestions_progress(player_table, progress)

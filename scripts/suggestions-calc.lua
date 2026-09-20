@@ -126,7 +126,6 @@ function suggestions_calc.create_storage_capacity_suggestion(suggestions, sugges
     suggestions:create_or_age_suggestion(suggestion_name, used_rounded, "entity/storage-chest", urgency, false,
       {"suggestions-row." .. suggestion_name .. "-action", used_rounded})
   else
-    -- No need to age out a storage suggestion
     suggestions:age_out_suggestion(suggestion_name)
   end
 end

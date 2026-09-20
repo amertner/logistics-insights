@@ -532,7 +532,7 @@ script.on_event(defines.events.on_player_changed_surface,
   local g = player.gui and player.gui.screen
   local window = g and g.logistics_insights_window
   if window then
-    -- If there is a space platform, ricity network, there can't be bots
+    -- A space platform has no logistic network, so nothing to show there
     window.visible = player_table.bots_window_visible and not player.surface.platform
   end
 end)
