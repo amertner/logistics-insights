@@ -516,19 +516,23 @@ end
 
 ---@param networkdata LINetworkData The network 
 ---@param storages LuaEntity[] -- The list of storage entities to add to the ignore list
+---@return number added How many storages the list gained, ignoring invalid and already-listed ones
 function network_data.add_storages_to_ignorelist_for_filter_mismatch(networkdata, storages)
   if not networkdata or not storages or type(storages) ~= "table" then
-    return
+    return 0
   end
+  local added = 0
   for _, item in pairs(storages) do
     if item and item.valid then
       local ID = item.unit_number
-      if ID then
+      if ID and not networkdata.ignored_storages_for_mismatch[ID] then
         networkdata.ignored_storages_for_mismatch[ID] = true
         networkdata.ignored_storages_for_mismatch_changed = game.tick
+        added = added + 1
       end
     end
   end
+  return added
 end
 
 ---@param networkdata LINetworkData The network

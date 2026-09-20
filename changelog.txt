@@ -14,6 +14,7 @@ Date: 2026-09-18
     - Distances are shown in metres and kilometres rather than tiles, which are the same thing: one tile is one metre. Long trips and totals read more easily, e.g. 1.3 km instead of 1251 tiles.
     - The Ticks/item row is replaced by Distance carried: the total distance bots have carried each item. Ticks/item mixed up distance, time spent waiting to charge, and how many items each trip carried, and a few long trips were easily hidden by many short ones. Distance carried shows which items take up most of your bots' work, and Longest trip finds the outliers. Charging delays are still shown in the Activity row and suggestions.
     - Item tooltips in Distance carried and Longest trip show the median trip next to the average. An average much higher than the median means a few long trips among many short ones.
+    - Ignoring an item for undersupply, or ignoring the filter mismatch for a suggestion's chests, now confirms itself where you clicked, the way ignoring a long trip already did. The message says what was ignored and points at the network settings, where the list can be shown on the map or the entry removed again.
   Bugfixes:
     - The reset buttons in the network settings could show a missing-text tooltip.
 ---------------------------------------------------------------------------------------------------

@@ -30,6 +30,13 @@ local function apply_filter(item_list, filter_fn, filter_value)
   return filtered_list
 end
 
+--- Confirm an ignore list change where the player clicked, for that player only
+---@param player LuaPlayer
+---@param message LocalisedString What was ignored, and where to manage it
+local function confirm_at_cursor(player, message)
+  player.create_local_flying_text{text = message, create_at_cursor = true}
+end
+
 --- Find charging robots in the given cell list
 --- @param player_table PlayerData The player's data table
 --- @param cell_list LuaLogisticCell[] List of logistic cells to search
@@ -428,7 +435,7 @@ local function click_long_trip_suggestion(player, player_table, networkdata, sug
   local trip = entry and entry.top_trips and entry.top_trips[suggested.index]
   if not trip then return end
   network_data.ignore_trip(networkdata, iq.name, iq.quality, trip.to_x, trip.to_y)
-  player.create_local_flying_text{text = {"item-row.trip-ignored-flying-text"}, create_at_cursor = true}
+  confirm_at_cursor(player, {"item-row.trip-ignored-flying-text"})
   -- Move on to the next item carried unusually far, or drop the suggestion as it was dismissed
   if suggestions_calc.find_long_trips(networkdata)[1] then
     suggestions_calc.analyse_long_trips(networkdata.suggestions, networkdata)
@@ -501,6 +508,7 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
       local networkdata = network_data.get_networkdata(player_table.network)
       network_data.add_item_to_ignorelist_for_undersupply(networkdata, iq)
       events.emit(events.on_ignorelist_changed, player.index)
+      confirm_at_cursor(player, {"undersupply-row.undersupply-ignored-flying-text"})
     elseif is_ctrl_click and remote.interfaces["factory-search"] then
       open_in_factory_search(player, player_table, iq)
     else
@@ -531,7 +539,7 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
         local trip = trips[view.index]
         network_data.ignore_trip(networkdata, iq.name, iq.quality, trip.to_x, trip.to_y)
         events.emit(events.on_ignorelist_changed, player.index)
-        player.create_local_flying_text{text = {"item-row.trip-ignored-flying-text"}, create_at_cursor = true}
+        confirm_at_cursor(player, {"item-row.trip-ignored-flying-text"})
         if #trips == 0 then
           player_table.trip_view = nil
           ResultLocation.clear_markers(player)
@@ -566,10 +574,13 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
         if clickname == suggestions.long_trip_key then
           click_long_trip_suggestion(player, player_table, networkdata, list, is_right_click, is_shift_click)
         elseif is_shift_click and clickname == suggestions.mismatched_storage_key then
-          network_data.add_storages_to_ignorelist_for_filter_mismatch(networkdata, list)
+          local added = network_data.add_storages_to_ignorelist_for_filter_mismatch(networkdata, list)
           -- Immediately clear the suggestion to provide visual feedback
           networkdata.suggestions:clear_suggestion(suggestions.mismatched_storage_key)
           events.emit(events.on_ignorelist_changed, player.index)
+          if added > 0 then
+            confirm_at_cursor(player, {"suggestions-row.storage-mismatch-ignored-flying-text-1count", added})
+          end
         else
           find_and_highlight.highlight_list_locations_on_map(player, list, is_right_click)
         end
