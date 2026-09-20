@@ -26,6 +26,8 @@ function global_data.settings_changed()
   storage.global.ignore_player_demands_in_undersupply = settings.global["li-ignore-player-demands-in-undersupply"].value ~= false
   storage.global.freeze_highlighting_bots = settings.global["li-freeze-highlighting-bots"].value ~= false
   storage.global.age_out_suggestions_interval_minutes = tonumber(settings.global["li-age-out-suggestions-interval-minutes"].value) or 0
+  storage.global.long_trip_min_distance = tonumber(settings.global["li-long-trip-min-distance"].value) or 200
+  storage.global.long_trip_sensitivity = settings.global["li-long-trip-suggestions"].value or "normal"
 end
 
 ---@return integer The global bot chunk interval setting
@@ -108,6 +110,20 @@ end
 
 function global_data.age_out_suggestions_interval_ticks()
   return (storage.global.age_out_suggestions_interval_minutes or 0) * 60 * 60
+end
+
+-- What each sensitivity counts as "much further than usual", as a multiple of an item's typical
+-- trip. "off" is deliberately absent, so it reads as no factor at all
+local LONG_TRIP_MEDIAN_FACTORS = { relaxed = 8, normal = 4, sensitive = 2 }
+
+---@return integer The shortest trip that can be suggested as unusually long, in tiles
+function global_data.long_trip_min_distance()
+  return storage.global.long_trip_min_distance or 200
+end
+
+---@return number|nil factor Multiple of an item's median trip, or nil if the suggestion is off
+function global_data.long_trip_median_factor()
+  return LONG_TRIP_MEDIAN_FACTORS[storage.global.long_trip_sensitivity or "normal"]
 end
 
 return global_data

@@ -511,9 +511,12 @@ local li_migrations = {
         order.first_seen = nil
       end
     end
+    -- Long trip thresholds became settings, and estimated trip starts can now be hidden
+    global_data.settings_changed()
     -- Added longest trip history row, need to recreate UI
     for player_index, player_table in pairs(storage.players) do
       local player = game.get_player(player_index)
+      player_data.update_settings(player, player_table) -- Pick up the new per-player setting
       reinitialise_ui(player, player_table)
     end
   end,

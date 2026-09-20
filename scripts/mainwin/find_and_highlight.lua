@@ -398,8 +398,12 @@ local function show_trip(player, player_table, networkdata, iq, index, focus_on_
     index = 1 -- The list changed since the suggestion was made
   end
 
+  -- Without an estimate, a trip with an unobserved pickup is drawn as only what was seen.
+  -- Missing from a settings cache written before the setting existed, where it means the default
+  local estimate = player_table.settings.show_trip_estimates ~= false
+    and trip_estimate.for_network(networkdata) or nil
   local object_id = ResultLocation.show_trips(player, networkdata.surface, trips, index, iq, focus_on_start,
-    trip_estimate.for_network(networkdata))
+    estimate)
   player_table.trip_view = { key = key, index = index, object_id = object_id, on_start = focus_on_start }
   -- Update the row now, so its tooltip offers to ignore the trip just shown
   history_rows.update(player_table, false)

@@ -248,6 +248,70 @@ describe("suggestions_calc", function()
       assert.are.same({ "si-unit-meter", "603" }, list[3])
     end)
 
+    it("respects the minimum distance setting", function()
+      storage.global.long_trip_min_distance = 700
+      local _, suggestion = analyse({ ["iron-plate:normal"] = item("iron-plate", 9, { trip(603, 5) }) })
+      assert.is_nil(suggestion)
+      -- Lowering it brings in a trip that the default would have thought too short
+      storage.global.long_trip_min_distance = 100
+      local _, shorter = analyse({ ["iron-plate:normal"] = item("iron-plate", 2, { trip(150, 5) }) })
+      assert.is_not_nil(shorter)
+    end)
+
+    it("takes the urgency threshold from the minimum distance", function()
+      -- Red from 5x the minimum, so 603 m is urgent once the minimum is 100 but not at the default
+      storage.global.long_trip_min_distance = 100
+      local _, suggestion = analyse({ ["iron-plate:normal"] = item("iron-plate", 9, { trip(603, 5) }) })
+      assert.are.equal("high", suggestion.urgency)
+    end)
+
+    it("relaxed sensitivity ignores a trip that normal would suggest", function()
+      -- 603 is 6x the item's typical 100: beyond normal's 4x, short of relaxed's 8x
+      local history = { ["iron-plate:normal"] = item("iron-plate", 100, { trip(603, 5) }) }
+      local _, suggestion = analyse(history)
+      assert.is_not_nil(suggestion)
+      storage.global.long_trip_sensitivity = "relaxed"
+      local _, relaxed = analyse(history)
+      assert.is_nil(relaxed)
+    end)
+
+    it("sensitive sensitivity suggests a trip that normal would not", function()
+      -- 603 is 3x the item's typical 200: short of normal's 4x, beyond sensitive's 2x
+      local history = { ["iron-plate:normal"] = item("iron-plate", 200, { trip(603, 5) }) }
+      local _, suggestion = analyse(history)
+      assert.is_nil(suggestion)
+      storage.global.long_trip_sensitivity = "sensitive"
+      local _, sensitive = analyse(history)
+      assert.is_not_nil(sensitive)
+    end)
+
+    it("clears the suggestion outright when switched off, rather than ageing it", function()
+      local s = make_suggestions(NOW)
+      local history = { ["iron-plate:normal"] = item("iron-plate", 9, { trip(603, 5) }) }
+      suggestions_calc.analyse_long_trips(s, { delivery_history = history })
+      assert.is_not_nil(s:get_suggestions()[Suggestions.long_trip_key])
+      storage.global.long_trip_sensitivity = "off"
+      suggestions_calc.analyse_long_trips(s, { delivery_history = history })
+      assert.is_nil(s:get_suggestions()[Suggestions.long_trip_key])
+    end)
+
+    it("follows the age-out setting for how long a trip may go unseen", function()
+      -- Not seen for 6 minutes: too long at the 5 minute default of this spec
+      local history = { ["iron-plate:normal"] = item("iron-plate", 9, { trip(603, 5, 6 * 60 * 60) }) }
+      assert.is_nil(select(2, analyse(history)))
+      storage.global.age_out_suggestions_interval_minutes = 15
+      assert.is_not_nil(select(2, analyse(history)))
+    end)
+
+    it("keeps a floor under the unseen window, however short the age-out", function()
+      -- Removing suggestions immediately must not mean only this instant's trips count
+      storage.global.age_out_suggestions_interval_minutes = 0
+      local _, recent = analyse({ ["iron-plate:normal"] = item("iron-plate", 9, { trip(603, 5, 2 * 60 * 60) }) })
+      assert.is_not_nil(recent)
+      local _, stale = analyse({ ["iron-plate:normal"] = item("iron-plate", 9, { trip(603, 5, 4 * 60 * 60) }) })
+      assert.is_nil(stale)
+    end)
+
     it("ages out once nothing qualifies", function()
       local s = make_suggestions(NOW)
       local history = { ["iron-plate:normal"] = item("iron-plate", 9, { trip(603, 5) }) }

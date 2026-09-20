@@ -47,6 +47,8 @@ function M.reset()
       ["li-ignore-player-demands-in-undersupply"]      = { value = false },
       ["li-freeze-highlighting-bots"]                  = { value = false },
       ["li-age-out-suggestions-interval-minutes"]      = { value = 0 },
+      ["li-long-trip-min-distance"]                    = { value = 200 },
+      ["li-long-trip-suggestions"]                     = { value = "normal" },
     },
   }
 

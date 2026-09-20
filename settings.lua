@@ -64,6 +64,13 @@ data:extend(
     }
     ,
     {
+      type = "bool-setting",
+      name = "li-show-trip-estimates",
+      setting_type = "runtime-per-user",
+      default_value = true,
+      order = "7.5"
+    },
+    {
       type = "double-setting",
       name = "li-initial-zoom",
       setting_type = "runtime-per-user",
@@ -151,6 +158,25 @@ data:extend(
       default_value = 3,
       allowed_values  = {0, 1, 3, 5, 10, 15, 30, 60},
       order = "4.5"
+    }
+    ,
+    {
+      type = "int-setting",
+      name = "li-long-trip-min-distance",
+      setting_type = "runtime-global",
+      default_value = 200,
+      minimum_value = 20,
+      maximum_value = 10000,
+      order = "4.6"
+    }
+    ,
+    {
+      type = "string-setting",
+      name = "li-long-trip-suggestions",
+      setting_type = "runtime-global",
+      default_value = "normal",
+      allowed_values = {"off", "relaxed", "normal", "sensitive"},
+      order = "4.7"
     }
     ,
     {

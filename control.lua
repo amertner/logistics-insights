@@ -301,7 +301,8 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
       elseif e.setting == "li-calculate-undersupply" then
         -- If undersupply calculation was enabled or disabled, recreate the main window
         events.emit(events.on_recreate_main_window, e.player_index)
-      elseif e.setting == "li-gather-quality-data-global" or e.setting == "li-ignore-player-demands-in-undersupply" then
+      elseif e.setting == "li-gather-quality-data-global" or e.setting == "li-ignore-player-demands-in-undersupply"
+        or e.setting == "li-long-trip-min-distance" or e.setting == "li-long-trip-suggestions" then
         -- Nothing particular to do yet; will be used on next chunking cycle
       end
     else
@@ -310,7 +311,8 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
       local player_table = player_data.get_player_table(e.player_index)
       if player and player_table then
         if e.setting == "li-ui-update-interval" or
-           e.setting == "li-highlight-duration" then
+           e.setting == "li-highlight-duration" or
+           e.setting == "li-show-trip-estimates" then
           -- These settings will be adapted dynamically
           player_data.update_settings(player, player_table)
           if e.setting == "li-ui-update-interval" then

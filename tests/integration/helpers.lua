@@ -322,6 +322,12 @@ function helpers.apply_settings(overrides)
     ["li-age-out-suggestions-interval-minutes"] = function(v)
       storage.global.age_out_suggestions_interval_minutes = tonumber(v) or 0
     end,
+    ["li-long-trip-min-distance"] = function(v)
+      storage.global.long_trip_min_distance = tonumber(v) or 200
+    end,
+    ["li-long-trip-suggestions"] = function(v)
+      storage.global.long_trip_sensitivity = v or "normal"
+    end,
   }
 
   storage.global = storage.global or {}

@@ -13,13 +13,37 @@ local __allowed_filters = {}
 local BOT_TREND_WINDOW_TICKS = 60 * 60 -- 60 seconds window for trend (covers multiple background scans)
 local MIN_TOTAL_BOTS_FOR_SUGGESTION = 100 -- Ignore small networks for suggesting too many bots
 
--- A long trip is worth suggesting something about when it is...
-local LONG_TRIP_MIN_TILES = 200 -- ...long in itself,
-local LONG_TRIP_MEDIAN_FACTOR = 4 -- ...much longer than the item's typical trip,
+-- A long trip is worth suggesting something about when it is long in itself and much longer than
+-- the item's typical trip, which are both settings, and when it is...
 local LONG_TRIP_MIN_DELIVERIES = 3 -- ...made regularly, not just once,
-local LONG_TRIP_RECENT_TICKS = 5 * 60 * 60 -- ...and still happening, so it ages out once fixed
-local LONG_TRIP_URGENT_TILES = 1000 -- Red rather than yellow from this far
+-- ...and still happening, so it ages out once fixed. How long it may go unseen follows the
+-- age-out setting rather than being a setting of its own, but never falls so low that an ordinary
+-- gap between deliveries disqualifies a trip
+local LONG_TRIP_MIN_RECENT_TICKS = 3 * 60 * 60
+local LONG_TRIP_URGENT_FACTOR = 5 -- Red rather than yellow from this multiple of the minimum
 local LONG_TRIP_OTHERS_SHOWN = 3 -- Other items with long trips listed in the tooltip
+
+--- What a network's long trips are judged against. Global for now; per-network overrides belong
+--- here, falling back to these
+---@class LongTripThresholds
+---@field min_tiles number A trip shorter than this is never suggested
+---@field median_factor number Multiple of the item's typical trip that counts as much further
+---@field urgent_tiles number Red rather than yellow from here
+---@field recent_ticks number How long a trip may go unseen and still count as still happening
+
+---@param networkdata LINetworkData
+---@return LongTripThresholds|nil thresholds nil when the suggestion is switched off
+local function long_trip_thresholds(networkdata)
+  local median_factor = global_data.long_trip_median_factor()
+  if not median_factor then return nil end
+  local min_tiles = global_data.long_trip_min_distance()
+  return {
+    min_tiles = min_tiles,
+    median_factor = median_factor,
+    urgent_tiles = min_tiles * LONG_TRIP_URGENT_FACTOR,
+    recent_ticks = math.max(global_data.age_out_suggestions_interval_ticks(), LONG_TRIP_MIN_RECENT_TICKS),
+  }
+end
 
 -- Potential issue: Too many bots waiting to charge means we need more RPs
 ---@param suggestions Suggestions
@@ -236,18 +260,22 @@ end
 --- Find items that bots regularly carry much further than usual, e.g. to an outpost when most
 --- go to a nearby mall. Only the longest listed trips are looked at, so ignored ones are left out
 ---@param networkdata LINetworkData
+---@param thresholds LongTripThresholds|nil What to judge against; worked out from the settings if omitted
 ---@return {item_name: string, quality: string, index: integer, trip: TripRecord, median: number}[] Worst first
-function suggestions_calc.find_long_trips(networkdata)
+function suggestions_calc.find_long_trips(networkdata, thresholds)
+  thresholds = thresholds or long_trip_thresholds(networkdata)
+  if not thresholds then return {} end
+  local min_tiles, median_factor = thresholds.min_tiles, thresholds.median_factor
   local found = {}
-  local recent = game.tick - LONG_TRIP_RECENT_TICKS
+  local recent = game.tick - thresholds.recent_ticks
   for _, entry in pairs(networkdata.delivery_history or {}) do
     local trips = entry.top_trips
     -- The list is longest first, so most items are ruled out by their first trip
-    if trips and trips[1] and trips[1].dist >= LONG_TRIP_MIN_TILES then
+    if trips and trips[1] and trips[1].dist >= min_tiles then
       local median = network_data.median_trip(entry)
       if median then
         for i, trip in ipairs(trips) do
-          if trip.dist < LONG_TRIP_MIN_TILES or trip.dist < LONG_TRIP_MEDIAN_FACTOR * median then break end
+          if trip.dist < min_tiles or trip.dist < median_factor * median then break end
           if (trip.deliveries or 1) >= LONG_TRIP_MIN_DELIVERIES and (trip.last_tick or 0) >= recent then
             found[#found + 1] = { item_name = entry.item_name, quality = entry.quality_name or "normal",
               index = i, trip = trip, median = median }
@@ -273,7 +301,13 @@ end
 ---@param suggestions Suggestions
 ---@param networkdata LINetworkData
 function suggestions_calc.analyse_long_trips(suggestions, networkdata)
-  local found = suggestions_calc.find_long_trips(networkdata)
+  local thresholds = long_trip_thresholds(networkdata)
+  if not thresholds then
+    -- Switched off, so drop it straight away rather than leaving it to age out
+    suggestions:clear_suggestion(SuggestionsMgr.long_trip_key)
+    return
+  end
+  local found = suggestions_calc.find_long_trips(networkdata, thresholds)
   local worst = found[1]
   if not worst then
     suggestions:age_out_suggestion(SuggestionsMgr.long_trip_key)
@@ -297,7 +331,7 @@ function suggestions_calc.analyse_long_trips(suggestions, networkdata)
     SuggestionsMgr.long_trip_key,
     dist,
     utils.get_valid_sprite_path("item/", worst.item_name, "entity/logistic-robot"),
-    suggestions:get_urgency(dist, LONG_TRIP_URGENT_TILES - 1),
+    suggestions:get_urgency(dist, thresholds.urgent_tiles - 1),
     true,
     {"suggestions-row.long-trip-action-1icon-2item-3dist-4times-5median-6others",
       item_icon(worst.item_name, worst.quality), names.iname, utils.format_distances({worst.trip.dist}),
