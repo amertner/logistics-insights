@@ -10,6 +10,43 @@ local global_data = require("scripts.global-data")
 -- Reusable table for per-chest filter allow-list to reduce allocations
 local __allowed_filters = {}
 
+-- Which qualities a storage filter admits, keyed by "<quality>|<comparator>|<ignore higher>".
+-- A filter is read back with a comparator, so "≥ uncommon" admits rare too; walking every
+-- quality prototype once per distinct filter is far cheaper than once per chest
+local __qualities_admitted = {}
+
+---@param fqual string The filter's quality name
+---@param comparator string|nil The filter's comparator, "=" when missing
+---@param ignore_higher boolean True to admit every quality above the filter's as well
+---@return table<string, boolean> Set of admitted quality names
+local function qualities_admitted(fqual, comparator, ignore_higher)
+  comparator = comparator or "="
+  local key = fqual .. "|" .. comparator .. (ignore_higher and "|h" or "")
+  local set = __qualities_admitted[key]
+  if set then return set end
+
+  set = { [fqual] = true }
+  local base = prototypes.quality[fqual]
+  local level = base and base.level
+  if level then
+    for name, quality in pairs(prototypes.quality) do
+      local l = quality.level
+      if l and (
+          (comparator == "=" and l == level)
+          or (comparator == "≥" and l >= level)
+          or (comparator == ">" and l > level)
+          or (comparator == "≤" and l <= level)
+          or (comparator == "<" and l < level)
+          or (comparator == "≠" and l ~= level)
+          or (ignore_higher and l > level)) then
+        set[name] = true
+      end
+    end
+  end
+  __qualities_admitted[key] = set
+  return set
+end
+
 local BOT_TREND_WINDOW_TICKS = 60 * 60 -- 60 seconds window for trend (covers multiple background scans)
 local MIN_TOTAL_BOTS_FOR_SUGGESTION = 100 -- Ignore small networks for suggesting too many bots
 
@@ -151,8 +188,13 @@ function suggestions_calc.process_storage_for_analysis(nstorage, accumulator)
     local inventory = nstorage.get_inventory(defines.inventory.chest)
     -- Count total and free stacks
     if inventory then
+      -- Slots behind the bar are not storage: bots cannot use them, so they count neither as
+      -- capacity nor as free
       local capacity = #inventory
-      local free = inventory.count_empty_stacks()
+      if inventory.supports_bar() then
+        capacity = math.min(capacity, inventory.get_bar() - 1)
+      end
+      local free = inventory.count_empty_stacks(false, false)
       accumulator.total_stacks = accumulator.total_stacks + capacity
 
       -- Build allowed filter set once (O(F))
@@ -172,14 +214,11 @@ function suggestions_calc.process_storage_for_analysis(nstorage, accumulator)
               if fqual then
                 if current ~= true then
                   if not current then current = {}; allowed[fname] = current end
-                  current[fqual] = true
-                  if accumulator.ignore_higher_quality_mismatches then
-                    -- If ignoring higher quality mismatches, allow all qualities up to and including this one
-                    local quality = filter.quality
-                    while quality do
-                      current[quality.name] = true
-                      quality = quality.next
-                    end
+                  -- Admit what the filter's comparator admits, and every higher quality when the
+                  -- network's setting says a better item in the chest is not a mismatch
+                  for name in pairs(qualities_admitted(fqual, filter.comparator,
+                      accumulator.ignore_higher_quality_mismatches)) do
+                    current[name] = true
                   end
                 end
               else

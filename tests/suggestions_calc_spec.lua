@@ -441,7 +441,14 @@ describe("suggestions_calc", function()
       -- (Lua 5.1 does not support __len on tables)
       local mock_inventory = {}
       for i = 1, capacity do mock_inventory[i] = false end
-      mock_inventory.count_empty_stacks = function() return free end
+      -- A bar limits the usable slots; empty slots behind it only count when asked for
+      local behind_bar = opts.bar and (capacity - (opts.bar - 1)) or 0
+      mock_inventory.supports_bar = function() return opts.bar ~= nil end
+      mock_inventory.get_bar = function() return opts.bar end
+      mock_inventory.count_empty_stacks = function(include_filtered, include_bar)
+        if include_bar == false then return free end
+        return free + behind_bar
+      end
       mock_inventory.is_empty = function() return is_empty end
       mock_inventory.get_contents = function() return contents end
 
@@ -570,11 +577,47 @@ describe("suggestions_calc", function()
     describe("ignore_higher_quality_mismatches (per-network)", function()
       -- The quality chain: normal -> uncommon -> rare, as prototypes.quality gives it
       local function quality_chain()
-        local rare = { name = "rare" }
-        local uncommon = { name = "uncommon", next = rare }
-        local normal = { name = "normal", next = uncommon }
+        local rare = { name = "rare", level = 3 }
+        local uncommon = { name = "uncommon", level = 2, next = rare }
+        local normal = { name = "normal", level = 1, next = uncommon }
         _G.prototypes.quality = { normal = normal, uncommon = uncommon, rare = rare }
       end
+
+      it("does not count slots behind the bar as capacity or as free", function()
+        local acc = {}
+        suggestions_calc.initialise_storage_analysis(acc, {})
+        -- 48 slots, bar at 9 so 8 usable, 3 of them empty
+        local chest = make_storage_chest({ capacity = 48, bar = 9, free = 3 })
+        suggestions_calc.process_storage_for_analysis(chest, acc)
+        assert.are.equal(8, acc.total_stacks)
+        assert.are.equal(3, acc.free_stacks)
+      end)
+
+      it("honours the filter's comparator: at least uncommon admits rare", function()
+        quality_chain()
+        local acc = {}
+        suggestions_calc.initialise_storage_analysis(acc, { ignore_higher_quality_mismatches = false })
+        local chest = make_storage_chest({
+          capacity = 48, free = 40,
+          filters = {{ name = { name = "iron-plate" }, quality = _G.prototypes.quality.uncommon, comparator = "≥" }},
+          contents = {{ name = "iron-plate", quality = "rare" }},
+        })
+        suggestions_calc.process_storage_for_analysis(chest, acc)
+        assert.are.equal(0, #acc.mismatched_storages)
+      end)
+
+      it("honours the filter's comparator: at least uncommon rejects normal", function()
+        quality_chain()
+        local acc = {}
+        suggestions_calc.initialise_storage_analysis(acc, { ignore_higher_quality_mismatches = false })
+        local chest = make_storage_chest({
+          capacity = 48, free = 40,
+          filters = {{ name = { name = "iron-plate" }, quality = _G.prototypes.quality.uncommon, comparator = "≥" }},
+          contents = {{ name = "iron-plate", quality = "normal" }},
+        })
+        suggestions_calc.process_storage_for_analysis(chest, acc)
+        assert.are.equal(1, #acc.mismatched_storages)
+      end)
 
       -- get_filter gives the quality back as a LuaQualityPrototype (checked in-game 2026-09-20),
       -- so the walk up the chain starts from the filter value itself
