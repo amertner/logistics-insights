@@ -87,7 +87,7 @@ local utils = require("scripts.utils")
 ---@field dist_exact number -- How many of those were measured from the pickup chest
 ---@field dist_sum number -- Total trip distance in tiles over those deliveries
 ---@field avg_dist number -- Average trip distance per delivery, equal to dist_sum/dist_count
----@field max_dist number -- Longest trip distance seen for this item
+---@field max_dist number -- Longest trip distance seen for this item, counting trips to ignored destinations. top_dist is the longest of the ones listed, so the two differ when the ignore list hides the longest
 ---@field dist_buckets? table<integer, number> -- How many trips fell in each distance bucket, to estimate the median
 ---@field top_trips? TripRecord[] -- The longest trips not on the ignore list, longest first, at most one per destination
 ---@field top_dist? number -- Distance of the first of top_trips, or 0 if there are none
@@ -131,6 +131,7 @@ local utils = require("scripts.utils")
 ---@field x number -- Pickup target position
 ---@field y number
 ---@field item_name string -- The item being picked up; must match the delivery
+---@field quality_name string -- Its quality, which must match too: an order can change between passes
 ---@field seen number -- The last tick this bot was seen picking it up
 
 -- Record used to store list of undersupplied items
@@ -333,6 +334,10 @@ function network_data.player_changed_networks(player_table, old_network_id, new_
       -- a whole refresh interval ago. Forgetting them stops the first trips recorded after the
       -- player returns claiming a closely tracked start they never had
       new_nwd.last_pass_bots_seen = {}
+      -- Pickups are only pruned by a bot pass, and no pass need have run while nobody was watching.
+      -- A pickup left over from before would be matched to whatever the bot is carrying now and
+      -- recorded as a measured start from a chest it left minutes ago
+      new_nwd.bot_pickup_positions = {}
     elseif not was_observed then
       -- A network nobody was watching and nothing is kept for: start counting from zero
       new_nwd.history_timer:reset()

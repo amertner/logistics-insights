@@ -112,6 +112,20 @@ describe("network observation", function()
     assert.are.equal(0, table_size(nwd.last_pass_bots_seen))
   end)
 
+  it("forgets where bots were picking up when the player returns", function()
+    local player_table = a_player(1)
+    local network = a_network(1)
+    local nwd = arrive(player_table, network)
+    nwd.bot_pickup_positions = { [7] = { x = 0, y = 0, item_name = "iron-plate", seen = game.tick } }
+
+    leave(player_table)
+    advance(GRACE / 2) -- Only a bot pass prunes pickups, and none need have run while away
+    arrive(player_table, network)
+
+    -- Kept, it would be matched to whatever bot 7 carries next and recorded as a measured start
+    assert.are.equal(0, table_size(nwd.bot_pickup_positions))
+  end)
+
   -- ─── Expiry ───────────────────────────────────────────────────────
 
   it("drops the history once the grace period has passed", function()
