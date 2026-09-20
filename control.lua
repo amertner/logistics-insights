@@ -61,8 +61,9 @@ script.on_load(function()
   -- Re-apply scheduler interval overrides for existing saves. Tasks are
   -- registered fresh on every load with hardcoded intervals, and the
   -- overrides live outside storage, so both the global and the per-player
-  -- ones have to be rebuilt here. Reads storage only, so safe in on_load; it
-  -- also keeps a joining client's schedule identical to everyone else's.
+  -- ones have to be rebuilt here. Reads storage only, so safe in on_load.
+  -- With the queue windows aligned to absolute ticks, this is what makes a
+  -- joining client's schedule identical to everyone else's.
   scheduler.apply_global_settings()
   scheduler.apply_all_player_intervals()
 end)
@@ -225,6 +226,9 @@ script.on_event({ defines.events.on_player_created },
 script.on_event({ defines.events.on_player_joined_game },
   --- @param e EventData.on_player_joined_game
   function(e)
+    -- Every peer sees this at the same tick, so every peer rebuilds the same queue with the new
+    -- player's tasks in it, rather than only the peers that build their next window later
+    scheduler.invalidate_queue()
     local player_table = player_data.get_player_table(e.player_index)
     if player_table and player_table.network and player_table.network.valid then
       network_data.player_changed_networks(player_table, nil, player_table.network)
@@ -244,6 +248,7 @@ end)
 script.on_event(defines.events.on_player_left_game,
   --- @param e EventData.on_player_left_game
   function(e)
+  scheduler.invalidate_queue() -- As on join: drop their tasks on every peer at once
   network_data.remove_player_index(e.player_index)
 end)
 

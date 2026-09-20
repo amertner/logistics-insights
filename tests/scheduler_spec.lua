@@ -448,6 +448,55 @@ describe("scheduler", function()
     end)
   end)
 
+  -- ─── Queue windows are aligned to absolute ticks ──────────────────
+  -- Two peers in a multiplayer game build their first queue at different ticks: the host on
+  -- load, a client when it joins. Heavy tasks that collide are moved to a neighbouring tick, and
+  -- which neighbour depends on the window edges, so the windows must not depend on that tick.
+
+  describe("queue window alignment", function()
+    --- Fire ticks first_tick..last_tick on a fresh scheduler with two colliding heavy tasks,
+    --- and return which ticks each task ran on
+    local function ticks_run_from(first_tick, last_tick)
+      package.loaded["scripts.scheduler"] = nil
+      local s = require("scripts.scheduler")
+      local ran = { bots = {}, cells = {} }
+      s.register({ name = "bots", interval = 7, is_heavy = true, fn = function() ran.bots[game.tick] = true end })
+      s.register({ name = "cells", interval = 7, is_heavy = true, fn = function() ran.cells[game.tick] = true end })
+      for tick = first_tick, last_tick do
+        game.tick = tick
+        s.on_tick()
+      end
+      return ran
+    end
+
+    it("runs heavy tasks on the same ticks whether a peer started at tick 0 or mid-window", function()
+      local host = ticks_run_from(0, 240)
+      local client = ticks_run_from(37, 240)
+      for tick = 37, 240 do
+        assert.are.equal(host.bots[tick] or false, client.bots[tick] or false, "bots at tick " .. tick)
+        assert.are.equal(host.cells[tick] or false, client.cells[tick] or false, "cells at tick " .. tick)
+      end
+    end)
+
+    it("runs a joining player's tasks in the current window once the queue is invalidated", function()
+      local connected = false
+      game.get_player = function() return { valid = true, connected = connected } end
+      storage.players[1] = { player_index = 1, settings = {} }
+      local runs = 0
+      scheduler.register({ name = "ui-update", interval = 10, per_player = true, fn = function() runs = runs + 1 end })
+
+      game.tick = 1
+      scheduler.on_tick() -- Window built while the player is not connected
+      connected = true
+      scheduler.invalidate_queue() -- What on_player_joined_game does, on every peer
+      for tick = 2, 20 do
+        game.tick = tick
+        scheduler.on_tick()
+      end
+      assert.are.equal(2, runs) -- Ticks 10 and 20
+    end)
+  end)
+
   -- ─── apply_all_player_intervals() ─────────────────────────────────
 
   describe("apply_all_player_intervals()", function()
@@ -525,6 +574,7 @@ describe("scheduler", function()
     local heavy_per_tick -- tick -> number of heavy task invocations
     local total_per_tick -- tick -> number of all task invocations
     local TICKS = 3000
+    local FIRST_TICK = 60 -- A queue window boundary
     local NUM_PLAYERS = 2
 
     before_each(function()
@@ -558,49 +608,55 @@ describe("scheduler", function()
         })
       end
 
-      -- Exact registrations from control.lua (lines 82-131)
+      -- The registrations in control.lua, with the bot chunk at its default setting
       reg({ name = "network-check",              interval = 29,  per_player = true  })
       reg({ name = "background-refresh",         interval = 11,  is_heavy = true    })
       reg({ name = "clear-caches",               interval = 600                     })
       reg({ name = "find-next-player-network",   interval = 7                       })
-      reg({ name = "player-network-bot-chunk",   interval = 5,   is_heavy = true    })
+      reg({ name = "player-network-bot-chunk",   interval = 7,   is_heavy = true    })
       reg({ name = "player-network-cell-chunk",  interval = 7,   is_heavy = true    })
       reg({ name = "pick-network-to-analyse",    interval = 31                      })
       reg({ name = "run-derived-analysis",       interval = 9,   is_heavy = true    })
       reg({ name = "ui-update",                  interval = 60,  per_player = true  })
       reg({ name = "analysis-progress-update",   interval = 5,   per_player = true  })
 
-      -- Run all 3000 ticks
-      for t = 1, TICKS do
+      -- Run 3000 ticks covering whole queue windows, so a heavy task displaced from a window's
+      -- first tick is still counted in the same window. Starts at the second window: nothing
+      -- fires at tick 0
+      for t = FIRST_TICK, FIRST_TICK + TICKS - 1 do
         game.tick = t
         scheduler.on_tick()
       end
     end)
 
+    --- How many multiples of interval fall in the ticks run
+    local function occurrences(interval)
+      local last = FIRST_TICK + TICKS - 1
+      return math.floor(last / interval) - math.floor((FIRST_TICK - 1) / interval)
+    end
+
     -- ─── Invocation counts ────────────────────────────────────────
 
     it("fires each global task the correct number of times", function()
-      -- Global task with interval I: floor(TICKS / I) invocations
-      assert.are.equal(math.floor(TICKS / 11),  counts["background-refresh"])
-      assert.are.equal(math.floor(TICKS / 600), counts["clear-caches"])
-      assert.are.equal(math.floor(TICKS / 7),   counts["find-next-player-network"])
-      assert.are.equal(math.floor(TICKS / 5),   counts["player-network-bot-chunk"])
-      assert.are.equal(math.floor(TICKS / 7),   counts["player-network-cell-chunk"])
-      assert.are.equal(math.floor(TICKS / 31),  counts["pick-network-to-analyse"])
-      assert.are.equal(math.floor(TICKS / 9),   counts["run-derived-analysis"])
+      assert.are.equal(occurrences(11),  counts["background-refresh"])
+      assert.are.equal(occurrences(600), counts["clear-caches"])
+      assert.are.equal(occurrences(7),   counts["find-next-player-network"])
+      assert.are.equal(occurrences(7),   counts["player-network-bot-chunk"])
+      assert.are.equal(occurrences(7),   counts["player-network-cell-chunk"])
+      assert.are.equal(occurrences(31),  counts["pick-network-to-analyse"])
+      assert.are.equal(occurrences(9),   counts["run-derived-analysis"])
     end)
 
     it("fires each per-player task the correct number of times", function()
-      -- Per-player task: floor(TICKS / I) * NUM_PLAYERS
-      assert.are.equal(math.floor(TICKS / 29) * NUM_PLAYERS, counts["network-check"])
-      assert.are.equal(math.floor(TICKS / 60) * NUM_PLAYERS, counts["ui-update"])
-      assert.are.equal(math.floor(TICKS / 5)  * NUM_PLAYERS, counts["analysis-progress-update"])
+      assert.are.equal(occurrences(29) * NUM_PLAYERS, counts["network-check"])
+      assert.are.equal(occurrences(60) * NUM_PLAYERS, counts["ui-update"])
+      assert.are.equal(occurrences(5)  * NUM_PLAYERS, counts["analysis-progress-update"])
     end)
 
     -- ─── Congestion checks ───────────────────────────────────────
 
     it("never exceeds 1 heavy task in any single tick", function()
-      -- 4 heavy tasks at intervals 5, 7, 9, 11 → 12+8+6+5 = 31 heavy
+      -- 4 heavy tasks at intervals 7, 7, 9, 11 → 9+9+7+6 = 31 heavy
       -- occurrences per 60-tick window. Since 31 < 60, greedy least-loaded
       -- assignment guarantees at most 1 heavy task per tick.
       local max_heavy = 0

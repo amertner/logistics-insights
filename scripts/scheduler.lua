@@ -30,7 +30,12 @@ local tick_offset = 0
 ---@field items table<number, {player_index: number|nil, task: SchedulerTask}[]> Tasks scheduled for each tick
 -- Tasks to run next
 local task_queue = {last_tick = 0, items = {}} --@type TaskQueue
-local TASK_QUEUE_TICKS = 60 -- How many ticks ahead to queue tasks
+-- How many ticks each queue covers. Windows start at multiples of this (relative to tick_offset),
+-- never at whatever tick a peer happened to load on: heavy tasks that collide are moved to a
+-- neighbouring tick, and which neighbour depends on where the window ends, so two peers building
+-- their windows from different ticks would run a storage-mutating task on different ticks and
+-- desync. Aligned windows plus identical storage give identical queues on every peer
+local TASK_QUEUE_TICKS = 60
 
 --- Register a periodic task.
 ---@param opts {name:string, interval:number, per_player?:boolean, fn:function, is_heavy?:boolean}
@@ -282,13 +287,21 @@ local function build_task_queue(first_tick)
   end
 end
 
+--- Throw the queue away so it is rebuilt on the next tick. Call whenever the inputs to
+--- build_task_queue change in a way every peer sees at the same tick, such as a player joining
+--- or leaving: the peers that built their window before the change would otherwise keep running
+--- it while a peer that joined after builds a different one
+function scheduler.invalidate_queue()
+  task_queue.last_tick = 0
+end
+
 --- Run due tasks for this tick.
 function scheduler.on_tick()
   local tick = game.tick
   if tick > task_queue.last_tick then
     local profiler
     if PROFILING then profiler = helpers.create_profiler() end
-    build_task_queue(tick)
+    build_task_queue(tick - (tick - tick_offset) % TASK_QUEUE_TICKS)
     if PROFILING then
       profiler.stop()
       log({"", "[perf] build_task_queue ", profiler})
@@ -356,7 +369,7 @@ end
 --- making scheduling deterministic regardless of absolute tick.
 function scheduler.reset_phase()
   tick_offset = game.tick
-  task_queue.last_tick = 0  -- force rebuild on next on_tick
+  scheduler.invalidate_queue()
 end
 
 return scheduler
