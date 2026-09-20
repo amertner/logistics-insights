@@ -16,6 +16,9 @@
 # migrations are keyed by the 2.0 line; see the comment above the table in
 # scripts/migrations.lua.
 #
+# Also regenerates mod-portal-description.md (see portal-description.sh), the
+# README with screenshots for pasting into the mod portal's Description field.
+#
 # Requires jq, rsync and zip. Files listed in info.json "package.ignore" are
 # left out, as are top-level dotfiles, dist/, zips and this script.
 
@@ -74,5 +77,6 @@ build_zip() {
   echo "$out/$folder.zip  (factorio_version $game, version $ver)"
 }
 
+"$root/portal-description.sh"
 build_zip "$version" "2.1"
 build_zip "$version_20" "2.0"

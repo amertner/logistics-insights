@@ -1,0 +1,24 @@
+# Screenshots for the mod portal description. portal-description.sh copies
+# README.md to mod-portal-description.md and, after every README line that
+# starts with an anchor below, inserts the image on the same row.
+#
+#   <start of a README line> | ![alt](https://assets-mod.factorio.com/assets/<hash>.png)
+#
+# To replace a screenshot: upload the new image on the portal's edit page,
+# copy its URL here. To add one: add a row with the sentence it should follow.
+# The script fails if an anchor no longer matches any README line.
+
+In the top left corner of the screen | ![QuickInfo](https://assets-mod.factorio.com/assets/a7748701a84ca1c61fa6bf249f8f362252d8077f.png)
+The main Logistics Insights window focuses | ![main-window](https://assets-mod.factorio.com/assets/a5aabefdc59d2795e402a39cf62019bfd2c608e0.png)
+The Logistics Networks window shows all | ![Networks-window](https://assets-mod.factorio.com/assets/8dc5ad9fae2043276ba940d747e53e1d35df5169.png)
+When the settings pane is open | ![Settings-pane](https://assets-mod.factorio.com/assets/f7b40b8fca1b4b163d79e7185f805ab937887146.png)
+In the Undersupply row, you can see | ![Undersupply](https://assets-mod.factorio.com/assets/46066c3567a4829c276b2992d91007fd367474a7.png)
+- **Build more roboports.** | ![Suggest-RPs](https://assets-mod.factorio.com/assets/238554f7b48bbe2e7dba8e70e6a2866693fbba10.png)
+- **Build more unfiltered storage.** | ![Suggest-more-storage](https://assets-mod.factorio.com/assets/9707bae6b868bfb1837c40e58d13f35bf3c025ab.png)
+- **Filtered storage mismatch.** | ![Suggest-filter-mismatch](https://assets-mod.factorio.com/assets/dc2015a3a1bce8a8d937eca847ef93308bc13daf.png)
+- **Too few bots** | ![Suggest-more-bots](https://assets-mod.factorio.com/assets/1a78eaf3acfcf5eb9d98c855c5ec6992f4395a65.png)
+- **Too many bots** | ![Suggest-fewer-bots](https://assets-mod.factorio.com/assets/da50c7d52869836dc29f2721151af41def969a24.png)
+**In the Activity row** | ![Activity-Network](https://assets-mod.factorio.com/assets/fde1dd48cfe0fb3945aff89739c2820dad4f88ed.png)
+Logistics Insights has several settings that are on a per-map basis | ![Per-map settings](https://assets-mod.factorio.com/assets/bb2e582531443b2676f73174d7896c3474c91c48.png)
+There are also player-specific settings | ![Per-player settings](https://assets-mod.factorio.com/assets/d1e4718cf48b85ecbdca9f5ef7fb92c3dc3c681f.png)
+While in the game, there are settings that apply to individual networks | ![Network settings](https://assets-mod.factorio.com/assets/cf39de1498ab45cd64a47483ec40210b7a4fbc3e.png)

@@ -14,6 +14,7 @@ Logistics Insights can help:
 ## Quick info available
 
 In the top left corner of the screen, you'll see two icons.
+![QuickInfo](https://assets-mod.factorio.com/assets/a7748701a84ca1c61fa6bf249f8f362252d8077f.png)
 
 - The lightbulb shows how many Suggestions you have across all of the networks being analyzed. Click this button to open/close the Networks window where you can see more detail.
 - The logistics bot shows how many logistics bots are idle in your current network. If this gets to 0, you most likely don't have enough. Click this button to open the Logistics Insights window to see much more detail about the network.
@@ -21,16 +22,20 @@ In the top left corner of the screen, you'll see two icons.
 ## The two main windows
 
 The main Logistics Insights window focuses on showing everything you need to know about a single bot network at a time, whether it's the one where you are or one you're looking at via the map view.
+![main-window](https://assets-mod.factorio.com/assets/a5aabefdc59d2795e402a39cf62019bfd2c608e0.png)
 
 The Logistics Networks window shows all of the networks you've visited, with a few key highlights like number of bots, number of active suggestions and how many things are in short supply. You can also easily navigate between networks from here. Clicking the gear icon opens the Logistics Insights window with the settings pane below.
+![Networks-window](https://assets-mod.factorio.com/assets/8dc5ad9fae2043276ba940d747e53e1d35df5169.png)
 
 The main window supports the *Pipette action* ("Q" by default), which allows you to pick up a ghost of an entity shown. This is useful if you need to build or search for that item, for example using Factory Search.
 
 When the settings pane is open (you can also open it with the settings icon next to the Network row), you can see and edit the settings that apply to the current network.
+![Settings-pane](https://assets-mod.factorio.com/assets/f7b40b8fca1b4b163d79e7185f805ab937887146.png)
 
 ## How to use Undersupply information
 
 In the Undersupply row, you can see items that have more demand than can be supplied in the network. This is useful to identify hard-to-spot bottlenecks.
+![Undersupply](https://assets-mod.factorio.com/assets/46066c3567a4829c276b2992d91007fd367474a7.png)
 
 If you click on an item, LI will highlight every place that requests the item, and if you right-click, it will also zoom in and focus the map view on one of them. You can repeatedly right-click to get a sense for where the problems are.
 
@@ -41,11 +46,16 @@ If an item is shown in undersupply but you don't want to track it, you can Shift
 There are several types of suggestions, depending on what is happening in your network:
 
 - **Build more roboports.** A common problem is that a lot of your bots are waiting to charge, which means that fewer bots are free to do useful work. Building more bots doesn't help though! Instead, build more roboports so the bots can quickly find a place to charge, without having to wait. LI will show this as a High priority suggestion if you need more than 100 additional roboports.
+![Suggest-RPs](https://assets-mod.factorio.com/assets/238554f7b48bbe2e7dba8e70e6a2866693fbba10.png)
 - **Build more storage.** If your storage is close to full, your network will work less efficiently as bots need to go further to find available storage. This suggestion shows up when your storage is 70% full, and becomes High priority when it's 90% full. Note that "fullness" of storage is measured by stacks, so you may have more storage available than LI suggests as it only looks for empty stacks.
 - **Build more unfiltered storage.** Filtered storage is great, but you may be running out of storage that isn't filtered. LI uses same thresholds as for total storage here.
+![Suggest-more-storage](https://assets-mod.factorio.com/assets/9707bae6b868bfb1837c40e58d13f35bf3c025ab.png)
 - **Filtered storage mismatch.** If your filtered storage has items that don't match the filter, LI suggests you fix it. You can click/right-click on the suggestion to see which chests show the problem, which is otherwise hard to find. If a mismatch doesn't matter to you, you can Shift-click on the cell to ignore the chests in question from flagging a mismatch.
+![Suggest-filter-mismatch](https://assets-mod.factorio.com/assets/dc2015a3a1bce8a8d937eca847ef93308bc13daf.png)
 - **Too few bots**. Sometimes, you just don't have enough bots to do everything, and you might get this suggestion.
+![Suggest-more-bots](https://assets-mod.factorio.com/assets/1a78eaf3acfcf5eb9d98c855c5ec6992f4395a65.png)
 - **Too many bots**. If more than half your bots are idle, but you are still adding more new bots, LI will suggest that you stop adding more bots.
+![Suggest-fewer-bots](https://assets-mod.factorio.com/assets/da50c7d52869836dc29f2721151af41def969a24.png)
 - **Items carried unusually far.** If bots regularly carry an item much further than they usually do, e.g. to an outpost when the item mostly goes to a nearby mall, LI suggests a supply closer to that destination, or a belt or train. Click the suggestion to see the trip on the map. If the long trip is expected, Shift+click to exclude it. How far is far enough to be worth mentioning depends on the base, so the minimum distance and the sensitivity are both settings, and the suggestion can be turned off entirely. This suggestion uses the delivery history, so it only appears for networks you have viewed with the History rows shown.
 
 ## How to keep an eye on things
@@ -62,6 +72,7 @@ Before a base reaches megabase level, keep the Networks window open to keep an e
 - If you don't need part of the display right now, click the pause button to temporarily pause collecting it. Or change the setting to remove the History, Undersupply or Suggestions rows entirely, which also makes the window smaller.
 
 **In the Activity row**
+![Activity-Network](https://assets-mod.factorio.com/assets/fde1dd48cfe0fb3945aff89739c2820dad4f88ed.png)
 
 - If too many bots are "waiting to charge", you'll get a "Build more Roboports" suggestion
 - If too few bots are "available", you'll need to add more bots. A suggestion will show this.
@@ -75,10 +86,13 @@ Before a base reaches megabase level, keep the Networks window open to keep an e
 ## Settings
 
 Logistics Insights has several settings that are on a per-map basis. These allow you to control what data is gathered and whether you allow freezing the game; since all data gathered is global to all players, these are configured for everyone.
+![Per-map settings](https://assets-mod.factorio.com/assets/bb2e582531443b2676f73174d7896c3474c91c48.png)
 
 There are also player-specific settings that allow each player to configure what is displayed on their screen.
+![Per-player settings](https://assets-mod.factorio.com/assets/d1e4718cf48b85ecbdca9f5ef7fb92c3dc3c681f.png)
 
 While in the game, there are settings that apply to individual networks and allow you to fine tune what is collected and suggested at that level. To access this, click the gear icon next to the Network row in the main window, which opens a settings pane below the main window.
+![Network settings](https://assets-mod.factorio.com/assets/cf39de1498ab45cd64a47483ec40210b7a4fbc3e.png)
 
 In all cases, LI is aware of which settings are changed, and allows you to revert to defaults in the standard Factorio way.
 

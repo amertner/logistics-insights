@@ -25,6 +25,9 @@
       "bench/**",
       "bench-overrides.lua",
       "bench-overrides.lua.example",
+      "mod-portal-description.md",
+      "portal-description.sh",
+      "portal-images.txt",
       ".DS_Store"
     ]
   }
