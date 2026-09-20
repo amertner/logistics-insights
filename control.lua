@@ -103,7 +103,9 @@ end
 --- @param player_table PlayerData
 local function network_check(player, player_table)
   if network_data.check_network_changed(player, player_table) then
+    -- The exclusion lists on screen belong to the old network: draw the new one's
     player_table.ignored_storages_for_mismatch_shown = 0
+    player_table.ignored_trips_shown = 0
     -- The old network's generation counters, and its trip on the map, mean nothing here
     player_data.invalidate_ui_state(player_table)
     scan_coordinator.prioritise_scanning_new_player_network(player_table)
