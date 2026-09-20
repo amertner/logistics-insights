@@ -348,6 +348,7 @@ describe("bot_counter", function()
       game.tick = 200
       local bot_pass2 = make_bot({
         unit_number = 1,
+        position = { x = 50, y = 50 },
         orders = { deliver_order("iron-plate", 30, { target_pos = { x = 99, y = 99 } }) },
       })
       process_all_foreground(nwd, { bot_pass2 })
@@ -356,6 +357,51 @@ describe("bot_counter", function()
       local history = nwd.delivery_history["iron-plate:normal"]
       assert.is_not_nil(history)
       assert.are.equal(50, history.count) -- first delivery's count
+
+      -- And the new one is being followed from this pass, by a bot we were already watching
+      local active = nwd.bot_active_deliveries[1]
+      assert.is_not_nil(active, "new delivery followed at once")
+      assert.are.equal(30, active.count)
+      assert.are.equal(99, active.targetpos.x)
+      assert.is_true(active.trip_tracked)
+
+      -- Pass 3: idle, so the second delivery finished too
+      game.tick = 300
+      process_all_foreground(nwd, { make_bot({ unit_number = 1 }) })
+      assert.are.equal(80, nwd.delivery_history["iron-plate:normal"].count)
+      assert.are.equal(2, nwd.delivery_history["iron-plate:normal"].deliveries)
+    end)
+
+    it("records a delivery when the bot switches item for the same destination", function()
+      local nwd = make_networkdata()
+      game.tick = 100
+      process_all_foreground(nwd, { make_bot({ unit_number = 1,
+        orders = { deliver_order("iron-plate", 50, { target_pos = { x = 10, y = 20 } }) } }) })
+      game.tick = 200
+      process_all_foreground(nwd, { make_bot({ unit_number = 1,
+        orders = { deliver_order("copper-plate", 30, { target_pos = { x = 10, y = 20 } }) } }) })
+      game.tick = 300
+      process_all_foreground(nwd, { make_bot({ unit_number = 1 }) })
+
+      assert.are.equal(50, nwd.delivery_history["iron-plate:normal"].count)
+      assert.are.equal(30, nwd.delivery_history["copper-plate:normal"].count)
+    end)
+
+    it("does not call a trip tracked when the bot was last seen by a background pass", function()
+      local nwd = make_networkdata()
+      game.tick = 100
+      -- Background pass: the bot is seen, but a background pass may be a refresh interval old
+      process_all(nwd, { make_bot({ unit_number = 1, position = { x = 0, y = 0 },
+        orders = { deliver_order("iron-plate", 50, { target_pos = { x = 100, y = 0 } }) } }) })
+      -- First foreground pass: the delivery is first followed here, from wherever the bot is
+      game.tick = 2000
+      process_all_foreground(nwd, { make_bot({ unit_number = 1, position = { x = 50, y = 0 },
+        orders = { deliver_order("iron-plate", 50, { target_pos = { x = 100, y = 0 } }) } }) })
+
+      local active = nwd.bot_active_deliveries[1]
+      assert.is_not_nil(active)
+      assert.is_false(active.trip_exact or false)
+      assert.is_nil(active.trip_tracked, "bot was not watched by a pass that follows deliveries")
     end)
 
     it("accumulates history across multiple completed deliveries", function()

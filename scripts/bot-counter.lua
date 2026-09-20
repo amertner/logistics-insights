@@ -172,18 +172,22 @@ local function add_bot_to_active_deliveries(networkdata, unit_number, order, ite
   local target_pos = target and target.position
 
   if botorder then
-    -- We have an existing order for this bot
-    if botorder.targetpos and target_pos and
-      (botorder.targetpos.x ~= target_pos.x or botorder.targetpos.y ~= target_pos.y) then
-      -- New target position, so order has changed since last time
+    -- We have an existing order for this bot. A different destination or a different item
+    -- means the one we were following finished unseen and this is a new one
+    local changed = (botorder.targetpos and target_pos and
+        (botorder.targetpos.x ~= target_pos.x or botorder.targetpos.y ~= target_pos.y))
+      or botorder.item_name ~= item_name or botorder.quality_name ~= quality
+    if changed then
       add_delivered_order_to_history(networkdata.delivery_history, botorder, networkdata.ignored_trips)
       networkdata.delivery_history_gen = (networkdata.delivery_history_gen or 0) + 1
       networkdata.bot_active_deliveries[unit_number] = nil
+      botorder = nil -- Fall through and start following the new one from this pass, not the next
     else
       -- Just note that we've seen this order again
       botorder.last_seen = current_tick
     end
-  else
+  end
+  if not botorder then
     -- No order for this bot, so add it, measuring the trip from where it picked up this item
     local trip_from, trip_exact
     local pickups = networkdata.bot_pickup_positions
@@ -426,8 +430,10 @@ local function bot_chunks_done(accumulator, gather, network_id)
         end
       end
     end
-    -- Save the last-seen list so it can be used in the next pass
-    networkdata.last_pass_bots_seen = accumulator.just_seen or {}
+    -- Save the last-seen list so it can be used in the next pass. Only a pass that follows
+    -- deliveries counts as having watched the bots: a background pass may be a whole refresh
+    -- interval old, and a trip started after it must not claim to be at most one pass out
+    networkdata.last_pass_bots_seen = gather.history and accumulator.just_seen or {}
     network_data.prune_old_data(networkdata, false)
   end
 end
