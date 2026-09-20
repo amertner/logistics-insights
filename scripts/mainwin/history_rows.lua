@@ -7,6 +7,7 @@ local network_data = require("scripts.network-data")
 local sorted_item_row = require("scripts.mainwin.sorted_item_row")
 local ResultLocation = require("scripts.result-location")
 local utils = require("scripts.utils")
+local trip_view = require("scripts.trip-view")
 
 -- History recorded before trip distance was tracked has no distance fields at all, and an item can
 -- be delivered without one ever being worked out, so both distance rows sort over entries that may
@@ -40,8 +41,7 @@ function history_rows.update(player_table)
 
       -- Offer to ignore a trip only on the item whose trip is on the map, so which trip is shown
       -- is part of what the row was drawn from
-      local view = player_table.trip_view
-      local shown_key = view and ResultLocation.is_shown(view.object_id) and view.key or ""
+      local shown_key = trip_view.shown(player_table, networkdata, ResultLocation.is_shown) or ""
       local gen = (history_gen or 0) .. "|" .. shown_key
       local ui = player_table.ui["maxdist-row"]
       if not ui or ui.last_gen ~= gen then

@@ -397,10 +397,9 @@ local function show_trip(player, player_table, networkdata, iq, index, focus_on_
 
   if not no_step then
     -- Clicking again would redraw what is already there, so move on to the next trip instead
-    local view = player_table.trip_view
-    -- Shown means still drawn: not expired, and not replaced by another highlight
-    local showing = view and view.key == key and ResultLocation.is_shown(view.object_id)
-    index = trip_view.next_index(showing and view or nil, #trips, focus_on_start, index)
+    local shown_key = trip_view.shown(player_table, networkdata, ResultLocation.is_shown)
+    index = trip_view.next_index(shown_key == key and player_table.trip_view or nil, #trips,
+      focus_on_start, index)
   elseif not trips[index] then
     index = 1 -- The list changed since the suggestion was made
   end
@@ -411,7 +410,8 @@ local function show_trip(player, player_table, networkdata, iq, index, focus_on_
     and trip_estimate.for_network(networkdata) or nil
   local object_id = ResultLocation.show_trips(player, networkdata.surface, trips, index, iq, focus_on_start,
     estimate)
-  player_table.trip_view = { key = key, index = index, object_id = object_id, on_start = focus_on_start }
+  player_table.trip_view = { key = key, index = index, object_id = object_id,
+    on_start = focus_on_start, network_id = networkdata.id }
   -- Update the row now, so its tooltip offers to ignore the trip just shown
   history_rows.update(player_table)
 end
@@ -531,13 +531,13 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
     local entry = networkdata and networkdata.delivery_history[key]
     local trips = entry and entry.top_trips
     if networkdata and trips and #trips > 0 then
-      local view = player_table.trip_view
-      -- Shown means still drawn: not expired, and not replaced by another highlight
-      local showing = view and view.key == key and trips[view.index] and ResultLocation.is_shown(view.object_id)
-      if showing and is_shift_click and not is_right_click then
+      -- Shown means still drawn, still this network's, and still in the list: the same trip the
+      -- row's tooltip just offered to stop listing
+      local shown_key, shown_index, shown_trip =
+        trip_view.shown(player_table, networkdata, ResultLocation.is_shown)
+      if shown_key == key and is_shift_click and not is_right_click then
         -- Ignore the trip being shown: it's expected. Only ever what's on the map, never blind
-        local trip = trips[view.index]
-        network_data.ignore_trip(networkdata, iq.name, iq.quality, trip.to_x, trip.to_y)
+        network_data.ignore_trip(networkdata, iq.name, iq.quality, shown_trip.to_x, shown_trip.to_y)
         events.emit(events.on_ignorelist_changed, player.index)
         confirm_at_cursor(player, {"item-row.trip-ignored-flying-text"})
         if #trips == 0 then
@@ -547,7 +547,7 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
           return true
         end
         -- Show the trip that has moved up into its place, rather than stepping past it
-        show_trip(player, player_table, networkdata, iq, math.min(view.index, #trips), false, true)
+        show_trip(player, player_table, networkdata, iq, math.min(shown_index, #trips), false, true)
       else
         -- Start from the longest, then move on with each repeat of the same click
         show_trip(player, player_table, networkdata, iq, 1, is_right_click)
