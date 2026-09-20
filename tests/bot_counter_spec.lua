@@ -605,6 +605,50 @@ describe("bot_counter", function()
       assert.are.same({ 0, 0, false }, { history.top_trips[1].from_x, history.top_trips[1].from_y, history.top_trips[1].exact })
     end)
 
+    it("marks an estimated start as tracked when the bot was seen in the previous pass", function()
+      local nwd = make_networkdata()
+      -- Pass 1: the bot is idle, so we look at it and know it is not carrying anything
+      game.tick = 100
+      process_all_foreground(nwd, { make_bot({ unit_number = 1, position = { x = 0, y = 0 } }) })
+      -- Pass 2: it is delivering, with no pickup seen. It can only have flown since pass 1
+      game.tick = 200
+      process_all_foreground(nwd, {
+        make_bot({ unit_number = 1, position = { x = 0, y = 0 },
+          orders = { deliver_order("iron-plate", 10, { target_pos = { x = 30, y = 40 } }) } }),
+      })
+      game.tick = 300
+      process_all_foreground(nwd, { make_bot({ unit_number = 1 }) })
+
+      local trip = nwd.delivery_history["iron-plate:normal"].top_trips[1]
+      assert.is_false(trip.exact)
+      assert.is_true(trip.tracked)
+    end)
+
+    it("leaves an estimated start untracked when the bot is seen for the first time", function()
+      local nwd = make_networkdata()
+      -- Straight into a delivery: this bot could have been flying for any length of time
+      game.tick = 100
+      process_all_foreground(nwd, {
+        make_bot({ unit_number = 1, position = { x = 0, y = 0 },
+          orders = { deliver_order("iron-plate", 10, { target_pos = { x = 30, y = 40 } }) } }),
+      })
+      game.tick = 200
+      process_all_foreground(nwd, { make_bot({ unit_number = 1 }) })
+
+      local trip = nwd.delivery_history["iron-plate:normal"].top_trips[1]
+      assert.is_false(trip.exact)
+      assert.is_nil(trip.tracked)
+    end)
+
+    it("does not mark a measured start as tracked, as there is nothing to estimate", function()
+      local nwd = make_networkdata()
+      run_trip(nwd, 1, "iron-plate", 10, { x = 0, y = 0 }, { x = 30, y = 40 }, 100)
+
+      local trip = nwd.delivery_history["iron-plate:normal"].top_trips[1]
+      assert.is_true(trip.exact)
+      assert.is_nil(trip.tracked)
+    end)
+
     it("prefers the pickup chest over the bot's position", function()
       local nwd = make_networkdata()
       game.tick = 100
@@ -778,8 +822,6 @@ describe("bot_counter", function()
       local nwd = make_networkdata()
       game.tick = 100
 
-      -- Bots must have active deliveries for last-seen transfer to occur
-      -- (the transfer is gated on table_size(bot_active_deliveries) > 0)
       -- Pass 1: two delivering bots
       process_all_foreground(nwd, {
         make_bot({ unit_number = 1, orders = { deliver_order("iron-plate", 10, { target_pos = { x = 1, y = 1 } }) } }),
@@ -797,6 +839,20 @@ describe("bot_counter", function()
       -- Bot 1 still tracked, bot 2 should be gone
       assert.is_not_nil(nwd.last_pass_bots_seen[1])
       assert.is_nil(nwd.last_pass_bots_seen[2])
+    end)
+
+    it("carries bots forward even when nothing is being delivered", function()
+      local nwd = make_networkdata()
+      -- An idle network still has to remember which bots it has looked at, so the next delivery
+      -- can tell a bot it has seen before from one it is seeing for the first time
+      game.tick = 100
+      process_all_foreground(nwd, { make_bot({ unit_number = 1 }), make_bot({ unit_number = 2 }) })
+      assert.is_not_nil(nwd.last_pass_bots_seen[1])
+
+      game.tick = 200
+      process_all_foreground(nwd, { make_bot({ unit_number = 1 }), make_bot({ unit_number = 2 }) })
+      assert.is_not_nil(nwd.last_pass_bots_seen[1])
+      assert.is_not_nil(nwd.last_pass_bots_seen[2])
     end)
 
     it("completes delivery for bots that disappear between passes", function()

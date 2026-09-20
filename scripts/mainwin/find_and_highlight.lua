@@ -12,6 +12,7 @@ local suggestions = require("scripts.suggestions")
 local events = require("scripts.events")
 local history_rows = require("scripts.mainwin.history_rows")
 local suggestions_calc = require("scripts.suggestions-calc")
+local trip_estimate = require("scripts.trip-estimate")
 
 ---@class ViewData
 ---@field items LuaEntity[]|nil List of entities to highlight
@@ -385,7 +386,8 @@ local function show_trip(player, player_table, networkdata, iq, index, focus_on_
   local trips = entry and entry.top_trips
   if not trips or not trips[1] then return end
   if not trips[index] then index = 1 end -- The list changed since the suggestion was made
-  local object_id = ResultLocation.show_trips(player, networkdata.surface, trips, index, iq, focus_on_start)
+  local object_id = ResultLocation.show_trips(player, networkdata.surface, trips, index, iq, focus_on_start,
+    trip_estimate.for_network(networkdata))
   player_table.trip_view = { key = key, index = index, object_id = object_id }
   -- Update the row now, so its tooltip offers to ignore the trip just shown
   history_rows.update(player_table, false)
@@ -529,7 +531,8 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
         index = is_right_click and view.index or view.index + 1
         if index > #trips then index = 1 end
       end
-      local object_id = ResultLocation.show_trips(player, networkdata.surface, trips, index, iq, is_right_click)
+      local object_id = ResultLocation.show_trips(player, networkdata.surface, trips, index, iq, is_right_click,
+        trip_estimate.for_network(networkdata))
       player_table.trip_view = { key = key, index = index, object_id = object_id }
       -- Update the row now, so its tooltip offers to ignore the trip just shown
       history_rows.update(player_table, false)

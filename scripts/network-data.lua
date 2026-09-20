@@ -95,6 +95,7 @@ local utils = require("scripts.utils")
 ---@field trip_dist? number -- Trip distance in tiles, if known
 ---@field trip_from? MapPosition -- Where the trip started: the pickup chest, or where the bot was first seen
 ---@field trip_exact? boolean -- True if trip_from is the pickup chest rather than an estimate
+---@field trip_tracked? boolean -- True if the bot was already being watched, so an estimated start is at most one scan pass out
 ---@field last_seen number -- The last tick this bot was seen delivering it
 
 -- One of an item's longest trips, flat to keep it small
@@ -105,6 +106,9 @@ local utils = require("scripts.utils")
 ---@field to_x number -- Where the trip was delivered
 ---@field to_y number
 ---@field exact boolean -- True if the start is the pickup chest rather than an estimate
+---@field tracked? boolean -- True if the bot was already being watched when the trip started, so an
+---  estimated start is at most one scan pass of flight out. Missing means the trip was first seen
+---  mid-flight and could have started anywhere in the network
 ---@field deliveries? number -- How many trips of this item went to this destination while it was listed
 ---@field last_tick? number -- When a trip to this destination was last seen
 

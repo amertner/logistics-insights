@@ -90,6 +90,15 @@ function scheduler.update_interval(name, new_interval)
   end
 end
 
+--- The interval a task currently runs at, in ticks. Tasks are registered with hardcoded
+--- intervals, so this is the only reliable source of a task's real cadence.
+--- @param name string
+--- @return number|nil
+function scheduler.get_interval(name)
+  local task = global_tasks[name] or player_tasks[name]
+  return task and task.interval
+end
+
 -- Apply global settings to relevant schedules
 function scheduler.apply_global_settings()
   -- Background-refresh keeps its hardcoded 11-tick interval.

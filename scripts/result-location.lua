@@ -2,6 +2,7 @@
 -- In Logistics Insights, it's a reduced function used to highlight bots and entities on the map
 local math2d = require("math2d")
 local utils = require("scripts.utils")
+local trip_estimate = require("scripts.trip-estimate")
 
 local add_vector = math2d.position.add
 local subtract_vector = math2d.position.subtract
@@ -166,6 +167,12 @@ local ARROW_SPACING_TILES = 64 -- Close in, one arrow per chunk
 local ARROW_MAX_COUNT = 60 -- Spread arrows further apart on very long trips
 local MAP_ARROW_COUNT = 5 -- Arrows along the line in map view
 local TRIP_DURATION_FACTOR = 3 -- Trips take longer to follow than other highlights take to look at
+-- Dim the green as well as the alpha: in map view an alpha-only difference washes out
+local ESTIMATE_COLOR = { r = 0, g = 0.7, b = 0, a = 0.7 } -- Where the pickup might have been
+local OTHER_ESTIMATE_COLOR = { r = 0, g = 0.35, b = 0, a = 0.6 } -- The same, for trips not being looked at
+local ESTIMATE_DASH_TILES = 1 -- Dash length close in
+local ESTIMATE_GAP_TILES = 0.8 -- Gap between dashes close in
+local MAP_ESTIMATE_DASHES = 4 -- Roughly this many dashes in map view, however long the estimate
 
 --- How long trips stay on the map, in ticks: longer than other highlights. 0 means forever
 ---@param player LuaPlayer
@@ -281,6 +288,56 @@ local function draw_trip_arrows(player, surface_name, from, to, color, time_to_l
   end
 end
 
+--- Extend a trip back from where the bot was first seen, as far as it could have flown since the
+--- scan pass that last looked at it. Dashed, because the pickup could be anywhere along it
+---@param player LuaPlayer
+---@param surface_name string
+---@param from MapPosition Where the bot was first seen
+---@param to MapPosition The delivery end, which fixes the direction
+---@param dist number How far back to draw, in tiles
+---@param color Color
+---@param time_to_live number
+local function draw_trip_estimate(player, surface_name, from, to, dist, color, time_to_live)
+  local length = utils.distance(from, to)
+  if length <= 0 or dist <= 0 then return end
+  -- Away from the delivery end, along the line the bot flew
+  local dir = { x = (from.x - to.x) / length, y = (from.y - to.y) / length }
+  local far = { x = from.x + dir.x * dist, y = from.y + dir.y * dist }
+  local perp = { x = -dir.y, y = dir.x }
+
+  for _, render_mode in pairs({ "game", "chart" }) do
+    -- Scale the dashes to the estimate in map view, so a short one isn't a solid smudge
+    local dash = ESTIMATE_DASH_TILES
+    if render_mode == "chart" then
+      dash = math.max(dash, dist / (MAP_ESTIMATE_DASHES * 2))
+    end
+    rendering.draw_line{
+      color = color,
+      width = LINE_WIDTH,
+      from = from,
+      to = far,
+      dash_length = dash,
+      gap_length = dash * ESTIMATE_GAP_TILES / ESTIMATE_DASH_TILES,
+      surface = surface_name,
+      time_to_live = time_to_live,
+      players = {player},
+      render_mode = render_mode,
+    }
+    -- A bar across the end rather than an outline: there is no entity there, just a limit
+    local half = (render_mode == "chart" and math.max(ARROW_SIZE_TILES, dist / 20) or ARROW_SIZE_TILES) / 2
+    rendering.draw_line{
+      color = color,
+      width = LINE_WIDTH,
+      from = { x = far.x + perp.x * half, y = far.y + perp.y * half },
+      to = { x = far.x - perp.x * half, y = far.y - perp.y * half },
+      surface = surface_name,
+      time_to_live = time_to_live,
+      players = {player},
+      render_mode = render_mode,
+    }
+  end
+end
+
 --- Draw a label beside one end of a trip, in both game and map view
 ---@param player LuaPlayer
 ---@param surface_name string
@@ -317,8 +374,9 @@ end
 ---@param focus integer Which trip to highlight and move the view to
 ---@param item ItemQuality The item that was carried, shown in the labels
 ---@param focus_on_start boolean True to go to where the trip started, false to go to the delivery end
+---@param estimate TripEstimate|nil Bounds how far back a trip with an estimated start could have begun
 ---@return uint64|nil focus_id Id of the highlighted trip's line, to tell whether it is still shown
-function ResultLocation.show_trips(player, surface_name, trips, focus, item, focus_on_start)
+function ResultLocation.show_trips(player, surface_name, trips, focus, item, focus_on_start, estimate)
   local surface = game.surfaces[surface_name]
   if not surface or not trips[focus] then return nil end
   ResultLocation.clear_markers(player)
@@ -341,6 +399,17 @@ function ResultLocation.show_trips(player, surface_name, trips, focus, item, foc
     local to = { x = trip.to_x, y = trip.to_y }
     local is_focus = i == focus
     local color = is_focus and LINE_COLOR or OTHER_TRIP_COLOR
+
+    if not trip.exact then
+      -- The start is only where the bot was first seen, so show how much further back it could go:
+      -- one scan pass of flight if the bot was already being watched, otherwise as far back as the
+      -- network reaches. Drawn first, so the solid line stays on top where the two meet
+      local back = trip_estimate.pickup_extension(estimate, from, to, trip.tracked)
+      if back > 0 then
+        draw_trip_estimate(player, surface_name, from, to, back,
+          is_focus and ESTIMATE_COLOR or OTHER_ESTIMATE_COLOR, time_to_live)
+      end
+    end
 
     local from_marker = trip_endpoint_marker(surface, from, trip.exact)
     local to_marker = trip_endpoint_marker(surface, to, true)

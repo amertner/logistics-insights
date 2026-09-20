@@ -8,7 +8,6 @@ local utils = require("scripts.utils")
 
 -- Cache frequently used functions and values for performance
 local pairs = pairs
-local table_size = table_size
 local accumulate_quality = utils.accumulate_quality
 local distance = utils.distance
 local defines_robot_order_type_deliver = defines.robot_order_type.deliver
@@ -38,9 +37,11 @@ local seen_bot_last_pass = 1
 --- @param from MapPosition Where the trip started
 --- @param to MapPosition Where the trip ended
 --- @param exact boolean True if `from` is the pickup chest rather than an estimate
+--- @param tracked boolean|nil True if the bot was already being watched, so an estimated start
+---   is at most one scan pass of flight out
 --- @param tick number When the trip was last seen
 --- @param ignored_trips table<string, IgnoredTrip>|nil Trips accepted as expected, which are not listed
-local function record_top_trip(history_order, item_key, dist, from, to, exact, tick, ignored_trips)
+local function record_top_trip(history_order, item_key, dist, from, to, exact, tracked, tick, ignored_trips)
   local trips = history_order.top_trips
   if not trips then
     trips = {}
@@ -57,6 +58,7 @@ local function record_top_trip(history_order, item_key, dist, from, to, exact, t
       trip.last_tick = tick
       if dist > trip.dist then
         trip.dist, trip.from_x, trip.from_y, trip.exact = dist, from.x, from.y, exact
+        trip.tracked = tracked or nil
         -- Now longer, it may need to move up the list
         local pos = i
         while pos > 1 and trips[pos - 1].dist < dist do
@@ -78,7 +80,7 @@ local function record_top_trip(history_order, item_key, dist, from, to, exact, t
     pos = pos - 1
   end
   table.insert(trips, pos, { dist = dist, from_x = from.x, from_y = from.y, to_x = to.x, to_y = to.y,
-    exact = exact, deliveries = 1, last_tick = tick })
+    exact = exact, tracked = tracked or nil, deliveries = 1, last_tick = tick })
   trips[TOP_TRIPS + 1] = nil
   history_order.top_dist = trips[1].dist
 end
@@ -130,7 +132,7 @@ local function add_delivered_order_to_history(delivery_history, order, ignored_t
     end
     -- Keep both ends of the longest trips so they can be shown on the map
     record_top_trip(history_order, key, trip_dist, order.trip_from, order.targetpos, order.trip_exact or false,
-      order.last_seen, ignored_trips)
+      order.trip_tracked, order.last_seen, ignored_trips)
   end
 end
 
@@ -162,7 +164,8 @@ end
 --- @param count number The number of items being delivered
 --- @param current_tick number The current game tick
 --- @param bot LuaEntity|nil The robot, if its position may be used to estimate the trip distance
-local function add_bot_to_active_deliveries(networkdata, unit_number, order, item_name, quality, count, current_tick, bot)
+--- @param tracked boolean True if the bot was already being watched in the previous pass
+local function add_bot_to_active_deliveries(networkdata, unit_number, order, item_name, quality, count, current_tick, bot, tracked)
   local botorder = networkdata.bot_active_deliveries[unit_number]
   -- Hoist target and position to avoid repeated table lookups
   local target = order.target
@@ -198,6 +201,10 @@ local function add_bot_to_active_deliveries(networkdata, unit_number, order, ite
       trip_from = bot.position
     end
     local trip_dist = (trip_from and target_pos) and distance(trip_from, target_pos) or nil
+    -- An estimated start is only a near miss if we were already watching this bot last pass: it
+    -- can then have flown at most one pass unseen. A bot we had never looked at could have been
+    -- flying for any length of time before we first saw it
+    local trip_tracked = (trip_dist and not trip_exact and tracked) or nil
     networkdata.bot_active_deliveries[unit_number] = {
       item_name = item_name,
       quality_name = quality,
@@ -207,6 +214,7 @@ local function add_bot_to_active_deliveries(networkdata, unit_number, order, ite
       trip_dist = trip_dist,
       trip_from = trip_dist and trip_from or nil,
       trip_exact = trip_dist and trip_exact or nil,
+      trip_tracked = trip_tracked,
     }
   end
 end
@@ -316,7 +324,8 @@ local function process_one_bot(bot, accumulator, gather, network_id)
             add_item_to_current_deliveries(item_name, item_quality, item_count, accumulator.item_deliveries)
             -- Record delivery for history purposes
             add_bot_to_active_deliveries(networkdata, unit_number, order, item_name, item_quality, item_count,
-              accumulator.current_tick, gather.history and bot or nil)
+              accumulator.current_tick, gather.history and bot or nil,
+              accumulator.last_seen[unit_number] ~= nil)
           else
             if gather.history and order.type == defines_robot_order_type_pickup then
               record_pickup_position(networkdata, unit_number, order, item_name, accumulator.current_tick)
@@ -390,18 +399,16 @@ local function bot_chunks_done(accumulator, gather, network_id)
     end
     networkdata.total_bot_qualities = total_bot_qualities
 
-    if table_size(networkdata.bot_active_deliveries) > 0 then
-      -- Consider bots we saw last pass but not this chunk pass as delivered.
-      -- They are either destroyed or parked in a roboport, no longer part of the network
-      if accumulator.last_seen then
-        for unit_number, seen in pairs(accumulator.last_seen) do
-          if seen == seen_bot_this_pass then
-            -- We saw this bot in the last pass
-            accumulator.just_seen[unit_number] = seen_bot_last_pass
-          else
-            -- We did not see this bot in the last pass, so it probably finished its delivery
-            check_if_no_order_bot_finished_delivery(networkdata, unit_number, gather.history)
-          end
+    -- Carry bots forward whether or not anything is being delivered, so the next pass can tell a
+    -- bot it has looked at before from one it is seeing for the first time
+    if accumulator.last_seen then
+      for unit_number, seen in pairs(accumulator.last_seen) do
+        if seen == seen_bot_this_pass then
+          -- We saw this bot in the last pass
+          accumulator.just_seen[unit_number] = seen_bot_last_pass
+        else
+          -- We did not see this bot in the last pass, so it probably finished its delivery
+          check_if_no_order_bot_finished_delivery(networkdata, unit_number, gather.history)
         end
       end
     end
