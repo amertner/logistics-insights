@@ -433,7 +433,8 @@ end
 function bot_counter.init_foreground_processing(networkdata, network)
   local gather_options = {}
 
-  -- If at least one players in the network has not disabled delivery or history, gather it
+  -- Any player in the network means the bots have to be counted for the Activity row. History is
+  -- extra, and only gathered when at least one of them shows the history row
   for idx, _ in pairs(networkdata.players_set) do
     local player_table = player_data.get_player_table(idx)
     if player_table then
@@ -445,7 +446,7 @@ function bot_counter.init_foreground_processing(networkdata, network)
     end
   end
 
-  if gather_options.delivery or gather_options.history then
+  if gather_options.delivering or gather_options.history then
     gather_options.quality = global_data.gather_quality_data()
     local net = network
     networkdata.bot_chunker:initialise_chunking(networkdata.id,

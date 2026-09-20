@@ -21,6 +21,7 @@ local pending_fetchers = {}
 ---@class GatherOptions
 ---@field quality? boolean
 ---@field history? boolean
+---@field delivering? boolean
 
 -- State machine
 --

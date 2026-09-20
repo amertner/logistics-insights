@@ -117,6 +117,14 @@ describe("bot_counter", function()
     run_chunker(nwd)
   end
 
+  --- Process via foreground mode for a player who has the history row hidden
+  local function process_all_foreground_no_history(nwd, bots)
+    nwd.players_set = { [1] = true }
+    storage.players = { [1] = { settings = { show_history = false } } }
+    bot_counter.init_foreground_processing(nwd, make_network(bots))
+    run_chunker(nwd)
+  end
+
   -- ─── Bot classification ───────────────────────────────────────────
 
   describe("bot classification", function()
@@ -130,6 +138,21 @@ describe("bot_counter", function()
 
       process_all(nwd, bots)
       assert.are.equal(2, nwd.bot_items["delivering"])
+    end)
+
+    -- Hiding the history row only turns off history gathering: the bots still have to be counted
+    it("counts delivering bots for a player who hides the history row", function()
+      local nwd = make_networkdata()
+      local bots = {
+        make_bot({ unit_number = 1, orders = { deliver_order("iron-plate", 50) } }),
+        make_bot({ unit_number = 2, orders = { pickup_order("copper-plate") } }),
+        make_bot({ unit_number = 3 }), -- idle
+      }
+
+      process_all_foreground_no_history(nwd, bots)
+      assert.are.equal(1, nwd.bot_items["delivering"])
+      assert.are.equal(1, nwd.bot_items["picking"])
+      assert.is_nil(nwd.delivery_history["iron-plate:normal"]) -- But no history gathered
     end)
 
     it("counts picking bots", function()

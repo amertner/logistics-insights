@@ -18,6 +18,7 @@ Date: 2026-09-18
   Bugfixes:
     - Delivery history is no longer lost when you look at a long trip on the map. Showing a trip moves you into remote view at its destination, which counts as leaving the network, and the history was thrown away the moment you did. A network's history is now kept for two minutes after the last player leaves it, so stepping out of coverage or taking a look around and coming back no longer loses it.
     - "History data: Active for" now stops while nobody is watching a network, and no longer resets when another player walks into a network you are already watching.
+    - Turning off "Show history" stopped the bot scan from starting at all, because it tested a gathering flag under a name nothing ever set. The Activity row's Delivering and Picking counts were cleared, and the other bot counts only updated as often as the background refresh, or not at all when background refresh was turned off. Hiding the history row now only turns off history gathering, as intended.
     - The reset buttons in the network settings could show a missing-text tooltip.
 ---------------------------------------------------------------------------------------------------
 Version: 1.1.3
