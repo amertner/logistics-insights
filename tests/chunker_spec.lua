@@ -102,6 +102,25 @@ describe("chunker", function()
       assert.are.equal("finalising", c.state)
     end)
 
+    it("abandons the pass without finalising when the fetcher was lost to a save/load", function()
+      local c = chunker.new()
+      local completed = false
+      c:initialise_chunking(1, function() return make_entities(3) end, nil, {}, function(pd) pd.count = 7 end)
+
+      -- A save/load keeps the chunker table but not the module-local fetcher. Reloading the
+      -- module and restoring the metatable is what register_metatable does on load
+      mock.unload("scripts.")
+      chunker = require("scripts.chunker")
+      setmetatable(c, chunker)
+
+      c:process_chunk(function() return 1 end)
+      assert.are.equal("idle", c.state)
+      assert.is_false(c:needs_finalisation())
+      c:finalise_run(function() completed = true end)
+      assert.is_false(completed)
+      assert.is_true(c:needs_data()) -- Ready to start the pass again
+    end)
+
     it("transitions to finalising when fetcher returns empty", function()
       local c = chunker.new()
       c:initialise_chunking(1, function() return {} end, nil, {}, noop)

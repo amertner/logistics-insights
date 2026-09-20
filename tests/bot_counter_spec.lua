@@ -995,6 +995,30 @@ describe("bot_counter", function()
     end)
   end)
 
+  describe("save/load during fetch", function()
+    it("does not record tracked deliveries as finished", function()
+      local nwd = make_networkdata()
+      game.tick = 100
+      nwd.last_pass_bots_seen = { [1] = 1 }
+      nwd.bot_active_deliveries[1] = { item_name = "iron-plate", quality_name = "normal", count = 50,
+        targetpos = { x = 1, y = 1 }, last_seen = 90 }
+      nwd.bot_items["delivering"] = 1
+
+      bot_counter.init_background_processing(nwd, make_network({}))
+      -- Saved and loaded before the first chunk: the fetcher is gone, the chunker table is not
+      mock.unload("scripts.chunker")
+      setmetatable(nwd.bot_chunker, require("scripts.chunker"))
+
+      bot_counter.process_next_chunk(nwd)
+
+      assert.is_true(bot_counter.is_scanning_done(nwd))
+      assert.is_not_nil(nwd.bot_active_deliveries[1], "delivery still tracked")
+      assert.is_nil(next(nwd.delivery_history), "nothing recorded as delivered")
+      assert.are.equal(1, nwd.bot_items["delivering"], "counts not zeroed")
+      assert.are.equal(1, nwd.last_pass_bots_seen[1], "bot still known from the last pass")
+    end)
+  end)
+
   describe("restart_counting()", function()
     it("completes current pass and re-initialises", function()
       local nwd = make_networkdata()

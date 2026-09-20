@@ -42,7 +42,8 @@ local pending_fetchers = {}
 --
 --   process_chunk()
 --     "fetching" ──► "processing"     Fetcher resolved, list loaded. No entities processed this tick.
---     "fetching" ──► "finalising"     Fetcher resolved but list is empty (or fetcher lost after save/load).
+--     "fetching" ──► "finalising"     Fetcher resolved but list is empty.
+--     "fetching" ──► "idle"           Fetcher lost (save/load): the pass is abandoned, not finalised.
 --     "processing"   ──► "processing" Processed one chunk; more entities remain.
 --     "processing"   ──► "finalising" Processed last chunk; all entities consumed.
 --
@@ -229,12 +230,20 @@ function chunker:process_chunk(on_process_entity)
   -- Resolve pending fetcher on its own tick
   if self.state == STATE_FETCHING then
     local fetcher = pending_fetchers[self]
-    if fetcher then
-      local list = fetcher()
-      self.processing_list = list
-      self.processing_count = list and #list or 0
-      pending_fetchers[self] = nil
+    if not fetcher then
+      -- The fetcher lives outside storage, so a save made between initialise and this call
+      -- loses it. Nothing was gathered, so abandon the pass rather than finalise an empty one:
+      -- that would publish zero bots, record every tracked delivery as finished, and report a
+      -- network with no storage at all. The next pass starts afresh
+      self.state = STATE_IDLE
+      self.processing_list = nil
+      self.processing_count = 0
+      return
     end
+    local list = fetcher()
+    self.processing_list = list
+    self.processing_count = list and #list or 0
+    pending_fetchers[self] = nil
     if self.processing_count > 0 then
       self.state = STATE_PROCESSING
     else
