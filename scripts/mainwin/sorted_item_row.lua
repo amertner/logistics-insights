@@ -132,10 +132,18 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
       else
         coverage = {"item-row.trip-coverage-1exact-2count", exact, entry.dist_count}
       end
-      -- The list leaves out ignored destinations; the statistics don't, so say which is which
+      -- The list leaves out ignored destinations; the statistics don't, so say which is which.
+      -- max_dist is the only figure that counts them, so name it when it beats what is listed:
+      -- that is exactly when the ignore list is hiding a longer trip than the row shows
       local ignored = ""
       if (entry.ignored_count or 0) > 0 then
-        ignored = {"", "\n", {"item-row.trip-ignored-1count", entry.ignored_count}}
+        local max_dist = entry.max_dist or 0
+        if max_dist > (entry.top_dist or 0) then
+          ignored = {"", "\n", {"item-row.trip-ignored-longer-1count-2max", entry.ignored_count,
+            utils.format_distances({max_dist})}}
+        else
+          ignored = {"", "\n", {"item-row.trip-ignored-1count", entry.ignored_count}}
+        end
       end
       tip = {"", {"item-row.maxdist-field-tooltip-1max-2estimated-3list-4average-5coverage-6ignored-7quality-8itemname",
         utils.format_distances({entry.top_dist}), estimated, list, trip_average_line(entry),
