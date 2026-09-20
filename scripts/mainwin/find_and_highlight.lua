@@ -590,8 +590,11 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
     return false
   end
 
-  -- Generic highlight (element registered in get_list_function table)
-  if element.tags then
+  -- Generic highlight: the Activity and Network row buttons, which are named after what they show.
+  -- Tested against the table that does the work, because an element always reads back a tags
+  -- table, so asking whether it has tags never turned anything away: the Totals and Distance
+  -- carried cells landed here, found nothing to highlight, and still reported the click handled
+  if get_player_list_function[name] then
     find_and_highlight.highlight_locations_on_map(player, player_table, name, is_right_click)
     return true
   end

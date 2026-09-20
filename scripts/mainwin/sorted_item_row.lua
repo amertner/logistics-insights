@@ -12,9 +12,6 @@ local table_sort = table.sort
 local math_floor = math.floor
 local math_min = math.min
 
-local TAGS_FOLLOW = { follow = true }
-local TAGS_EMPTY = {}
-
 -- The generation of a row that has been blanked. No real generation can collide with it: they are
 -- numbers, or the Longest trip row's "<number>|<item key>"
 local CLEARED = "cleared"
@@ -238,11 +235,6 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
       cell.number = number
       cell.tooltip = getcelltooltip(entry)
       cell.enabled = true
-      if show_click_tip then
-        cell.tags = TAGS_FOLLOW
-      else
-        cell.tags = TAGS_EMPTY
-      end
     end
     count = count + 1
   end
@@ -285,7 +277,6 @@ function sorted_item_row.clear_cells(player_table, title)
       cell.tooltip = ""
       cell.number = nil
       cell.enabled = false
-      cell.tags = TAGS_EMPTY
     end
   end
 end
