@@ -380,9 +380,11 @@ function suggestions_calc.analyse_long_trips(suggestions, networkdata)
       item_icon(worst.item_name, worst.quality), names.iname, utils.format_distances({worst.trip.dist}),
       worst.trip.deliveries, utils.format_distances({worst.median}), others}
   )
-  -- What a click shows: the worst item's trips, at the one suggested
+  -- What a click shows: the worst item's trips, at the one suggested. The destination is what
+  -- identifies the trip; its place in the list can shift as longer trips are recorded
   suggestions:set_cached_list(SuggestionsMgr.long_trip_key,
-    { item_name = worst.item_name, quality = worst.quality, index = worst.index })
+    { item_name = worst.item_name, quality = worst.quality, index = worst.index,
+      to_x = worst.trip.to_x, to_y = worst.trip.to_y })
 end
 
 -- Analyse whether the player is adding too many bots: rising total with many idle

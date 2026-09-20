@@ -420,19 +420,31 @@ end
 ---@param player LuaPlayer
 ---@param player_table PlayerData
 ---@param networkdata LINetworkData
----@param suggested {item_name: string, quality: string, index: integer}
+---@param suggested {item_name: string, quality: string, index: integer, to_x: number?, to_y: number?}
 ---@param is_right_click boolean
 ---@param is_shift_click boolean
 local function click_long_trip_suggestion(player, player_table, networkdata, suggested, is_right_click, is_shift_click)
   local iq = { name = suggested.item_name, quality = suggested.quality }
+  -- The list may have gained a longer trip since the suggestion was made, so find the
+  -- suggested trip by its destination, and fall back on where it was
+  local entry = networkdata.delivery_history[utils.get_item_quality_key(iq.name, iq.quality)]
+  local trips = entry and entry.top_trips or {}
+  local index = suggested.index
+  if suggested.to_x then
+    for i, trip in ipairs(trips) do
+      if trip.to_x == suggested.to_x and trip.to_y == suggested.to_y then
+        index = i
+        break
+      end
+    end
+  end
   if not (is_shift_click and not is_right_click) then
-    show_trip(player, player_table, networkdata, iq, suggested.index, is_right_click)
+    show_trip(player, player_table, networkdata, iq, index, is_right_click)
     return
   end
 
   -- Exclude it: the long trip is expected
-  local entry = networkdata.delivery_history[utils.get_item_quality_key(iq.name, iq.quality)]
-  local trip = entry and entry.top_trips and entry.top_trips[suggested.index]
+  local trip = trips[index]
   if not trip then return end
   network_data.ignore_trip(networkdata, iq.name, iq.quality, trip.to_x, trip.to_y)
   confirm_at_cursor(player, {"item-row.trip-ignored-flying-text"})

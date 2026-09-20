@@ -203,7 +203,8 @@ describe("suggestions_calc", function()
       assert.are.equal(603, suggestion.count)
       assert.are.equal("low", suggestion.urgency)
       assert.are.equal(Suggestions.long_trip_key, suggestion.clickname)
-      assert.are.same({ item_name = "iron-plate", quality = "normal", index = 1 }, s:get_cached_list(Suggestions.long_trip_key))
+      assert.are.same({ item_name = "iron-plate", quality = "normal", index = 1, to_x = 603, to_y = 0 },
+        s:get_cached_list(Suggestions.long_trip_key))
     end)
 
     it("ignores one-off trips", function()
