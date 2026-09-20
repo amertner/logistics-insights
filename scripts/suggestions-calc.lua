@@ -59,7 +59,12 @@ local LONG_TRIP_MIN_DELIVERIES = 3 -- ...made regularly, not just once,
 -- age-out setting rather than being a setting of its own, but never falls so low that an ordinary
 -- gap between deliveries disqualifies a trip
 local LONG_TRIP_MIN_RECENT_TICKS = 3 * 60 * 60
-local LONG_TRIP_URGENT_FACTOR = 5 -- Red rather than yellow from this multiple of the minimum
+-- Red rather than yellow from a fixed distance, so the colour means the same in every game. The
+-- minimum is a noise floor, not a measure of severity: lowering it to see more trips must not paint
+-- more of them red. But when the minimum itself is that high, red backs off to a multiple of it, or
+-- every suggestion would be red
+local LONG_TRIP_URGENT_TILES = 1000
+local LONG_TRIP_URGENT_FACTOR = 2
 local LONG_TRIP_OTHERS_SHOWN = 3 -- Other items with long trips listed in the tooltip
 
 --- What a network's long trips are judged against. Global for now; per-network overrides belong
@@ -67,7 +72,7 @@ local LONG_TRIP_OTHERS_SHOWN = 3 -- Other items with long trips listed in the to
 ---@class LongTripThresholds
 ---@field min_tiles number A trip shorter than this is never suggested
 ---@field median_factor number Multiple of the item's typical trip that counts as much further
----@field urgent_tiles number Red rather than yellow from here
+---@field urgent_tiles number Red rather than yellow from here: 1 km, or twice the minimum if that is more
 ---@field recent_ticks number How long a trip may go unseen and still count as still happening
 
 ---@param networkdata LINetworkData
@@ -79,7 +84,7 @@ local function long_trip_thresholds(networkdata)
   return {
     min_tiles = min_tiles,
     median_factor = median_factor,
-    urgent_tiles = min_tiles * LONG_TRIP_URGENT_FACTOR,
+    urgent_tiles = math.max(LONG_TRIP_URGENT_TILES, min_tiles * LONG_TRIP_URGENT_FACTOR),
     recent_ticks = math.max(global_data.age_out_suggestions_interval_ticks(), LONG_TRIP_MIN_RECENT_TICKS),
   }
 end

@@ -259,11 +259,22 @@ describe("suggestions_calc", function()
       assert.is_not_nil(shorter)
     end)
 
-    it("takes the urgency threshold from the minimum distance", function()
-      -- Red from 5x the minimum, so 603 m is urgent once the minimum is 100 but not at the default
+    it("is red from 1 km whatever the minimum distance", function()
+      -- Lowering the minimum brings in more trips, but does not make them more urgent
       storage.global.long_trip_min_distance = 100
       local _, suggestion = analyse({ ["iron-plate:normal"] = item("iron-plate", 9, { trip(603, 5) }) })
-      assert.are.equal("high", suggestion.urgency)
+      assert.are.equal("low", suggestion.urgency)
+      local _, longer = analyse({ ["iron-plate:normal"] = item("iron-plate", 9, { trip(1000, 5) }) })
+      assert.are.equal("high", longer.urgency)
+    end)
+
+    it("is red from twice the minimum distance when that is 500 m or more", function()
+      -- Otherwise a minimum of 1 km or more would make every suggestion red
+      storage.global.long_trip_min_distance = 1000
+      local _, suggestion = analyse({ ["iron-plate:normal"] = item("iron-plate", 9, { trip(1500, 5) }) })
+      assert.are.equal("low", suggestion.urgency)
+      local _, longer = analyse({ ["iron-plate:normal"] = item("iron-plate", 9, { trip(2000, 5) }) })
+      assert.are.equal("high", longer.urgency)
     end)
 
     it("relaxed sensitivity ignores a trip that normal would suggest", function()
