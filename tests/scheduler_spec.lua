@@ -448,6 +448,29 @@ describe("scheduler", function()
     end)
   end)
 
+  -- ─── apply_all_player_intervals() ─────────────────────────────────
+
+  describe("apply_all_player_intervals()", function()
+    it("re-points ui-update at each player's setting, as on_load must after a reload", function()
+      local runs = {}
+      scheduler.register({ name = "ui-update", interval = 60, per_player = true,
+        fn = function(player, pt) runs[pt.player_index] = (runs[pt.player_index] or 0) + 1 end })
+      storage.players[1] = { player_index = 1, settings = { ui_update_interval = 30 } }
+      storage.players[2] = { player_index = 2, settings = {} } -- default
+      storage.players[3] = { player_index = 3 } -- odd old save: no settings table
+
+      assert.has_no.errors(scheduler.apply_all_player_intervals)
+
+      for tick = 1, 60 do
+        game.tick = tick
+        scheduler.on_tick()
+      end
+      assert.are.equal(2, runs[1])
+      assert.are.equal(1, runs[2])
+      assert.are.equal(1, runs[3])
+    end)
+  end)
+
   -- ─── apply_global_settings() ──────────────────────────────────────
 
   describe("apply_global_settings()", function()

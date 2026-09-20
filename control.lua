@@ -51,18 +51,22 @@ script.on_init(
   global_data.init()
   player_data.init_storages()
   network_data.init()
-  -- Apply runtime-global setting overrides to the scheduler. Without this,
-  -- li-chunk-processing-interval-ticks silently has no effect until the user
-  -- changes it in-game, because tasks are registered with hardcoded defaults
-  -- at module load.
+  -- Apply setting overrides to the scheduler. Without this, the chunk interval
+  -- and the per-player UI update interval silently have no effect until the
+  -- user changes them in-game, because tasks are registered with hardcoded
+  -- defaults at module load.
   scheduler.apply_global_settings()
+  scheduler.apply_all_player_intervals()
 end)
 
 script.on_load(function()
   -- Re-apply scheduler interval overrides for existing saves. Tasks are
-  -- registered fresh on every load with hardcoded intervals; this re-points
-  -- them at the cached storage.global values. Read-only — safe in on_load.
+  -- registered fresh on every load with hardcoded intervals, and the
+  -- overrides live outside storage, so both the global and the per-player
+  -- ones have to be rebuilt here. Reads storage only, so safe in on_load; it
+  -- also keeps a joining client's schedule identical to everyone else's.
   scheduler.apply_global_settings()
+  scheduler.apply_all_player_intervals()
 end)
 
 local PROFILING = debugger.PROFILING
@@ -234,6 +238,7 @@ script.on_event(defines.events.on_player_removed,
   --- @param e EventData.on_player_removed
   function(e)
   storage.players[e.player_index] = nil
+  scheduler.clear_player_intervals(e.player_index)
   -- Reset cached references as player configuration has changed
   network_data.remove_player_index(e.player_index)
 end)
@@ -283,8 +288,9 @@ script.on_configuration_changed(
   migrations.on_config_changed(e)
   -- Re-apply scheduler interval overrides after config change. Mod version
   -- upgrades may register new tasks or change defaults; this ensures the
-  -- runtime-global interval settings still take effect.
+  -- interval settings still take effect.
   scheduler.apply_global_settings()
+  scheduler.apply_all_player_intervals()
 end)
 
 script.on_event(defines.events.on_runtime_mod_setting_changed,

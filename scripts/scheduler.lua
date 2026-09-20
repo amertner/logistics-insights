@@ -120,12 +120,26 @@ function scheduler.apply_player_intervals(player_index, player_table)
   })
 end
 
--- Apply all player intervals based on current settings.
+-- Apply all player intervals based on current settings. The overrides live outside storage, so
+-- this has to run on init, load and configuration change as well as when a setting changes,
+-- or every player is back on the registered interval after a reload. Safe in on_load: reads only
+-- storage.players, and does not go through the per-player assert so an odd old save cannot stop
+-- the mod loading
 function scheduler.apply_all_player_intervals()
   if not storage.players then return end
   for idx, pt in pairs(storage.players) do
-    scheduler.apply_player_intervals(idx, pt)
+    if pt and pt.settings then
+      scheduler.update_player_intervals(idx, {
+        ["ui-update"] = player_data.ui_update_interval(pt),
+      })
+    end
   end
+end
+
+--- Forget a player's overrides, when the player is removed from the game
+--- @param player_index number
+function scheduler.clear_player_intervals(player_index)
+  player_intervals[player_index] = nil
 end
 
 --- Set or update a per-player interval override for a task.
