@@ -39,9 +39,12 @@ function analysis_coordinator.find_network_to_analyse()
 
   for _, networkdata in pairs(storage.networks) do
     if networkdata then
+      -- Foreground means somebody is looking at it: a player standing in a network with the
+      -- window closed sees nothing of the analysis, and the network is only scanned in the
+      -- background, so it is analysed at the background cadence too
       local has_players = next(networkdata.players_set) ~= nil
       local is_foreground = has_players and player_data.players_show_main_window(networkdata.players_set)
-      local threshold_tick = has_players and last_fg_tick or last_bg_tick
+      local threshold_tick = is_foreground and last_fg_tick or last_bg_tick
 
       local last_analysed = networkdata.last_analysed_tick or 0
       if last_analysed < threshold_tick then
