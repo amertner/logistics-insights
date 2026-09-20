@@ -13,13 +13,13 @@ local __allowed_filters = {}
 local BOT_TREND_WINDOW_TICKS = 60 * 60 -- 60 seconds window for trend (covers multiple background scans)
 local MIN_TOTAL_BOTS_FOR_SUGGESTION = 100 -- Ignore small networks for suggesting too many bots
 
--- A long haul is worth suggesting something about when it is...
-local LONG_HAUL_MIN_TILES = 200 -- ...long in itself,
-local LONG_HAUL_MEDIAN_FACTOR = 4 -- ...much longer than the item's typical haul,
-local LONG_HAUL_MIN_DELIVERIES = 3 -- ...made regularly, not just once,
-local LONG_HAUL_RECENT_TICKS = 5 * 60 * 60 -- ...and still happening, so it ages out once fixed
-local LONG_HAUL_URGENT_TILES = 1000 -- Red rather than yellow from this far
-local LONG_HAUL_OTHERS_SHOWN = 3 -- Other items with long hauls listed in the tooltip
+-- A long trip is worth suggesting something about when it is...
+local LONG_TRIP_MIN_TILES = 200 -- ...long in itself,
+local LONG_TRIP_MEDIAN_FACTOR = 4 -- ...much longer than the item's typical trip,
+local LONG_TRIP_MIN_DELIVERIES = 3 -- ...made regularly, not just once,
+local LONG_TRIP_RECENT_TICKS = 5 * 60 * 60 -- ...and still happening, so it ages out once fixed
+local LONG_TRIP_URGENT_TILES = 1000 -- Red rather than yellow from this far
+local LONG_TRIP_OTHERS_SHOWN = 3 -- Other items with long trips listed in the tooltip
 
 -- Potential issue: Too many bots waiting to charge means we need more RPs
 ---@param suggestions Suggestions
@@ -234,30 +234,30 @@ function suggestions_calc.all_storage_chunks_done(accumulator, gather, network_i
 end
 
 --- Find items that bots regularly carry much further than usual, e.g. to an outpost when most
---- go to a nearby mall. Only the longest listed hauls are looked at, so ignored ones are left out
+--- go to a nearby mall. Only the longest listed trips are looked at, so ignored ones are left out
 ---@param networkdata LINetworkData
----@return {item_name: string, quality: string, index: integer, haul: HaulRecord, median: number}[] Worst first
-function suggestions_calc.find_long_hauls(networkdata)
+---@return {item_name: string, quality: string, index: integer, trip: TripRecord, median: number}[] Worst first
+function suggestions_calc.find_long_trips(networkdata)
   local found = {}
-  local recent = game.tick - LONG_HAUL_RECENT_TICKS
+  local recent = game.tick - LONG_TRIP_RECENT_TICKS
   for _, entry in pairs(networkdata.delivery_history or {}) do
-    local hauls = entry.top_hauls
-    -- The list is longest first, so most items are ruled out by their first haul
-    if hauls and hauls[1] and hauls[1].dist >= LONG_HAUL_MIN_TILES then
-      local median = network_data.median_haul(entry)
+    local trips = entry.top_trips
+    -- The list is longest first, so most items are ruled out by their first trip
+    if trips and trips[1] and trips[1].dist >= LONG_TRIP_MIN_TILES then
+      local median = network_data.median_trip(entry)
       if median then
-        for i, haul in ipairs(hauls) do
-          if haul.dist < LONG_HAUL_MIN_TILES or haul.dist < LONG_HAUL_MEDIAN_FACTOR * median then break end
-          if (haul.deliveries or 1) >= LONG_HAUL_MIN_DELIVERIES and (haul.last_tick or 0) >= recent then
+        for i, trip in ipairs(trips) do
+          if trip.dist < LONG_TRIP_MIN_TILES or trip.dist < LONG_TRIP_MEDIAN_FACTOR * median then break end
+          if (trip.deliveries or 1) >= LONG_TRIP_MIN_DELIVERIES and (trip.last_tick or 0) >= recent then
             found[#found + 1] = { item_name = entry.item_name, quality = entry.quality_name or "normal",
-              index = i, haul = haul, median = median }
-            break -- One per item: its longest haul that qualifies
+              index = i, trip = trip, median = median }
+            break -- One per item: its longest trip that qualifies
           end
         end
       end
     end
   end
-  table.sort(found, function(a, b) return a.haul.dist > b.haul.dist end)
+  table.sort(found, function(a, b) return a.trip.dist > b.trip.dist end)
   return found
 end
 
@@ -272,11 +272,11 @@ end
 --- Suggest a closer supply for items that bots regularly carry much further than usual
 ---@param suggestions Suggestions
 ---@param networkdata LINetworkData
-function suggestions_calc.analyse_long_hauls(suggestions, networkdata)
-  local found = suggestions_calc.find_long_hauls(networkdata)
+function suggestions_calc.analyse_long_trips(suggestions, networkdata)
+  local found = suggestions_calc.find_long_trips(networkdata)
   local worst = found[1]
   if not worst then
-    suggestions:age_out_suggestion(SuggestionsMgr.long_haul_key)
+    suggestions:age_out_suggestion(SuggestionsMgr.long_trip_key)
     return
   end
 
@@ -284,27 +284,27 @@ function suggestions_calc.analyse_long_hauls(suggestions, networkdata)
   if #found > 1 then
     -- Each item's icon and distance, e.g. "[item=iron-plate] 603 m, [item=coal] 410 m"
     local list = {""}
-    for i = 2, math.min(#found, LONG_HAUL_OTHERS_SHOWN + 1) do
+    for i = 2, math.min(#found, LONG_TRIP_OTHERS_SHOWN + 1) do
       if #list > 1 then list[#list + 1] = ", " end
       list[#list + 1] = item_icon(found[i].item_name, found[i].quality) .. " "
-      list[#list + 1] = utils.format_distances({found[i].haul.dist})
+      list[#list + 1] = utils.format_distances({found[i].trip.dist})
     end
-    others = {"", "\n", {"suggestions-row.long-haul-others", list}}
+    others = {"", "\n", {"suggestions-row.long-trip-others", list}}
   end
-  local dist = math.floor(worst.haul.dist + 0.5)
+  local dist = math.floor(worst.trip.dist + 0.5)
   local names = utils.get_localised_names({ item_name = worst.item_name, quality_name = worst.quality })
   suggestions:create_or_age_suggestion(
-    SuggestionsMgr.long_haul_key,
+    SuggestionsMgr.long_trip_key,
     dist,
     utils.get_valid_sprite_path("item/", worst.item_name, "entity/logistic-robot"),
-    suggestions:get_urgency(dist, LONG_HAUL_URGENT_TILES - 1),
+    suggestions:get_urgency(dist, LONG_TRIP_URGENT_TILES - 1),
     true,
-    {"suggestions-row.long-haul-action-1icon-2item-3dist-4times-5median-6others",
-      item_icon(worst.item_name, worst.quality), names.iname, utils.format_distances({worst.haul.dist}),
-      worst.haul.deliveries, utils.format_distances({worst.median}), others}
+    {"suggestions-row.long-trip-action-1icon-2item-3dist-4times-5median-6others",
+      item_icon(worst.item_name, worst.quality), names.iname, utils.format_distances({worst.trip.dist}),
+      worst.trip.deliveries, utils.format_distances({worst.median}), others}
   )
-  -- What a click shows: the worst item's hauls, at the one suggested
-  suggestions:set_cached_list(SuggestionsMgr.long_haul_key,
+  -- What a click shows: the worst item's trips, at the one suggested
+  suggestions:set_cached_list(SuggestionsMgr.long_trip_key,
     { item_name = worst.item_name, quality = worst.quality, index = worst.index })
 end
 

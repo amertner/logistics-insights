@@ -371,51 +371,51 @@ function find_and_highlight.clear_markers(player)
   ResultLocation.clear_markers(player)
 end
 
---- Show one of an item's longest hauls on the map, remembering it so Shift+click in the Longest
---- haul row can exclude it
+--- Show one of an item's longest trips on the map, remembering it so Shift+click in the Longest
+--- trip row can exclude it
 ---@param player LuaPlayer
 ---@param player_table PlayerData
 ---@param networkdata LINetworkData
 ---@param iq ItemQuality
----@param index integer Which of the item's longest hauls
+---@param index integer Which of the item's longest trips
 ---@param focus_on_start boolean
-local function show_haul(player, player_table, networkdata, iq, index, focus_on_start)
+local function show_trip(player, player_table, networkdata, iq, index, focus_on_start)
   local key = utils.get_item_quality_key(iq.name, iq.quality)
   local entry = networkdata.delivery_history[key]
-  local hauls = entry and entry.top_hauls
-  if not hauls or not hauls[1] then return end
-  if not hauls[index] then index = 1 end -- The list changed since the suggestion was made
-  local object_id = ResultLocation.show_hauls(player, networkdata.surface, hauls, index, iq, focus_on_start)
-  player_table.haul_view = { key = key, index = index, object_id = object_id }
-  -- Update the row now, so its tooltip offers to ignore the haul just shown
+  local trips = entry and entry.top_trips
+  if not trips or not trips[1] then return end
+  if not trips[index] then index = 1 end -- The list changed since the suggestion was made
+  local object_id = ResultLocation.show_trips(player, networkdata.surface, trips, index, iq, focus_on_start)
+  player_table.trip_view = { key = key, index = index, object_id = object_id }
+  -- Update the row now, so its tooltip offers to ignore the trip just shown
   history_rows.update(player_table, false)
 end
 
---- Click on the long haul suggestion: show the haul suggested about, or exclude it
+--- Click on the long trip suggestion: show the trip suggested about, or exclude it
 ---@param player LuaPlayer
 ---@param player_table PlayerData
 ---@param networkdata LINetworkData
 ---@param suggested {item_name: string, quality: string, index: integer}
 ---@param is_right_click boolean
 ---@param is_shift_click boolean
-local function click_long_haul_suggestion(player, player_table, networkdata, suggested, is_right_click, is_shift_click)
+local function click_long_trip_suggestion(player, player_table, networkdata, suggested, is_right_click, is_shift_click)
   local iq = { name = suggested.item_name, quality = suggested.quality }
   if not (is_shift_click and not is_right_click) then
-    show_haul(player, player_table, networkdata, iq, suggested.index, is_right_click)
+    show_trip(player, player_table, networkdata, iq, suggested.index, is_right_click)
     return
   end
 
-  -- Exclude it: the long haul is expected
+  -- Exclude it: the long trip is expected
   local entry = networkdata.delivery_history[utils.get_item_quality_key(iq.name, iq.quality)]
-  local haul = entry and entry.top_hauls and entry.top_hauls[suggested.index]
-  if not haul then return end
-  network_data.ignore_haul(networkdata, iq.name, iq.quality, haul.to_x, haul.to_y)
-  player.create_local_flying_text{text = {"item-row.haul-ignored-flying-text"}, create_at_cursor = true}
+  local trip = entry and entry.top_trips and entry.top_trips[suggested.index]
+  if not trip then return end
+  network_data.ignore_trip(networkdata, iq.name, iq.quality, trip.to_x, trip.to_y)
+  player.create_local_flying_text{text = {"item-row.trip-ignored-flying-text"}, create_at_cursor = true}
   -- Move on to the next item carried unusually far, or drop the suggestion as it was dismissed
-  if suggestions_calc.find_long_hauls(networkdata)[1] then
-    suggestions_calc.analyse_long_hauls(networkdata.suggestions, networkdata)
+  if suggestions_calc.find_long_trips(networkdata)[1] then
+    suggestions_calc.analyse_long_trips(networkdata.suggestions, networkdata)
   else
-    networkdata.suggestions:clear_suggestion(suggestions.long_haul_key)
+    networkdata.suggestions:clear_suggestion(suggestions.long_trip_key)
   end
   events.emit(events.on_ignorelist_changed, player.index)
   events.emit(events.on_suggestions_changed, player.index)
@@ -496,42 +496,42 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
     return true
   end
 
-  -- Longest haul row item buttons: logistics-insights-haul/<index>
-  if rowname == "logistics-insights-haul" then
+  -- Longest trip row item buttons: logistics-insights-trip/<index>
+  if rowname == "logistics-insights-trip" then
     local iq = extract_item_quality()
     if not iq then return false end
     local networkdata = network_data.get_networkdata(player_table.network)
     local key = utils.get_item_quality_key(iq.name, iq.quality)
     local entry = networkdata and networkdata.delivery_history[key]
-    local hauls = entry and entry.top_hauls
-    if networkdata and hauls and #hauls > 0 then
-      -- Left-click steps on to the next haul; right-click stays on the current one to show its
+    local trips = entry and entry.top_trips
+    if networkdata and trips and #trips > 0 then
+      -- Left-click steps on to the next trip; right-click stays on the current one to show its
       -- pickup end. Start again from the longest once the previous highlight has expired
-      local view = player_table.haul_view
+      local view = player_table.trip_view
       -- Shown means still drawn: not expired, and not replaced by another highlight
-      local showing = view and view.key == key and hauls[view.index] and ResultLocation.is_shown(view.object_id)
+      local showing = view and view.key == key and trips[view.index] and ResultLocation.is_shown(view.object_id)
       local index = 1
       if showing and is_shift_click and not is_right_click then
-        -- Ignore the haul being shown: it's expected. Only ever what's on the map, never blind
-        local haul = hauls[view.index]
-        network_data.ignore_haul(networkdata, iq.name, iq.quality, haul.to_x, haul.to_y)
+        -- Ignore the trip being shown: it's expected. Only ever what's on the map, never blind
+        local trip = trips[view.index]
+        network_data.ignore_trip(networkdata, iq.name, iq.quality, trip.to_x, trip.to_y)
         events.emit(events.on_ignorelist_changed, player.index)
-        player.create_local_flying_text{text = {"item-row.haul-ignored-flying-text"}, create_at_cursor = true}
-        if #hauls == 0 then
-          player_table.haul_view = nil
+        player.create_local_flying_text{text = {"item-row.trip-ignored-flying-text"}, create_at_cursor = true}
+        if #trips == 0 then
+          player_table.trip_view = nil
           ResultLocation.clear_markers(player)
           history_rows.update(player_table, false)
           return true
         end
-        -- The next haul has moved up into its place
-        index = math.min(view.index, #hauls)
+        -- The next trip has moved up into its place
+        index = math.min(view.index, #trips)
       elseif showing then
         index = is_right_click and view.index or view.index + 1
-        if index > #hauls then index = 1 end
+        if index > #trips then index = 1 end
       end
-      local object_id = ResultLocation.show_hauls(player, networkdata.surface, hauls, index, iq, is_right_click)
-      player_table.haul_view = { key = key, index = index, object_id = object_id }
-      -- Update the row now, so its tooltip offers to ignore the haul just shown
+      local object_id = ResultLocation.show_trips(player, networkdata.surface, trips, index, iq, is_right_click)
+      player_table.trip_view = { key = key, index = index, object_id = object_id }
+      -- Update the row now, so its tooltip offers to ignore the trip just shown
       history_rows.update(player_table, false)
     end
     return true
@@ -552,8 +552,8 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
     if clickname and networkdata and networkdata.suggestions then
       local list = networkdata.suggestions:get_cached_list(clickname)
       if list then
-        if clickname == suggestions.long_haul_key then
-          click_long_haul_suggestion(player, player_table, networkdata, list, is_right_click, is_shift_click)
+        if clickname == suggestions.long_trip_key then
+          click_long_trip_suggestion(player, player_table, networkdata, list, is_right_click, is_shift_click)
         elseif is_shift_click and clickname == suggestions.mismatched_storage_key then
           network_data.add_storages_to_ignorelist_for_filter_mismatch(networkdata, list)
           -- Immediately clear the suggestion to provide visual feedback

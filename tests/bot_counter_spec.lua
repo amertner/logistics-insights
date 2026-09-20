@@ -378,9 +378,9 @@ describe("bot_counter", function()
     end)
   end)
 
-  -- ─── Haul distance ────────────────────────────────────────────────
+  -- ─── Trip distance ────────────────────────────────────────────────
 
-  describe("haul distance", function()
+  describe("trip distance", function()
     --- Run one full delivery for a bot: pickup, deliver, then idle
     local function run_trip(nwd, unit_number, item_name, count, pickup_pos, target_pos, start_tick)
       game.tick = start_tick
@@ -406,13 +406,13 @@ describe("bot_counter", function()
       assert.are.equal(50, history.max_dist)
     end)
 
-    it("averages distance per delivery, so bulk short hauls don't hide long ones", function()
+    it("averages distance per delivery, so bulk short trips don't hide long ones", function()
       local nwd = make_networkdata()
-      -- Mall: 4 short hauls of 200 items, 3 tiles each
+      -- Mall: 4 short trips of 200 items, 3 tiles each
       for i = 1, 4 do
         run_trip(nwd, i, "iron-plate", 200, { x = 0, y = 0 }, { x = 3, y = 0 }, 100 * i)
       end
-      -- Outpost: 1 long haul of 10 items, 603 tiles
+      -- Outpost: 1 long trip of 10 items, 603 tiles
       run_trip(nwd, 9, "iron-plate", 10, { x = 0, y = 0 }, { x = 603, y = 0 }, 1000)
 
       local history = nwd.delivery_history["iron-plate:normal"]
@@ -422,67 +422,67 @@ describe("bot_counter", function()
       assert.are.equal(5, history.dist_exact)
       assert.are.equal((4 * 3 + 603) / 5, history.avg_dist) -- 123, not dragged towards 3 by item count
       assert.are.equal(4 * 3 + 603, history.dist_sum) -- Distance carried
-      -- The median is the typical haul, which the one long haul doesn't pull up
-      assert.are.equal(3, math.floor(require("scripts.network-data").median_haul(history) + 0.5))
+      -- The median is the typical trip, which the one long trip doesn't pull up
+      assert.are.equal(3, math.floor(require("scripts.network-data").median_trip(history) + 0.5))
       assert.are.equal(603, history.max_dist)
-      -- Both ends of the longest hauls are kept so they can be shown on the map. The four mall
+      -- Both ends of the longest trips are kept so they can be shown on the map. The four mall
       -- trips all went to the same chest, so only one of them is kept
       -- The mall chest's deliveries are counted, and when it was last delivered to is kept
       assert.are.same({
         { dist = 603, from_x = 0, from_y = 0, to_x = 603, to_y = 0, exact = true, deliveries = 1, last_tick = 1010 },
         { dist = 3, from_x = 0, from_y = 0, to_x = 3, to_y = 0, exact = true, deliveries = 4, last_tick = 410 },
-      }, history.top_hauls)
+      }, history.top_trips)
     end)
 
-    it("estimates the median haul to within a few percent", function()
+    it("estimates the median trip to within a few percent", function()
       local nwd = make_networkdata()
-      -- 11 hauls of 100, 200 ... 1100 tiles: the median is 600
+      -- 11 trips of 100, 200 ... 1100 tiles: the median is 600
       for i = 1, 11 do
         run_trip(nwd, i, "iron-plate", 1, { x = 0, y = 0 }, { x = i * 100, y = 0 }, 100 * i)
       end
-      local median = require("scripts.network-data").median_haul(nwd.delivery_history["iron-plate:normal"])
+      local median = require("scripts.network-data").median_trip(nwd.delivery_history["iron-plate:normal"])
       assert.is_true(math.abs(median - 600) / 600 < 0.1, "median estimate " .. median)
     end)
 
-    it("counts repeat hauls to a destination, even when it's the shortest one listed", function()
+    it("counts repeat trips to a destination, even when it's the shortest one listed", function()
       local nwd = make_networkdata()
       for i = 1, 5 do -- Fill the list: 100 ... 500 tiles
         run_trip(nwd, i, "iron-plate", 1, { x = 0, y = 0 }, { x = i * 100, y = 0 }, 100 * i)
       end
       run_trip(nwd, 6, "iron-plate", 1, { x = 0, y = 0 }, { x = 100, y = 0 }, 1000) -- Repeat of the shortest
 
-      local hauls = nwd.delivery_history["iron-plate:normal"].top_hauls
-      assert.are.same({ 100, 2, 1010 }, { hauls[5].dist, hauls[5].deliveries, hauls[5].last_tick })
+      local trips = nwd.delivery_history["iron-plate:normal"].top_trips
+      assert.are.same({ 100, 2, 1010 }, { trips[5].dist, trips[5].deliveries, trips[5].last_tick })
     end)
 
-    it("moves a destination up the list when a longer haul goes there", function()
+    it("moves a destination up the list when a longer trip goes there", function()
       local nwd = make_networkdata()
       run_trip(nwd, 1, "iron-plate", 1, { x = 0, y = 0 }, { x = 300, y = 0 }, 100)   -- 300
       run_trip(nwd, 2, "iron-plate", 1, { x = 200, y = 0 }, { x = 400, y = 0 }, 200) -- 200
       run_trip(nwd, 3, "iron-plate", 1, { x = 0, y = 0 }, { x = 400, y = 0 }, 300)   -- 400: same chest, longer
 
       local history = nwd.delivery_history["iron-plate:normal"]
-      assert.are.same({ 400, 2 }, { history.top_hauls[1].dist, history.top_hauls[1].deliveries })
-      assert.are.equal(300, history.top_hauls[2].dist)
+      assert.are.same({ 400, 2 }, { history.top_trips[1].dist, history.top_trips[1].deliveries })
+      assert.are.equal(300, history.top_trips[2].dist)
       assert.are.equal(400, history.top_dist)
     end)
 
-    it("keeps the five longest hauls, longest first", function()
+    it("keeps the five longest trips, longest first", function()
       local nwd = make_networkdata()
       for i = 1, 7 do
-        -- Hauls of 10, 20 ... 70 tiles, each to a different chest, in a mixed-up order
+        -- Trips of 10, 20 ... 70 tiles, each to a different chest, in a mixed-up order
         local dist = ((i * 3) % 7 + 1) * 10
         run_trip(nwd, i, "iron-plate", 1, { x = 0, y = 0 }, { x = dist, y = 0 }, 100 * i)
       end
 
       local dists = {}
-      for _, haul in ipairs(nwd.delivery_history["iron-plate:normal"].top_hauls) do
-        dists[#dists + 1] = haul.dist
+      for _, trip in ipairs(nwd.delivery_history["iron-plate:normal"].top_trips) do
+        dists[#dists + 1] = trip.dist
       end
       assert.are.same({ 70, 60, 50, 40, 30 }, dists)
     end)
 
-    it("keeps only the longest haul to each destination", function()
+    it("keeps only the longest trip to each destination", function()
       local nwd = make_networkdata()
       local chest = { x = 100, y = 0 }
       run_trip(nwd, 1, "iron-plate", 1, { x = 50, y = 0 }, chest, 100)   -- 50 tiles
@@ -490,13 +490,13 @@ describe("bot_counter", function()
       run_trip(nwd, 3, "iron-plate", 1, { x = 0, y = 0 }, { x = 70, y = 0 }, 300) -- 70, elsewhere
       run_trip(nwd, 4, "iron-plate", 1, { x = 20, y = 0 }, chest, 400)   -- 80: replaces the 50
 
-      local hauls = nwd.delivery_history["iron-plate:normal"].top_hauls
-      assert.are.equal(2, #hauls)
-      assert.are.same({ 80, 20 }, { hauls[1].dist, hauls[1].from_x })
-      assert.are.same({ 70, 70 }, { hauls[2].dist, hauls[2].to_x })
+      local trips = nwd.delivery_history["iron-plate:normal"].top_trips
+      assert.are.equal(2, #trips)
+      assert.are.same({ 80, 20 }, { trips[1].dist, trips[1].from_x })
+      assert.are.same({ 70, 70 }, { trips[2].dist, trips[2].to_x })
     end)
 
-    describe("ignored hauls", function()
+    describe("ignored trips", function()
       local network_data
       before_each(function()
         network_data = require("scripts.network-data")
@@ -504,19 +504,19 @@ describe("bot_counter", function()
 
       local function dists(nwd)
         local result = {}
-        for _, haul in ipairs(nwd.delivery_history["iron-plate:normal"].top_hauls) do
-          result[#result + 1] = haul.dist
+        for _, trip in ipairs(nwd.delivery_history["iron-plate:normal"].top_trips) do
+          result[#result + 1] = trip.dist
         end
         return result
       end
 
-      it("stops listing an ignored haul straight away, and the next one moves up", function()
+      it("stops listing an ignored trip straight away, and the next one moves up", function()
         local nwd = make_networkdata()
         run_trip(nwd, 1, "iron-plate", 1, { x = 0, y = 0 }, { x = 600, y = 0 }, 100)
         run_trip(nwd, 2, "iron-plate", 1, { x = 0, y = 0 }, { x = 400, y = 0 }, 200)
         local gen = nwd.delivery_history_gen
 
-        network_data.ignore_haul(nwd, "iron-plate", "normal", 600, 0)
+        network_data.ignore_trip(nwd, "iron-plate", "normal", 600, 0)
 
         local history = nwd.delivery_history["iron-plate:normal"]
         assert.are.same({ 400 }, dists(nwd))
@@ -528,10 +528,10 @@ describe("bot_counter", function()
         assert.are.equal(2, history.dist_count)
       end)
 
-      it("doesn't list new hauls to an ignored destination, but counts them", function()
+      it("doesn't list new trips to an ignored destination, but counts them", function()
         local nwd = make_networkdata()
         run_trip(nwd, 1, "iron-plate", 1, { x = 0, y = 0 }, { x = 100, y = 0 }, 100)
-        network_data.ignore_haul(nwd, "iron-plate", "normal", 600, 0)
+        network_data.ignore_trip(nwd, "iron-plate", "normal", 600, 0)
         run_trip(nwd, 2, "iron-plate", 1, { x = 0, y = 0 }, { x = 600, y = 0 }, 200)
 
         local history = nwd.delivery_history["iron-plate:normal"]
@@ -540,38 +540,38 @@ describe("bot_counter", function()
         assert.are.equal(2, history.dist_count)
       end)
 
-      it("only ignores that item's hauls to that destination", function()
+      it("only ignores that item's trips to that destination", function()
         local nwd = make_networkdata()
-        network_data.ignore_haul(nwd, "iron-plate", "normal", 600, 0)
+        network_data.ignore_trip(nwd, "iron-plate", "normal", 600, 0)
         run_trip(nwd, 1, "copper-plate", 1, { x = 0, y = 0 }, { x = 600, y = 0 }, 100)
         run_trip(nwd, 2, "iron-plate", 1, { x = 0, y = 0 }, { x = 600, y = 1 }, 200)
 
         assert.are.equal(600, nwd.delivery_history["copper-plate:normal"].top_dist)
-        assert.are.equal(1, #nwd.delivery_history["iron-plate:normal"].top_hauls)
+        assert.are.equal(1, #nwd.delivery_history["iron-plate:normal"].top_trips)
       end)
 
       it("counts ignores for an item first delivered after they were made", function()
         local nwd = make_networkdata()
-        network_data.ignore_haul(nwd, "iron-plate", "normal", 600, 0)
-        network_data.ignore_haul(nwd, "iron-plate", "normal", 700, 0)
-        network_data.ignore_haul(nwd, "iron-plate", "normal", 700, 0) -- Already ignored
-        network_data.ignore_haul(nwd, "copper-plate", "normal", 600, 0)
+        network_data.ignore_trip(nwd, "iron-plate", "normal", 600, 0)
+        network_data.ignore_trip(nwd, "iron-plate", "normal", 700, 0)
+        network_data.ignore_trip(nwd, "iron-plate", "normal", 700, 0) -- Already ignored
+        network_data.ignore_trip(nwd, "copper-plate", "normal", 600, 0)
         run_trip(nwd, 1, "iron-plate", 1, { x = 0, y = 0 }, { x = 100, y = 0 }, 100)
 
         assert.are.equal(2, nwd.delivery_history["iron-plate:normal"].ignored_count)
-        assert.are.equal(3, table_size(nwd.ignored_hauls))
+        assert.are.equal(3, table_size(nwd.ignored_trips))
       end)
 
-      it("lists hauls again from their next delivery once un-ignored", function()
+      it("lists trips again from their next delivery once un-ignored", function()
         local nwd = make_networkdata()
         run_trip(nwd, 1, "iron-plate", 1, { x = 0, y = 0 }, { x = 600, y = 0 }, 100)
-        network_data.ignore_haul(nwd, "iron-plate", "normal", 600, 0)
-        local key = network_data.haul_ignore_key("iron-plate:normal", 600, 0)
+        network_data.ignore_trip(nwd, "iron-plate", "normal", 600, 0)
+        local key = network_data.trip_ignore_key("iron-plate:normal", 600, 0)
 
-        network_data.unignore_haul(nwd, key)
+        network_data.unignore_trip(nwd, key)
         local history = nwd.delivery_history["iron-plate:normal"]
         assert.are.equal(0, history.ignored_count)
-        assert.are.same({}, dists(nwd)) -- Past hauls aren't brought back
+        assert.are.same({}, dists(nwd)) -- Past trips aren't brought back
 
         run_trip(nwd, 2, "iron-plate", 1, { x = 0, y = 0 }, { x = 600, y = 0 }, 200)
         assert.are.same({ 600 }, dists(nwd))
@@ -580,15 +580,15 @@ describe("bot_counter", function()
       it("clears the whole list", function()
         local nwd = make_networkdata()
         run_trip(nwd, 1, "iron-plate", 1, { x = 0, y = 0 }, { x = 100, y = 0 }, 100)
-        network_data.ignore_haul(nwd, "iron-plate", "normal", 600, 0)
-        network_data.clear_ignored_hauls(nwd)
+        network_data.ignore_trip(nwd, "iron-plate", "normal", 600, 0)
+        network_data.clear_ignored_trips(nwd)
 
-        assert.are.equal(0, table_size(nwd.ignored_hauls))
+        assert.are.equal(0, table_size(nwd.ignored_trips))
         assert.are.equal(0, nwd.delivery_history["iron-plate:normal"].ignored_count)
       end)
     end)
 
-    it("estimates the haul from where the bot was first seen when the pickup was missed", function()
+    it("estimates the trip from where the bot was first seen when the pickup was missed", function()
       local nwd = make_networkdata()
       game.tick = 100
       process_all_foreground(nwd, {
@@ -602,7 +602,7 @@ describe("bot_counter", function()
       assert.are.equal(1, history.dist_count)
       assert.are.equal(0, history.dist_exact)
       assert.are.equal(50, history.max_dist)
-      assert.are.same({ 0, 0, false }, { history.top_hauls[1].from_x, history.top_hauls[1].from_y, history.top_hauls[1].exact })
+      assert.are.same({ 0, 0, false }, { history.top_trips[1].from_x, history.top_trips[1].from_y, history.top_trips[1].exact })
     end)
 
     it("prefers the pickup chest over the bot's position", function()
@@ -625,14 +625,14 @@ describe("bot_counter", function()
       assert.are.equal(1, history.dist_exact)
     end)
 
-    it("does not estimate hauls in background mode", function()
+    it("does not estimate trips in background mode", function()
       local nwd = make_networkdata()
       game.tick = 100
       process_all(nwd, {
         make_bot({ unit_number = 1, position = { x = 0, y = 0 },
           orders = { deliver_order("iron-plate", 10, { target_pos = { x = 30, y = 40 } }) } }),
       })
-      assert.is_nil(nwd.bot_active_deliveries[1].haul_dist)
+      assert.is_nil(nwd.bot_active_deliveries[1].trip_dist)
     end)
 
     it("does not use a pickup of a different item", function()

@@ -12,7 +12,7 @@ local WINDOW_HEIGHT = 210
 
 exclusions_window.chests_on_ignore_list_setting = "chests-on-ignore-list"
 exclusions_window.undersupply_ignore_list_setting = "items-on-undersupply-ignore-list"
-exclusions_window.hauls_ignore_list_setting = "hauls-on-ignore-list"
+exclusions_window.trips_ignore_list_setting = "trips-on-ignore-list"
 
 -- Add a Network ID header line
 ---@param ui LuaGuiElement The parent UI element to add the header to
@@ -127,11 +127,11 @@ local function show_ignored_storages_for_mismatch_list(gui_table, networkdata, p
   end
 end
 
---- The entity a haul was delivered to, if it's still there
+--- The entity a trip was delivered to, if it's still there
 ---@param surface LuaSurface
----@param ignored IgnoredHaul
+---@param ignored IgnoredTrip
 ---@return LuaEntity|nil
-local function haul_destination(surface, ignored)
+local function trip_destination(surface, ignored)
   for _, entity in pairs(surface.find_entities_filtered{ position = { x = ignored.x, y = ignored.y } }) do
     if entity.type ~= "logistic-robot" and entity.type ~= "construction-robot" then
       return entity
@@ -140,31 +140,31 @@ local function haul_destination(surface, ignored)
   return nil
 end
 
---- Show the hauls on the ignore list. Hauls whose destination is gone can't happen again, so
+--- Show the trips on the ignore list. Trips whose destination is gone can't happen again, so
 --- they are dropped from the list here
 ---@param gui_table LuaGuiElement The GUI table to contain the list
 ---@param networkdata LINetworkData
 ---@param player_table PlayerData
-local function show_ignored_hauls_list(gui_table, networkdata, player_table)
-  if (player_table.ignored_hauls_shown or 0) > (networkdata.ignored_hauls_changed or 0) then
+local function show_ignored_trips_list(gui_table, networkdata, player_table)
+  if (player_table.ignored_trips_shown or 0) > (networkdata.ignored_trips_changed or 0) then
     return -- No change since last shown
   end
   gui_table.clear()
   local surface = game.surfaces[networkdata.surface]
   if surface then
-    for key, ignored in pairs(networkdata.ignored_hauls or {}) do
-      if not haul_destination(surface, ignored) then
-        network_data.unignore_haul(networkdata, key)
+    for key, ignored in pairs(networkdata.ignored_trips or {}) do
+      if not trip_destination(surface, ignored) then
+        network_data.unignore_trip(networkdata, key)
       end
     end
   end
-  player_table.ignored_hauls_shown = game.tick
+  player_table.ignored_trips_shown = game.tick
 
-  for key, ignored in pairs(networkdata.ignored_hauls or {}) do
+  for key, ignored in pairs(networkdata.ignored_trips or {}) do
     local cell = gui_table.add {type = "sprite-button", style = "slot_button",
       raise_hover_events = true,
-      tooltip = {"exclusions-window.haul-exclusion-tooltip"},
-      tags = {haul_key = key, action = "focus-haul", shift_action = "remove-haul", pane = WINDOW_NAME}}
+      tooltip = {"exclusions-window.trip-exclusion-tooltip"},
+      tags = {trip_key = key, action = "focus-trip", shift_action = "remove-trip", pane = WINDOW_NAME}}
     cell.sprite = utils.get_valid_sprite_path("item/", ignored.item_name)
     cell.quality = ignored.quality or "normal"
   end
@@ -194,22 +194,22 @@ function exclusions_window.update(player_table)
   if not networkdata or not player_table.network or not player_table.network.valid then
     exclusions_table.clear()
     player_table.ignored_storages_for_mismatch_shown = 0
-    player_table.ignored_hauls_shown = 0
+    player_table.ignored_trips_shown = 0
   else
     -- The lists that only redraw when changed must redraw when switched back to
     if setting_shown ~= exclusions_window.chests_on_ignore_list_setting then
       player_table.ignored_storages_for_mismatch_shown = 0
     end
-    if setting_shown ~= exclusions_window.hauls_ignore_list_setting then
-      player_table.ignored_hauls_shown = 0
+    if setting_shown ~= exclusions_window.trips_ignore_list_setting then
+      player_table.ignored_trips_shown = 0
     end
     if setting_shown == exclusions_window.undersupply_ignore_list_setting then
       exclusions_table.clear()
       show_item_quality_list(exclusions_table, networkdata.ignored_items_for_undersupply)
     elseif player_table.exclusion_list_shown == exclusions_window.chests_on_ignore_list_setting then
       show_ignored_storages_for_mismatch_list(exclusions_table, networkdata, player_table)
-    elseif setting_shown == exclusions_window.hauls_ignore_list_setting then
-      show_ignored_hauls_list(exclusions_table, networkdata, player_table)
+    elseif setting_shown == exclusions_window.trips_ignore_list_setting then
+      show_ignored_trips_list(exclusions_table, networkdata, player_table)
     end
   end
 end
@@ -281,29 +281,29 @@ local function remove_undersupply_exclusion(event)
   end
 end
 
---- Show an ignored haul's destination on the map
-local function focus_on_haul(event)
+--- Show an ignored trip's destination on the map
+local function focus_on_trip(event)
   local player_table = player_data.get_player_table(event.player_index)
   local player = game.get_player(event.player_index)
   if not player_table or not player then return end
   local networkdata = network_data.get_networkdata_fromid(player_table.settings_network_id)
-  local ignored = networkdata and networkdata.ignored_hauls and networkdata.ignored_hauls[event.element.tags.haul_key]
+  local ignored = networkdata and networkdata.ignored_trips and networkdata.ignored_trips[event.element.tags.trip_key]
   local surface = networkdata and game.surfaces[networkdata.surface]
   if ignored and surface then
-    local destination = haul_destination(surface, ignored)
+    local destination = trip_destination(surface, ignored)
     if destination then
       find_and_highlight.highlight_list_locations_on_map(player, {destination}, true)
     end
   end
 end
 
---- Take a haul off the ignore list, so it's listed again from its next delivery
-local function remove_haul_exclusion(event)
+--- Take a trip off the ignore list, so it's listed again from its next delivery
+local function remove_trip_exclusion(event)
   local player_table = player_data.get_player_table(event.player_index)
   if not player_table then return end
   local networkdata = network_data.get_networkdata_fromid(player_table.settings_network_id)
   if networkdata then
-    network_data.unignore_haul(networkdata, event.element.tags.haul_key)
+    network_data.unignore_trip(networkdata, event.element.tags.trip_key)
     -- Also updates the list's count in the network settings, and this pane
     events.emit(events.on_ignorelist_changed, event.player_index)
   end
@@ -329,16 +329,16 @@ function exclusions_window.on_gui_click(event)
       elseif shift_action == "remove-chest" then
         remove_chest_exclusion(event)
         handled = true
-      elseif shift_action == "remove-haul" then
-        remove_haul_exclusion(event)
+      elseif shift_action == "remove-trip" then
+        remove_trip_exclusion(event)
         handled = true
       end
     else
       if action == "focus-chest" then
         focus_on_chest(event)
         handled = true
-      elseif action == "focus-haul" then
-        focus_on_haul(event)
+      elseif action == "focus-trip" then
+        focus_on_trip(event)
         handled = true
       end
     end

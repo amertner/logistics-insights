@@ -14,7 +14,7 @@ local distance = utils.distance
 local defines_robot_order_type_deliver = defines.robot_order_type.deliver
 local defines_robot_order_type_pickup = defines.robot_order_type.pickup
 local seen_bot_this_pass = 2
-local TOP_HAULS = network_data.TOP_HAULS
+local TOP_TRIPS = network_data.TOP_TRIPS
 local seen_bot_last_pass = 1
 
 --- @class Accumulator -- Used by the chunker to accumulate data over multiple passes
@@ -29,65 +29,65 @@ local seen_bot_last_pass = 1
 --- @field networkdata LINetworkData|nil Cached network data for this chunk pass
 --- @field current_tick number The game tick at the start of this chunk pass
 
---- Keep an item's longest hauls, longest first, with at most one per destination so a route
---- that is used again and again doesn't fill the list. Hauls to a destination already listed
---- are counted, so it's known which long hauls happen regularly
+--- Keep an item's longest trips, longest first, with at most one per destination so a route
+--- that is used again and again doesn't fill the list. Trips to a destination already listed
+--- are counted, so it's known which long trips happen regularly
 --- @param history_order DeliveredItems
 --- @param item_key string The history key of the item
---- @param dist number The haul distance
---- @param from MapPosition Where the haul started
---- @param to MapPosition Where the haul ended
+--- @param dist number The trip distance
+--- @param from MapPosition Where the trip started
+--- @param to MapPosition Where the trip ended
 --- @param exact boolean True if `from` is the pickup chest rather than an estimate
---- @param tick number When the haul was last seen
---- @param ignored_hauls table<string, IgnoredHaul>|nil Hauls accepted as expected, which are not listed
-local function record_top_haul(history_order, item_key, dist, from, to, exact, tick, ignored_hauls)
-  local hauls = history_order.top_hauls
-  if not hauls then
-    hauls = {}
-    history_order.top_hauls = hauls
+--- @param tick number When the trip was last seen
+--- @param ignored_trips table<string, IgnoredTrip>|nil Trips accepted as expected, which are not listed
+local function record_top_trip(history_order, item_key, dist, from, to, exact, tick, ignored_trips)
+  local trips = history_order.top_trips
+  if not trips then
+    trips = {}
+    history_order.top_trips = trips
   end
-  local count = #hauls
+  local count = #trips
 
-  -- Same destination as one already listed: count it, and keep whichever haul is longer.
-  -- Checked first, as a repeat of the shortest haul listed would otherwise be turned away below
+  -- Same destination as one already listed: count it, and keep whichever trip is longer.
+  -- Checked first, as a repeat of the shortest trip listed would otherwise be turned away below
   for i = 1, count do
-    local haul = hauls[i]
-    if haul.to_x == to.x and haul.to_y == to.y then
-      haul.deliveries = (haul.deliveries or 1) + 1
-      haul.last_tick = tick
-      if dist > haul.dist then
-        haul.dist, haul.from_x, haul.from_y, haul.exact = dist, from.x, from.y, exact
+    local trip = trips[i]
+    if trip.to_x == to.x and trip.to_y == to.y then
+      trip.deliveries = (trip.deliveries or 1) + 1
+      trip.last_tick = tick
+      if dist > trip.dist then
+        trip.dist, trip.from_x, trip.from_y, trip.exact = dist, from.x, from.y, exact
         -- Now longer, it may need to move up the list
         local pos = i
-        while pos > 1 and hauls[pos - 1].dist < dist do
-          hauls[pos], hauls[pos - 1] = hauls[pos - 1], hauls[pos]
+        while pos > 1 and trips[pos - 1].dist < dist do
+          trips[pos], trips[pos - 1] = trips[pos - 1], trips[pos]
           pos = pos - 1
         end
-        history_order.top_dist = hauls[1].dist
+        history_order.top_dist = trips[1].dist
       end
       return
     end
   end
 
-  -- Most hauls are no longer than any already kept
-  if count >= TOP_HAULS and dist <= hauls[count].dist then return end
-  if ignored_hauls and ignored_hauls[network_data.haul_ignore_key(item_key, to.x, to.y)] then return end
+  -- Most trips are no longer than any already kept
+  if count >= TOP_TRIPS and dist <= trips[count].dist then return end
+  if ignored_trips and ignored_trips[network_data.trip_ignore_key(item_key, to.x, to.y)] then return end
 
   local pos = count + 1
-  while pos > 1 and hauls[pos - 1].dist < dist do
+  while pos > 1 and trips[pos - 1].dist < dist do
     pos = pos - 1
   end
-  table.insert(hauls, pos, { dist = dist, from_x = from.x, from_y = from.y, to_x = to.x, to_y = to.y,
+  table.insert(trips, pos, { dist = dist, from_x = from.x, from_y = from.y, to_x = to.x, to_y = to.y,
     exact = exact, deliveries = 1, last_tick = tick })
-  hauls[TOP_HAULS + 1] = nil
-  history_order.top_dist = hauls[1].dist
+  trips[TOP_TRIPS + 1] = nil
+  history_order.top_dist = trips[1].dist
 end
 
 --- Add a completed delivery order to the history storage
 --- @param delivery_history table<string, DeliveredItems> The delivery history storage table
 --- @param order BotDeliveringInFlight The completed order
---- @param ignored_hauls table<string, IgnoredHaul>|nil Long hauls accepted as expected, which are not listed
-local function add_delivered_order_to_history(delivery_history, order, ignored_hauls)
+--- @param ignored_trips table<string, IgnoredTrip>|nil Long trips accepted as expected, which are not listed
+local function add_delivered_order_to_history(delivery_history, order, ignored_trips)
   local key = utils.get_item_quality_key(order.item_name, order.quality_name)
   if not delivery_history[key] then
     -- It's the first time this item has been delivered
@@ -102,7 +102,7 @@ local function add_delivered_order_to_history(delivery_history, order, ignored_h
       avg_dist = 0,
       max_dist = 0,
       top_dist = 0,
-      ignored_count = network_data.count_ignored_hauls(ignored_hauls, order.item_name, order.quality_name),
+      ignored_count = network_data.count_ignored_trips(ignored_trips, order.item_name, order.quality_name),
     }
   end
 
@@ -112,25 +112,25 @@ local function add_delivered_order_to_history(delivery_history, order, ignored_h
 
   history_order.deliveries = (history_order.deliveries or 0) + 1
 
-  -- Distance is averaged per delivery, not per item, so bulk short hauls can't drown out long ones.
-  -- Fields may be missing on history recorded before haul distance was tracked.
-  local haul_dist = order.haul_dist
-  if haul_dist then
+  -- Distance is averaged per delivery, not per item, so bulk short trips can't drown out long ones.
+  -- Fields may be missing on history recorded before trip distance was tracked.
+  local trip_dist = order.trip_dist
+  if trip_dist then
     local dist_count = (history_order.dist_count or 0) + 1
-    local dist_sum = (history_order.dist_sum or 0) + haul_dist
+    local dist_sum = (history_order.dist_sum or 0) + trip_dist
     history_order.dist_count = dist_count
     history_order.dist_sum = dist_sum
     history_order.avg_dist = dist_sum / dist_count
-    if order.haul_exact then
+    if order.trip_exact then
       history_order.dist_exact = (history_order.dist_exact or 0) + 1
     end
-    network_data.record_haul_distance(history_order, haul_dist)
-    if haul_dist > (history_order.max_dist or 0) then
-      history_order.max_dist = haul_dist
+    network_data.record_trip_distance(history_order, trip_dist)
+    if trip_dist > (history_order.max_dist or 0) then
+      history_order.max_dist = trip_dist
     end
-    -- Keep both ends of the longest hauls so they can be shown on the map
-    record_top_haul(history_order, key, haul_dist, order.haul_from, order.targetpos, order.haul_exact or false,
-      order.last_seen, ignored_hauls)
+    -- Keep both ends of the longest trips so they can be shown on the map
+    record_top_trip(history_order, key, trip_dist, order.trip_from, order.targetpos, order.trip_exact or false,
+      order.last_seen, ignored_trips)
   end
 end
 
@@ -161,7 +161,7 @@ end
 --- @param quality string The quality name of the item
 --- @param count number The number of items being delivered
 --- @param current_tick number The current game tick
---- @param bot LuaEntity|nil The robot, if its position may be used to estimate the haul distance
+--- @param bot LuaEntity|nil The robot, if its position may be used to estimate the trip distance
 local function add_bot_to_active_deliveries(networkdata, unit_number, order, item_name, quality, count, current_tick, bot)
   local botorder = networkdata.bot_active_deliveries[unit_number]
   -- Hoist target and position to avoid repeated table lookups
@@ -173,7 +173,7 @@ local function add_bot_to_active_deliveries(networkdata, unit_number, order, ite
     if botorder.targetpos and target_pos and
       (botorder.targetpos.x ~= target_pos.x or botorder.targetpos.y ~= target_pos.y) then
       -- New target position, so order has changed since last time
-      add_delivered_order_to_history(networkdata.delivery_history, botorder, networkdata.ignored_hauls)
+      add_delivered_order_to_history(networkdata.delivery_history, botorder, networkdata.ignored_trips)
       networkdata.delivery_history_gen = (networkdata.delivery_history_gen or 0) + 1
       networkdata.bot_active_deliveries[unit_number] = nil
     else
@@ -181,37 +181,37 @@ local function add_bot_to_active_deliveries(networkdata, unit_number, order, ite
       botorder.last_seen = current_tick
     end
   else
-    -- No order for this bot, so add it, measuring the haul from where it picked up this item
-    local haul_from, haul_exact
+    -- No order for this bot, so add it, measuring the trip from where it picked up this item
+    local trip_from, trip_exact
     local pickups = networkdata.bot_pickup_positions
     local pickup = pickups and pickups[unit_number]
     if pickup then
       pickups[unit_number] = nil
       if pickup.item_name == item_name then
-        haul_from = pickup
-        haul_exact = true
+        trip_from = pickup
+        trip_exact = true
       end
     end
-    if not haul_from and bot then
+    if not trip_from and bot then
       -- Pickup not seen, so estimate from where the bot is now. It has already flown part
       -- of the way, so this is a lower bound, short by at most one scan interval of flight
-      haul_from = bot.position
+      trip_from = bot.position
     end
-    local haul_dist = (haul_from and target_pos) and distance(haul_from, target_pos) or nil
+    local trip_dist = (trip_from and target_pos) and distance(trip_from, target_pos) or nil
     networkdata.bot_active_deliveries[unit_number] = {
       item_name = item_name,
       quality_name = quality,
       count = count,
       last_seen = current_tick,
       targetpos = target_pos,
-      haul_dist = haul_dist,
-      haul_from = haul_dist and haul_from or nil,
-      haul_exact = haul_dist and haul_exact or nil,
+      trip_dist = trip_dist,
+      trip_from = trip_dist and trip_from or nil,
+      trip_exact = trip_dist and trip_exact or nil,
     }
   end
 end
 
---- Remember where a bot is picking up, so the haul distance can be calculated when its delivery starts
+--- Remember where a bot is picking up, so the trip distance can be calculated when its delivery starts
 --- @param networkdata LINetworkData The network being processed
 --- @param unit_number number The unique identifier of the robot
 --- @param order table The robot's pickup order
@@ -246,7 +246,7 @@ local function check_if_no_order_bot_finished_delivery(networkdata, unit_number,
   local delivered_order = networkdata.bot_active_deliveries[unit_number]
   if delivered_order then
     if show_history then
-      add_delivered_order_to_history(networkdata.delivery_history, delivered_order, networkdata.ignored_hauls)
+      add_delivered_order_to_history(networkdata.delivery_history, delivered_order, networkdata.ignored_trips)
       networkdata.delivery_history_gen = (networkdata.delivery_history_gen or 0) + 1
     end
 

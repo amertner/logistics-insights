@@ -43,7 +43,7 @@ There are several types of suggestions, depending on what is happening in your n
 - **Build more unfiltered storage.** Filtered storage is great, but you may be running out of storage that isn't filtered. LI uses same thresholds as for total storage here.
 - **Filtered storage mismatch.** If your filtered storage has items that don't match the filter, LI suggests you fix it. You can click/right-click on the suggestion to see which chests show the problem, which is otherwise hard to find.
 - **Too few bots**. Sometimes, you just don't have enough bots to do everything, and you might get this suggestion.
-- **Items carried unusually far.** If bots regularly carry an item much further than they usually do, e.g. to an outpost when the item mostly goes to a nearby mall, LI suggests a supply closer to that destination, or a belt or train. Click the suggestion to see the haul on the map. If the long haul is expected, Shift+click to exclude it. This suggestion uses the delivery history, so it only appears for networks you have viewed with the History rows shown.
+- **Items carried unusually far.** If bots regularly carry an item much further than they usually do, e.g. to an outpost when the item mostly goes to a nearby mall, LI suggests a supply closer to that destination, or a belt or train. Click the suggestion to see the trip on the map. If the long trip is expected, Shift+click to exclude it. This suggestion uses the delivery history, so it only appears for networks you have viewed with the History rows shown.
 
 Note that "fullness" of storage is measured by stacks, so you may have more storage available than LI suggests as it only looks for empty stacks.
 
@@ -51,12 +51,12 @@ Note that "fullness" of storage is measured by stacks, so you may have more stor
 
 Before a base reaches megabase level, keep the Networks window open to keep an eye on whether there are a lot of things in Undersupply or Suggestions. Then, if there is an issue, click on the network to immediately move the map view there and see the main Insights window:
 
-**In the Delivering/Totals/Distance carried/Longest haul rows**
+**In the Delivering/Totals/Distance carried/Longest trip rows**
 
 - If there is some item that's being transported unnecessarily (i.e. it shows up early in the Totals list), perhaps could belt that item instead. For example, in one case I found that my bots were transporting iron ore 90% of the time, filling up my storage chests, all because I accidentally put ore in an active provider chest.
 - Distance carried shows which items take up most of your bots' work: the total distance bots have flown carrying each one. The items at the top are the best candidates for belts or trains, or for a source closer to where they're needed.
-- Longest haul shows the items that bots carry furthest in a single trip. A long haul can be hidden among many short ones, e.g. iron plates carried a few metres to a mall and occasionally hundreds of metres to an outpost, so look for items with an average haul much higher than the median. Distances are shown in metres and kilometres; one tile is one metre.
-- Click an item in Longest haul to show the destinations of its 5 longest hauls on the map, one at a time, and right-click to show where the haul being shown starts. If a long haul is expected, Shift+click to exclude it; excluded hauls can be managed in the network settings.
+- Longest trip shows the items that bots carry furthest from pickup to delivery in one go. A long trip can be hidden among many short ones, e.g. iron plates carried a few metres to a mall and occasionally hundreds of metres to an outpost, so look for items with an average trip much higher than the median. Distances are shown in metres and kilometres; one tile is one metre.
+- Click an item in Longest trip to show the destinations of its 5 longest trips on the map, one at a time, and right-click to show where the trip being shown starts. If a long trip is expected, Shift+click to exclude it; excluded trips can be managed in the network settings.
 - If you don't need the History, Undersupply or Suggestions, change the setting to remove those rows entirely.
 
 **In the Activity row**
@@ -78,7 +78,7 @@ By lowering the chunk size, you reduce the performance impact of Logistics Insig
 
 A progress indicator shows the chunk processing in action, and the chunks apply both bots, roboports, undersupply and suggestions. For example,
 
-- If you have 1,800 bots and use the default chunk size of 400, it will take 5 passes before the bot data showing Delivering and History (Totals, Distance carried and Longest haul) is updated. A pass is done every 7 ticks, or around 10 times per second.
+- If you have 1,800 bots and use the default chunk size of 400, it will take 5 passes before the bot data showing Delivering and History (Totals, Distance carried and Longest trip) is updated. A pass is done every 7 ticks, or around 10 times per second.
 - If you have 900 roboports with the default chunk size, it will take 3 passes before the Activity data about your bots is updated (showing Available, Charging, Waiting, Picking Up or Delivering).
 - Undersupply can expensive to calculate and therefore uses half the standard chunk size. If you have 1,100 requesters and a default chunk size of 400, it will use a chunk size of 200 and use 6 passes to complete the undersupply calculation.
 

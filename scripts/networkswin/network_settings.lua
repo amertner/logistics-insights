@@ -12,7 +12,7 @@ local WINDOW_MIN_HEIGHT = 110-3*24
 local WINDOW_MAX_HEIGHT = 110+10*24
 local mismatched_storage_setting=exclusions_window.chests_on_ignore_list_setting
 local undersupply_ignore_list_setting=exclusions_window.undersupply_ignore_list_setting
-local hauls_ignore_list_setting=exclusions_window.hauls_ignore_list_setting
+local trips_ignore_list_setting=exclusions_window.trips_ignore_list_setting
 local ignore_higher_quality_matches_setting="ignore-higher-quality-mismatches"
 local ignore_buffer_chests_setting="ignore-buffer-chests"
 local ignore_low_storage_when_no_storage_setting="ignore_low_storage_when_no_storage"
@@ -108,13 +108,13 @@ local function add_undersupply_settings(ui, player_table)
   player_table.ui.network_settings[undersupply_ignore_list_setting] = setting
 end
 
--- Add Longest haul settings
+-- Add Longest trip settings
 ---@param ui LuaGuiElement The parent UI element to add the settings to
 ---@param player_table PlayerData The player's data table
-local function add_long_haul_settings(ui, player_table)
-  add_settings_header(ui, {"network-settings.long-hauls-header"})
-  local setting = add_setting_with_list(ui, hauls_ignore_list_setting, "item/logistic-robot")
-  player_table.ui.network_settings[hauls_ignore_list_setting] = setting
+local function add_long_trip_settings(ui, player_table)
+  add_settings_header(ui, {"network-settings.long-trips-header"})
+  local setting = add_setting_with_list(ui, trips_ignore_list_setting, "item/logistic-robot")
+  player_table.ui.network_settings[trips_ignore_list_setting] = setting
 end
 
 --- Create settings window
@@ -160,7 +160,7 @@ function network_settings.create_frame(parent, player)
 
     add_suggestions_settings(settings_table, player_table)
     add_undersupply_settings(settings_table, player_table)
-    add_long_haul_settings(settings_table, player_table)
+    add_long_trip_settings(settings_table, player_table)
 
     -- Exclusions frame
     local exclusions_frame = outer_flow.add{ type = "flow", name = PANE_NAME.."-exclusions", direction = "vertical" }
@@ -267,8 +267,8 @@ function network_settings.update(player, player_table)
       num_changed = num_changed + update_list_setting(control, defaults, networkdata and table_size(networkdata.ignored_storages_for_mismatch))
     elseif name == undersupply_ignore_list_setting then
       num_changed = num_changed + update_list_setting(control, defaults, networkdata and table_size(networkdata.ignored_items_for_undersupply))
-    elseif name == hauls_ignore_list_setting then
-      num_changed = num_changed + update_list_setting(control, defaults, networkdata and table_size(networkdata.ignored_hauls or {}))
+    elseif name == trips_ignore_list_setting then
+      num_changed = num_changed + update_list_setting(control, defaults, networkdata and table_size(networkdata.ignored_trips or {}))
     end
   end
 
@@ -323,8 +323,8 @@ local function clear_list_and_refresh(player_table, event)
   elseif event.element.tags.name == undersupply_ignore_list_setting then
     -- Clear the list of ignored storages for undersupply
     networkdata.ignored_items_for_undersupply = {}
-  elseif event.element.tags.name == hauls_ignore_list_setting then
-    network_data.clear_ignored_hauls(networkdata)
+  elseif event.element.tags.name == trips_ignore_list_setting then
+    network_data.clear_ignored_trips(networkdata)
   end
 end
 
@@ -339,7 +339,7 @@ local function revert_to_defaults(player_table, event)
     networkdata.ignore_low_storage_when_no_storage = false
     networkdata.ignored_items_for_undersupply = {}
     network_data.clear_ignored_storages_for_mismatch(networkdata)
-    network_data.clear_ignored_hauls(networkdata)
+    network_data.clear_ignored_trips(networkdata)
   end
 end
 
@@ -369,7 +369,7 @@ function network_settings.on_gui_click(event)
         if action == "revert" then
           -- Revert button for a list setting
           if setting_name == mismatched_storage_setting or setting_name == undersupply_ignore_list_setting
-            or setting_name == hauls_ignore_list_setting then
+            or setting_name == trips_ignore_list_setting then
             clear_list_and_refresh(player_table, event)
             handled = true
           end

@@ -1,10 +1,10 @@
 --- Manage storage of network data analysed by LI
 local network_data = {}
 
-network_data.TOP_HAULS = 5 -- How many of each item's longest hauls are kept and shown
--- Haul distances are counted in buckets on a log scale, to estimate the median: bucket i holds
--- hauls from 2^(i/N) to 2^((i+1)/N) tiles. 4 per doubling puts the estimate within a few percent
-local HAUL_BUCKETS_PER_DOUBLING = 4
+network_data.TOP_TRIPS = 5 -- How many of each item's longest trips are kept and shown
+-- Trip distances are counted in buckets on a log scale, to estimate the median: bucket i holds
+-- trips from 2^(i/N) to 2^((i+1)/N) tiles. 4 per doubling puts the estimate within a few percent
+local TRIP_BUCKETS_PER_DOUBLING = 4
 
 local suggestions = require("scripts.suggestions")
 local chunker = require("scripts.chunker")
@@ -30,8 +30,8 @@ local utils = require("scripts.utils")
 ---@field ignored_storages_for_mismatch_changed number -- The tick when the filter ignore lists were last changed
 ---@field ignore_higher_quality_mismatches boolean -- Whether to ignore higher quality mismatches
 ---@field ignored_items_for_undersupply table<string, boolean> -- A list of "item name:quality" to ignore for undersupply suggestion
----@field ignored_hauls table<string, IgnoredHaul>|nil -- Long hauls accepted as expected, so they are not listed. Key from network_data.haul_ignore_key
----@field ignored_hauls_changed number|nil -- The tick when the haul ignore list was last changed
+---@field ignored_trips table<string, IgnoredTrip>|nil -- Long trips accepted as expected, so they are not listed. Key from network_data.trip_ignore_key
+---@field ignored_trips_changed number|nil -- The tick when the trip ignore list was last changed
 ---@field ignore_buffer_chests_for_undersupply boolean -- True to ignore buffer chests when calculating undersupply
 ---@field ignore_low_storage_when_no_storage boolean -- True to ignore no storage when calculating suggestions
 ---@ -- Data capture fields
@@ -76,15 +76,15 @@ local utils = require("scripts.utils")
 ---@field quality_name? string -- The quality of the item, if applicable
 ---@field count number -- How many of this item have been delivered
 ---@field deliveries number -- Number of deliveries of this item
----@field dist_count number -- Number of deliveries with a haul distance, measured or estimated
+---@field dist_count number -- Number of deliveries with a trip distance, measured or estimated
 ---@field dist_exact number -- How many of those were measured from the pickup chest
----@field dist_sum number -- Total haul distance in tiles over those deliveries
----@field avg_dist number -- Average haul distance per delivery, equal to dist_sum/dist_count
----@field max_dist number -- Longest haul distance seen for this item
----@field dist_buckets? table<integer, number> -- How many hauls fell in each distance bucket, to estimate the median
----@field top_hauls? HaulRecord[] -- The longest hauls not on the ignore list, longest first, at most one per destination
----@field top_dist? number -- Distance of the first of top_hauls, or 0 if there are none
----@field ignored_count? number -- How many of this item's destinations are on the haul ignore list
+---@field dist_sum number -- Total trip distance in tiles over those deliveries
+---@field avg_dist number -- Average trip distance per delivery, equal to dist_sum/dist_count
+---@field max_dist number -- Longest trip distance seen for this item
+---@field dist_buckets? table<integer, number> -- How many trips fell in each distance bucket, to estimate the median
+---@field top_trips? TripRecord[] -- The longest trips not on the ignore list, longest first, at most one per destination
+---@field top_dist? number -- Distance of the first of top_trips, or 0 if there are none
+---@field ignored_count? number -- How many of this item's destinations are on the trip ignore list
 
 -- Record used to record items being delivered, before they are added to history
 ---@class BotDeliveringInFlight
@@ -92,24 +92,24 @@ local utils = require("scripts.utils")
 ---@field quality_name? string -- The quality of the item, if applicable
 ---@field count number -- How many of this item it is delivering
 ---@field targetpos MapPosition -- The target position for the delivery
----@field haul_dist? number -- Haul distance in tiles, if known
----@field haul_from? MapPosition -- Where the haul started: the pickup chest, or where the bot was first seen
----@field haul_exact? boolean -- True if haul_from is the pickup chest rather than an estimate
+---@field trip_dist? number -- Trip distance in tiles, if known
+---@field trip_from? MapPosition -- Where the trip started: the pickup chest, or where the bot was first seen
+---@field trip_exact? boolean -- True if trip_from is the pickup chest rather than an estimate
 ---@field last_seen number -- The last tick this bot was seen delivering it
 
--- One of an item's longest hauls, flat to keep it small
----@class HaulRecord
----@field dist number -- Haul distance in tiles
----@field from_x number -- Where the haul started: the pickup chest, or where the bot was first seen
+-- One of an item's longest trips, flat to keep it small
+---@class TripRecord
+---@field dist number -- Trip distance in tiles
+---@field from_x number -- Where the trip started: the pickup chest, or where the bot was first seen
 ---@field from_y number
----@field to_x number -- Where the haul was delivered
+---@field to_x number -- Where the trip was delivered
 ---@field to_y number
 ---@field exact boolean -- True if the start is the pickup chest rather than an estimate
----@field deliveries? number -- How many hauls of this item went to this destination while it was listed
----@field last_tick? number -- When a haul to this destination was last seen
+---@field deliveries? number -- How many trips of this item went to this destination while it was listed
+---@field last_tick? number -- When a trip to this destination was last seen
 
--- A long haul accepted as expected: hauls of this item to this destination are no longer listed
----@class IgnoredHaul
+-- A long trip accepted as expected: trips of this item to this destination are no longer listed
+---@class IgnoredTrip
 ---@field item_name string
 ---@field quality string
 ---@field x number -- The destination
@@ -193,8 +193,8 @@ function network_data.create_networkdata(network)
       ignored_storages_for_mismatch_changed = game.tick,
       ignore_higher_quality_mismatches = false,
       ignored_items_for_undersupply = {},
-      ignored_hauls = {},
-      ignored_hauls_changed = game.tick,
+      ignored_trips = {},
+      ignored_trips_changed = game.tick,
       ignore_buffer_chests_for_undersupply = false,
       ignore_low_storage_when_no_storage = false,
       last_pass_bots_seen = {},
@@ -550,23 +550,23 @@ function network_data.add_item_to_ignorelist_for_undersupply(networkdata, iq)
   networkdata.ignored_items_for_undersupply[utils.get_ItemQuality_key(iq)] = true
 end
 
---- Count a haul in its item's distance histogram
+--- Count a trip in its item's distance histogram
 ---@param entry DeliveredItems
----@param dist number The haul distance in tiles
-function network_data.record_haul_distance(entry, dist)
+---@param dist number The trip distance in tiles
+function network_data.record_trip_distance(entry, dist)
   local buckets = entry.dist_buckets
   if not buckets then
     buckets = {}
     entry.dist_buckets = buckets
   end
-  local i = dist > 1 and math.floor(math.log(dist, 2) * HAUL_BUCKETS_PER_DOUBLING) or 0
+  local i = dist > 1 and math.floor(math.log(dist, 2) * TRIP_BUCKETS_PER_DOUBLING) or 0
   buckets[i] = (buckets[i] or 0) + 1
 end
 
---- Estimate an item's median haul from its distance histogram
+--- Estimate an item's median trip from its distance histogram
 ---@param entry DeliveredItems
----@return number|nil median Tiles, or nil if there are no hauls to go on
-function network_data.median_haul(entry)
+---@return number|nil median Tiles, or nil if there are no trips to go on
+function network_data.median_trip(entry)
   local buckets = entry.dist_buckets
   if not buckets then return nil end
   local indexes, total = {}, 0
@@ -581,27 +581,27 @@ function network_data.median_haul(entry)
   for _, i in ipairs(indexes) do
     local count = buckets[i]
     if below + count >= half then
-      -- Assume the hauls are spread evenly through the bucket, on the same log scale
-      return 2 ^ ((i + (half - below) / count) / HAUL_BUCKETS_PER_DOUBLING)
+      -- Assume the trips are spread evenly through the bucket, on the same log scale
+      return 2 ^ ((i + (half - below) / count) / TRIP_BUCKETS_PER_DOUBLING)
     end
     below = below + count
   end
 end
 
---- The key for a haul on the ignore list: the item and its destination
+--- The key for a trip on the ignore list: the item and its destination
 ---@param item_key string From utils.get_item_quality_key
 ---@param x number The destination
 ---@param y number
 ---@return string
-function network_data.haul_ignore_key(item_key, x, y)
+function network_data.trip_ignore_key(item_key, x, y)
   return item_key .. "@" .. x .. "," .. y
 end
 
---- Update the distance an item's Longest haul button shows, after its list of hauls changed
+--- Update the distance an item's Longest trip button shows, after its list of trips changed
 ---@param entry DeliveredItems|nil
 local function refresh_top_dist(entry)
-  if entry and entry.top_hauls then
-    entry.top_dist = entry.top_hauls[1] and entry.top_hauls[1].dist or 0
+  if entry and entry.top_trips then
+    entry.top_dist = entry.top_trips[1] and entry.top_trips[1].dist or 0
   end
 end
 
@@ -616,68 +616,68 @@ local function change_ignored_count(networkdata, item_key, delta)
 end
 
 ---@param networkdata LINetworkData
-local function haul_ignore_list_changed(networkdata)
-  networkdata.ignored_hauls_changed = game.tick
+local function trip_ignore_list_changed(networkdata)
+  networkdata.ignored_trips_changed = game.tick
   networkdata.delivery_history_gen = (networkdata.delivery_history_gen or 0) + 1
 end
 
---- Accept an item's hauls to a destination as expected, so they are no longer listed. The haul
+--- Accept an item's trips to a destination as expected, so they are no longer listed. The trip
 --- statistics (count, average, longest) still include them
 ---@param networkdata LINetworkData
 ---@param item_name string
 ---@param quality string
 ---@param x number The destination
 ---@param y number
-function network_data.ignore_haul(networkdata, item_name, quality, x, y)
+function network_data.ignore_trip(networkdata, item_name, quality, x, y)
   local item_key = utils.get_item_quality_key(item_name, quality)
-  local key = network_data.haul_ignore_key(item_key, x, y)
-  networkdata.ignored_hauls = networkdata.ignored_hauls or {}
-  if networkdata.ignored_hauls[key] then return end
-  networkdata.ignored_hauls[key] = { item_name = item_name, quality = quality, x = x, y = y }
+  local key = network_data.trip_ignore_key(item_key, x, y)
+  networkdata.ignored_trips = networkdata.ignored_trips or {}
+  if networkdata.ignored_trips[key] then return end
+  networkdata.ignored_trips[key] = { item_name = item_name, quality = quality, x = x, y = y }
 
   -- Stop listing it straight away
   local entry = networkdata.delivery_history[item_key]
-  if entry and entry.top_hauls then
-    for i = #entry.top_hauls, 1, -1 do
-      local haul = entry.top_hauls[i]
-      if haul.to_x == x and haul.to_y == y then
-        table.remove(entry.top_hauls, i)
+  if entry and entry.top_trips then
+    for i = #entry.top_trips, 1, -1 do
+      local trip = entry.top_trips[i]
+      if trip.to_x == x and trip.to_y == y then
+        table.remove(entry.top_trips, i)
       end
     end
     refresh_top_dist(entry)
   end
   change_ignored_count(networkdata, item_key, 1)
-  haul_ignore_list_changed(networkdata)
+  trip_ignore_list_changed(networkdata)
 end
 
---- Remove a haul from the ignore list. Its hauls are listed again from the next delivery on
+--- Remove a trip from the ignore list. Its trips are listed again from the next delivery on
 ---@param networkdata LINetworkData
----@param key string From network_data.haul_ignore_key
-function network_data.unignore_haul(networkdata, key)
-  local ignored = networkdata.ignored_hauls and networkdata.ignored_hauls[key]
+---@param key string From network_data.trip_ignore_key
+function network_data.unignore_trip(networkdata, key)
+  local ignored = networkdata.ignored_trips and networkdata.ignored_trips[key]
   if not ignored then return end
-  networkdata.ignored_hauls[key] = nil
+  networkdata.ignored_trips[key] = nil
   change_ignored_count(networkdata, utils.get_item_quality_key(ignored.item_name, ignored.quality), -1)
-  haul_ignore_list_changed(networkdata)
+  trip_ignore_list_changed(networkdata)
 end
 
 ---@param networkdata LINetworkData
-function network_data.clear_ignored_hauls(networkdata)
-  networkdata.ignored_hauls = {}
+function network_data.clear_ignored_trips(networkdata)
+  networkdata.ignored_trips = {}
   for _, entry in pairs(networkdata.delivery_history) do
     entry.ignored_count = 0
   end
-  haul_ignore_list_changed(networkdata)
+  trip_ignore_list_changed(networkdata)
 end
 
---- How many of an item's destinations are on the haul ignore list
----@param ignored_hauls table<string, IgnoredHaul>|nil
+--- How many of an item's destinations are on the trip ignore list
+---@param ignored_trips table<string, IgnoredTrip>|nil
 ---@param item_name string
 ---@param quality string
 ---@return number
-function network_data.count_ignored_hauls(ignored_hauls, item_name, quality)
+function network_data.count_ignored_trips(ignored_trips, item_name, quality)
   local count = 0
-  for _, ignored in pairs(ignored_hauls or {}) do
+  for _, ignored in pairs(ignored_trips or {}) do
     if ignored.item_name == item_name and ignored.quality == quality then
       count = count + 1
     end

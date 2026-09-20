@@ -44,7 +44,7 @@ Suggestions.undersupply_key = "supply-shortage"
 Suggestions.too_many_bots_key = "too-many-bots"
 Suggestions.too_few_bots_key = "too-few-bots"
 Suggestions.unpowered_roboports_key = "unpowered-roboports"
-Suggestions.long_haul_key = "long-haul"
+Suggestions.long_trip_key = "long-trip"
 -- Order of suggestions in the UI: First by priority, then by this order:
 Suggestions.order = { 
   Suggestions.awaiting_charge_key,
@@ -52,7 +52,7 @@ Suggestions.order = {
   Suggestions.storage_low_key,
   Suggestions.unfiltered_storage_low_key,
   Suggestions.mismatched_storage_key,
-  Suggestions.long_haul_key,
+  Suggestions.long_trip_key,
   Suggestions.too_many_bots_key,
   Suggestions.too_few_bots_key,
 }
@@ -206,7 +206,7 @@ function Suggestions:clear_suggestions()
     [Suggestions.mismatched_storage_key] = nil,
     [Suggestions.too_many_bots_key] = nil,
     [Suggestions.too_few_bots_key] = nil,
-    [Suggestions.long_haul_key] = nil,
+    [Suggestions.long_trip_key] = nil,
   }
   self._suggestions = {
     [Suggestions.awaiting_charge_key] = nil,
@@ -217,7 +217,7 @@ function Suggestions:clear_suggestions()
     [Suggestions.mismatched_storage_key] = nil,
     [Suggestions.too_many_bots_key] = nil,
     [Suggestions.too_few_bots_key] = nil,
-    [Suggestions.long_haul_key] = nil,
+    [Suggestions.long_trip_key] = nil,
   }
   self._cached_data = {
     [Suggestions.awaiting_charge_key] = nil,
@@ -228,7 +228,7 @@ function Suggestions:clear_suggestions()
     [Suggestions.mismatched_storage_key] = nil,
     [Suggestions.too_many_bots_key] = nil,
     [Suggestions.too_few_bots_key] = nil,
-    [Suggestions.long_haul_key] = nil,
+    [Suggestions.long_trip_key] = nil,
   }
 end
 

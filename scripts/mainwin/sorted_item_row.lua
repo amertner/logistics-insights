@@ -15,19 +15,19 @@ local math_min = math.min
 local TAGS_FOLLOW = { follow = true }
 local TAGS_EMPTY = {}
 
---- The average and median haul of an item, as a tooltip line
+--- The average and median trip of an item, as a tooltip line
 --- @param entry DeliveredItems
 --- @return LocalisedString
-local function haul_average_line(entry)
-  local median = network_data.median_haul(entry)
+local function trip_average_line(entry)
+  local median = network_data.median_trip(entry)
   if median then
-    return {"item-row.haul-average-median-1avg", utils.format_distances({entry.avg_dist, median}, "/")}
+    return {"item-row.trip-average-median-1avg", utils.format_distances({entry.avg_dist, median}, "/")}
   end
   -- History from before the median was tracked
-  return {"item-row.haul-average-1avg", utils.format_distances({entry.avg_dist})}
+  return {"item-row.trip-average-1avg", utils.format_distances({entry.avg_dist})}
 end
 
---- Add a sorted item row (deliveries, totals, distance carried or longest haul) to the GUI
+--- Add a sorted item row (deliveries, totals, distance carried or longest trip) to the GUI
 --- @param player_table PlayerData The player's data table
 --- @param gui_table LuaGuiElement The GUI table to add the row to
 --- @param title string The title/key for this row type
@@ -108,38 +108,38 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
     if number_field == "count" then
       tip = {"", {"item-row.count-field-tooltip-1count-2quality-3itemname", entry.count, localised.qname, localised.iname}}
     elseif number_field == "dist_sum" then
-      tip = {"", {"item-row.distance-field-tooltip-1quality-2itemname-3total-4hauls-5average",
+      tip = {"", {"item-row.distance-field-tooltip-1quality-2itemname-3total-4trips-5average",
         localised.qname, localised.iname, utils.format_distances({entry.dist_sum}), entry.dist_count,
-        haul_average_line(entry)}}
+        trip_average_line(entry)}}
     elseif number_field == "top_dist" then
-      local hauls = entry.top_hauls or {}
-      local estimated = hauls[1] and not hauls[1].exact and {"item-row.haul-estimated-suffix"} or ""
-      -- List the longest hauls when there is more than one
+      local trips = entry.top_trips or {}
+      local estimated = trips[1] and not trips[1].exact and {"item-row.trip-estimated-suffix"} or ""
+      -- List the longest trips when there is more than one
       local list = ""
-      if #hauls > 1 then
+      if #trips > 1 then
         local dists = {}
-        for i, haul in ipairs(hauls) do
-          dists[i] = haul.dist
+        for i, trip in ipairs(trips) do
+          dists[i] = trip.dist
         end
-        list = {"", "\n", {"item-row.haul-list-1dists", utils.format_distances(dists)}}
+        list = {"", "\n", {"item-row.trip-list-1dists", utils.format_distances(dists)}}
       end
       local exact = entry.dist_exact or 0
-      -- Only spell out measured vs estimated when the hauls are a mix of both
+      -- Only spell out measured vs estimated when the trips are a mix of both
       local coverage
       if exact == entry.dist_count then
-        coverage = {"item-row.haul-count-1count", entry.dist_count}
+        coverage = {"item-row.trip-count-1count", entry.dist_count}
       elseif exact == 0 then
-        coverage = {"item-row.haul-all-estimated-1count", entry.dist_count}
+        coverage = {"item-row.trip-all-estimated-1count", entry.dist_count}
       else
-        coverage = {"item-row.haul-coverage-1exact-2count", exact, entry.dist_count}
+        coverage = {"item-row.trip-coverage-1exact-2count", exact, entry.dist_count}
       end
       -- The list leaves out ignored destinations; the statistics don't, so say which is which
       local ignored = ""
       if (entry.ignored_count or 0) > 0 then
-        ignored = {"", "\n", {"item-row.haul-ignored-1count", entry.ignored_count}}
+        ignored = {"", "\n", {"item-row.trip-ignored-1count", entry.ignored_count}}
       end
       tip = {"", {"item-row.maxdist-field-tooltip-1max-2estimated-3list-4average-5coverage-6ignored-7quality-8itemname",
-        utils.format_distances({entry.top_dist}), estimated, list, haul_average_line(entry),
+        utils.format_distances({entry.top_dist}), estimated, list, trip_average_line(entry),
         coverage, ignored, localised.qname, localised.iname}}
     elseif number_field == "shortage" then
       tip = {"", {"undersupply-row.shortage-tooltip-1shortage_2item_3quality_4requested_5storage_6underway",
