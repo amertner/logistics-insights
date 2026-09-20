@@ -3,7 +3,6 @@ local bot_counter = {}
 local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
 local global_data = require("scripts.global-data")
-local chunker = require("scripts.chunker")
 local utils = require("scripts.utils")
 
 -- Cache frequently used functions and values for performance

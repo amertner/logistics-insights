@@ -1,7 +1,5 @@
 -- A simple tick counter object that can be used to keep track of ticks in a game.
--- The tick counter can be paused and resumed.
--- The tick counter can return the elapsed time since it was started or since it was last paused
--- The tick counter can return the total amount of time it was unpaused
+-- It can be paused and resumed, and returns the total time it was running
 
 ---@class TickCounter
 ---@field _start_tick number -- The tick when the counter was started (PRIVATE)
@@ -47,27 +45,6 @@ function TickCounter:resume()
   return false -- Already running
 end
 
--- Toggle pause state
----@return boolean true if now paused, false if now running
-function TickCounter:toggle()
-  if self._paused then
-    return self:resume()
-  else
-    return self:pause()
-  end
-end
-
--- Set pause state directly
----@param paused boolean Whether to pause or resume
----@return boolean true if state changed, false if already in requested state
-function TickCounter:set_paused(paused)
-  if paused then
-    return self:pause()
-  else
-    return self:resume()
-  end
-end
-
 -- Reset the counter
 function TickCounter:reset()
   self._start_tick = game.tick
@@ -92,26 +69,6 @@ function TickCounter:elapsed()
   end
 end
 
--- Get time elapsed since the counter was started or last resumed
----@return number Ticks since last start/resume
-function TickCounter:current_elapsed()
-  if self._paused then
-    return 0
-  else
-    return game.tick - self._start_tick
-  end
-end
-
--- Get time elapsed since the counter was paused
----@return number Ticks since pause, or 0 if not paused
-function TickCounter:time_since_paused()
-  if self._paused then
-    return game.tick - self._pause_tick
-  else
-    return 0
-  end
-end
-
 -- Get total unpaused time
 ---@return number Total ticks the counter was running
 function TickCounter:total_unpaused()
@@ -122,13 +79,6 @@ end
 ---@return boolean true if paused, false if running
 function TickCounter:is_paused()
   return self._paused
-end
-
--- Convert to a descriptive string
----@return string Descriptive string representation
-function TickCounter:to_string()
-  local status = self._paused and "paused" or "running"
-  return string.format("TickCounter: %s, elapsed: %d ticks", status, self:elapsed())
 end
 
 return TickCounter

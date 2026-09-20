@@ -5,7 +5,6 @@ local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
 local global_data = require("scripts.global-data")
 local utils = require("scripts.utils")
-local chunker = require("scripts.chunker")
 local ROBOPORT_INV = defines.inventory.roboport_robot
 local math_floor = math.floor
 

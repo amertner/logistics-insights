@@ -12,11 +12,6 @@ local logistic_cell_counter = require("scripts.logistic-cell-counter")
 local bot_counter = require("scripts.bot-counter")
 local global_data = require("scripts.global-data")
 local debugger = require("scripts.debugger")
-local json = require("scripts.json")
-
-local function init_storage_and_settings()
-  player_data.init_storages()
-end
 
 local function reinitialise_ui(player, player_table)
   if player and player_table then
@@ -24,9 +19,6 @@ local function reinitialise_ui(player, player_table)
     controller_gui.create_window(player)
     main_window.ensure_ui_consistency(player, player_table)
     networks_window.create(player)
-  else
-    -- If we can't get the player or table, just re-initialise storage and settings
-    init_storage_and_settings()
   end
 end
 
@@ -85,7 +77,6 @@ local li_migrations = {
   ["0.9.10"] = function() -- Add new scheduler
     -- Initialise scheduler and player overrides on schedules
     for _, player_table in pairs(storage.players) do
-      player_table.schedule_last_run = {}
       -- Clear legacy paused list contents
       ---@diagnostic disable-next-line: inject-field
       player_table.paused_items = nil
@@ -275,10 +266,6 @@ local li_migrations = {
     end
   end,
 
-  ["0.10.11"] = function()
-    -- Changed progress bars to single label showing %
-  end,
-
   ["0.11.0"] = function()
     -- Initialise new per-network settings
     for _, nwd in pairs(storage.networks) do
@@ -355,8 +342,6 @@ local li_migrations = {
     end
   end,
 
-  -- 0.11.4: Added new buttons to revert per-network settings
-
   ["0.11.5"] = function()
     for _, nwd in pairs(storage.networks) do
       nwd.ignored_storages_for_mismatch_changed = game.tick
@@ -379,10 +364,6 @@ local li_migrations = {
       nwd.unpowered_roboport_list = {}
     end
   end,
-
-  ["1.0.7"] = function()
-    -- Added aging-out of suggestions
- end,
 
   ["1.0.8"] = function()
     -- Added per-player settings to control mini window visibility

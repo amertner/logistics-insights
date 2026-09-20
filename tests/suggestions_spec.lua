@@ -79,35 +79,6 @@ describe("Suggestions", function()
     end)
   end)
 
-  describe("max_from_history()", function()
-    it("returns the maximum value within the window", function()
-      local s = Suggestions.new()
-      s._current_tick = 100
-      s:remember("k", 10)
-      s._current_tick = 200
-      s:remember("k", 30)
-      s._current_tick = 250
-      s:remember("k", 20)
-      assert.are.equal(30, s:max_from_history("k"))
-    end)
-
-    it("prunes entries older than 5 seconds (300 ticks)", function()
-      local s = Suggestions.new()
-      s._current_tick = 10
-      s:remember("k", 99)
-      s._current_tick = 500
-      s:remember("k", 5)
-      -- Current tick is 500, cutoff is 500-300=200, so tick=10 is pruned
-      assert.are.equal(5, s:max_from_history("k"))
-      assert.are.equal(1, #s._historydata["k"])
-    end)
-
-    it("returns 0 for unknown key", function()
-      local s = Suggestions.new()
-      assert.are.equal(0, s:max_from_history("nonexistent"))
-    end)
-  end)
-
   describe("weighted_min_from_history()", function()
     it("returns 0 with fewer than 2 data points", function()
       local s = Suggestions.new()

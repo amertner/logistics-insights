@@ -19,7 +19,6 @@ local math_ceil = math.ceil
 ---@field window_location {x: number, y: number} -- Saved Main window position
 ---@field networks_window_location {x: number, y: number} -- Saved Networks window position
 ---@field ui table<string, table> -- UI elements for the mod's GUI
----@field schedule_last_run table<string, uint>|nil -- Per-task last run ticks for scheduler
 ---@field settings_network_id number|nil -- The network ID currently being shown in the settings window
 ---@field exclusion_list_shown string|nil -- The name of the exclusion list currently shown, or nil if none
 ---@field ignored_storages_for_mismatch_shown number -- The tick when the exclusion list was last shown
@@ -44,7 +43,6 @@ function player_data.init(player_index)
     window_location = {x = 300, y = 444},
     networks_window_location = {x = 300, y = 100},
     ui = {},
-    schedule_last_run = {}, -- Per-task last run ticks for scheduler
     settings_network_id = nil,
     exclusion_list_shown = nil,
     ignored_storages_for_mismatch_shown = 0,

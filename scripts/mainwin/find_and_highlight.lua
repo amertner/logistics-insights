@@ -467,10 +467,9 @@ end
 --- @param element LuaGuiElement
 --- @param is_right_click boolean
 --- @param is_shift_click boolean
---- @param is_alt_click boolean
 --- @param is_ctrl_click boolean
 --- @return boolean handled Whether the element was a highlight element
-function find_and_highlight.handle_click(player, player_table, element, is_right_click, is_shift_click, is_alt_click, is_ctrl_click)
+function find_and_highlight.handle_click(player, player_table, element, is_right_click, is_shift_click, is_ctrl_click)
   if not (player and player.valid and player_table and element and element.valid) then
     return false
   end

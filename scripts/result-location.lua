@@ -99,50 +99,8 @@ function ResultLocation.draw_markers(player, surface, items, color, time_to_live
 end
 
 ---@param player LuaPlayer
----@param surface SurfaceName
----@param items LuaEntity[]
-function ResultLocation.draw_arrows(player, surface, items)
-  -- For bots, show an arrow pointing towards its destination
-  for _, item in pairs(items) do
-    if item.name ~= "logistic-robot" then
-      return
-    end
-
-    if item.robot_order_queue and #item.robot_order_queue > 0 then
-        local target = item.robot_order_queue[1].target or nil
-        if target then
-            local targetpos = target.position or nil
-            rendering.draw_sprite{
-              sprite = "li_arrow",
-              x_scale = 1,
-              y_scale = 1,
-              target = {entity=item, offset=ARROW_TARGET_OFFSET},
-              orientation_target = targetpos,
-              oriented_offset = ARROW_ORIENTATED_OFFSET,
-              surface = surface,
-              time_to_live = player.mod_settings["fs-highlight-duration"].value * 60,
-              players = {player},
-            }
-        end
-    else
-        -- No target queue or empty: still draw a sprite without orientation_target
-        rendering.draw_sprite{
-          sprite = "li_arrow",
-          x_scale = 1,
-          y_scale = 1,
-          target = {entity=item, offset=ARROW_TARGET_OFFSET},
-          oriented_offset = ARROW_ORIENTATED_OFFSET,
-          surface = surface,
-          time_to_live = player.mod_settings["fs-highlight-duration"].value * 60,
-          players = {player},
-        }
-    end
-  end
-end
-
----@param player LuaPlayer
 ---@param data ResultLocationData
-function ResultLocation.highlight(player, data, draw)
+function ResultLocation.highlight(player, data)
   local surface_name = data.surface
 
   ResultLocation.clear_markers(player)
@@ -150,12 +108,7 @@ function ResultLocation.highlight(player, data, draw)
   -- In case surface was deleted
   if not game.surfaces[surface_name] then return end
 
-  if draw.arrows then
-    ResultLocation.draw_arrows(player, surface_name, data.items)
-  end
-  if draw.markers then
-    ResultLocation.draw_markers(player, surface_name, data.items)
-  end
+  ResultLocation.draw_markers(player, surface_name, data.items)
 end
 
 local TRIP_TEXT_COLOR = { r = 1, g = 1, b = 1, a = 1 }
@@ -499,7 +452,7 @@ function ResultLocation.open(player, results, change_position)
       position = position,
       surface = surface_name,
     }
-    player.zoom = zoom_level -- #TODO zoom out when showing map tags
+    player.zoom = zoom_level
   end
 
   local data = {
@@ -508,10 +461,7 @@ function ResultLocation.open(player, results, change_position)
     items = results.items or {}
   }
 
-  ResultLocation.highlight(player, data, {
-    arrows = false, -- Still work in progress
-    markers = true
-  })
+  ResultLocation.highlight(player, data)
 end
 
 

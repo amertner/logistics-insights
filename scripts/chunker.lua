@@ -155,12 +155,6 @@ function chunker:num_chunks()
   end
 end
 
---- Check if there is or has been something to process
---- @return boolean True if processing is complete
-function chunker:is_processing()
-  return self.processing_count > 0
-end
-
 --- Check if the chunker needs new data to work on
 --- @return boolean True if the chunker is idle and ready for new data
 function chunker:needs_data()

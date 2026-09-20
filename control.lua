@@ -155,10 +155,6 @@ scheduler.register({ name = "player-network-cell-chunk", interval = 7, is_heavy 
   end
 end})
 
--- scheduler.register({ name="show-li-alerts", interval=61, is_heavy=false, per_player=true, fn=function(player, player_table)
---   alerts_manager.show_alerts(player, player_table)
--- end })
-
 -- Scheduler task for analysis tasks that derive from bots and cells data
 scheduler.register({ name = "pick-network-to-analyse", interval = 31, per_player = false, is_heavy = false, fn = function()
   local nwd = analysis_coordinator.find_network_to_analyse()
@@ -325,10 +321,8 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
         for player_index, _ in pairs(storage.players) do
           events.emit(events.on_recreate_main_window, player_index)
         end
-      elseif e.setting == "li-gather-quality-data-global" or e.setting == "li-ignore-player-demands-in-undersupply"
-        or e.setting == "li-long-trip-min-distance" or e.setting == "li-long-trip-suggestions" then
-        -- Nothing particular to do yet; will be used on next chunking cycle
       end
+      -- The other global settings are read from the cache when next used
     else
       -- Per-player setting change
       local player = game.get_player(e.player_index)

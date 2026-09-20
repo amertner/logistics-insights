@@ -182,7 +182,7 @@ function exclusions_window.update(player_table)
   local networkdata = network_data.get_networkdata_fromid(network_id)
   local setting_shown = player_table.exclusion_list_shown
 
-  exclusions_table = player_table.ui.exclusions_pane.exclusions_table
+  local exclusions_table = player_table.ui.exclusions_pane.exclusions_table
   if not exclusions_table then return end
 
   if setting_shown and networkdata then
@@ -212,10 +212,6 @@ function exclusions_window.update(player_table)
       show_ignored_trips_list(exclusions_table, networkdata, player_table)
     end
   end
-end
-
-function exclusions_window.current_setting(player_table)
-  return player_table.exclusion_list_shown
 end
 
 ---@param player_table PlayerData

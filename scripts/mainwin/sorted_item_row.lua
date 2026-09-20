@@ -61,7 +61,7 @@ function sorted_item_row.add(player_table, gui_table, title, button_title, need_
   if button_title then
     if button_title == "clear" then
       tip = {"item-row.clear-history-tooltip"}
-      row_button = mini_button.add(player_table, hcell, button_title, tip, "trash", false)
+      row_button = mini_button.add(player_table, hcell, button_title, tip, "trash")
     end
   end
 

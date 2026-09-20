@@ -14,7 +14,6 @@ local WINDOW_NAME = "li_networks_window"
 networks_window.WINDOW_NAME = WINDOW_NAME
 local WINDOW_MIN_HEIGHT = 110-3*24 -- Room for 0 networks
 local WINDOW_MAX_HEIGHT = 110+10*24 -- Room for 12 networks
-local WINDOW_HEIGHT_STEP = 24
 
 -- Column configuration for Networks window
 -- key: column id used in element names
@@ -450,15 +449,6 @@ function networks_window.update(player)
     end
     return
   end
-  -- Debug
-  -- local win = player.gui.screen["li_networks_window"]
-  -- if win then
-  --   local lbl = win["li_networks_window-titlebar"].children[1]
-  --   if lbl then
-  --     lbl.caption = "(x,y) " .. tostring(win.location.x) .. ", " .. tostring(win.location.y)
-  --   end
-  -- end
-
   local table_el = player_table.ui.networks.table_elements
 
   -- Always show the networks by ID. With "Show all networks" off, only the watched ones

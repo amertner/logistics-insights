@@ -129,25 +129,6 @@ function Suggestions:remember(name, data)
   table.insert(self._historydata[name], {tick = self._current_tick, data = data})
 end
 
---- Get the maximum value from the historical data for a suggestion
---- @param name string The name of the suggestion to get the maximum value for
---- @return number The maximum value from the historical data
-function Suggestions:max_from_history(name)
-  local history = self._historydata[name]
-  if not history or #history == 0 then return 0 end
-  local max_value = 0
-  local cutoff = self._current_tick - MAX_HISTORY_TICKS
-  for i = #history, 1, -1 do
-    local entry = history[i]
-    if entry.tick < cutoff then
-      table.remove(history, i)
-    elseif entry.data > max_value then
-      max_value = entry.data
-    end
-  end
-  return max_value
-end
-
 --- Get the smallest value from the historical data for a suggestion
 --- @param name string The name of the suggestion to get the maximum value for
 --- @param need_time_seconds number The number of seconds of data needed to return a value other than 0
@@ -236,7 +217,6 @@ end
 --- @param name string The name of the suggestion to clear
 function Suggestions:clear_suggestion(name)
   self._suggestions[name] = nil
-  --self._historydata[name] = nil
   self._cached_data[name] = nil
 end
 

@@ -115,7 +115,7 @@ function main_window.ensure_ui_consistency(player, player_table)
     main_window.create(player, player_table)
   end
 
-  window = player_table.window
+  local window = player_table.window
 
   if window and game_state.needs_buttons(player_table) then
     local titlebar = window["logistics-insights-title-bar"]
@@ -288,7 +288,7 @@ function main_window.update(player, player_table)
     suggestions_row.update(player_table)
   end
 
-  btn = player_table.ui.network.settings_button
+  local btn = player_table.ui.network.settings_button
   if btn then
     btn.toggled = player_table.ui.network_settings.settings_frame.visible
   end
@@ -471,7 +471,6 @@ function main_window.onclick(event)
           event.element,
           event.button == defines.mouse_button_type.right,
           event.shift,
-          event.alt,
           event.control
         )
       end

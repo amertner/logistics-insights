@@ -16,7 +16,6 @@ local PROFILING = debugger.PROFILING
 ---@field per_player boolean If true, runs once per player (fn(player, player_table)), else global (fn())
 ---@field fn function The function to execute
 ---@field is_heavy boolean If true, the task is considered heavy. We'll try to avoid running multiple heavy tasks in the same tick.
----@field last_run number Last tick run (for global tasks)
 
 local global_tasks = {}   ---@type table<string, SchedulerTask>
 local player_tasks = {}   ---@type table<string, SchedulerTask>
@@ -60,7 +59,6 @@ function scheduler.register(opts)
     per_player = opts.per_player or false,
     fn = opts.fn,
     is_heavy = opts.is_heavy,
-    last_run = 0,
   }
   if task.per_player then
     player_tasks[task.name] = task
@@ -80,7 +78,7 @@ function scheduler.unregister(name)
   end
 end
 
---- Update interval for an existing task without resetting last_run state.
+--- Update interval for an existing task.
 --- @param name string
 --- @param new_interval number
 function scheduler.update_interval(name, new_interval)
@@ -317,7 +315,6 @@ function scheduler.on_tick()
         local player_table = storage.players[player_index]
         local player = game.get_player(player_index)
         if player and player.valid and player.connected and player_table then
-          task.last_run = tick
           if DEBUG_ENABLED_INFO then
             debugger.info("[scheduler] Running player task '" .. task.name .. "' for player " .. player_index)
           end
@@ -339,7 +336,6 @@ function scheduler.on_tick()
           end
         end
       else
-        task.last_run = tick
         if DEBUG_ENABLED_INFO then
           debugger.info("[scheduler] Running task " .. task.name)
         end

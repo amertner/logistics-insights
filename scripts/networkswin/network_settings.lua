@@ -140,7 +140,6 @@ function network_settings.create_frame(parent, player)
         tags={action="revert-to-defaults", pane=PANE_NAME}}
       local close_button = header_flow.add({type="sprite-button", style="li_close_settings_button", sprite="utility/close", name=PANE_NAME.."-close", tooltip={"network-settings.close-window-tooltip"},
         tags={action="close", pane=PANE_NAME}})
-      --close_button.style.top_margin = 2
       player_table.ui.network_settings.defaults_button = default_settings
 
     -- Content: Area to host settings for the network

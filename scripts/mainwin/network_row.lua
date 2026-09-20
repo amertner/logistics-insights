@@ -36,7 +36,7 @@ function network_row.add(player_table, gui_table)
     tooltip = {"network-row.header-tooltip"},
   }
   hcell.style.horizontally_stretchable = true
-  player_table.ui.network.settings_button = mini_button.add(player_table, hcell, "network", {"network-row.networks-tooltip"}, "settings", false)
+  player_table.ui.network.settings_button = mini_button.add(player_table, hcell, "network", {"network-row.networks-tooltip"}, "settings")
 
   local spr_log_system = tools.get_valid_sprite_path("technology/", "logistic-system", "virtual-signal/signal-N")
   player_table.ui.network.id = gui_table.add {

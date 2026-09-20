@@ -120,7 +120,7 @@ end
 function suggestions_row.show_suggestions(player_table, suggestions_table, enabled)
   local items = player_table.ui[ROW_TITLE]
 
-  local order = (suggestions_table and suggestions_table.order) or (suggestions_table.order) or {}
+  local order = suggestions_table.order or {}
   local suggestions_list = suggestions_table:get_suggestions()
   local max_items = player_table.settings.max_items
   local index = 1
@@ -163,7 +163,6 @@ function suggestions_row.update(player_table)
   end
   local networkdata = network_data.get_networkdata(player_table.network)
   local shown = 0
-  local running = false
   if networkdata and networkdata.suggestions and networkdata.suggestions._historydata then
     -- Show all suggestions
     shown = suggestions_row.show_suggestions(player_table, networkdata.suggestions, true)
@@ -171,7 +170,7 @@ function suggestions_row.update(player_table)
   -- Clear any remaining cells
   local items = player_table.ui[ROW_TITLE]
   for i = shown + 1, player_table.settings.max_items do
-    suggestions_row.set_suggestion_cell(items, i, nil, running)
+    suggestions_row.set_suggestion_cell(items, i, nil)
   end
 end
 
