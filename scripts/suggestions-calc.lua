@@ -394,38 +394,19 @@ function suggestions_calc.analyse_too_many_bots(suggestions, network)
   if total < MIN_TOTAL_BOTS_FOR_SUGGESTION then
     suggestions:clear_suggestion(SuggestionsMgr.too_many_bots_key)
     -- Prune stale history so it doesn't cause false trends when network grows back
-    local history = suggestions._historydata[SuggestionsMgr.too_many_bots_key]
-    if history then
-      local window_start = suggestions._current_tick - BOT_TREND_WINDOW_TICKS
-      for i = #history, 1, -1 do
-        if history[i].tick < window_start then
-          table.remove(history, i)
-        end
-      end
-    end
+    suggestions:history_in_window(SuggestionsMgr.too_many_bots_key, BOT_TREND_WINDOW_TICKS)
     return
   end
   local idle = network.available_logistic_robots or 0
 
   -- Record total for trend analysis
   suggestions:remember(SuggestionsMgr.too_many_bots_key, total)
-  local history = suggestions._historydata[SuggestionsMgr.too_many_bots_key]
-  if not history or #history < 3 then
+  local history = suggestions:history_in_window(SuggestionsMgr.too_many_bots_key, BOT_TREND_WINDOW_TICKS)
+  if #history < 3 then
     return -- Need more samples
   end
-  local window_start = suggestions._current_tick - BOT_TREND_WINDOW_TICKS
-  local first, last
-  for i = #history, 1, -1 do
-    local entry = history[i]
-    if entry.tick < window_start then
-      -- Drop older entries outside window to keep history lean
-      table.remove(history, i)
-    else
-      last = last or entry.data
-      first = entry.data
-    end
-  end
-  if not first or not last or last <= first then
+  local first, last = history[1].data, history[#history].data
+  if last <= first then
     -- Only warn of too many bots if the number is increasing
     suggestions:age_out_suggestion(SuggestionsMgr.too_many_bots_key)
     return
@@ -465,21 +446,14 @@ function suggestions_calc.analyse_too_few_bots(suggestions, network)
   -- Record idle for trend analysis
   suggestions:remember(SuggestionsMgr.too_few_bots_key, idle)
   -- Look for highest number of idle bots in the window
-  local history = suggestions._historydata[SuggestionsMgr.too_few_bots_key]
-  if not history or #history < 3 then
+  local history = suggestions:history_in_window(SuggestionsMgr.too_few_bots_key, BOT_TREND_WINDOW_TICKS)
+  if #history < 3 then
     return -- Need more samples
   end
-  local window_start = suggestions._current_tick - BOT_TREND_WINDOW_TICKS
   local highest_idle = idle
-  for i = #history, 1, -1 do
-    local entry = history[i]
-    if entry.tick < window_start then
-      -- Drop older entries outside window to keep history lean
-      table.remove(history, i)
-    else
-      if entry.data > highest_idle then
-        highest_idle = entry.data
-      end
+  for i = 1, #history do
+    if history[i].data > highest_idle then
+      highest_idle = history[i].data
     end
   end
 

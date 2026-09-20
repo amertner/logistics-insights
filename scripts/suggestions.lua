@@ -129,6 +129,31 @@ function Suggestions:remember(name, data)
   table.insert(self._historydata[name], {tick = self._current_tick, data = data})
 end
 
+--- A suggestion's history from the last window_ticks, oldest first. Older entries are dropped
+--- for good, which keeps every history bounded by its own window
+--- @param name string The name of the suggestion
+--- @param window_ticks number How far back to keep
+--- @return HistoryDataEntry[] The surviving entries, an empty list if there are none
+function Suggestions:history_in_window(name, window_ticks)
+  local history = self._historydata[name]
+  if not history then return {} end
+  local cutoff = self._current_tick - window_ticks
+  -- Entries are appended in tick order, so the stale ones are a prefix
+  local stale = 0
+  while stale < #history and history[stale + 1].tick < cutoff do
+    stale = stale + 1
+  end
+  if stale > 0 then
+    for i = 1, #history - stale do
+      history[i] = history[i + stale]
+    end
+    for i = #history, #history - stale + 1, -1 do
+      history[i] = nil
+    end
+  end
+  return history
+end
+
 --- A cautious estimate from a suggestion's history: the average of its smallest quarter
 --- @param name string The name of the suggestion
 --- @param need_time_seconds number How many seconds of data there must be before anything but 0 is returned
@@ -146,20 +171,16 @@ function Suggestions:weighted_min_from_history(name, need_time_seconds)
     return 0
   end
 
-  -- Prune old items and create copy for potential sorting
+  -- Prune old items and copy the rest for sorting
+  history = self:history_in_window(name, need_time_seconds * 60)
   local sorted_history = {}
   local zero_count = 0
-  for i = #history, 1, -1 do
+  for i = 1, #history do
     local entry = history[i]
-
-    if entry.tick < cutoff then
-      table.remove(history, i)
-    else
-      if entry.data == 0 then
-        zero_count = zero_count + 1
-      end
-      table.insert(sorted_history, entry)
+    if entry.data == 0 then
+      zero_count = zero_count + 1
     end
+    sorted_history[i] = entry
   end
   if zero_count > 1 or #sorted_history < 2 then
     -- If more than one value is 0, just return 0

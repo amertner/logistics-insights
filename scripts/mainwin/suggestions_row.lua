@@ -162,7 +162,7 @@ function suggestions_row.update(player_table)
   end
   local networkdata = network_data.get_networkdata(player_table.network)
   local shown = 0
-  if networkdata and networkdata.suggestions and networkdata.suggestions._historydata then
+  if networkdata and networkdata.suggestions then
     -- Show all suggestions
     shown = suggestions_row.show_suggestions(player_table, networkdata.suggestions, true)
   end

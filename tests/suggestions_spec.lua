@@ -79,6 +79,26 @@ describe("Suggestions", function()
     end)
   end)
 
+  describe("history_in_window()", function()
+    it("drops entries older than the window and keeps the rest in order", function()
+      local s = Suggestions.new()
+      for i, tick in ipairs({ 10, 100, 200, 300 }) do
+        s._current_tick = tick
+        s:remember("k", i)
+      end
+      s._current_tick = 350
+      local kept = s:history_in_window("k", 200) -- Cutoff 150: ticks 200 and 300 survive
+      assert.are.equal(2, #kept)
+      assert.are.equal(3, kept[1].data)
+      assert.are.equal(4, kept[2].data)
+      assert.are.equal(2, #s._historydata["k"], "pruned in place")
+    end)
+
+    it("returns an empty list for a suggestion with no history", function()
+      assert.are.same({}, Suggestions.new():history_in_window("nothing", 100))
+    end)
+  end)
+
   describe("weighted_min_from_history()", function()
     it("returns 0 with fewer than 2 data points", function()
       local s = Suggestions.new()
