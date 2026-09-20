@@ -138,7 +138,9 @@ function chunker:reset(network_id, on_init, on_completion)
     on_completion(self.partial_data, self.gather, self.network_id)
     self.processing_list = nil -- Save memory by clearing this
   end
-  -- Reset the counter and claim completion
+  -- Reset the counter and claim completion. Deliberately under network 0: the follow-up
+  -- finalise_run then finds no network and publishes nothing, rather than blanking the real
+  -- network's data with an empty accumulator
   self:initialise_chunking(0, nil, network_id, self.gather, on_init)
 end
 

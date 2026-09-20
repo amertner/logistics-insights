@@ -13,8 +13,6 @@ local player_data = require("scripts.player-data")
 local network_data = require("scripts.network-data")
 local global_data = require("scripts.global-data")
 local debugger = require("scripts.debugger")
-local bot_counter = require("scripts.bot-counter")
-local logistic_cell_counter = require("scripts.logistic-cell-counter")
 local controller_gui = require("scripts.controller-gui")
 local utils = require("scripts.utils")
 local migrations = require("scripts.migrations")
@@ -304,17 +302,24 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
         -- When this setting is changed, potentially purge unobserved networks and refresh the UI
         network_data.purge_unobserved_networks()
       elseif e.setting == "li-chunk-size-global" then
-        -- Process (partial) data and start gathering with new chunk size on all networks
-        for _, nwd in pairs(storage.networks) do
-          bot_counter.restart_counting(nwd)
-          logistic_cell_counter.restart_counting(nwd)
-        end
+        -- Nothing to do: a chunker reads the size when its next pass starts. Cutting the running
+        -- pass short would publish half a scan as a whole one, recording every unscanned bot's
+        -- delivery as finished
       elseif e.setting == "li-chunk-processing-interval-ticks" then
         -- Re-point the bot chunk task at the new interval
         scheduler.apply_global_settings()
       elseif e.setting == "li-calculate-undersupply" then
-        -- If undersupply calculation was enabled or disabled, recreate the main window
-        events.emit(events.on_recreate_main_window, e.player_index)
+        if not global_data.calculate_undersupply() then
+          -- Drop what was calculated before, so the mini window and Networks window stop counting it
+          for _, nwd in pairs(storage.networks) do
+            if nwd.suggestions then nwd.suggestions:set_cached_list("undersupply", nil) end
+          end
+        end
+        -- The row comes and goes with this global setting, so every player's window has to be
+        -- rebuilt, not just the one who changed it. From the console there is no player at all
+        for player_index, _ in pairs(storage.players) do
+          events.emit(events.on_recreate_main_window, player_index)
+        end
       elseif e.setting == "li-gather-quality-data-global" or e.setting == "li-ignore-player-demands-in-undersupply"
         or e.setting == "li-long-trip-min-distance" or e.setting == "li-long-trip-suggestions" then
         -- Nothing particular to do yet; will be used on next chunking cycle
