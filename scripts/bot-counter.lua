@@ -25,8 +25,8 @@ local seen_bot_last_pass = 1
 --- @field delivering_bot_qualities QualityTable
 --- @field picking_bot_qualities QualityTable
 --- @field other_bot_qualities QualityTable
---- @field networkdata LINetworkData|nil Cached network data for this chunk pass
---- @field current_tick number The game tick at the start of this chunk pass
+--- @field networkdata LINetworkData|nil Cached network data, fetched once per pass
+--- @field current_tick number The tick the pass started, which stamps everything seen during it
 
 --- Keep an item's longest trips, longest first, with at most one per destination so a route
 --- that is used again and again doesn't fill the list. Trips to a destination already listed
@@ -163,7 +163,7 @@ end
 --- @param quality string The quality name of the item
 --- @param count number The number of items being delivered
 --- @param current_tick number The current game tick
---- @param bot LuaEntity|nil The robot, if its position may be used to estimate the trip distance
+--- @param bot LuaEntity|nil The robot, whose position estimates the trip start when the pickup was missed
 --- @param tracked boolean True if the bot was already being watched in the previous pass
 local function add_bot_to_active_deliveries(networkdata, unit_number, order, item_name, quality, count, current_tick, bot, tracked)
   local botorder = networkdata.bot_active_deliveries[unit_number]
@@ -190,8 +190,12 @@ local function add_bot_to_active_deliveries(networkdata, unit_number, order, ite
     local pickup = pickups and pickups[unit_number]
     if pickup then
       pickups[unit_number] = nil
-      if pickup.item_name == item_name then
-        trip_from = pickup
+      -- Quality counts too: a bot's order can change between passes, and the chest it took normal
+      -- plates from says nothing about where the legendary ones it now carries came from
+      if pickup.item_name == item_name and pickup.quality_name == quality then
+        -- Copy the position out rather than keeping the whole record, which also holds the item
+        -- it matched on and when it was seen, neither of which belongs in a saved delivery
+        trip_from = { x = pickup.x, y = pickup.y }
         trip_exact = true
       end
     end
@@ -229,6 +233,9 @@ local function record_pickup_position(networkdata, unit_number, order, item_name
   local target = order.target
   local pos = target and target.position
   if not pos then return end
+  -- Read here rather than in the caller, which only works the quality out for deliveries
+  local qi = order.target_item and order.target_item.quality
+  local quality_name = (qi and qi.name) or "normal"
 
   local pickups = networkdata.bot_pickup_positions
   if not pickups then
@@ -236,11 +243,13 @@ local function record_pickup_position(networkdata, unit_number, order, item_name
     networkdata.bot_pickup_positions = pickups
   end
   local pending = pickups[unit_number]
-  if pending and pending.x == pos.x and pending.y == pos.y and pending.item_name == item_name then
+  if pending and pending.x == pos.x and pending.y == pos.y
+    and pending.item_name == item_name and pending.quality_name == quality_name then
     -- Same pickup seen again, avoid allocating a new record
     pending.seen = current_tick
   else
-    pickups[unit_number] = { x = pos.x, y = pos.y, item_name = item_name, seen = current_tick }
+    pickups[unit_number] = { x = pos.x, y = pos.y, item_name = item_name,
+      quality_name = quality_name, seen = current_tick }
   end
 end
 
@@ -277,7 +286,9 @@ local function process_one_bot(bot, accumulator, gather, network_id)
       -- No unit number, so we can't track this bot
       return 0
     end
-    -- Cache networkdata and current_tick on first bot of each chunk
+    -- Fetched on the first bot of the pass and kept for the rest of it, so every delivery seen
+    -- across its chunks carries the same tick. Pruning compares that against last_scanned_tick,
+    -- which is only stamped once the whole pass is over
     local networkdata = accumulator.networkdata
     if not networkdata then
       networkdata = network_data.get_networkdata_fromid(network_id)
@@ -322,10 +333,13 @@ local function process_one_bot(bot, accumulator, gather, network_id)
 
             -- Record current deliveries
             add_item_to_current_deliveries(item_name, item_quality, item_count, accumulator.item_deliveries)
-            -- Record delivery for history purposes
-            add_bot_to_active_deliveries(networkdata, unit_number, order, item_name, item_quality, item_count,
-              accumulator.current_tick, gather.history and bot or nil,
-              accumulator.last_seen[unit_number] ~= nil)
+            -- Record delivery for history purposes. Only worth tracking when history is being
+            -- gathered: bot_active_deliveries exists to feed it, and following an order whose
+            -- completion is never recorded would write history this network was not asked for
+            if gather.history then
+              add_bot_to_active_deliveries(networkdata, unit_number, order, item_name, item_quality, item_count,
+                accumulator.current_tick, bot, accumulator.last_seen[unit_number] ~= nil)
+            end
           else
             if gather.history and order.type == defines_robot_order_type_pickup then
               record_pickup_position(networkdata, unit_number, order, item_name, accumulator.current_tick)
@@ -364,7 +378,7 @@ local function bot_initialise_chunking(accumulator, last_seen)
   accumulator.delivering_bot_qualities = {}
   accumulator.picking_bot_qualities = {}
   accumulator.other_bot_qualities = {} -- Gather quality of bots doing anything else
-  accumulator.networkdata = nil -- Re-fetched on first bot of each chunk
+  accumulator.networkdata = nil -- Re-fetched on the first bot of the new pass
   accumulator.current_tick = 0
 end
 

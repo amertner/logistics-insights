@@ -77,7 +77,7 @@ describe("bot_counter", function()
       type = defines.robot_order_type.pickup,
       target_item = {
         name = { name = item_name },
-        quality = { name = "normal" },
+        quality = { name = opts.quality or "normal" },
       },
       target_count = 0,
       target = opts.target_pos and { position = opts.target_pos } or nil,
@@ -333,7 +333,7 @@ describe("bot_counter", function()
       assert.are.equal(50, history.count)
     end)
 
-    it("records delivery when bot changes target (works in background mode)", function()
+    it("records delivery when bot changes target", function()
       local nwd = make_networkdata()
       game.tick = 100
 
@@ -342,17 +342,15 @@ describe("bot_counter", function()
         unit_number = 1,
         orders = { deliver_order("iron-plate", 50, { target_pos = { x = 10, y = 20 } }) },
       })
-      process_all(nwd, { bot_pass1 })
+      process_all_foreground(nwd, { bot_pass1 })
 
-      -- Pass 2: same bot delivering to position B (new target)
-      -- Target change records history directly in add_bot_to_active_deliveries,
-      -- bypassing the show_history check, so this works in background mode.
+      -- Pass 2: same bot delivering to position B, so the first delivery finished unseen
       game.tick = 200
       local bot_pass2 = make_bot({
         unit_number = 1,
         orders = { deliver_order("iron-plate", 30, { target_pos = { x = 99, y = 99 } }) },
       })
-      process_all(nwd, { bot_pass2 })
+      process_all_foreground(nwd, { bot_pass2 })
 
       -- First delivery should be in history (target changed)
       local history = nwd.delivery_history["iron-plate:normal"]
@@ -725,14 +723,31 @@ describe("bot_counter", function()
       assert.are.equal(1, history.dist_exact)
     end)
 
-    it("does not estimate trips in background mode", function()
+    it("does not follow deliveries at all in background mode", function()
       local nwd = make_networkdata()
       game.tick = 100
       process_all(nwd, {
         make_bot({ unit_number = 1, position = { x = 0, y = 0 },
           orders = { deliver_order("iron-plate", 10, { target_pos = { x = 30, y = 40 } }) } }),
       })
-      assert.is_nil(nwd.bot_active_deliveries[1].trip_dist)
+      -- Nothing to estimate a trip from, and nothing to complete into history later
+      assert.is_nil(nwd.bot_active_deliveries[1])
+    end)
+
+    it("does not record history in background mode when a bot's target changes", function()
+      local nwd = make_networkdata()
+      -- Background passes are far enough apart that a bot is usually delivering somewhere new by
+      -- the next one, which used to complete the previous order into history unasked
+      game.tick = 100
+      process_all(nwd, {
+        make_bot({ unit_number = 1, orders = { deliver_order("iron-plate", 10, { target_pos = { x = 30, y = 40 } }) } }),
+      })
+      game.tick = 200
+      process_all(nwd, {
+        make_bot({ unit_number = 1, orders = { deliver_order("iron-plate", 10, { target_pos = { x = 60, y = 80 } }) } }),
+      })
+
+      assert.is_nil(nwd.delivery_history["iron-plate:normal"])
     end)
 
     it("does not use a pickup of a different item", function()
@@ -752,6 +767,28 @@ describe("bot_counter", function()
       assert.are.equal(10, history.count)
       assert.are.equal(0, history.dist_count)
       assert.is_nil(nwd.bot_pickup_positions[1]) -- Consumed even though it didn't match
+    end)
+
+    it("does not use a pickup of a different quality of the same item", function()
+      local nwd = make_networkdata()
+      game.tick = 100
+      process_all_foreground(nwd, {
+        make_bot({ unit_number = 1,
+          orders = { pickup_order("iron-plate", { target_pos = { x = 0, y = 0 } }) } }),
+      })
+      game.tick = 110
+      -- The order changed between passes: that chest says nothing about the legendary plates
+      process_all_foreground(nwd, {
+        make_bot({ unit_number = 1, position = { x = 20, y = 20 },
+          orders = { deliver_order("iron-plate", 10,
+            { quality = "legendary", target_pos = { x = 30, y = 40 } }) } }),
+      })
+      game.tick = 120
+      process_all_foreground(nwd, { make_bot({ unit_number = 1 }) })
+
+      local history = nwd.delivery_history["iron-plate:legendary"]
+      assert.are.equal(0, history.dist_exact) -- Estimated from the bot, not measured from the chest
+      assert.is_false(history.top_trips[1].exact)
     end)
 
     it("still records the delivery when the pickup was not observed", function()
