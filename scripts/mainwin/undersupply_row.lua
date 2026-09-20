@@ -24,8 +24,7 @@ function undersupply_row.add(player_table, gui_table)
 end
 
 ---@param player_table PlayerData The player's data table
----@param clearing? boolean Whether we are updating because history was just cleared
-function undersupply_row.update(player_table, clearing)
+function undersupply_row.update(player_table)
   if not player_table then return end
   if player_table.settings.show_undersupply and global_data.calculate_undersupply() then
     local networkdata = network_data.get_networkdata(player_table.network)
@@ -48,7 +47,6 @@ function undersupply_row.update(player_table, clearing)
         in_demand or {},
         sort_by_shortage_desc,
         "shortage",
-        clearing or false,
         tooltip,
         networkdata.suggestions:get_cached_data_gen()
       )

@@ -8,36 +8,13 @@ local sorted_item_row = require("scripts.mainwin.sorted_item_row")
 local ResultLocation = require("scripts.result-location")
 local utils = require("scripts.utils")
 
+-- History recorded before trip distance was tracked has no distance fields at all, and an item can
+-- be delivered without one ever being worked out, so both distance rows sort over entries that may
+-- have nothing to show. They sort last and the row stops at the first of them, which leaves the
+-- same items on screen as filtering the list first did, without copying it every update
 local sort_by_count_desc = function(a, b) return a.count > b.count end
-local sort_by_dist_sum_desc = function(a, b) return a.dist_sum > b.dist_sum end
-local sort_by_top_dist_desc = function(a, b) return a.top_dist > b.top_dist end
-
---- Only items with a known trip distance belong in the distance carried row
---- @param delivery_history table<string, DeliveredItems>
---- @return table<string, DeliveredItems>
-local function with_distance_carried(delivery_history)
-  local entries = {}
-  for key, entry in pairs(delivery_history) do
-    if (entry.dist_sum or 0) > 0 then
-      entries[key] = entry
-    end
-  end
-  return entries
-end
-
---- Only items with a trip to list belong in the longest trip row: one with a known distance,
---- to a destination not on the ignore list
---- @param delivery_history table<string, DeliveredItems>
---- @return table<string, DeliveredItems>
-local function with_trip_distance(delivery_history)
-  local entries = {}
-  for key, entry in pairs(delivery_history) do
-    if (entry.top_dist or 0) > 0 then
-      entries[key] = entry
-    end
-  end
-  return entries
-end
+local sort_by_dist_sum_desc = function(a, b) return (a.dist_sum or 0) > (b.dist_sum or 0) end
+local sort_by_top_dist_desc = function(a, b) return (a.top_dist or 0) > (b.top_dist or 0) end
 
 --- Add history rows to the GUI (totals, distance carried and longest trip)
 --- @param player_table PlayerData The player's data table
@@ -52,63 +29,34 @@ function history_rows.add(player_table, gui_table)
   return 0
 end
 
-function history_rows.update(player_table, clearing)
+function history_rows.update(player_table)
   local networkdata = network_data.get_networkdata(player_table.network)
   if player_table.settings.show_history then
     if  networkdata and networkdata.delivery_history then
-      sorted_item_row.update(
-        player_table,
-        "totals-row",
-        networkdata.delivery_history,
-        sort_by_count_desc,
-        "count",
-        clearing,
-        nil,
-        networkdata.delivery_history_gen
-      )
+      local history = networkdata.delivery_history
+      local history_gen = networkdata.delivery_history_gen
+      sorted_item_row.update(player_table, "totals-row", history, sort_by_count_desc, "count", nil, history_gen)
+      sorted_item_row.update(player_table, "distance-row", history, sort_by_dist_sum_desc, "dist_sum", nil, history_gen)
 
-      -- Filtering allocates, so only do it when the history has changed since the row was drawn
-      local distance_ui = player_table.ui["distance-row"]
-      if not distance_ui or distance_ui.last_gen ~= networkdata.delivery_history_gen then
-        sorted_item_row.update(
-          player_table,
-          "distance-row",
-          with_distance_carried(networkdata.delivery_history),
-          sort_by_dist_sum_desc,
-          "dist_sum",
-          clearing,
-          nil,
-          networkdata.delivery_history_gen
-        )
-      end
-
-      -- Offer to ignore a trip only on the item whose trip is on the map
+      -- Offer to ignore a trip only on the item whose trip is on the map, so which trip is shown
+      -- is part of what the row was drawn from
       local view = player_table.trip_view
       local shown_key = view and ResultLocation.is_shown(view.object_id) and view.key or ""
-      local tip = {"item-row.maxdist-click-tip-1count", network_data.TOP_TRIPS}
-      local function click_tip(entry)
-        if utils.get_item_quality_key(entry.item_name, entry.quality_name or "normal") == shown_key then
-          -- This item's trip is on the map, so say what clicking again does, and offer to ignore it
-          local shown_tip = {"item-row.maxdist-click-tip-shown-1count", #(entry.top_trips or {})}
-          return {"", shown_tip, "\n", {"item-row.maxdist-ignore-tip"}}
-        end
-        return tip
-      end
-
-      -- Filtering allocates, so only do it when the history, or which trip is shown, has changed
-      local gen = (networkdata.delivery_history_gen or 0) .. "|" .. shown_key
+      local gen = (history_gen or 0) .. "|" .. shown_key
       local ui = player_table.ui["maxdist-row"]
       if not ui or ui.last_gen ~= gen then
-        sorted_item_row.update(
-          player_table,
-          "maxdist-row",
-          with_trip_distance(networkdata.delivery_history),
-          sort_by_top_dist_desc,
-          "top_dist",
-          clearing,
-          click_tip,
-          gen
-        )
+        -- Only worth building the tooltips when the row is actually being redrawn
+        local tip = {"item-row.maxdist-click-tip-1count", network_data.TOP_TRIPS}
+        local function click_tip(entry)
+          if utils.get_item_quality_key(entry.item_name, entry.quality_name or "normal") == shown_key then
+            -- This item's trip is on the map, so say what clicking again does, and offer to ignore it
+            local shown_tip = {"item-row.maxdist-click-tip-shown-1count", #(entry.top_trips or {})}
+            return {"", shown_tip, "\n", {"item-row.maxdist-ignore-tip"}}
+          end
+          return tip
+        end
+        sorted_item_row.update(player_table, "maxdist-row", history, sort_by_top_dist_desc, "top_dist",
+          click_tip, gen)
       end
     else
       sorted_item_row.clear_cells(player_table, "totals-row")

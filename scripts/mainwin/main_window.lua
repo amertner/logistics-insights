@@ -234,8 +234,7 @@ end
 --- Update all rows with current data
 --- @param player LuaPlayer The player whose window to destroy
 --- @param player_table PlayerData The player's data table
---- @param clearing boolean Whether this update is due to clearing history
-function main_window.update(player, player_table, clearing)
+function main_window.update(player, player_table)
   -- Ensure window reference; do NOT assign window to player_table.ui
   local p
   if PROFILING then p = helpers.create_profiler() end
@@ -262,10 +261,10 @@ function main_window.update(player, player_table, clearing)
   -- Update all of the rows; each row will only update if enabled in settings.
   if PROFILING then
     local p1 = helpers.create_profiler()
-    delivery_row.update(player_table, clearing)
+    delivery_row.update(player_table)
     p1.stop()
     local p2 = helpers.create_profiler()
-    history_rows.update(player_table, clearing)
+    history_rows.update(player_table)
     p2.stop()
     local p3 = helpers.create_profiler()
     activity_row.update(player_table)
@@ -281,8 +280,8 @@ function main_window.update(player, player_table, clearing)
     p6.stop()
     log({"", "[perf] rows: delivery=", p1, " history=", p2, " activity=", p3, " network=", p4, " undersupply=", p5, " suggestions=", p6})
   else
-    delivery_row.update(player_table, clearing)
-    history_rows.update(player_table, clearing)
+    delivery_row.update(player_table)
+    history_rows.update(player_table)
     activity_row.update(player_table)
     network_row.update(player_table)
     undersupply_row.update(player_table)
@@ -359,7 +358,7 @@ function main_window.open_or_close_settings(player, player_table)
   else
     player_table.settings_network_id = nil
   end
-  main_window.update(player, player_table, false)
+  main_window.update(player, player_table)
 end
 
 --- Destroy the main window
@@ -460,7 +459,7 @@ function main_window.onclick(event)
         -- Clear the delivery history and clear the timer
         network_data.clear_delivery_history(player_table.network)
         main_window.create(player, player_table)
-        main_window.update(player, player_table, true)
+        main_window.update(player, player_table)
         handled = true
       else
         -- The click may require a highlight/freeze

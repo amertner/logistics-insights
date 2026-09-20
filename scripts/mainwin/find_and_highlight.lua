@@ -413,7 +413,7 @@ local function show_trip(player, player_table, networkdata, iq, index, focus_on_
     estimate)
   player_table.trip_view = { key = key, index = index, object_id = object_id, on_start = focus_on_start }
   -- Update the row now, so its tooltip offers to ignore the trip just shown
-  history_rows.update(player_table, false)
+  history_rows.update(player_table)
 end
 
 --- Click on the long trip suggestion: show the trip suggested about, or exclude it
@@ -543,7 +543,7 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
         if #trips == 0 then
           player_table.trip_view = nil
           ResultLocation.clear_markers(player)
-          history_rows.update(player_table, false)
+          history_rows.update(player_table)
           return true
         end
         -- Show the trip that has moved up into its place, rather than stepping past it

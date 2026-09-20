@@ -87,10 +87,9 @@ end -- add
 --- @param all_entries table<string, DeliveryItem|DeliveredItems> All entries to sort and display
 --- @param sort_fn function(a, b): boolean Sorting function to determine order
 --- @param number_field string The field name to display as number ("count", "dist_sum", "top_dist")
---- @param clearing boolean Whether this update is due to clearing history
 --- @param show_click_tip LocalisedString|fun(entry: table): LocalisedString|nil String to show if the cell is clickable, or a function giving each entry's string
 --- @param generation number|string|nil Optional generation counter; skips update if unchanged since last call
-function sorted_item_row.update(player_table, title, all_entries, sort_fn, number_field, clearing, show_click_tip, generation)
+function sorted_item_row.update(player_table, title, all_entries, sort_fn, number_field, show_click_tip, generation)
   -- Skip update if data generation hasn't changed since last render
   if generation and player_table.ui[title] then
     if player_table.ui[title].last_gen == generation then
@@ -211,6 +210,9 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
   for _, entry in ipairs(sorted_entries) do
     if count >= player_table.settings.max_items then break end
     if not player_table.ui[title] or not player_table.ui[title].cells then break end
+    -- Sorted highest first, so the rest have nothing to show either. This is what keeps items
+    -- with no trip distance out of the two distance rows
+    if (entry[number_field] or 0) <= 0 then break end
     local cell = player_table.ui[title].cells[count + 1]
     if cell and cell.valid then
       cell.sprite = utils.get_valid_sprite_path("item/", entry.item_name)
@@ -252,6 +254,8 @@ function sorted_item_row.clear_cells(player_table, title)
   if not player_table.ui[title] or not player_table.ui[title].cells then
     return
   end
+  -- The row no longer shows what that generation held, so don't let it skip the next update
+  player_table.ui[title].last_gen = nil
   for i = 1, player_table.settings.max_items do
     local cell = player_table.ui[title].cells[i]
     if cell and cell.valid then

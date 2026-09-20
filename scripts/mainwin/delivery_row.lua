@@ -19,8 +19,7 @@ end
 
 --- Update the delivery row with current data
 --- @param player_table PlayerData The player's data table
---- @param clearing boolean Whether this update is due to clearing history
-function delivery_row.update(player_table, clearing)
+function delivery_row.update(player_table)
   local networkdata = network_data.get_networkdata(player_table.network)
   if networkdata then
     local clicktip
@@ -35,7 +34,6 @@ function delivery_row.update(player_table, clearing)
       networkdata.bot_deliveries,
       sort_by_count_desc,
       "count",
-      clearing,
       clicktip,
       networkdata.bot_deliveries_gen
     )
