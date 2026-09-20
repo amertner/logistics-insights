@@ -22,7 +22,8 @@ local CLEARED = "cleared"
 local function trip_average_line(entry)
   local median = network_data.median_trip(entry)
   if median then
-    return {"item-row.trip-average-median-1avg", utils.format_distances({entry.avg_dist, median}, "/")}
+    return {"item-row.trip-average-median-1avg-2median",
+      utils.format_distances({entry.avg_dist}), utils.format_distances({median})}
   end
   -- History from before the median was tracked
   return {"item-row.trip-average-1avg", utils.format_distances({entry.avg_dist})}
@@ -116,12 +117,12 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
     elseif number_field == "top_dist" then
       local trips = entry.top_trips or {}
       local estimated = trips[1] and not trips[1].exact and {"item-row.trip-estimated-suffix"} or ""
-      -- List the longest trips when there is more than one
+      -- List the runners-up when there are any; the title already carries the longest
       local list = ""
       if #trips > 1 then
         local dists = {}
-        for i, trip in ipairs(trips) do
-          dists[i] = trip.dist
+        for i = 2, #trips do
+          dists[i - 1] = trips[i].dist
         end
         list = {"", "\n", {"item-row.trip-list-1dists", utils.format_distances(dists)}}
       end
