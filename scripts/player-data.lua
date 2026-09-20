@@ -25,7 +25,9 @@ local math_ceil = math.ceil
 ---@field ignored_storages_for_mismatch_shown number -- The tick when the exclusion list was last shown
 ---@field main_window_pinned boolean -- Whether the main window is pinned (ignores E/ESC close)
 ---@field networks_window_pinned boolean -- Whether the networks window is pinned (ignores E/ESC close)
----@field trip_view {key: string, index: integer, object_id: uint64|nil}|nil -- Which of an item's longest trips was last shown, and its drawn line
+---@field trip_view {key: string, index: integer, object_id: uint64|nil, on_start: boolean|nil}|nil -- Which of an
+---  item's longest trips was last shown, its drawn line, and which end the view was sent to. The end is what
+---  tells a click that would show the other end from one that would only repeat itself
 ---@field ignored_trips_shown number|nil -- The tick when the trip ignore list was last shown
 ---@param player_index uint
 ---@return nil

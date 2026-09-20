@@ -88,7 +88,9 @@ function history_rows.update(player_table, clearing)
       local tip = {"item-row.maxdist-click-tip-1count", network_data.TOP_TRIPS}
       local function click_tip(entry)
         if utils.get_item_quality_key(entry.item_name, entry.quality_name or "normal") == shown_key then
-          return {"", tip, "\n", {"item-row.maxdist-ignore-tip"}}
+          -- This item's trip is on the map, so say what clicking again does, and offer to ignore it
+          local shown_tip = {"item-row.maxdist-click-tip-shown-1count", #(entry.top_trips or {})}
+          return {"", shown_tip, "\n", {"item-row.maxdist-ignore-tip"}}
         end
         return tip
       end

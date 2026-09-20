@@ -13,6 +13,7 @@ local events = require("scripts.events")
 local history_rows = require("scripts.mainwin.history_rows")
 local suggestions_calc = require("scripts.suggestions-calc")
 local trip_estimate = require("scripts.trip-estimate")
+local trip_view = require("scripts.trip-view")
 
 ---@class ViewData
 ---@field items LuaEntity[]|nil List of entities to highlight
@@ -378,17 +379,28 @@ end
 ---@param player_table PlayerData
 ---@param networkdata LINetworkData
 ---@param iq ItemQuality
----@param index integer Which of the item's longest trips
----@param focus_on_start boolean
-local function show_trip(player, player_table, networkdata, iq, index, focus_on_start)
+---@param index integer Which of the item's longest trips to show, when none of them is on the map
+---@param focus_on_start boolean True to look at where the trip started, false for the delivery end
+---@param no_step? boolean True to show `index` as given, rather than moving on from what is shown
+local function show_trip(player, player_table, networkdata, iq, index, focus_on_start, no_step)
   local key = utils.get_item_quality_key(iq.name, iq.quality)
   local entry = networkdata.delivery_history[key]
   local trips = entry and entry.top_trips
   if not trips or not trips[1] then return end
-  if not trips[index] then index = 1 end -- The list changed since the suggestion was made
+
+  if not no_step then
+    -- Clicking again would redraw what is already there, so move on to the next trip instead
+    local view = player_table.trip_view
+    -- Shown means still drawn: not expired, and not replaced by another highlight
+    local showing = view and view.key == key and ResultLocation.is_shown(view.object_id)
+    index = trip_view.next_index(showing and view or nil, #trips, focus_on_start, index)
+  elseif not trips[index] then
+    index = 1 -- The list changed since the suggestion was made
+  end
+
   local object_id = ResultLocation.show_trips(player, networkdata.surface, trips, index, iq, focus_on_start,
     trip_estimate.for_network(networkdata))
-  player_table.trip_view = { key = key, index = index, object_id = object_id }
+  player_table.trip_view = { key = key, index = index, object_id = object_id, on_start = focus_on_start }
   -- Update the row now, so its tooltip offers to ignore the trip just shown
   history_rows.update(player_table, false)
 end
@@ -507,12 +519,9 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
     local entry = networkdata and networkdata.delivery_history[key]
     local trips = entry and entry.top_trips
     if networkdata and trips and #trips > 0 then
-      -- Left-click steps on to the next trip; right-click stays on the current one to show its
-      -- pickup end. Start again from the longest once the previous highlight has expired
       local view = player_table.trip_view
       -- Shown means still drawn: not expired, and not replaced by another highlight
       local showing = view and view.key == key and trips[view.index] and ResultLocation.is_shown(view.object_id)
-      local index = 1
       if showing and is_shift_click and not is_right_click then
         -- Ignore the trip being shown: it's expected. Only ever what's on the map, never blind
         local trip = trips[view.index]
@@ -525,17 +534,12 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
           history_rows.update(player_table, false)
           return true
         end
-        -- The next trip has moved up into its place
-        index = math.min(view.index, #trips)
-      elseif showing then
-        index = is_right_click and view.index or view.index + 1
-        if index > #trips then index = 1 end
+        -- Show the trip that has moved up into its place, rather than stepping past it
+        show_trip(player, player_table, networkdata, iq, math.min(view.index, #trips), false, true)
+      else
+        -- Start from the longest, then move on with each repeat of the same click
+        show_trip(player, player_table, networkdata, iq, 1, is_right_click)
       end
-      local object_id = ResultLocation.show_trips(player, networkdata.surface, trips, index, iq, is_right_click,
-        trip_estimate.for_network(networkdata))
-      player_table.trip_view = { key = key, index = index, object_id = object_id }
-      -- Update the row now, so its tooltip offers to ignore the trip just shown
-      history_rows.update(player_table, false)
     end
     return true
   end

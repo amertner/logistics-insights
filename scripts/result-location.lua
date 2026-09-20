@@ -173,6 +173,9 @@ local OTHER_ESTIMATE_COLOR = { r = 0, g = 0.35, b = 0, a = 0.6 } -- The same, fo
 local ESTIMATE_DASH_TILES = 1 -- Dash length close in
 local ESTIMATE_GAP_TILES = 0.8 -- Gap between dashes close in
 local MAP_ESTIMATE_DASHES = 4 -- Roughly this many dashes in map view, however long the estimate
+local ESTIMATE_MARKER_RADIUS = 0.5 -- Matches the tile-sized box an outline would have drawn
+local ESTIMATE_END_TILES = 0.6 -- Bar closing the far end of an estimate, close in
+local MAP_ESTIMATE_END_FACTOR = 60 -- Map view: how much shorter that bar is than the estimate
 
 --- How long trips stay on the map, in ticks: longer than other highlights. 0 means forever
 ---@param player LuaPlayer
@@ -323,8 +326,13 @@ local function draw_trip_estimate(player, surface_name, from, to, dist, color, t
       players = {player},
       render_mode = render_mode,
     }
-    -- A bar across the end rather than an outline: there is no entity there, just a limit
-    local half = (render_mode == "chart" and math.max(ARROW_SIZE_TILES, dist / 20) or ARROW_SIZE_TILES) / 2
+    -- A bar across the end rather than an outline: there is no entity there, just a limit.
+    -- Sized like the map arrows when zoomed out, so it marks the end without dominating it
+    local half = ESTIMATE_END_TILES
+    if render_mode == "chart" then
+      half = math.max(half, dist / MAP_ESTIMATE_END_FACTOR)
+    end
+    half = half / 2
     rendering.draw_line{
       color = color,
       width = LINE_WIDTH,
@@ -413,7 +421,24 @@ function ResultLocation.show_trips(player, surface_name, trips, focus, item, foc
 
     local from_marker = trip_endpoint_marker(surface, from, trip.exact)
     local to_marker = trip_endpoint_marker(surface, to, true)
-    ResultLocation.draw_markers(player, surface_name, { from_marker, to_marker }, color, time_to_live)
+    local markers = { to_marker }
+    if trip.exact then
+      markers[#markers + 1] = from_marker
+    else
+      -- Nothing stands where the bot was first seen, so ring the spot rather than outline a box
+      -- that would suggest a chest. Close in only, like the outlines it replaces
+      rendering.draw_circle{
+        color = color,
+        width = LINE_WIDTH,
+        filled = false,
+        target = from,
+        radius = ESTIMATE_MARKER_RADIUS,
+        surface = surface_name,
+        time_to_live = time_to_live,
+        players = {player},
+      }
+    end
+    ResultLocation.draw_markers(player, surface_name, markers, color, time_to_live)
     -- Markers only show up close in, so draw the line in map view too
     for _, render_mode in pairs({ "game", "chart" }) do
       local line = rendering.draw_line{
