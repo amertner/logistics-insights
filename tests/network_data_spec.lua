@@ -57,6 +57,36 @@ describe("network observation", function()
     game.tick = game.tick + ticks
   end
 
+  -- ─── Background scan selection ────────────────────────────────────
+
+  describe("get_next_background_network", function()
+    before_each(function()
+      storage.global.background_refresh_interval_ticks = 600
+      game.tick = 10000
+    end)
+
+    it("skips the network being foreground scanned, however old its last scan", function()
+      local p = a_player(1)
+      local watched = arrive(p, a_network(1))
+      watched.last_scanned_tick = 0 -- Oldest of all
+      local other = arrive(a_player(2), a_network(2))
+      other.last_scanned_tick = 5000
+      storage.fg_refreshing_network_id = 1
+
+      assert.are.equal(other, network_data.get_next_background_network())
+
+      storage.fg_refreshing_network_id = nil
+      assert.are.equal(watched, network_data.get_next_background_network())
+    end)
+
+    it("returns nothing when the only eligible network is the foreground one", function()
+      local nwd = arrive(a_player(1), a_network(1))
+      nwd.last_scanned_tick = 0
+      storage.fg_refreshing_network_id = 1
+      assert.is_nil(network_data.get_next_background_network())
+    end)
+  end)
+
   -- ─── Leaving freezes, rather than destroys ────────────────────────
 
   it("keeps the history when the last player leaves", function()

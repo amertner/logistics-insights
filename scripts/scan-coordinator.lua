@@ -163,6 +163,12 @@ function scan_coordinator.initiate_next_player_network_scan()
     if networkdata then
       local network = network_data.get_LuaNetwork(networkdata)
       if network then
+        if storage.bg_refreshing_network_id == networkdata.id then
+          -- A background scan of the same network is under way on the same chunkers. Abandon
+          -- it, as prioritise_scanning_new_player_network does, rather than have both tasks
+          -- drive one pass
+          storage.bg_refreshing_network_id = nil
+        end
         storage.fg_refreshing_network_id = networkdata.id
         bot_counter.init_foreground_processing(networkdata, network)
         logistic_cell_counter.init_foreground_processing(networkdata, network)

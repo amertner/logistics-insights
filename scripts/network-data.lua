@@ -536,11 +536,15 @@ function network_data.get_next_background_network()
     return nil
   end
 
-  -- Single-pass selection of the oldest eligible network
+  -- Single-pass selection of the oldest eligible network. The one being foreground scanned is
+  -- not eligible however old its last scan: it shares the chunkers, and a background start would
+  -- restart them without history gathering, finishing the pass with every tracked delivery
+  -- dropped unrecorded
+  local fg_id = storage.fg_refreshing_network_id
   local best = nil
   local best_tick = last_tick -- also serves as the eligibility threshold
-  for _, networkdata in pairs(storage.networks) do
-    if networkdata and networkdata.players_set then
+  for id, networkdata in pairs(storage.networks) do
+    if networkdata and networkdata.players_set and id ~= fg_id then
       if (networkdata.last_scanned_tick or 0) < best_tick then
         best = networkdata
         best_tick = networkdata.last_scanned_tick or 0
