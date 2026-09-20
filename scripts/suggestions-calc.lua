@@ -75,7 +75,13 @@ end
 --- @param suggestion_name string The name of the suggestion to create
 --- @param total_stacks number The total number of stacks available
 --- @param free_stacks number The number of free stacks available
-function suggestions_calc.create_storage_capacity_suggestion(suggestions, suggestion_name, total_stacks, free_stacks)
+--- @param ignore_when_none boolean True to make no suggestion when there are no such chests at all
+function suggestions_calc.create_storage_capacity_suggestion(suggestions, suggestion_name, total_stacks, free_stacks, ignore_when_none)
+  if ignore_when_none and total_stacks == 0 then
+    -- The network's setting says a network without such chests is not short of them
+    suggestions:clear_suggestion(suggestion_name)
+    return
+  end
   local used_capacity = 1 -- No stacks = no capacity
   if total_stacks > 0 then used_capacity = 1 - free_stacks / total_stacks end
   local urgency = suggestions:get_urgency(used_capacity, 0.9)
@@ -228,16 +234,13 @@ function suggestions_calc.all_storage_chunks_done(accumulator, gather, network_i
   if networkdata then
     local suggestions = networkdata.suggestions
     if accumulator then
-      if accumulator.ignore_low_storage_when_no_storage then
-        suggestions:clear_suggestion(SuggestionsMgr.unfiltered_storage_low_key)
-        suggestions:clear_suggestion(SuggestionsMgr.storage_low_key)
-      else
-        -- Create storage capacity suggestions, if the numbers warrant it
-        suggestions_calc.create_storage_capacity_suggestion(
-          suggestions, SuggestionsMgr.storage_low_key, accumulator.total_stacks, accumulator.free_stacks)
-        suggestions_calc.create_storage_capacity_suggestion(
-          suggestions, SuggestionsMgr.unfiltered_storage_low_key, accumulator.unfiltered_total_stacks, accumulator.unfiltered_free_stacks)
-      end
+      -- Create storage capacity suggestions, if the numbers warrant it. The per-network setting
+      -- only silences the case where there are no such chests to be low on; full ones still count
+      local ignore_when_none = accumulator.ignore_low_storage_when_no_storage
+      suggestions_calc.create_storage_capacity_suggestion(
+        suggestions, SuggestionsMgr.storage_low_key, accumulator.total_stacks, accumulator.free_stacks, ignore_when_none)
+      suggestions_calc.create_storage_capacity_suggestion(
+        suggestions, SuggestionsMgr.unfiltered_storage_low_key, accumulator.unfiltered_total_stacks, accumulator.unfiltered_free_stacks, ignore_when_none)
 
       -- Create Mismatched Storage suggestion
       local mismatched_count = #accumulator.mismatched_storages

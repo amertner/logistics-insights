@@ -649,6 +649,44 @@ describe("suggestions_calc", function()
         assert.is_nil(s:get_suggestions()[Suggestions.unfiltered_storage_low_key])
       end)
 
+      it("still warns of full storage when enabled: the setting is about missing chests, not full ones", function()
+        local s = make_suggestions(1000)
+        storage.networks[1] = { id = 1, suggestions = s }
+
+        local acc = {}
+        suggestions_calc.initialise_storage_analysis(acc, {
+          ignore_low_storage_when_no_storage = true,
+        })
+        acc.total_stacks = 100
+        acc.free_stacks = 0
+        acc.unfiltered_total_stacks = 100
+        acc.unfiltered_free_stacks = 0
+        acc.mismatched_storages = {}
+
+        suggestions_calc.all_storage_chunks_done(acc, {}, 1)
+        assert.is_not_nil(s:get_suggestions()[Suggestions.storage_low_key])
+        assert.is_not_nil(s:get_suggestions()[Suggestions.unfiltered_storage_low_key])
+      end)
+
+      it("applies to each suggestion's own chests: no unfiltered chests, but filtered ones full", function()
+        local s = make_suggestions(1000)
+        storage.networks[1] = { id = 1, suggestions = s }
+
+        local acc = {}
+        suggestions_calc.initialise_storage_analysis(acc, {
+          ignore_low_storage_when_no_storage = true,
+        })
+        acc.total_stacks = 100
+        acc.free_stacks = 0
+        acc.unfiltered_total_stacks = 0
+        acc.unfiltered_free_stacks = 0
+        acc.mismatched_storages = {}
+
+        suggestions_calc.all_storage_chunks_done(acc, {}, 1)
+        assert.is_not_nil(s:get_suggestions()[Suggestions.storage_low_key])
+        assert.is_nil(s:get_suggestions()[Suggestions.unfiltered_storage_low_key])
+      end)
+
       it("creates storage suggestions normally when disabled", function()
         local s = make_suggestions(1000)
         storage.networks[1] = { id = 1, suggestions = s }
