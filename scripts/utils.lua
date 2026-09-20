@@ -181,4 +181,24 @@ function utils.get_localised_names(entry)
   return { iname = entry.item_name, qname = entry.quality_name }
 end
 
+-- Releases are published as two version lines with identical code, one per
+-- Factorio version: the minor tracks the game version and the patch is shared
+-- (1.2.<p> for Factorio 2.0, 1.3.<p> for 2.1; see build.sh). Migration keys
+-- are written on the 2.0 line, so a save's version is mapped onto that line
+-- before it is compared with them: 1.3.7 becomes 1.2.7. Versions from before
+-- the split are returned unchanged.
+local FIRST_TWO_LINE_VERSION = "1.2.0"
+---@param version string
+---@return string
+function utils.canonical_mod_version(version)
+  if helpers.compare_versions(version, FIRST_TWO_LINE_VERSION) < 0 then
+    return version
+  end
+  local major, _, patch = version:match("^(%d+)%.(%d+)%.(%d+)$")
+  if not major then
+    return version
+  end
+  return major .. ".2." .. patch
+end
+
 return utils

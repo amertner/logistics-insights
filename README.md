@@ -109,6 +109,10 @@ There are many ways in which this mod could become more useful, and I'll be look
 - I'd love to show a heat map of activity on the mini map, but I can't see a way for a mod to do this. Do you know how?
 - Maybe it would be useful to also show what Construction Bots are doing? Not sure about that, maybe that's another mod!
 
+## Factorio 2.0 and 2.1
+
+Factorio only loads a mod marked for the game version it is running, so every release of Logistics Insights is published twice with identical code: 1.2.x for Factorio 2.0 and 1.3.x for Factorio 2.1, with the same last number in both, so 1.2.5 and 1.3.5 are the same release. The in-game mod browser offers the right one for your game. Both zips are produced by `build.sh` from the same source.
+
 ## Known issues
 
 - The game may desync in multiplayer if players join the server while the Logistics Insights mod is upgrading to a new version. Please wait for this to complete and it should be good.

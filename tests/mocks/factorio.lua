@@ -55,6 +55,18 @@ function M.reset()
   -- Helper utilities
   _G.helpers = {
     is_valid_sprite_path = function() return true end,
+    -- Same contract as the engine: negative, zero or positive by numeric
+    -- comparison of each dotted component in turn.
+    compare_versions = function(a, b)
+      local pa, pb = {}, {}
+      for n in a:gmatch("%d+") do pa[#pa + 1] = tonumber(n) end
+      for n in b:gmatch("%d+") do pb[#pb + 1] = tonumber(n) end
+      for i = 1, math.max(#pa, #pb) do
+        local x, y = pa[i] or 0, pb[i] or 0
+        if x ~= y then return x < y and -1 or 1 end
+      end
+      return 0
+    end,
   }
 
   -- Prototype lookup tables
@@ -68,6 +80,7 @@ function M.reset()
   _G.script = {
     register_metatable = function() end,
     active_mods = {},
+    mod_name = "logistics-insights",
   }
 
   -- Logging (no-op by default; tests can replace to capture)

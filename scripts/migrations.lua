@@ -12,6 +12,7 @@ local logistic_cell_counter = require("scripts.logistic-cell-counter")
 local bot_counter = require("scripts.bot-counter")
 local global_data = require("scripts.global-data")
 local debugger = require("scripts.debugger")
+local utils = require("scripts.utils")
 
 local function reinitialise_ui(player, player_table)
   if player and player_table then
@@ -23,6 +24,14 @@ local function reinitialise_ui(player, player_table)
 end
 
 -- All migrations. MUST BE SORTED BY VERSION NUMBER!
+--
+-- Every release is published for both Factorio 2.0 and 2.1 from this tree
+-- (see build.sh) as two version lines with identical code: the minor tracks
+-- the game version and the patch is shared, so 1.2.<p> runs on Factorio 2.0
+-- and 1.3.<p> on 2.1. run_migrations() below maps a save's old version onto
+-- the 2.0 line (utils.canonical_mod_version) before comparing, so KEY NEW
+-- MIGRATIONS BY THE 2.0 LINE (1.2.x) and they run exactly once on every path,
+-- including a 2.0 save that later moves to 2.1. Never add a 1.3.x key.
 local li_migrations = {
   ["0.9.7"] = function()
     for player_index, player_table in pairs(storage.players) do
@@ -513,9 +522,11 @@ local li_migrations = {
 
 -- Run all migrations newer than old_version, in ascending version order.
 -- Replaces the removed flib migration module using the native
--- helpers.compare_versions API.
+-- helpers.compare_versions API. old_version is first mapped onto the 2.0
+-- version line, which is the line the keys are written on.
 ---@param old_version string
 local function run_migrations(old_version)
+  old_version = utils.canonical_mod_version(old_version)
   local versions = {}
   for version in pairs(li_migrations) do
     versions[#versions + 1] = version
