@@ -297,7 +297,7 @@ function helpers.apply_settings(overrides)
       storage.global.chunk_interval_ticks = tonumber(v) or 7
     end,
     ["li-background-refresh-interval"] = function(v)
-      local secs = tonumber(v) or 10
+      local secs = tonumber(v) or 30
       storage.global.background_refresh_interval_secs = secs
       storage.global.background_refresh_interval_ticks = secs * 60
     end,
@@ -320,7 +320,7 @@ function helpers.apply_settings(overrides)
       storage.global.freeze_highlighting_bots = v ~= false
     end,
     ["li-age-out-suggestions-interval-minutes"] = function(v)
-      storage.global.age_out_suggestions_interval_minutes = tonumber(v) or 0
+      storage.global.age_out_suggestions_interval_minutes = tonumber(v) or 3
     end,
     ["li-long-trip-min-distance"] = function(v)
       storage.global.long_trip_min_distance = tonumber(v) or 200

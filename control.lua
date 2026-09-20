@@ -207,10 +207,10 @@ script.on_event({ defines.events.on_player_created },
   function(e)
     local player = game.get_player(e.player_index)
     if player then
-      controller_gui.create_window(player)
       player_data.init(e.player_index)
       local player_table = storage.players[e.player_index]
       player_data.update_settings(player, player_table)
+      controller_gui.create_window(player) -- Needs the settings, so after them
       if player_table then
         scheduler.apply_player_intervals(e.player_index, player_table)
       end
@@ -329,10 +329,10 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
       local player = game.get_player(e.player_index)
       local player_table = player_data.get_player_table(e.player_index)
       if player and player_table then
-        if e.setting == "li-ui-update-interval" or
-           e.setting == "li-highlight-duration" or
-           e.setting == "li-show-trip-estimates" then
-          -- These settings will be adapted dynamically
+        if e.setting == "li-highlight-duration" or e.setting == "li-initial-zoom" then
+          -- Read straight from player.mod_settings when a highlight is drawn, so nothing to cache
+        elseif e.setting == "li-ui-update-interval" or e.setting == "li-show-trip-estimates" then
+          -- Cached, and picked up on the next update
           player_data.update_settings(player, player_table)
           if e.setting == "li-ui-update-interval" then
             scheduler.apply_player_intervals(e.player_index, player_table)

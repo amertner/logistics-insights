@@ -12,10 +12,12 @@ function global_data.init()
   storage.bg_refreshing_network_id = nil ---@type number|nil
 end
 
--- Called when global settings change so we can cache them and take necessary action
+-- Called when global settings change so we can cache them and take necessary action. The
+-- fallbacks are the defaults declared in settings.lua; a setting always exists, so they are
+-- only ever read by the accessors below if storage.global is somehow missing a field
 function global_data.settings_changed()
   storage.global.chunk_interval_ticks = tonumber(settings.global["li-chunk-processing-interval-ticks"].value) or 7
-  storage.global.background_refresh_interval_secs = tonumber(settings.global["li-background-refresh-interval"].value) or 10
+  storage.global.background_refresh_interval_secs = tonumber(settings.global["li-background-refresh-interval"].value) or 30
   storage.global.background_refresh_interval_ticks = storage.global.background_refresh_interval_secs * 60
   storage.global.chunk_size = tonumber(settings.global["li-chunk-size-global"].value) or 400
   storage.global.undersupply_rolling_divisor = tonumber(settings.global["li-undersupply-rolling-divisor"].value) or 3
@@ -25,7 +27,7 @@ function global_data.settings_changed()
   storage.global.show_all_networks = settings.global["li-show-all-networks"].value ~= false
   storage.global.ignore_player_demands_in_undersupply = settings.global["li-ignore-player-demands-in-undersupply"].value ~= false
   storage.global.freeze_highlighting_bots = settings.global["li-freeze-highlighting-bots"].value ~= false
-  storage.global.age_out_suggestions_interval_minutes = tonumber(settings.global["li-age-out-suggestions-interval-minutes"].value) or 0
+  storage.global.age_out_suggestions_interval_minutes = tonumber(settings.global["li-age-out-suggestions-interval-minutes"].value) or 3
   storage.global.long_trip_min_distance = tonumber(settings.global["li-long-trip-min-distance"].value) or 200
   storage.global.long_trip_sensitivity = settings.global["li-long-trip-suggestions"].value or "normal"
 end
@@ -37,12 +39,12 @@ end
 
 ---@return integer The refresh interval for background network scanning, seconds
 function global_data.background_refresh_interval_secs()
-  return storage.global.background_refresh_interval_secs or 11
+  return storage.global.background_refresh_interval_secs or 30
 end
 
 ---@return integer The refresh interval for background network scanning, ticks
 function global_data.background_refresh_interval_ticks()
-  return storage.global.background_refresh_interval_ticks or 600
+  return storage.global.background_refresh_interval_ticks or 30 * 60
 end
 
 ---@return integer The global chunk size setting
@@ -55,9 +57,9 @@ function global_data.undersupply_rolling_divisor()
   return storage.global.undersupply_rolling_divisor or 3
 end
 
--- Divisor applied to chunk size for all chunked processing.
--- Higher values = smaller chunks = lower per-tick cost but more ticks to complete.
--- 1 = full chunk size, 2 = half, 4 = quarter, etc.
+-- Divisor applied to the chunk size for scanning bots and cells. Fixed at 1: scans are cheap
+-- per entity, and a single pass gives a coherent snapshot, so they get the full chunk. Only the
+-- analysis phase has a divisor setting, below
 global_data.CHUNK_DIVISOR = 1
 
 ---@return integer Divisor for analysis-phase chunk size (undersupply + storage). Scanning uses CHUNK_DIVISOR instead.
@@ -96,7 +98,7 @@ function global_data.background_scans_enabled()
 end
 
 function global_data.ignore_player_demands_in_undersupply()
-  -- Undersupply includes Player demands unless the setting is disabled
+  -- Player logistic requests are left out of undersupply demand unless the setting is disabled
   return storage.global.ignore_player_demands_in_undersupply
 end
 
@@ -105,11 +107,11 @@ function global_data.freeze_highlighting_bots()
 end
 
 function global_data.age_out_suggestions_interval_minutes()
-  return storage.global.age_out_suggestions_interval_minutes or 0
+  return storage.global.age_out_suggestions_interval_minutes or 3
 end
 
 function global_data.age_out_suggestions_interval_ticks()
-  return (storage.global.age_out_suggestions_interval_minutes or 0) * 60 * 60
+  return (storage.global.age_out_suggestions_interval_minutes or 3) * 60 * 60
 end
 
 -- What each sensitivity counts as "much further than usual", as a multiple of an item's typical
