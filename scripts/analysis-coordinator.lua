@@ -82,6 +82,10 @@ function analysis_coordinator.start_analysis(networkdata)
     storage.analysing_network = network
     storage.analysing_networkdata = networkdata
     storage.analysis_start_tick = game.tick
+    -- Stamp the suggestions with this pass's tick before anything is remembered or aged. The
+    -- free suggestions run first, and used to see the previous pass's tick, or 0 on a network's
+    -- first pass, which is the "not aging" sentinel
+    networkdata.suggestions:update_tick()
     storage.analysis_state = {
       free_suggestions_done = false,
       -- If undersupply calculation is disabled, mark it as done immediately

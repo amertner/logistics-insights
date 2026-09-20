@@ -28,7 +28,7 @@ local MAX_HISTORY_TICKS = 60*5 -- 5 seconds
 ---@alias SuggestionsTable table<string, Suggestion?>
 
 ---@class Suggestions
----@field _current_tick number The game tick when suggestions were last updated
+---@field _current_tick number The tick of the analysis pass in progress, set when it starts and again as its steps finalise
 ---@field _historydata table<string, HistoryData> Historical data needed to make good suggestions
 ---@field _suggestions SuggestionsTable Table containing all suggestions
 ---@field _cached_data table<string, table|nil> Cached data for suggestions to be used in the UI

@@ -32,6 +32,19 @@ describe("analysis_coordinator.find_network_to_analyse", function()
     storage.players[index] = { player_index = index, settings = {}, bots_window_visible = window_open }
   end
 
+  it("stamps the suggestions with the current tick when analysis starts", function()
+    local suggestions = require("scripts.suggestions")
+    a_player(1, true)
+    local nwd = a_network(1, {1}, 3 * 60)
+    nwd.suggestions = suggestions.new()
+    assert.are.equal(0, nwd.suggestions._current_tick)
+
+    analysis_coordinator.start_analysis(nwd)
+
+    -- The free suggestions run first and remember and age against this tick
+    assert.are.equal(game.tick, nwd.suggestions._current_tick)
+  end)
+
   it("analyses a watched network after two seconds", function()
     a_player(1, true)
     local nwd = a_network(1, {1}, 3 * 60)
