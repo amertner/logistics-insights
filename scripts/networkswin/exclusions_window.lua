@@ -128,13 +128,24 @@ local function show_ignored_storages_for_mismatch_list(gui_table, networkdata, p
   end
 end
 
+-- Things found at a position that a bot could not have delivered to. A chest removed from an
+-- ore patch leaves the ore, and that must not keep its ignored trips alive
+local NOT_A_DESTINATION = {
+  ["logistic-robot"] = true, ["construction-robot"] = true,
+  ["resource"] = true, ["item-entity"] = true, ["tree"] = true, ["cliff"] = true, ["fish"] = true,
+  ["simple-entity"] = true, ["corpse"] = true, ["character-corpse"] = true,
+  ["entity-ghost"] = true, ["tile-ghost"] = true, ["item-request-proxy"] = true,
+  ["highlight-box"] = true, ["arrow"] = true, ["speech-bubble"] = true, ["smoke-with-trigger"] = true,
+  ["projectile"] = true, ["explosion"] = true, ["sticker"] = true, ["fire"] = true, ["stream"] = true,
+}
+
 --- The entity a trip was delivered to, if it's still there
 ---@param surface LuaSurface
 ---@param ignored IgnoredTrip
 ---@return LuaEntity|nil
 local function trip_destination(surface, ignored)
   for _, entity in pairs(surface.find_entities_filtered{ position = { x = ignored.x, y = ignored.y } }) do
-    if entity.type ~= "logistic-robot" and entity.type ~= "construction-robot" then
+    if not NOT_A_DESTINATION[entity.type] then
       return entity
     end
   end
