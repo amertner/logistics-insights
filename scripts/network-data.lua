@@ -121,7 +121,7 @@ local utils = require("scripts.utils")
 ---@field long_trips? number -- How many trips of this item to this destination, while it was listed, were
 ---  about as long as this one. Shorter trips to it are not counted, so a single long trip among many
 ---  short ones is not taken for a regular one
----@field last_tick? number -- When a trip to this destination was last seen
+---@field last_tick? number -- When a trip about as long as this one was last made to this destination
 
 -- A long trip accepted as expected: trips of this item to this destination are no longer listed
 ---@class IgnoredTrip

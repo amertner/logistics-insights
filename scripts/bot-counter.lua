@@ -58,11 +58,13 @@ local function record_top_trip(history_order, item_key, dist, from, to, exact, t
   for i = 1, count do
     local trip = trips[i]
     if trip.to_x == to.x and trip.to_y == to.y then
-      trip.last_tick = tick
       if dist >= LONG_TRIP_SHARE * trip.dist then
         -- None of the trips counted so far were this long if it outgrows them all, so start again
         local counted = dist * LONG_TRIP_SHARE > trip.dist and 0 or (trip.long_trips or 0)
         trip.long_trips = counted + 1
+        -- Only a long trip keeps the route current: once a closer supply is added, the short trips
+        -- that follow must let the suggestion age out
+        trip.last_tick = tick
       end
       if dist > trip.dist then
         trip.dist, trip.from_x, trip.from_y, trip.exact = dist, from.x, from.y, exact
