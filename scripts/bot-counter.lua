@@ -13,6 +13,10 @@ local defines_robot_order_type_deliver = defines.robot_order_type.deliver
 local defines_robot_order_type_pickup = defines.robot_order_type.pickup
 local seen_bot_this_pass = 2
 local TOP_TRIPS = network_data.TOP_TRIPS
+-- A trip counts towards how often a destination's longest trip is made when it is at least this
+-- share of it. Most trips to a destination can be short, and one long one from a far chest must
+-- not be taken as regular because of them
+local LONG_TRIP_SHARE = 0.75
 local seen_bot_last_pass = 1
 
 --- @class Accumulator -- Used by the chunker to accumulate data over multiple passes
@@ -29,7 +33,8 @@ local seen_bot_last_pass = 1
 
 --- Keep an item's longest trips, longest first, with at most one per destination so a route
 --- that is used again and again doesn't fill the list. Trips to a destination already listed
---- are counted, so it's known which long trips happen regularly
+--- are counted when they are about as long as the one listed, so it's known which long trips
+--- happen regularly
 --- @param history_order DeliveredItems
 --- @param item_key string The history key of the item
 --- @param dist number The trip distance
@@ -53,8 +58,12 @@ local function record_top_trip(history_order, item_key, dist, from, to, exact, t
   for i = 1, count do
     local trip = trips[i]
     if trip.to_x == to.x and trip.to_y == to.y then
-      trip.deliveries = (trip.deliveries or 1) + 1
       trip.last_tick = tick
+      if dist >= LONG_TRIP_SHARE * trip.dist then
+        -- None of the trips counted so far were this long if it outgrows them all, so start again
+        local counted = dist * LONG_TRIP_SHARE > trip.dist and 0 or (trip.long_trips or 0)
+        trip.long_trips = counted + 1
+      end
       if dist > trip.dist then
         trip.dist, trip.from_x, trip.from_y, trip.exact = dist, from.x, from.y, exact
         trip.tracked = tracked or nil
@@ -79,7 +88,7 @@ local function record_top_trip(history_order, item_key, dist, from, to, exact, t
     pos = pos - 1
   end
   table.insert(trips, pos, { dist = dist, from_x = from.x, from_y = from.y, to_x = to.x, to_y = to.y,
-    exact = exact, tracked = tracked or nil, deliveries = 1, last_tick = tick })
+    exact = exact, tracked = tracked or nil, long_trips = 1, last_tick = tick })
   trips[TOP_TRIPS + 1] = nil
   history_order.top_dist = trips[1].dist
 end
@@ -125,7 +134,12 @@ local function add_delivered_order_to_history(delivery_history, order, ignored_t
     if order.trip_exact then
       history_order.dist_exact = (history_order.dist_exact or 0) + 1
     end
-    network_data.record_trip_distance(history_order, trip_dist)
+    -- The median is what a long trip is judged against, so only trips whose length is known go
+    -- into it. A bot first seen mid-flight could have flown any distance before, and counting its
+    -- trip would pull the median down and make an ordinary route look unusually long
+    if order.trip_exact or order.trip_tracked then
+      network_data.record_trip_distance(history_order, trip_dist)
+    end
     if trip_dist > (history_order.max_dist or 0) then
       history_order.max_dist = trip_dist
     end

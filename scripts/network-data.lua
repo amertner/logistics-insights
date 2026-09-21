@@ -89,7 +89,8 @@ local utils = require("scripts.utils")
 ---@field dist_sum number -- Total trip distance in tiles over those deliveries
 ---@field avg_dist number -- Average trip distance per delivery, equal to dist_sum/dist_count
 ---@field max_dist number -- Longest trip distance seen for this item, counting trips to ignored destinations. top_dist is the longest of the ones listed, so the two differ when the ignore list hides the longest
----@field dist_buckets? table<integer, number> -- How many trips fell in each distance bucket, to estimate the median
+---@field dist_buckets? table<integer, number> -- How many trips fell in each distance bucket, to estimate the median. Only
+---  trips measured from the pickup, or estimated from a bot already being watched, are counted
 ---@field top_trips? TripRecord[] -- The longest trips not on the ignore list, longest first, at most one per destination
 ---@field top_dist? number -- Distance of the first of top_trips, or 0 if there are none
 ---@field ignored_count? number -- How many of this item's destinations are on the trip ignore list
@@ -117,7 +118,9 @@ local utils = require("scripts.utils")
 ---@field tracked? boolean -- True if the bot was already being watched when the trip started, so an
 ---  estimated start is at most one scan pass of flight out. Missing means the trip was first seen
 ---  mid-flight and could have started anywhere in the network
----@field deliveries? number -- How many trips of this item went to this destination while it was listed
+---@field long_trips? number -- How many trips of this item to this destination, while it was listed, were
+---  about as long as this one. Shorter trips to it are not counted, so a single long trip among many
+---  short ones is not taken for a regular one
 ---@field last_tick? number -- When a trip to this destination was last seen
 
 -- A long trip accepted as expected: trips of this item to this destination are no longer listed

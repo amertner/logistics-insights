@@ -325,7 +325,7 @@ function suggestions_calc.find_long_trips(networkdata, thresholds)
       if median then
         for i, trip in ipairs(trips) do
           if trip.dist < min_tiles or trip.dist < median_factor * median then break end
-          if (trip.deliveries or 1) >= LONG_TRIP_MIN_DELIVERIES and (trip.last_tick or 0) >= recent then
+          if (trip.long_trips or 0) >= LONG_TRIP_MIN_DELIVERIES and (trip.last_tick or 0) >= recent then
             found[#found + 1] = { item_name = entry.item_name, quality = entry.quality_name or "normal",
               index = i, trip = trip, median = median }
             break -- One per item: its longest trip that qualifies
@@ -384,7 +384,7 @@ function suggestions_calc.analyse_long_trips(suggestions, networkdata)
     true,
     {"suggestions-row.long-trip-action-1icon-2item-3dist-4times-5median-6others",
       item_icon(worst.item_name, worst.quality), names.iname, utils.format_distances({worst.trip.dist}),
-      worst.trip.deliveries, utils.format_distances({worst.median}), others},
+      worst.trip.long_trips, utils.format_distances({worst.median}), others},
     worst.quality
   )
   -- What a click shows: the worst item's trips, at the one suggested. The destination is what

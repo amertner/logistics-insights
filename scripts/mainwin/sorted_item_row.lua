@@ -25,7 +25,7 @@ local function trip_average_line(entry)
     return {"item-row.trip-average-median-1avg-2median",
       utils.format_distances({entry.avg_dist}), utils.format_distances({median})}
   end
-  -- History from before the median was tracked
+  -- No trip of known length yet, or history from before the median was tracked
   return {"item-row.trip-average-1avg", utils.format_distances({entry.avg_dist})}
 end
 
