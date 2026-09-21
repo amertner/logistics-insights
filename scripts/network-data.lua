@@ -100,7 +100,8 @@ local utils = require("scripts.utils")
 ---@field item_name string -- The name of the item being delivered
 ---@field quality_name? string -- The quality of the item, if applicable
 ---@field count number -- How many of this item it is delivering
----@field targetpos MapPosition -- The target position for the delivery
+---@field targetpos MapPosition -- The target position for the delivery, as it was when first seen
+---@field target_unit? number -- The target entity's unit number, which tells a moving target apart from a new one
 ---@field trip_dist? number -- Trip distance in tiles, if known
 ---@field trip_from? MapPosition -- Where the trip started: the pickup chest, or where the bot was first seen
 ---@field trip_exact? boolean -- True if trip_from is the pickup chest rather than an estimate

@@ -185,13 +185,21 @@ local function add_bot_to_active_deliveries(networkdata, unit_number, order, ite
   -- Hoist target and position to avoid repeated table lookups
   local target = order.target
   local target_pos = target and target.position
+  local target_unit = target and target.unit_number
 
   if botorder then
     -- We have an existing order for this bot. A different destination or a different item
-    -- means the one we were following finished unseen and this is a new one
-    local changed = (botorder.targetpos and target_pos and
-        (botorder.targetpos.x ~= target_pos.x or botorder.targetpos.y ~= target_pos.y))
-      or botorder.item_name ~= item_name or botorder.quality_name ~= quality
+    -- means the one we were following finished unseen and this is a new one. The destination is
+    -- told apart by entity, not position: a character or spidertron being delivered to moves
+    -- between passes, and that must not count as a delivery finished and another begun
+    local changed
+    if botorder.target_unit and target_unit then
+      changed = botorder.target_unit ~= target_unit
+    else
+      changed = (botorder.targetpos and target_pos and
+        (botorder.targetpos.x ~= target_pos.x or botorder.targetpos.y ~= target_pos.y)) or false
+    end
+    changed = changed or botorder.item_name ~= item_name or botorder.quality_name ~= quality
     if changed then
       add_delivered_order_to_history(networkdata.delivery_history, botorder, networkdata.ignored_trips)
       networkdata.delivery_history_gen = (networkdata.delivery_history_gen or 0) + 1
@@ -234,6 +242,7 @@ local function add_bot_to_active_deliveries(networkdata, unit_number, order, ite
       count = count,
       last_seen = current_tick,
       targetpos = target_pos,
+      target_unit = target_unit,
       trip_dist = trip_dist,
       trip_from = trip_dist and trip_from or nil,
       trip_exact = trip_dist and trip_exact or nil,
