@@ -10,6 +10,7 @@ local global_data = require("scripts.global-data")
 ---@field name string The name/title of the suggestion
 ---@field count number? The number associated with the suggestion, if applicable
 ---@field sprite string The sprite to represent the suggestion visually
+---@field quality? string The quality shown on the sprite, if it is an item of a quality other than normal
 ---@field urgency SuggestionUrgency The urgency level of the suggestion
 ---@field action LocalisedString The action to take based on the suggestion
 ---@field clickname? string Used to get the right action on click, or nil if no click
@@ -266,7 +267,8 @@ end
 --- @param urgency SuggestionUrgency The urgency level of the suggestion
 --- @param clickable boolean Whether the suggestion is clickable by the user
 --- @param action LocalisedString The action to take based on the suggestion
-function Suggestions:create_or_age_suggestion(suggestion_name, count, sprite, urgency, clickable, action)
+--- @param quality? string The quality shown on the sprite, if it is an item
+function Suggestions:create_or_age_suggestion(suggestion_name, count, sprite, urgency, clickable, action, quality)
   local clickname
   if count > 0 then
     if clickable then
@@ -277,6 +279,7 @@ function Suggestions:create_or_age_suggestion(suggestion_name, count, sprite, ur
     self._suggestions[suggestion_name] = {
       name = suggestion_name,
       sprite = sprite,
+      quality = quality,
       urgency = urgency,
       action = action,
       clickname = clickname,

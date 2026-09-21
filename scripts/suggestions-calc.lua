@@ -384,7 +384,8 @@ function suggestions_calc.analyse_long_trips(suggestions, networkdata)
     true,
     {"suggestions-row.long-trip-action-1icon-2item-3dist-4times-5median-6others",
       item_icon(worst.item_name, worst.quality), names.iname, utils.format_distances({worst.trip.dist}),
-      worst.trip.deliveries, utils.format_distances({worst.median}), others}
+      worst.trip.deliveries, utils.format_distances({worst.median}), others},
+    worst.quality
   )
   -- What a click shows: the worst item's trips, at the one suggested. The destination is what
   -- identifies the trip; its place in the list can shift as longer trips are recorded

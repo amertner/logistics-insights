@@ -85,6 +85,7 @@ function suggestions_row.set_suggestion_cell(items, index, suggestion, enabled)
   if button and button.valid then
     if suggestion then
       button.sprite = suggestion.sprite or "li_arrow"
+      button.quality = suggestion.quality or "normal"
       button.tooltip = suggestion.action or ""
       button.number = suggestion.count or nil
       button.visible = true
