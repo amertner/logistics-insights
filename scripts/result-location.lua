@@ -116,7 +116,8 @@ local OTHER_TRIP_COLOR = { r = 0, g = 0.45, b = 0, a = 1 } -- Trips other than t
 local TRIP_LABEL_SCALE = 2 -- Large enough for the item icon in the label to stand out from the ground
 local TRIP_LABEL_GAP_TILES = 0.3 -- Between an end's outline and its label
 local ARROW_SIZE_TILES = 0.6 -- Size of direction arrows close in
-local ARROW_SPACING_TILES = 64 -- Close in, one arrow per chunk
+local ARROW_SPACING_TILES = 64 -- Close in, at most a chunk between arrows
+local ARROW_END_TILES = 4 -- Close in, an arrow this far from each end, just clear of the outline
 local ARROW_MAX_COUNT = 60 -- Spread arrows further apart on very long trips
 local MAP_ARROW_COUNT = 5 -- Arrows along the line in map view
 local TRIP_DURATION_FACTOR = 3 -- Trips take longer to follow than other highlights take to look at
@@ -127,8 +128,6 @@ local ESTIMATE_DASH_TILES = 1 -- Dash length close in
 local ESTIMATE_GAP_TILES = 0.8 -- Gap between dashes close in
 local MAP_ESTIMATE_DASHES = 4 -- Roughly this many dashes in map view, however long the estimate
 local ESTIMATE_MARKER_RADIUS = 0.5 -- Matches the tile-sized box an outline would have drawn
-local ESTIMATE_END_TILES = 0.6 -- Bar closing the far end of an estimate, close in
-local MAP_ESTIMATE_END_FACTOR = 60 -- Map view: how much shorter that bar is than the estimate
 
 --- How long trips stay on the map, in ticks: longer than other highlights. 0 means forever
 ---@param player LuaPlayer
@@ -231,10 +230,16 @@ local function draw_trip_arrows(player, surface_name, from, to, color, time_to_l
     return { x = from.x + dir.x * dist, y = from.y + dir.y * dist }
   end
 
-  -- Close in: an arrow per chunk, or one in the middle of a shorter trip
-  local count = math.max(1, math.floor(length / math.max(ARROW_SPACING_TILES, length / ARROW_MAX_COUNT)))
-  for i = 1, count do
-    draw_arrowhead(player, surface_name, along((i - 0.5) * length / count), dir, ARROW_SIZE_TILES, color, time_to_live, "game")
+  -- Close in: an arrow just off each end, so the direction shows as soon as the view lands there,
+  -- and more between them at most a chunk apart. A short trip gets one in the middle
+  local span = length - 2 * ARROW_END_TILES
+  if span < 2 * ARROW_END_TILES then
+    draw_arrowhead(player, surface_name, along(length / 2), dir, ARROW_SIZE_TILES, color, time_to_live, "game")
+  else
+    local gaps = math.min(ARROW_MAX_COUNT, math.ceil(span / ARROW_SPACING_TILES))
+    for i = 0, gaps do
+      draw_arrowhead(player, surface_name, along(ARROW_END_TILES + i * span / gaps), dir, ARROW_SIZE_TILES, color, time_to_live, "game")
+    end
   end
 
   -- Map view: a few arrows sized to the trip, visible when zoomed out to see all of it
@@ -259,7 +264,6 @@ local function draw_trip_estimate(player, surface_name, from, to, dist, color, t
   -- Away from the delivery end, along the line the bot flew
   local dir = { x = (from.x - to.x) / length, y = (from.y - to.y) / length }
   local far = { x = from.x + dir.x * dist, y = from.y + dir.y * dist }
-  local perp = { x = -dir.y, y = dir.x }
 
   for _, render_mode in pairs({ "game", "chart" }) do
     -- Scale the dashes to the estimate in map view, so a short one isn't a solid smudge
@@ -274,23 +278,6 @@ local function draw_trip_estimate(player, surface_name, from, to, dist, color, t
       to = far,
       dash_length = dash,
       gap_length = dash * ESTIMATE_GAP_TILES / ESTIMATE_DASH_TILES,
-      surface = surface_name,
-      time_to_live = time_to_live,
-      players = {player},
-      render_mode = render_mode,
-    }
-    -- A bar across the end rather than an outline: there is no entity there, just a limit.
-    -- Sized like the map arrows when zoomed out, so it marks the end without dominating it
-    local half = ESTIMATE_END_TILES
-    if render_mode == "chart" then
-      half = math.max(half, dist / MAP_ESTIMATE_END_FACTOR)
-    end
-    half = half / 2
-    rendering.draw_line{
-      color = color,
-      width = LINE_WIDTH,
-      from = { x = far.x + perp.x * half, y = far.y + perp.y * half },
-      to = { x = far.x - perp.x * half, y = far.y - perp.y * half },
       surface = surface_name,
       time_to_live = time_to_live,
       players = {player},
