@@ -8,7 +8,6 @@ local utils = require "scripts.utils"
 local events = require "scripts.events"
 
 local WINDOW_NAME = "li-exclusions-frame"
-local WINDOW_HEIGHT = 210
 
 exclusions_window.chests_on_ignore_list_setting = "chests-on-ignore-list"
 exclusions_window.undersupply_ignore_list_setting = "items-on-undersupply-ignore-list"
@@ -34,26 +33,33 @@ function exclusions_window.create_frame(parent, player)
 
   player_data.register_ui(player_table, "exclusions_pane")
 
+  -- The pane sits beside the settings column and takes its height from it, so it never has to
+  -- know how many settings there are
   local window = parent.add {type = "frame", name = WINDOW_NAME, direction = "vertical", style = "inside_shallow_frame"}
+  window.style.vertically_stretchable = true
   local column_count = player_table.settings.max_items - 4
 
   local subheader_frame = window.add{type = "frame", name = WINDOW_NAME.."-subheader", style = "subheader_frame", direction = "vertical"}
   subheader_frame.style.minimal_width = 40 * column_count + 16 + 8
-  subheader_frame.style.height = WINDOW_HEIGHT
+  -- The subheader_frame style is a 36 px header bar. Setting both bounds overrides that fixed
+  -- height, and the stretch then fills whatever height the settings column gives the row
+  subheader_frame.style.minimal_height = 36
+  subheader_frame.style.maximal_height = 2000
+  subheader_frame.style.vertically_stretchable = true
 
     --local header_frame = window.add{type = "frame", name = WINDOW_NAME.."-subheader", style = "inside_deep_frame"}
     local header_flow = subheader_frame.add{type="flow", direction="horizontal",  name = WINDOW_NAME.."-header-flow"}
     add_list_header(header_flow, player_table)
 
     -- Table for exclusions
+    -- The scroll pane takes all the height left under the header. A scroll pane is squashable,
+    -- so it must be the one that stretches; a stretchable spacer beside it would take the lot
     local scroll = subheader_frame.add{ type = "scroll-pane", style = "naked_scroll_pane", name = WINDOW_NAME .. "-scroll", horizontal_scroll_policy = "never" }
     scroll.style.padding = 0
+    scroll.style.vertically_stretchable = true
     local scrollflow = scroll.add{type="flow", direction="horizontal",  name = WINDOW_NAME.."-scroll-flow"}
 
     local exclusions_table = scrollflow.add{type = "table", name = WINDOW_NAME.."-table", column_count = column_count, style = "li_mainwindow_content_style"}
-
-    local spacer = subheader_frame.add{type="empty-widget"}
-    spacer.style.vertically_stretchable = true
 
     player_table.ui.exclusions_pane.exclusions_table = exclusions_table
 end

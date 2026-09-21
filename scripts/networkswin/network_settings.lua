@@ -166,6 +166,7 @@ function network_settings.create_frame(parent, player)
 
     -- Exclusions frame
     local exclusions_frame = outer_flow.add{ type = "flow", name = PANE_NAME.."-exclusions", direction = "vertical" }
+    exclusions_frame.style.vertically_stretchable = true
     exclusions_window.create_frame(exclusions_frame, player)
     player_table.ui.network_settings.exclusions_frame = exclusions_frame
     exclusions_window.show_exclusions(player_table, default_list_shown)
