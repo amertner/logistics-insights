@@ -306,7 +306,8 @@ function suggestions_calc.all_storage_chunks_done(accumulator, gather, network_i
 end
 
 --- Find items that bots regularly carry much further than usual, e.g. to an outpost when most
---- go to a nearby mall. Only the longest listed trips are looked at, so ignored ones are left out
+--- go to a nearby mall. Only the longest listed trips are looked at, so ignored ones are left out,
+--- and so are items whose trips are ignored to every destination
 ---@param networkdata LINetworkData
 ---@param thresholds LongTripThresholds|nil What to judge against; worked out from the settings if omitted
 ---@return {item_name: string, quality: string, index: integer, trip: TripRecord, median: number}[] Worst first
@@ -316,7 +317,7 @@ function suggestions_calc.find_long_trips(networkdata, thresholds)
   local min_tiles, median_factor = thresholds.min_tiles, thresholds.median_factor
   local found = {}
   local recent = game.tick - thresholds.recent_ticks
-  for _, entry in pairs(networkdata.delivery_history or {}) do
+  for _, entry in pairs(network_data.trip_listed_history(networkdata)) do
     local trips = entry.top_trips
     -- The list is longest first, so most items are ruled out by their first trip
     if trips and trips[1] and trips[1].dist >= min_tiles then

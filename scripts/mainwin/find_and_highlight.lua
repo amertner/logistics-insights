@@ -416,6 +416,38 @@ local function show_trip(player, player_table, networkdata, iq, index, focus_on_
   history_rows.update(player_table)
 end
 
+--- Remake the long trip suggestion after its item or trip was ignored: move on to the next item
+--- carried unusually far, or drop the suggestion as it was dismissed
+---@param networkdata LINetworkData
+local function refresh_long_trip_suggestion(networkdata)
+  if suggestions_calc.find_long_trips(networkdata)[1] then
+    suggestions_calc.analyse_long_trips(networkdata.suggestions, networkdata)
+  else
+    networkdata.suggestions:clear_suggestion(suggestions.long_trip_key)
+  end
+end
+
+--- Ignore all of an item's trips, whatever the destination: it is needed a bit here and a bit
+--- there, so its long trips are expected
+---@param player LuaPlayer
+---@param player_table PlayerData
+---@param networkdata LINetworkData
+---@param iq ItemQuality
+local function ignore_trip_item(player, player_table, networkdata, iq)
+  network_data.ignore_trip_item(networkdata, iq.name, iq.quality)
+  local view = player_table.trip_view
+  if view and view.key == utils.get_item_quality_key(iq.name, iq.quality) then
+    -- Its trip on the map is no longer one the row lists
+    player_table.trip_view = nil
+    ResultLocation.clear_markers(player)
+  end
+  confirm_at_cursor(player, {"item-row.trip-item-ignored-flying-text"})
+  refresh_long_trip_suggestion(networkdata)
+  history_rows.update(player_table)
+  events.emit(events.on_ignorelist_changed, player.index)
+  events.emit(events.on_suggestions_changed, player.index)
+end
+
 --- Click on the long trip suggestion: show the trip suggested about, or exclude it
 ---@param player LuaPlayer
 ---@param player_table PlayerData
@@ -423,8 +455,14 @@ end
 ---@param suggested {item_name: string, quality: string, index: integer, to_x: number?, to_y: number?}
 ---@param is_right_click boolean
 ---@param is_shift_click boolean
-local function click_long_trip_suggestion(player, player_table, networkdata, suggested, is_right_click, is_shift_click)
+---@param is_ctrl_click boolean
+local function click_long_trip_suggestion(player, player_table, networkdata, suggested, is_right_click, is_shift_click,
+    is_ctrl_click)
   local iq = { name = suggested.item_name, quality = suggested.quality }
+  if is_shift_click and is_ctrl_click and not is_right_click then
+    ignore_trip_item(player, player_table, networkdata, iq)
+    return
+  end
   -- The list may have gained a longer trip since the suggestion was made, so find the
   -- suggested trip by its destination, and fall back on where it was
   local entry = networkdata.delivery_history[utils.get_item_quality_key(iq.name, iq.quality)]
@@ -448,12 +486,7 @@ local function click_long_trip_suggestion(player, player_table, networkdata, sug
   if not trip then return end
   network_data.ignore_trip(networkdata, iq.name, iq.quality, trip.to_x, trip.to_y)
   confirm_at_cursor(player, {"item-row.trip-ignored-flying-text"})
-  -- Move on to the next item carried unusually far, or drop the suggestion as it was dismissed
-  if suggestions_calc.find_long_trips(networkdata)[1] then
-    suggestions_calc.analyse_long_trips(networkdata.suggestions, networkdata)
-  else
-    networkdata.suggestions:clear_suggestion(suggestions.long_trip_key)
-  end
+  refresh_long_trip_suggestion(networkdata)
   events.emit(events.on_ignorelist_changed, player.index)
   events.emit(events.on_suggestions_changed, player.index)
 end
@@ -541,7 +574,10 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
     local key = utils.get_item_quality_key(iq.name, iq.quality)
     local entry = networkdata and networkdata.delivery_history[key]
     local trips = entry and entry.top_trips
-    if networkdata and trips and #trips > 0 then
+    if networkdata and trips and #trips > 0 and is_shift_click and is_ctrl_click and not is_right_click then
+      -- Ignore the item to every destination. Unlike a single destination, this needs nothing on the map
+      ignore_trip_item(player, player_table, networkdata, iq)
+    elseif networkdata and trips and #trips > 0 then
       -- Shown means still drawn, still this network's, and still in the list: the same trip the
       -- row's tooltip just offered to stop listing
       local shown_key, shown_index, shown_trip =
@@ -573,8 +609,9 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
     local clickname = tags and tags.clickname
     local age_name = tags and tags.age_name
     local networkdata = network_data.get_networkdata(player_table.network)
-    if is_ctrl_click and networkdata and networkdata.suggestions:is_aging(age_name) then
-      -- Clear aging suggestion on Ctrl+Click
+    local ignores_trip_item = is_shift_click and clickname == suggestions.long_trip_key
+    if is_ctrl_click and not ignores_trip_item and networkdata and networkdata.suggestions:is_aging(age_name) then
+      -- Clear aging suggestion on Ctrl+Click. Ctrl+Shift+click on the long trip one ignores its item
       networkdata.suggestions:clear_suggestion(tostring(age_name))
       events.emit(events.on_suggestions_changed, player.index)
       return true
@@ -583,7 +620,8 @@ function find_and_highlight.handle_click(player, player_table, element, is_right
       local list = networkdata.suggestions:get_cached_list(clickname)
       if list then
         if clickname == suggestions.long_trip_key then
-          click_long_trip_suggestion(player, player_table, networkdata, list, is_right_click, is_shift_click)
+          click_long_trip_suggestion(player, player_table, networkdata, list, is_right_click, is_shift_click,
+            is_ctrl_click)
         elseif is_shift_click and clickname == suggestions.mismatched_storage_key then
           local added = network_data.add_storages_to_ignorelist_for_filter_mismatch(networkdata, list)
           -- Immediately clear the suggestion to provide visual feedback

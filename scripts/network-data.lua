@@ -38,6 +38,7 @@ local utils = require("scripts.utils")
 ---@field ignored_items_for_undersupply table<string, boolean> -- A list of "item name:quality" to ignore for undersupply suggestion
 ---@field ignored_trips table<string, IgnoredTrip>|nil -- Long trips accepted as expected, so they are not listed. Key from network_data.trip_ignore_key
 ---@field ignored_trips_changed number|nil -- The tick when the trip ignore list was last changed
+---@field ignored_trip_items table<string, boolean>|nil -- "item name:quality" of items whose trips are not listed to any destination
 ---@field ignore_buffer_chests_for_undersupply boolean -- True to ignore buffer chests when calculating undersupply
 ---@field ignore_low_storage_when_no_storage boolean -- True to ignore no storage when calculating suggestions
 ---@ -- Data capture fields
@@ -206,6 +207,7 @@ function network_data.create_networkdata(network)
       ignored_items_for_undersupply = {},
       ignored_trips = {},
       ignored_trips_changed = game.tick,
+      ignored_trip_items = {},
       ignore_buffer_chests_for_undersupply = false,
       ignore_low_storage_when_no_storage = false,
       last_pass_bots_seen = {},
@@ -790,6 +792,52 @@ function network_data.clear_ignored_trips(networkdata)
     entry.ignored_count = 0
   end
   trip_ignore_list_changed(networkdata)
+end
+
+--- Accept all of an item's trips as expected, whatever the destination, so the item is no longer
+--- listed in the Longest trip row or suggested. Its trips are still recorded, so it is listed again
+--- as it was the moment it is taken off the list
+---@param networkdata LINetworkData
+---@param item_name string
+---@param quality string
+function network_data.ignore_trip_item(networkdata, item_name, quality)
+  local key = utils.get_item_quality_key(item_name, quality)
+  networkdata.ignored_trip_items = networkdata.ignored_trip_items or {}
+  if networkdata.ignored_trip_items[key] then return end
+  networkdata.ignored_trip_items[key] = true
+  -- Redraws the Longest trip row without it
+  networkdata.delivery_history_gen = (networkdata.delivery_history_gen or 0) + 1
+end
+
+---@param networkdata LINetworkData
+---@param key string From utils.get_item_quality_key
+function network_data.unignore_trip_item(networkdata, key)
+  if not (networkdata.ignored_trip_items and networkdata.ignored_trip_items[key]) then return end
+  networkdata.ignored_trip_items[key] = nil
+  networkdata.delivery_history_gen = (networkdata.delivery_history_gen or 0) + 1
+end
+
+---@param networkdata LINetworkData
+function network_data.clear_ignored_trip_items(networkdata)
+  networkdata.ignored_trip_items = {}
+  networkdata.delivery_history_gen = (networkdata.delivery_history_gen or 0) + 1
+end
+
+--- The delivery history without the items whose trips are all ignored. The history itself when
+--- none are, so the usual case costs nothing
+---@param networkdata LINetworkData
+---@return table<string, DeliveredItems>
+function network_data.trip_listed_history(networkdata)
+  local history = networkdata.delivery_history or {}
+  local ignored = networkdata.ignored_trip_items
+  if not ignored or not next(ignored) then return history end
+  local listed = {}
+  for key, entry in pairs(history) do
+    if not ignored[key] then
+      listed[key] = entry
+    end
+  end
+  return listed
 end
 
 --- How many of an item's destinations are on the trip ignore list

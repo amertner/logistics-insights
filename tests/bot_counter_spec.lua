@@ -686,6 +686,52 @@ describe("bot_counter", function()
         assert.are.equal(0, table_size(nwd.ignored_trips))
         assert.are.equal(0, nwd.delivery_history["iron-plate:normal"].ignored_count)
       end)
+
+      describe("whole items", function()
+        it("leaves an ignored item out of the listed history, but keeps recording its trips", function()
+          local nwd = make_networkdata()
+          run_trip(nwd, 1, "iron-plate", 1, { x = 0, y = 0 }, { x = 600, y = 0 }, 100)
+          run_trip(nwd, 2, "copper-plate", 1, { x = 0, y = 0 }, { x = 300, y = 0 }, 100)
+          local gen = nwd.delivery_history_gen
+
+          network_data.ignore_trip_item(nwd, "iron-plate", "normal")
+          assert.is_true(nwd.delivery_history_gen > gen) -- So the row is redrawn
+          local listed = network_data.trip_listed_history(nwd)
+          assert.is_nil(listed["iron-plate:normal"])
+          assert.is_not_nil(listed["copper-plate:normal"])
+
+          run_trip(nwd, 3, "iron-plate", 1, { x = 0, y = 0 }, { x = 700, y = 0 }, 200)
+          assert.are.same({ 700, 600 }, dists(nwd))
+        end)
+
+        it("only ignores that quality", function()
+          local nwd = make_networkdata()
+          network_data.ignore_trip_item(nwd, "iron-plate", "uncommon")
+          run_trip(nwd, 1, "iron-plate", 1, { x = 0, y = 0 }, { x = 600, y = 0 }, 100)
+          assert.is_not_nil(network_data.trip_listed_history(nwd)["iron-plate:normal"])
+        end)
+
+        it("lists the item again at once when un-ignored", function()
+          local nwd = make_networkdata()
+          run_trip(nwd, 1, "iron-plate", 1, { x = 0, y = 0 }, { x = 600, y = 0 }, 100)
+          network_data.ignore_trip_item(nwd, "iron-plate", "normal")
+          local gen = nwd.delivery_history_gen
+
+          network_data.unignore_trip_item(nwd, "iron-plate:normal")
+          assert.is_true(nwd.delivery_history_gen > gen)
+          assert.are.equal(nwd.delivery_history, network_data.trip_listed_history(nwd))
+          assert.are.same({ 600 }, dists(nwd))
+        end)
+
+        it("keeps the item's ignored destinations apart from it", function()
+          local nwd = make_networkdata()
+          network_data.ignore_trip(nwd, "iron-plate", "normal", 600, 0)
+          network_data.ignore_trip_item(nwd, "iron-plate", "normal")
+          network_data.clear_ignored_trip_items(nwd)
+          assert.are.equal(0, table_size(nwd.ignored_trip_items))
+          assert.are.equal(1, table_size(nwd.ignored_trips))
+        end)
+      end)
     end)
 
     it("estimates the trip from where the bot was first seen when the pickup was missed", function()

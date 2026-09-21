@@ -249,6 +249,20 @@ describe("suggestions_calc", function()
       assert.are.same({ "si-unit-meter", "603" }, list[3])
     end)
 
+    it("leaves out items ignored to every destination, and moves on to the next", function()
+      local s = make_suggestions(NOW)
+      suggestions_calc.analyse_long_trips(s, {
+        delivery_history = {
+          ["iron-plate:normal"] = item("iron-plate", 9, { trip(603, 5) }),
+          ["copper-cable:normal"] = item("copper-cable", 20, { trip(1250, 3) }),
+        },
+        ignored_trip_items = { ["copper-cable:normal"] = true },
+      })
+      local suggestion = s:get_suggestions()[Suggestions.long_trip_key]
+      assert.are.equal(603, suggestion.count)
+      assert.are.equal("iron-plate", s:get_cached_list(Suggestions.long_trip_key).item_name)
+    end)
+
     it("respects the minimum distance setting", function()
       storage.global.long_trip_min_distance = 700
       local _, suggestion = analyse({ ["iron-plate:normal"] = item("iron-plate", 9, { trip(603, 5) }) })

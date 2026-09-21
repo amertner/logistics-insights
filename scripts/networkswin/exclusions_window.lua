@@ -13,6 +13,7 @@ local WINDOW_HEIGHT = 210
 exclusions_window.chests_on_ignore_list_setting = "chests-on-ignore-list"
 exclusions_window.undersupply_ignore_list_setting = "items-on-undersupply-ignore-list"
 exclusions_window.trips_ignore_list_setting = "trips-on-ignore-list"
+exclusions_window.trip_items_ignore_list_setting = "trip-items-on-ignore-list"
 
 -- Add the headline saying which list is shown
 ---@param ui LuaGuiElement The parent UI element to add the header to
@@ -58,15 +59,17 @@ function exclusions_window.create_frame(parent, player)
 end
 
 ---@param gui_table LuaGuiElement The GUItable to contain the list
----@param list table<string, boolean>
-local function show_item_quality_list(gui_table, list)
+---@param list table<string, boolean> Keyed by "item name:quality"
+---@param tooltip LocalisedString What clicking an item does
+---@param shift_action string The action Shift+click takes on an item
+local function show_item_quality_list(gui_table, list, tooltip, shift_action)
   for item_quality, excluded in pairs(list) do
     local item_name, quality_name = string.match(item_quality, "^(.-):(.*)$")
     if item_name and quality_name and excluded then
       local cell = gui_table.add {name = "li-exclude-"..item_quality, type = "sprite-button", style = "slot_button",
         raise_hover_events = true,
-        tooltip={"exclusions-window.remove-undersupply-exclusion-tooltip"},
-        tags={item_name=item_name, quality=quality_name, shift_action="remove-undersupply", pane=WINDOW_NAME}}
+        tooltip=tooltip,
+        tags={item_name=item_name, quality=quality_name, shift_action=shift_action, pane=WINDOW_NAME}}
       cell.sprite = utils.get_valid_sprite_path("item/", item_name)
       cell.quality = quality_name or "normal"
     end
@@ -214,7 +217,12 @@ function exclusions_window.update(player_table)
     end
     if setting_shown == exclusions_window.undersupply_ignore_list_setting then
       exclusions_table.clear()
-      show_item_quality_list(exclusions_table, networkdata.ignored_items_for_undersupply)
+      show_item_quality_list(exclusions_table, networkdata.ignored_items_for_undersupply,
+        {"exclusions-window.remove-undersupply-exclusion-tooltip"}, "remove-undersupply")
+    elseif setting_shown == exclusions_window.trip_items_ignore_list_setting then
+      exclusions_table.clear()
+      show_item_quality_list(exclusions_table, networkdata.ignored_trip_items or {},
+        {"exclusions-window.remove-trip-item-exclusion-tooltip"}, "remove-trip-item")
     elseif player_table.exclusion_list_shown == exclusions_window.chests_on_ignore_list_setting then
       show_ignored_storages_for_mismatch_list(exclusions_table, networkdata, player_table)
     elseif setting_shown == exclusions_window.trips_ignore_list_setting then
@@ -314,6 +322,19 @@ local function remove_trip_exclusion(event)
   end
 end
 
+--- Take an item off the trip ignore list, so its trips are listed again at once
+local function remove_trip_item_exclusion(event)
+  local player_table = player_data.get_player_table(event.player_index)
+  if not player_table then return end
+  local networkdata = network_data.get_networkdata_fromid(player_table.settings_network_id)
+  if networkdata then
+    local tags = event.element.tags
+    network_data.unignore_trip_item(networkdata, utils.get_item_quality_key(tags.item_name, tags.quality))
+    -- Also updates the list's count in the network settings, and this pane
+    events.emit(events.on_ignorelist_changed, event.player_index)
+  end
+end
+
 ---@returns boolean true if the click was handled
 function exclusions_window.on_gui_click(event)
   if not event.element or not event.element.valid then return false end
@@ -336,6 +357,9 @@ function exclusions_window.on_gui_click(event)
         handled = true
       elseif shift_action == "remove-trip" then
         remove_trip_exclusion(event)
+        handled = true
+      elseif shift_action == "remove-trip-item" then
+        remove_trip_item_exclusion(event)
         handled = true
       end
     else

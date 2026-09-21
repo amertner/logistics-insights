@@ -489,6 +489,7 @@ local li_migrations = {
     for _, nwd in pairs(storage.networks or {}) do
       nwd.ignored_trips = nwd.ignored_trips or {}
       nwd.ignored_trips_changed = game.tick
+      nwd.ignored_trip_items = nwd.ignored_trip_items or {}
     end
     -- Ticks/item was replaced by distance carried, so trip times are no longer kept
     for _, nwd in pairs(storage.networks or {}) do

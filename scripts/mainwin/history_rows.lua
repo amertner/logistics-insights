@@ -46,17 +46,20 @@ function history_rows.update(player_table)
       local ui = player_table.ui["maxdist-row"]
       if not ui or ui.last_gen ~= gen then
         -- Only worth building the tooltips when the row is actually being redrawn
-        local tip = {"item-row.maxdist-click-tip-1count", network_data.TOP_TRIPS}
+        -- Ignoring the whole item needs no trip on the map, so it is offered on every item
+        local ignore_item_tip = {"item-row.maxdist-ignore-item-tip"}
+        local tip = {"", {"item-row.maxdist-click-tip-1count", network_data.TOP_TRIPS}, "\n", ignore_item_tip}
         local function click_tip(entry)
           if utils.get_item_quality_key(entry.item_name, entry.quality_name or "normal") == shown_key then
             -- This item's trip is on the map, so say what clicking again does, and offer to ignore it
             local shown_tip = {"item-row.maxdist-click-tip-shown-1count", #(entry.top_trips or {})}
-            return {"", shown_tip, "\n", {"item-row.maxdist-ignore-tip"}}
+            return {"", shown_tip, "\n", {"item-row.maxdist-ignore-tip"}, "\n", ignore_item_tip}
           end
           return tip
         end
-        sorted_item_row.update(player_table, "maxdist-row", history, sort_by_top_dist_desc, "top_dist",
-          click_tip, gen)
+        -- Items ignored to every destination are left out altogether
+        sorted_item_row.update(player_table, "maxdist-row", network_data.trip_listed_history(networkdata),
+          sort_by_top_dist_desc, "top_dist", click_tip, gen)
       end
     else
       sorted_item_row.clear_cells(player_table, "totals-row")
