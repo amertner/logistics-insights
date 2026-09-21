@@ -20,8 +20,14 @@ local CLEARED = "cleared"
 --- @param entry DeliveredItems
 --- @return LocalisedString
 local function trip_average_line(entry)
-  local median = network_data.median_trip(entry)
+  local median, known = network_data.median_trip(entry)
   if median then
+    -- Trips whose length is only a guess are left out of the median, so say what it rests on when
+    -- that is not all of them: a median above the average would otherwise look like a mistake
+    if known < (entry.dist_count or 0) then
+      return {"item-row.trip-average-median-known-1avg-2median-3count",
+        utils.format_distances({entry.avg_dist}), utils.format_distances({median}), known}
+    end
     return {"item-row.trip-average-median-1avg-2median",
       utils.format_distances({entry.avg_dist}), utils.format_distances({median})}
   end

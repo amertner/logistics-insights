@@ -694,15 +694,16 @@ end
 --- Estimate an item's median trip from its distance histogram
 ---@param entry DeliveredItems
 ---@return number|nil median Tiles, or nil if there are no trips to go on
+---@return number count How many trips the median rests on
 function network_data.median_trip(entry)
   local buckets = entry.dist_buckets
-  if not buckets then return nil end
+  if not buckets then return nil, 0 end
   local indexes, total = {}, 0
   for i, count in pairs(buckets) do
     indexes[#indexes + 1] = i
     total = total + count
   end
-  if total == 0 then return nil end
+  if total == 0 then return nil, 0 end
   table.sort(indexes)
 
   local half, below = total / 2, 0
@@ -710,10 +711,11 @@ function network_data.median_trip(entry)
     local count = buckets[i]
     if below + count >= half then
       -- Assume the trips are spread evenly through the bucket, on the same log scale
-      return 2 ^ ((i + (half - below) / count) / TRIP_BUCKETS_PER_DOUBLING)
+      return 2 ^ ((i + (half - below) / count) / TRIP_BUCKETS_PER_DOUBLING), total
     end
     below = below + count
   end
+  return nil, 0
 end
 
 --- The key for a trip on the ignore list: the item and its destination
