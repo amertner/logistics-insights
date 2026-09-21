@@ -370,7 +370,7 @@ function suggestions_calc.analyse_long_trips(suggestions, networkdata)
     for i = 2, math.min(#found, LONG_TRIP_OTHERS_SHOWN + 1) do
       if #list > 1 then list[#list + 1] = ", " end
       list[#list + 1] = item_icon(found[i].item_name, found[i].quality) .. " "
-      list[#list + 1] = utils.format_distances({found[i].trip.dist})
+      list[#list + 1] = utils.format_distances({found[i].trip.dist}, nil, {not found[i].trip.exact})
     end
     others = {"", "\n", {"suggestions-row.long-trip-others", list}}
   end
@@ -383,7 +383,8 @@ function suggestions_calc.analyse_long_trips(suggestions, networkdata)
     suggestions:get_urgency(dist, thresholds.urgent_tiles - 1),
     true,
     {"suggestions-row.long-trip-action-1icon-2item-3dist-4times-5median-6others",
-      item_icon(worst.item_name, worst.quality), names.iname, utils.format_distances({worst.trip.dist}),
+      item_icon(worst.item_name, worst.quality), names.iname,
+      utils.format_distances({worst.trip.dist}, nil, {not worst.trip.exact}),
       worst.trip.long_trips, utils.format_distances({worst.median}), others},
     worst.quality
   )

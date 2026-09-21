@@ -59,8 +59,9 @@ local TILES_PER_KM = 1000 -- One tile is one metre
 --- list or a pair doesn't mix them
 --- @param tiles number[] One or more distances in tiles
 --- @param separator? string Between values, default ", "
+--- @param estimated? boolean[] True where a value is an estimate, which is shown as "~435"
 --- @return LocalisedString
-function utils.format_distances(tiles, separator)
+function utils.format_distances(tiles, separator, estimated)
   local largest = 0
   for _, value in ipairs(tiles) do
     if value > largest then largest = value end
@@ -72,6 +73,9 @@ function utils.format_distances(tiles, separator)
       formatted[i] = string.format(km < 9.95 and "%.1f" or "%.0f", km)
     else
       formatted[i] = tostring(math.floor(value + 0.5))
+    end
+    if estimated and estimated[i] then
+      formatted[i] = "~" .. formatted[i]
     end
   end
   local joined = table.concat(formatted, separator or ", ")

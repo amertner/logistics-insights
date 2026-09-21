@@ -402,7 +402,7 @@ function ResultLocation.show_trips(player, surface_name, trips, focus, item, foc
     if is_focus then
       -- Name the item with its icon, so it's clear what the trip was once the window is out of sight
       from_text = { trip.exact and "item-row.trip-from-label" or "item-row.trip-first-seen-label", icon }
-      to_text = { "item-row.trip-to-label", icon, utils.format_distances({trip.dist}) }
+      to_text = { "item-row.trip-to-label", icon, utils.format_distances({trip.dist}, nil, {not trip.exact}) }
       if number then
         from_text = { "", number, " ", from_text }
         to_text = { "", number, " ", to_text }

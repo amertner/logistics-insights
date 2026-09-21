@@ -116,15 +116,17 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
         trip_average_line(entry)}}
     elseif number_field == "top_dist" then
       local trips = entry.top_trips or {}
-      local estimated = trips[1] and not trips[1].exact and {"item-row.trip-estimated-suffix"} or ""
+      -- An estimated trip is marked "~", here and wherever else its distance is shown
+      local estimated = { trips[1] and not trips[1].exact }
       -- List the runners-up when there are any; the title already carries the longest
       local list = ""
       if #trips > 1 then
-        local dists = {}
+        local dists, guessed = {}, {}
         for i = 2, #trips do
           dists[i - 1] = trips[i].dist
+          guessed[i - 1] = not trips[i].exact
         end
-        list = {"", "\n", {"item-row.trip-list-1dists", utils.format_distances(dists)}}
+        list = {"", "\n", {"item-row.trip-list-1dists", utils.format_distances(dists, nil, guessed)}}
       end
       local exact = entry.dist_exact or 0
       -- Only spell out measured vs estimated when the trips are a mix of both
@@ -149,8 +151,8 @@ function sorted_item_row.update(player_table, title, all_entries, sort_fn, numbe
           ignored = {"", "\n", {"item-row.trip-ignored-1count", entry.ignored_count}}
         end
       end
-      tip = {"", {"item-row.maxdist-field-tooltip-1max-2estimated-3list-4average-5coverage-6ignored-7quality-8itemname",
-        utils.format_distances({entry.top_dist}), estimated, list, trip_average_line(entry),
+      tip = {"", {"item-row.maxdist-field-tooltip-1max-2list-3average-4coverage-5ignored-6quality-7itemname",
+        utils.format_distances({entry.top_dist}, nil, estimated), list, trip_average_line(entry),
         coverage, ignored, localised.qname, localised.iname}}
     elseif number_field == "shortage" then
       tip = {"", {"undersupply-row.shortage-tooltip-1shortage_2item_3quality_4requested_5storage_6underway",
