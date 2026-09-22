@@ -16,7 +16,10 @@ local trips_ignore_list_setting=exclusions_window.trips_ignore_list_setting
 local trip_items_ignore_list_setting=exclusions_window.trip_items_ignore_list_setting
 local ignore_higher_quality_matches_setting="ignore-higher-quality-mismatches"
 local ignore_buffer_chests_setting="ignore-buffer-chests"
-local ignore_low_storage_when_no_storage_setting="ignore_low_storage_when_no_storage"
+local ignore_low_storage_when_no_storage_setting="ignore-low-storage-when-no-storage"
+-- The checkbox settings, which is what "revert to defaults" walks
+local checkbox_settings = { ignore_higher_quality_matches_setting, ignore_buffer_chests_setting,
+  ignore_low_storage_when_no_storage_setting }
 local revert_to_defaults_button_name="network-settings-revert-to-defaults"
 local default_list_shown = mismatched_storage_setting
 
@@ -183,7 +186,12 @@ local function update_revert_button(control, is_changed, changed_tooltip)
       if changed_tooltip then
         control.revert.tooltip = changed_tooltip
       else
-        control.revert.tooltip = {"network-settings.reset-setting-to-default-tooltip", control.default}
+        -- A checkbox default is a boolean, which would otherwise print as "false"
+        local default = control.default
+        if type(default) == "boolean" then
+          default = {"network-settings." .. (default and "checked" or "unchecked")}
+        end
+        control.revert.tooltip = {"network-settings.reset-setting-to-default-tooltip", default}
       end
       control.revert.sprite = "utility/reset"
     else
@@ -291,9 +299,12 @@ function network_settings.update(player, player_table)
   exclusions_window.update(player_table)
 end
 
+--- Store a checkbox setting on the network
 ---@param player_table PlayerData
----@param name string
+---@param name string The setting, one of the checkbox setting names
+---@param action string "revert" to store the default, anything else to store the checkbox's state
 ---@param setting NetworkSettingControls
+---@return boolean True if the setting was stored
 local function set_checkbox_setting(player_table, name, action, setting)
   local network_id = player_table.settings_network_id
   local networkdata = network_data.get_networkdata_fromid(network_id)
@@ -314,6 +325,7 @@ local function set_checkbox_setting(player_table, name, action, setting)
   else
     return false
   end
+  return true
 end
 
 -- Clear the relevant list and refresh the window to show the effect
@@ -340,15 +352,18 @@ local function revert_to_defaults(player_table, event)
   local networkdata = network_data.get_networkdata_fromid(network_id)
   if not networkdata then return false end
 
-  if networkdata then
-    networkdata.ignore_higher_quality_mismatches = false
-    networkdata.ignore_buffer_chests_for_undersupply = false
-    networkdata.ignore_low_storage_when_no_storage = false
-    networkdata.ignored_items_for_undersupply = {}
-    network_data.clear_ignored_storages_for_mismatch(networkdata)
-    network_data.clear_ignored_trips(networkdata)
-    network_data.clear_ignored_trip_items(networkdata)
+  -- Each checkbox knows its own default, so there is no second list of them to keep in step
+  for _, name in ipairs(checkbox_settings) do
+    local setting = player_table.ui.network_settings[name]
+    if setting then
+      set_checkbox_setting(player_table, name, "revert", setting)
+    end
   end
+  networkdata.ignored_items_for_undersupply = {}
+  network_data.clear_ignored_storages_for_mismatch(networkdata)
+  network_data.clear_ignored_trips(networkdata)
+  network_data.clear_ignored_trip_items(networkdata)
+  return true
 end
 
 --- Handle clicks
