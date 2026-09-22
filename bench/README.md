@@ -52,7 +52,7 @@ bash bench/run-benchmarks.sh
 
 Results are appended to `bench/results.csv` (gitignored). Existing rows are kept so you can compare across sweeps.
 
-When `$EnableBenchProfiler = $true` (the default), the harness also writes `bench/per-task-results.csv` with one row per scheduler task per configuration: `task, count, total_ms, avg_ms_per_call, dump_tick`. The harness passes `dump_after_ticks = BenchmarkTicks - 60` into the override file, so [scripts/bench-profiler.lua](../scripts/bench-profiler.lua) emits exactly **one** group of `[libench-dump]` log lines near the end of the run instead of one per second. This drops the profiler's own self-overhead from ~45 ms to ~1 ms per run. The harness truncates `factorio-current.log` before each run so dumps don't bleed across configurations.
+When `$EnableBenchProfiler = $true` (the default), the harness also writes `bench/per-task-results.csv` with one row per scheduler task per configuration: `task, count, total_ms, avg_ms_per_call, dump_tick`. The harness passes `dump_after_ticks = BenchmarkTicks - 60` into the override file, so [bench/bench-profiler.lua](bench-profiler.lua) emits exactly **one** group of `[libench-dump]` log lines near the end of the run instead of one per second. This drops the profiler's own self-overhead from ~45 ms to ~1 ms per run. The harness truncates `factorio-current.log` before each run so dumps don't bleed across configurations.
 
 Because the in-memory profiler accumulates state across runs in the same Factorio process, `$BenchmarkRuns` is forced to `1` whenever `$EnableBenchProfiler` is set.
 

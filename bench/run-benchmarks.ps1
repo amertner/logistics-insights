@@ -162,7 +162,7 @@ function Read-BenchProfilerDump {
 # tick of LI's per-tick total cost, e.g.
 #   [libench-tick] tick=24862341 time=Duration: 1.234ms
 # These are all emitted in a single batch at the end of the run by
-# scripts/bench-profiler.lua dump().
+# bench/bench-profiler.lua dump().
 function Read-BenchTickStats {
   param([string]$LogPath)
   if (-not (Test-Path $LogPath)) { return $null }

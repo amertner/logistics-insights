@@ -23,6 +23,7 @@
       "factorio-test-data-dir/**",
       "factorio-test.json",
       "bench/**",
+    "RELEASING.md",
       "bench-overrides.lua",
       "bench-overrides.lua.example",
       "mod-portal-description.md",
