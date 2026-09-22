@@ -12,6 +12,7 @@ Date: 2026-09-20
     - Delivery history is kept for two minutes after every player leaves a network, so viewing a trip on the map or briefly stepping out of coverage no longer loses the data.
     - Networks are only analysed at full speed while someone has the window open on them, saving CPU.
     - Ignoring an item for undersupply or a filter mismatch now shows a confirmation, making it clear that it worked.
+    - Changed the wording and order of several settings to increase clarity of what they do.
   Bugfixes:
     - Fixed a multiplayer desync when a player joined a game.
     - Fixed a game frozen from the window resuming by itself when a setting changed or a player joined.
