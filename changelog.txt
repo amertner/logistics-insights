@@ -1,22 +1,23 @@
 ---------------------------------------------------------------------------------------------------
 Version: 1.3.0
 Date: 2026-09-20
-  Features:
-    - New "Longest trip" history row, showing the items that bots carry furthest. Click an item to show its longest trips on the map; click again for the next longest trip, or right-click to see the pickup end.
-    - Long trips can be ignored, either per destination and item, or all trips for a given item can be ignored.
-    - A new suggestion is shown when an item is regularly carried much further than usual, e.g. to an outpost when it mostly goes to a nearby mall. The parameters for this can be tuned, and the suggestion can be switched off.
-    - Trips whose pickup was not seen are estimated and drawn with a dashed line. A new per-player setting "Show estimated trip starts" hides the estimates.
-  Changes:
+  Info:
     - Again available for both Factorio 2.0 (as 1.2.x) and 2.1 (as 1.3.x). The in-game mod browser offers the right one for your game.
+  Features:
+    - New "Longest trip" history row, showing the items that bots carry furthest, with their trips drawn on the map.
+    - Long trips can be ignored for one destination, or for everything an item does.
+    - A new suggestion is shown when an item is regularly carried much further than usual, e.g. to an outpost when it mostly goes to a nearby mall. It can be tuned or switched off.
+    - Trips that began before the mod was watching are estimated and drawn dashed, and can be hidden.
+  Changes:
     - The Ticks/item row has been replaced by Distance carried: the total distance bots have carried each item, showing which items take up most of your bots' work.
     - Delivery history is kept for two minutes after every player leaves a network, so viewing a trip on the map or briefly stepping out of coverage no longer loses the data.
     - Networks are only analysed at full speed while someone has the window open on them, saving CPU.
     - Ignoring an item for undersupply or a filter mismatch now shows a confirmation, making it clear that it worked.
-    - Changed the wording and order of several settings to increase clarity of what they do.
+    - Reworded and regrouped the settings so it is clearer what each one does.
   Bugfixes:
     - Fixed a multiplayer desync when a player joined a game.
-    - Fixed a game frozen from the window resuming by itself when a setting changed or a player joined.
-    - Fixed an autosave during a scan occasionally loading with no bots shown delivering and a false "no storage" suggestion.
+    - Fixed the game unfreezing by itself when a setting changed or a player joined.
+    - Fixed saves made mid-scan sometimes loading with no deliveries shown and a false "no storage" suggestion.
     - Fixed the mismatched storage check ignoring filter comparators such as "at least uncommon".
     - Fixed the unpowered roboport suggestion never appearing with "Gather quality data" off.
     - Fixed the "Chunk interval" setting having no effect, and "UI update interval" being forgotten on load.
