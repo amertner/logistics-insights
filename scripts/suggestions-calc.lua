@@ -121,13 +121,18 @@ end
 --- @param free_stacks number The number of free stacks available
 --- @param ignore_when_none boolean True to make no suggestion when there are no such chests at all
 function suggestions_calc.create_storage_capacity_suggestion(suggestions, suggestion_name, total_stacks, free_stacks, ignore_when_none)
-  if ignore_when_none and total_stacks == 0 then
-    -- The network's setting says a network without such chests is not short of them
-    suggestions:clear_suggestion(suggestion_name)
+  if total_stacks == 0 then
+    if ignore_when_none then
+      -- The network's setting says a network without such chests is not short of them
+      suggestions:clear_suggestion(suggestion_name)
+    else
+      -- Nothing to be full: say so, rather than call an empty pool 100% used
+      suggestions:create_or_age_suggestion(suggestion_name, nil, "entity/storage-chest", "low", false,
+        {"suggestions-row." .. suggestion_name .. "-none-action"})
+    end
     return
   end
-  local used_capacity = 1 -- No stacks = no capacity
-  if total_stacks > 0 then used_capacity = 1 - free_stacks / total_stacks end
+  local used_capacity = 1 - free_stacks / total_stacks
   local urgency = suggestions:get_urgency(used_capacity, 0.9)
   local used_rounded = math.floor(used_capacity * 1000)/10
   if used_capacity > 0.7 then
@@ -284,8 +289,13 @@ function suggestions_calc.all_storage_chunks_done(accumulator, gather, network_i
       local ignore_when_none = accumulator.ignore_low_storage_when_no_storage
       suggestions_calc.create_storage_capacity_suggestion(
         suggestions, SuggestionsMgr.storage_low_key, accumulator.total_stacks, accumulator.free_stacks, ignore_when_none)
-      suggestions_calc.create_storage_capacity_suggestion(
-        suggestions, SuggestionsMgr.unfiltered_storage_low_key, accumulator.unfiltered_total_stacks, accumulator.unfiltered_free_stacks, ignore_when_none)
+      if accumulator.unfiltered_total_stacks < accumulator.total_stacks then
+        suggestions_calc.create_storage_capacity_suggestion(
+          suggestions, SuggestionsMgr.unfiltered_storage_low_key, accumulator.unfiltered_total_stacks, accumulator.unfiltered_free_stacks, ignore_when_none)
+      else
+        -- No chest has a filter, so the unfiltered figure is the total one over again
+        suggestions:clear_suggestion(SuggestionsMgr.unfiltered_storage_low_key)
+      end
 
       -- Create Mismatched Storage suggestion
       local mismatched_count = #accumulator.mismatched_storages
