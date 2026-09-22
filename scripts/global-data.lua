@@ -34,7 +34,10 @@ local DEFAULTS = {
 ---@param key string A field of storage.global
 ---@return any The cached value, or its default if the field is missing
 local function cached(key)
-  local value = storage.global[key]
+  -- storage.global itself can be missing: on_load runs before on_configuration_changed, so a save
+  -- from a version that predates the cache has no table yet. Fall back to the defaults until then
+  local g = storage.global
+  local value = g and g[key]
   if value == nil then return DEFAULTS[key] end
   return value
 end
@@ -72,7 +75,8 @@ end
 
 ---@return integer The refresh interval for background network scanning, ticks
 function global_data.background_refresh_interval_ticks()
-  return storage.global.background_refresh_interval_ticks or DEFAULTS.background_refresh_interval_secs * 60
+  local g = storage.global
+  return (g and g.background_refresh_interval_ticks) or DEFAULTS.background_refresh_interval_secs * 60
 end
 
 ---@return integer The global chunk size setting
