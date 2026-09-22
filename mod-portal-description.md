@@ -47,16 +47,16 @@ There are several types of suggestions, depending on what is happening in your n
 
 - **Build more roboports.** A common problem is that a lot of your bots are waiting to charge, which means that fewer bots are free to do useful work. Building more bots doesn't help though! Instead, build more roboports so the bots can quickly find a place to charge, without having to wait. LI will show this as a High priority suggestion if you need more than 100 additional roboports.
 ![Suggest-RPs](https://assets-mod.factorio.com/assets/238554f7b48bbe2e7dba8e70e6a2866693fbba10.png)
-- **Build more storage.** If your storage is close to full, your network will work less efficiently as bots need to go further to find available storage. This suggestion shows up when your storage is 70% full, and becomes High priority when it's 90% full. Note that "fullness" of storage is measured by stacks, so you may have more storage available than LI suggests as it only looks for empty stacks.
-- **Build more unfiltered storage.** Filtered storage is great, but you may be running out of storage that isn't filtered. LI uses same thresholds as for total storage here.
+- **Build more storage.** If your storage is close to full, your network will work less efficiently as bots need to go further to find available storage. This suggestion shows up when your storage is 70% full, and becomes High priority when it's 90% full. Note that "fullness" of storage is measured by stacks, so you may have more storage available than LI suggests as it only looks for empty stacks. A network with no storage chests at all is told so instead; if that is how you want it, for a mall or an outpost say, tick *Ignore when no storage* in the network settings.
+- **Build more unfiltered storage.** Filtered storage is great, but you may be running out of storage that isn't filtered. LI uses the same thresholds as for total storage here, and only makes this suggestion when some of your storage has a filter; without any, it would just repeat the one above.
 ![Suggest-more-storage](https://assets-mod.factorio.com/assets/9707bae6b868bfb1837c40e58d13f35bf3c025ab.png)
 - **Filtered storage mismatch.** If your filtered storage has items that don't match the filter, LI suggests you fix it. You can click/right-click on the suggestion to see which chests show the problem, which is otherwise hard to find. If a mismatch doesn't matter to you, you can Shift-click on the cell to ignore the chests in question from flagging a mismatch.
 ![Suggest-filter-mismatch](https://assets-mod.factorio.com/assets/dc2015a3a1bce8a8d937eca847ef93308bc13daf.png)
-- **Too few bots**. Sometimes, you just don't have enough bots to do everything, and you might get this suggestion.
+- **Too few bots**. Sometimes, you just don't have enough bots to do everything, and you might get this suggestion. It needs a network of at least 20 bots that have been 98% busy for a minute, and it stands down while bots are queuing to charge, because building more bots then only lengthens the queue.
 ![Suggest-more-bots](https://assets-mod.factorio.com/assets/1a78eaf3acfcf5eb9d98c855c5ec6992f4395a65.png)
 - **Too many bots**. If more than half your bots are idle, but you are still adding more new bots, LI will suggest that you stop adding more bots.
 ![Suggest-fewer-bots](https://assets-mod.factorio.com/assets/da50c7d52869836dc29f2721151af41def969a24.png)
-- **Items carried unusually far.** If bots regularly carry an item much further than they usually do, e.g. to an outpost when the item mostly goes to a nearby mall, LI suggests a supply closer to that destination, or a belt or train. Click the suggestion to see the trip on the map. If the long trip is expected, Shift+click to exclude it. How far is far enough to be worth mentioning depends on the base, so the minimum distance and the sensitivity are both settings, and the suggestion can be turned off entirely. This suggestion uses the delivery history, so it only appears for networks you have viewed with the History rows shown.
+- **Items carried unusually far.** If bots regularly carry an item much further than they usually do, e.g. to an outpost when the item mostly goes to a nearby mall, LI suggests a supply closer to that destination, or a belt or train. Click the suggestion to see the trip on the map. If the long trip is expected, Shift+click to exclude it. Trips to players and spidertrons are left out by default, as they go wherever the player is; a setting turns that off. How far is far enough to be worth mentioning depends on the base, so the minimum distance and the sensitivity are both settings, and the suggestion can be turned off entirely. This suggestion uses the delivery history, so it only appears for networks you have viewed with the History rows shown.
 
 ## How to keep an eye on things
 
@@ -66,7 +66,7 @@ Before a base reaches megabase level, keep the Networks window open to keep an e
 
 - If there is some item that's being transported unnecessarily (i.e. it shows up early in the Totals list), perhaps could belt that item instead. For example, in one case I found that my bots were transporting iron ore 90% of the time, filling up my storage chests, all because I accidentally put ore in an active provider chest.
 - Distance carried shows which items take up most of your bots' work: the total distance bots have flown carrying each one. The items at the top are the best candidates for belts or trains, or for a source closer to where they're needed.
-- Longest trip shows the items that bots carry furthest from pickup to delivery in one go. A long trip can be hidden among many short ones, e.g. iron plates carried a few metres to a mall and occasionally hundreds of metres to an outpost, so look for items with an average trip much higher than the median. Distances are shown in metres and kilometres; one tile is one metre.
+- Longest trip shows the items that bots carry furthest from pickup to delivery in one go. A long trip can be hidden among many short ones, e.g. iron plates carried a few metres to a mall and occasionally hundreds of metres to an outpost, so look for items with an average trip much higher than the median. Distances are shown in metres and kilometres; one tile is one metre. A distance shown with a tilde, like ~435 m, is an estimate: the bot was first seen already carrying the item, so the trip is at least that long.
 - Click an item in Longest trip to show the destinations of up to 5 of its longest trips on the map, one at a time, and right-click to show where the trip being shown starts. If a long trip is expected, Shift+click to exclude it; excluded items and destinations can be managed in the network settings. For an item that is needed a bit here and a bit there, Ctrl+Shift+click ignores its trips to every destination; ignored items have their own list in the network settings.
 - Sometimes, a small number of items are delivered a long way, cluttering up the statistics. Click the trash button next to a History row to clear the delivery history and start again.
 - If you don't need part of the display right now, click the pause button to temporarily pause collecting it. Or change the setting to remove the History, Undersupply or Suggestions rows entirely, which also makes the window smaller.
@@ -85,13 +85,13 @@ Before a base reaches megabase level, keep the Networks window open to keep an e
 
 ## Settings
 
-Logistics Insights has several settings that are on a per-map basis. These allow you to control what data is gathered and whether you allow freezing the game; since all data gathered is global to all players, these are configured for everyone.
+Logistics Insights has several settings that are on a per-map basis. These allow you to control what data is gathered and whether you allow freezing the game; since all data gathered is global to all players, these are configured for everyone. They come in four groups: what is gathered (quality data, undersupply, player requests, whether data is kept for networks nobody is in), the suggestions (how long a resolved suggestion lingers, what counts as a long trip, whether trips to players count), performance (chunk size, ticks between chunks, the two analysis divisors and the background refresh interval) and, on its own, whether highlighting freezes the game.
 ![Per-map settings](https://assets-mod.factorio.com/assets/bb2e582531443b2676f73174d7896c3474c91c48.png)
 
-There are also player-specific settings that allow each player to configure what is displayed on their screen.
+There are also player-specific settings that allow each player to configure what is displayed on their screen: which rows to show, how many columns, the two mini windows, how long highlights stay, the zoom level, and whether estimated trip starts are drawn. Showing the History rows is also what makes LI record history for the network you are in.
 ![Per-player settings](https://assets-mod.factorio.com/assets/d1e4718cf48b85ecbdca9f5ef7fb92c3dc3c681f.png)
 
-While in the game, there are settings that apply to individual networks and allow you to fine tune what is collected and suggested at that level. To access this, click the gear icon next to the Network row in the main window, which opens a settings pane below the main window.
+While in the game, there are settings that apply to individual networks and allow you to fine tune what is collected and suggested at that level. To access this, click the gear icon next to the Network row in the main window, which opens a settings pane below the main window. This is where the ignore lists live (chests for the filter mismatch, items for undersupply, and destinations and items for long trips), along with whether higher-quality items count as a filter mismatch, whether buffer chests count as demand, and whether a network without storage should be told so.
 ![Network settings](https://assets-mod.factorio.com/assets/cf39de1498ab45cd64a47483ec40210b7a4fbc3e.png)
 
 In all cases, LI is aware of which settings are changed, and allows you to revert to defaults in the standard Factorio way.
@@ -100,13 +100,13 @@ In all cases, LI is aware of which settings are changed, and allows you to rever
 
 What Logistics Insights does takes time, and for very large bot networks can cause the game to slow down. The mod is written to mitigate this by processing the bots, network items, etc. in chunks, so it only processes a small portion of the whole each tick. The default *chunk size* is 400, but you can change this.
 
-By lowering the chunk size, you reduce the performance impact of Logistics Insights, at the expense of getting results that are not entirely accurate.  This is because the mod copies the full list of items and processes it one chunk at a time, which means that the game state may have changed by the time it finishes processing the full list.
+It is tempting to lower the chunk size to reduce the load, but that is the wrong way round: a larger chunk is cheaper per bot, because the fixed cost of a pass is spread over more of them, and it gives a more consistent picture, because every bot in a chunk is seen at the same moment. The mod copies the full list and processes it one chunk at a time, so with small chunks the game state moves on between the first chunk and the last. The only cost of a large chunk is that all its work lands in one tick; lower the size only if that shows up as stutter.
 
 A progress indicator shows the chunk processing in action, and the chunks apply both bots, roboports, undersupply and suggestions. For example,
 
 - If you have 1,800 bots and use the default chunk size of 400, it will take 5 passes before the bot data showing Delivering and History (Totals, Distance carried and Longest trip) is updated. A pass is done every 7 ticks, or around 10 times per second.
 - If you have 900 roboports with the default chunk size, it will take 3 passes before the Activity data about your bots is updated (showing Available, Charging, Waiting, Picking Up or Delivering).
-- Undersupply can expensive to calculate and therefore uses half the standard chunk size. If you have 1,100 requesters and a default chunk size of 400, it will use a chunk size of 200 and use 6 passes to complete the undersupply calculation.
+- Undersupply and the storage analysis are more expensive per entity, so they use the chunk size divided by the *Analysis* divisor, 4 by default. If you have 1,100 requesters and a chunk size of 400, each analysis chunk is 100 requesters and the pass takes 11 chunks; the undersupply sampling below then cuts that further.
 
 If you have fewer items than the chunk size, the data will be updated on every pass, keeping the data more accurate, though its polling-based nature means it will rarely be 100% accurate. Good enough though!
 
@@ -114,10 +114,10 @@ On a powerful machine, you can easily have a chunk size of 1,000 or more, and pr
 
 From v0.10, Logistics Insights uses a custom scheduler that smooths the load across many ticks, allowing you to get up to date information even with many networks and several players, without suffering a noticeable performance impact on the game.
 
-From v1.1.0, there are two settings that help you control the tradeoff between information accuracy/recency and CPU load.
+Five settings control the tradeoff between how current the information is and CPU load: the chunk size and the ticks between chunks described above, the background refresh interval (how often networks nobody is looking at are scanned and analysed), and two that apply to the analysis steps only:
 
-- *Undersupply rolling sample 1/N* (default N=3) instructs LI to only sample 1/Nth of requesters in a network when it's scanned. This makes sense because scanning of requesters is expensive, yet requesters don't often change their request sizes. Requesters that are controlled by circuit network are always scanned on every cycle.
-- *Analysis chunk divisor* (default 4) determines the chunk size used for analysis steps (undersupply and suggestions). If your normal chunk size is 400 (used to scan the bots) and the divisor is 4, it means that only 100 items are scanned on each analysis path. Increasing this value thus means that the analysis takes 4 times longer, but also reduces CPU impact by a factor that's between 2 and 4.
+- *Undersupply: requesters checked per scan (1/N)* (default N=3) instructs LI to only sample 1/Nth of requesters in a network when it's scanned. This makes sense because scanning of requesters is expensive, yet requesters don't often change their request sizes. Requesters that are controlled by circuit network are always scanned on every cycle.
+- *Analysis: split each chunk into N* (default 4) sets the chunk size used for the analysis steps (undersupply and storage). If your chunk size is 400 (used to scan the bots) and N is 4, each analysis chunk is 100 entities. A larger N spreads the analysis over more ticks, so each tick does less work and the answer takes longer to arrive.
 
 ## What's next?
 
