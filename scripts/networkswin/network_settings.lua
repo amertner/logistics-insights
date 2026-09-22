@@ -163,9 +163,10 @@ function network_settings.create_frame(parent, player)
     local settings_table = subheader_frame.add{type="table", column_count=2}
     settings_table.style.column_alignments[2] = "center"
 
+    -- The suggestion sections first, then undersupply, which is a row of its own
     add_suggestions_settings(settings_table, player_table)
-    add_undersupply_settings(settings_table, player_table)
     add_long_trip_settings(settings_table, player_table)
+    add_undersupply_settings(settings_table, player_table)
 
     -- Exclusions frame
     local exclusions_frame = outer_flow.add{ type = "flow", name = PANE_NAME.."-exclusions", direction = "vertical" }
