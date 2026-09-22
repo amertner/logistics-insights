@@ -106,6 +106,7 @@ local utils = require("scripts.utils")
 ---@field trip_from? MapPosition -- Where the trip started: the pickup chest, or where the bot was first seen
 ---@field trip_exact? boolean -- True if trip_from is the pickup chest rather than an estimate
 ---@field trip_tracked? boolean -- True if the bot was already being watched, so an estimated start is at most one scan pass out
+---@field trip_mobile? boolean -- True if either end is a character or spidertron, whose position says nothing about the network
 ---@field last_seen number -- The last tick this bot was seen delivering it
 
 -- One of an item's longest trips, flat to keep it small
@@ -123,6 +124,7 @@ local utils = require("scripts.utils")
 ---  about as long as this one. Shorter trips to it are not counted, so a single long trip among many
 ---  short ones is not taken for a regular one
 ---@field last_tick? number -- When a trip about as long as this one was last made to this destination
+---@field mobile? boolean -- True if either end was a character or spidertron. Only recorded while such trips are listed
 
 -- A long trip accepted as expected: trips of this item to this destination are no longer listed
 ---@class IgnoredTrip
@@ -138,6 +140,7 @@ local utils = require("scripts.utils")
 ---@field item_name string -- The item being picked up; must match the delivery
 ---@field quality_name string -- Its quality, which must match too: an order can change between passes
 ---@field seen number -- The last tick this bot was seen picking it up
+---@field mobile? boolean -- True if the pickup is from a character or spidertron
 
 -- Record used to store list of undersupplied items
 ---@class UndersupplyItem
@@ -827,6 +830,30 @@ end
 function network_data.clear_ignored_trip_items(networkdata)
   networkdata.ignored_trip_items = {}
   networkdata.delivery_history_gen = (networkdata.delivery_history_gen or 0) + 1
+end
+
+--- Drop the listed trips that have a character or spidertron at either end, from every network.
+--- Run when the setting that keeps such trips off the list is switched on, so the Longest trip
+--- row cleans up at once rather than as the trips are pushed out
+function network_data.purge_mobile_trips()
+  for _, networkdata in pairs(storage.networks or {}) do
+    local changed = false
+    for _, entry in pairs(networkdata.delivery_history or {}) do
+      local trips = entry.top_trips
+      if trips then
+        for i = #trips, 1, -1 do
+          if trips[i].mobile then
+            table.remove(trips, i)
+            changed = true
+          end
+        end
+        refresh_top_dist(entry)
+      end
+    end
+    if changed then
+      networkdata.delivery_history_gen = (networkdata.delivery_history_gen or 0) + 1
+    end
+  end
 end
 
 --- The delivery history without the items whose trips are all ignored. The history itself when

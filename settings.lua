@@ -180,6 +180,14 @@ data:extend(
     }
     ,
     {
+      type = "bool-setting",
+      name = "li-ignore-mobile-trips",
+      setting_type = "runtime-global",
+      default_value = true,
+      order = "4.8"
+    }
+    ,
+    {
       type = "int-setting",
       name = "li-background-refresh-interval",
       setting_type = "runtime-global",

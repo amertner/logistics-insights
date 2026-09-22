@@ -17,6 +17,9 @@ local TOP_TRIPS = network_data.TOP_TRIPS
 -- share of it. Most trips to a destination can be short, and one long one from a far chest must
 -- not be taken as regular because of them
 local LONG_TRIP_SHARE = 0.75
+-- Entities with personal logistics that move about. A trip to or from one says nothing about
+-- where the network's chests are, so a closer supply is not an answer to it
+local MOBILE_TARGET_TYPES = { character = true, ["spider-vehicle"] = true }
 local seen_bot_last_pass = 1
 
 --- @class Accumulator -- Used by the chunker to accumulate data over multiple passes
@@ -45,7 +48,8 @@ local seen_bot_last_pass = 1
 ---   is at most one scan pass of flight out
 --- @param tick number When the trip was last seen
 --- @param ignored_trips table<string, IgnoredTrip>|nil Trips accepted as expected, which are not listed
-local function record_top_trip(history_order, item_key, dist, from, to, exact, tracked, tick, ignored_trips)
+--- @param mobile boolean|nil True if either end is a character or spidertron
+local function record_top_trip(history_order, item_key, dist, from, to, exact, tracked, tick, ignored_trips, mobile)
   local trips = history_order.top_trips
   if not trips then
     trips = {}
@@ -90,7 +94,7 @@ local function record_top_trip(history_order, item_key, dist, from, to, exact, t
     pos = pos - 1
   end
   table.insert(trips, pos, { dist = dist, from_x = from.x, from_y = from.y, to_x = to.x, to_y = to.y,
-    exact = exact, tracked = tracked or nil, long_trips = 1, last_tick = tick })
+    exact = exact, tracked = tracked or nil, long_trips = 1, last_tick = tick, mobile = mobile or nil })
   trips[TOP_TRIPS + 1] = nil
   history_order.top_dist = trips[1].dist
 end
@@ -145,9 +149,13 @@ local function add_delivered_order_to_history(delivery_history, order, ignored_t
     if trip_dist > (history_order.max_dist or 0) then
       history_order.max_dist = trip_dist
     end
-    -- Keep both ends of the longest trips so they can be shown on the map
-    record_top_trip(history_order, key, trip_dist, order.trip_from, order.targetpos, order.trip_exact or false,
-      order.trip_tracked, order.last_seen, ignored_trips)
+    -- Keep both ends of the longest trips so they can be shown on the map. A trip to or from a
+    -- character or spidertron is left off the list when the setting says so: like an ignored
+    -- destination, it still counts in the statistics above, it just isn't listed
+    if not (order.trip_mobile and global_data.ignore_mobile_trips()) then
+      record_top_trip(history_order, key, trip_dist, order.trip_from, order.targetpos, order.trip_exact or false,
+        order.trip_tracked, order.last_seen, ignored_trips, order.trip_mobile)
+    end
   end
 end
 
@@ -213,6 +221,9 @@ local function add_bot_to_active_deliveries(networkdata, unit_number, order, ite
   if not botorder then
     -- No order for this bot, so add it, measuring the trip from where it picked up this item
     local trip_from, trip_exact
+    -- Either end being a character or spidertron marks the trip as one that says nothing about
+    -- the network's layout. The type is read once, here, not on every pass
+    local trip_mobile = (target and MOBILE_TARGET_TYPES[target.type]) or nil
     local pickups = networkdata.bot_pickup_positions
     local pickup = pickups and pickups[unit_number]
     if pickup then
@@ -224,6 +235,7 @@ local function add_bot_to_active_deliveries(networkdata, unit_number, order, ite
         -- it matched on and when it was seen, neither of which belongs in a saved delivery
         trip_from = { x = pickup.x, y = pickup.y }
         trip_exact = true
+        trip_mobile = trip_mobile or pickup.mobile or nil
       end
     end
     if not trip_from and bot then
@@ -247,6 +259,7 @@ local function add_bot_to_active_deliveries(networkdata, unit_number, order, ite
       trip_from = trip_dist and trip_from or nil,
       trip_exact = trip_dist and trip_exact or nil,
       trip_tracked = trip_tracked,
+      trip_mobile = trip_dist and trip_mobile or nil,
     }
   end
 end
@@ -277,7 +290,8 @@ local function record_pickup_position(networkdata, unit_number, order, item_name
     pending.seen = current_tick
   else
     pickups[unit_number] = { x = pos.x, y = pos.y, item_name = item_name,
-      quality_name = quality_name, seen = current_tick }
+      quality_name = quality_name, seen = current_tick,
+      mobile = MOBILE_TARGET_TYPES[target.type] or nil }
   end
 end
 

@@ -304,6 +304,10 @@ script.on_event(defines.events.on_runtime_mod_setting_changed,
       if e.setting == "li-show-all-networks" then
         -- When this setting is changed, potentially purge unobserved networks and refresh the UI
         network_data.purge_unobserved_networks()
+      elseif e.setting == "li-ignore-mobile-trips" and global_data.ignore_mobile_trips() then
+        -- Switched on: take the listed trips to players and spidertrons off at once. Switched
+        -- off, they come back as they are made, like a destination taken off the ignore list
+        network_data.purge_mobile_trips()
       elseif e.setting == "li-chunk-size-global" then
         -- Nothing to do: a chunker reads the size when its next pass starts. Cutting the running
         -- pass short would publish half a scan as a whole one, recording every unscanned bot's

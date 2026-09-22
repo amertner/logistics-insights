@@ -30,6 +30,7 @@ function global_data.settings_changed()
   storage.global.age_out_suggestions_interval_minutes = tonumber(settings.global["li-age-out-suggestions-interval-minutes"].value) or 3
   storage.global.long_trip_min_distance = tonumber(settings.global["li-long-trip-min-distance"].value) or 200
   storage.global.long_trip_sensitivity = settings.global["li-long-trip-suggestions"].value or "normal"
+  storage.global.ignore_mobile_trips = settings.global["li-ignore-mobile-trips"].value ~= false
 end
 
 ---@return integer How often a chunk of bots is counted, in ticks (the "Chunk interval" setting)
@@ -126,6 +127,11 @@ end
 ---@return number|nil factor Multiple of an item's median trip, or nil if the suggestion is off
 function global_data.long_trip_median_factor()
   return LONG_TRIP_MEDIAN_FACTORS[storage.global.long_trip_sensitivity or "normal"]
+end
+
+---@return boolean True to leave trips to or from a character or spidertron out of the Longest trip list
+function global_data.ignore_mobile_trips()
+  return storage.global.ignore_mobile_trips ~= false
 end
 
 return global_data
