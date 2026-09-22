@@ -50,7 +50,17 @@ local function qualities_admitted(fqual, comparator, ignore_higher)
 end
 
 local BOT_TREND_WINDOW_TICKS = 60 * 60 -- 60 seconds window for trend (covers multiple background scans)
+local BOT_TREND_MIN_SAMPLES = 3
 local MIN_TOTAL_BOTS_FOR_SUGGESTION = 100 -- Ignore small networks for suggesting too many bots
+local MIN_TOTAL_BOTS_FOR_TOO_FEW = 20 -- A handful of bots all busy is a starter base at work, not a shortage
+
+--- How far back the bot trends look. A background network is only analysed once per refresh
+--- interval, so the window stretches to hold enough samples at that pace
+---@return number ticks
+local function bot_trend_window_ticks()
+  local refresh = global_data.background_refresh_interval_ticks()
+  return math.max(BOT_TREND_WINDOW_TICKS, refresh * (BOT_TREND_MIN_SAMPLES + 1))
+end
 
 -- A long trip is worth suggesting something about when it is long in itself and much longer than
 -- the item's typical trip, which are both settings, and when it is...
@@ -417,15 +427,15 @@ function suggestions_calc.analyse_too_many_bots(suggestions, network)
   if total < MIN_TOTAL_BOTS_FOR_SUGGESTION then
     suggestions:clear_suggestion(SuggestionsMgr.too_many_bots_key)
     -- Prune stale history so it doesn't cause false trends when network grows back
-    suggestions:history_in_window(SuggestionsMgr.too_many_bots_key, BOT_TREND_WINDOW_TICKS)
+    suggestions:history_in_window(SuggestionsMgr.too_many_bots_key, bot_trend_window_ticks())
     return
   end
   local idle = network.available_logistic_robots or 0
 
   -- Record total for trend analysis
   suggestions:remember(SuggestionsMgr.too_many_bots_key, total)
-  local history = suggestions:history_in_window(SuggestionsMgr.too_many_bots_key, BOT_TREND_WINDOW_TICKS)
-  if #history < 3 then
+  local history = suggestions:history_in_window(SuggestionsMgr.too_many_bots_key, bot_trend_window_ticks())
+  if #history < BOT_TREND_MIN_SAMPLES then
     return -- Need more samples
   end
   local first, last = history[1].data, history[#history].data
@@ -464,14 +474,27 @@ function suggestions_calc.analyse_too_few_bots(suggestions, network)
     return
   end
   local total = network.all_logistic_robots or 0
+  if total < MIN_TOTAL_BOTS_FOR_TOO_FEW then
+    suggestions:clear_suggestion(SuggestionsMgr.too_few_bots_key)
+    suggestions:history_in_window(SuggestionsMgr.too_few_bots_key, bot_trend_window_ticks())
+    return
+  end
   local idle = network.available_logistic_robots or 0
 
   -- Record idle for trend analysis
   suggestions:remember(SuggestionsMgr.too_few_bots_key, idle)
   -- Look for highest number of idle bots in the window
-  local history = suggestions:history_in_window(SuggestionsMgr.too_few_bots_key, BOT_TREND_WINDOW_TICKS)
-  if #history < 3 then
+  local history = suggestions:history_in_window(SuggestionsMgr.too_few_bots_key, bot_trend_window_ticks())
+  if #history < BOT_TREND_MIN_SAMPLES then
     return -- Need more samples
+  end
+  -- Bots queued to charge are not available either, so a charging bottleneck looks like a
+  -- shortage of bots. It isn't one: more bots would only lengthen the queue. Waiting to charge is
+  -- analysed first in the pass, so what it decided is what is looked at here
+  local charge_queue = suggestions:get_suggestions()[SuggestionsMgr.awaiting_charge_key]
+  if charge_queue and charge_queue.urgency ~= "aging" then
+    suggestions:age_out_suggestion(SuggestionsMgr.too_few_bots_key)
+    return
   end
   local highest_idle = idle
   for i = 1, #history do
