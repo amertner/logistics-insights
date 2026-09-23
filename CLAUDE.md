@@ -4,8 +4,8 @@ Real-time analytics mod for Factorio 2.0 logistics bot networks. Monitors bot ac
 
 ## Dependencies
 
-- **flib** >= 0.15.0 (Factorio Standard Library)
-- **base** >= 2.0.55
+- **flib** >= 0.17.0 (Factorio Standard Library)
+- **base** >= 2.1.0
 - Optional: **space-age**, **FactorySearch** >= 1.12.0
 
 ## Project Structure

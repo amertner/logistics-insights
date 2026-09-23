@@ -11,6 +11,10 @@
 #   dist/2.1/<name>_1.<m>.<p>.zip     factorio_version "2.1", version as in git
 #   dist/2.0/<name>_1.<m-1>.<p>.zip   factorio_version "2.0"
 #
+# The base and flib dependency bounds also differ per game version: flib 0.17+
+# is built for 2.1 only and 0.15/0.16 for 2.0 only, so each zip gets the
+# floors that exist for its game. The tree in git carries the 2.1 bounds.
+#
 # So with 1.3.4 in git the 2.0 build is 1.2.4. Upload both to the mod portal;
 # each player's game is offered the release for its own version. New
 # migrations are keyed by the 2.0 line; see the comment above the table in
@@ -62,15 +66,31 @@ excludes+=(--exclude '/.*' --exclude dist --exclude '*.zip' --exclude build.sh)
 stage="$(mktemp -d)"
 trap 'rm -rf "$stage"' EXIT
 
+# Dependency floors per game version. The tree's info.json holds the 2.1 ones;
+# check them so a drift there is caught rather than silently shipped.
+deps_21='["base >= 2.1.0", "flib >= 0.17.0"]'
+deps_20='["base >= 2.0.55", "flib >= 0.15.0"]'
+if ! jq -e --argjson want "$deps_21" '
+      [.dependencies[] | select(test("^(base|flib) "))] == $want' "$info" > /dev/null; then
+  echo "info.json base/flib dependencies are not the expected 2.1 bounds $deps_21" >&2
+  exit 1
+fi
+
 # Factorio requires the zip to contain a single top-level folder named
 # <name>_<version>, matching the version in info.json.
 build_zip() {
-  local ver="$1" game="$2"
+  local ver="$1" game="$2" deps="$3"
   local folder="${name}_${ver}"
   local out="$dist/$game"
   rm -rf "$stage/$folder"
   rsync -a "${excludes[@]}" "$root/" "$stage/$folder/"
-  jq --arg v "$ver" --arg g "$game" '.version = $v | .factorio_version = $g' "$info" > "$stage/$folder/info.json"
+  # Replace the base and flib entries in place; optional dependencies are kept.
+  jq --arg v "$ver" --arg g "$game" --argjson deps "$deps" '
+      .version = $v | .factorio_version = $g
+      | .dependencies |= map(
+          if test("^base ") then $deps[0]
+          elif test("^flib ") then $deps[1]
+          else . end)' "$info" > "$stage/$folder/info.json"
   mkdir -p "$out"
   rm -f "$out/$folder.zip"
   (cd "$stage" && zip -qr "$out/$folder.zip" "$folder")
@@ -78,5 +98,5 @@ build_zip() {
 }
 
 "$root/portal-description.sh"
-build_zip "$version" "2.1"
-build_zip "$version_20" "2.0"
+build_zip "$version" "2.1" "$deps_21"
+build_zip "$version_20" "2.0" "$deps_20"

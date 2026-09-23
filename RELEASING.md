@@ -14,7 +14,10 @@ number. Only the 2.1 version appears in git; `build.sh` derives the 2.0 one.
       lists every user-visible change. Factorio's changelog format is strict:
       `---` rule of exactly 99 dashes, `Version:` and `Date:` lines, then
       category headers indented two spaces and entries indented four.
-- [ ] `info.json`: `version` is `1.3.<p>` and `factorio_version` is `"2.1"`.
+- [ ] `info.json`: `version` is `1.3.<p>`, `factorio_version` is `"2.1"`, and the
+      `base`/`flib` bounds are the 2.1 ones (`base >= 2.1.0`, `flib >= 0.17.0`).
+      `build.sh` checks this and swaps in the 2.0 floors for the 2.0 zip; if a
+      floor changes, update the `deps_21`/`deps_20` lines there too.
 - [ ] New settings, rows or suggestions are described in `README.md`. New
       locale strings are in `locale/en` (other languages arrive via Crowdin).
 - [ ] If the README changed, decide whether any screenshot in
