@@ -52,13 +52,13 @@ There are several types of suggestions, depending on what is happening in your n
 
 Keep the Networks window open to see at a glance whether any network has a lot in Undersupply or Suggestions. When one does, click it to move the map view there and open the main window:
 
-**In the Delivering/Totals/Distance carried/Longest trip rows**
+**In the Deliveries, Total items, Distance carried and Longest trip rows**
 
-- If there is some item that's being transported unnecessarily (i.e. it shows up early in the Totals list), perhaps you could belt that item instead. For example, in one case I found that my bots were transporting iron ore 90% of the time, filling up my storage chests, all because I accidentally put ore in an active provider chest.
+- If there is some item that's being transported unnecessarily (i.e. it shows up early in the Total items row), perhaps you could belt that item instead. For example, in one case I found that my bots were transporting iron ore 90% of the time, filling up my storage chests, all because I accidentally put ore in an active provider chest.
 - Distance carried shows which items take up most of your bots' work: the total distance bots have flown carrying each one. The items at the top are the best candidates for belts or trains, or for a source closer to where they're needed.
 - Longest trip shows the items that bots carry furthest from pickup to delivery in one go. A long trip can be hidden among many short ones, e.g. iron plates carried a few metres to a mall and occasionally hundreds of metres to an outpost, so look for items with an average trip much higher than the median. Distances are shown in metres and kilometres; one tile is one metre. A distance shown with a tilde, like ~435 m, is an estimate: the bot was first seen already carrying the item, so the trip is at least that long.
 - Click an item in Longest trip to show the destinations of up to 5 of its longest trips on the map, one at a time, and right-click to show where the trip being shown starts. If a long trip is expected, Shift+click to exclude it; excluded items and destinations can be managed in the network settings. For an item that is needed a bit here and a bit there, Ctrl+Shift+click ignores its trips to every destination; ignored items have their own list in the network settings.
-- Sometimes, a small number of items are delivered a long way, cluttering up the statistics. Click the trash button next to a History row to clear the delivery history and start again.
+- Sometimes, a small number of items are delivered a long way, cluttering up the statistics. Click the trash button next to Total items to clear the delivery history and start again.
 - If you don't need part of the display right now, click the pause button to temporarily pause collecting it. Or change the setting to remove the History, Undersupply or Suggestions rows entirely, which also makes the window smaller.
 
 **In the Activity row**
@@ -90,7 +90,7 @@ It is tempting to lower the chunk size to reduce the load, but that is the wrong
 
 A progress indicator shows the chunk processing in action. Chunking applies to bots, roboports, undersupply and suggestions alike. For example:
 
-- If you have 1,800 bots and use the default chunk size of 400, it will take 5 passes before the bot data showing Delivering and History (Totals, Distance carried and Longest trip) is updated. A pass is done every 7 ticks, or around 10 times per second.
+- If you have 1,800 bots and use the default chunk size of 400, it will take 5 passes before the Deliveries and history rows (Total items, Distance carried and Longest trip) are updated. A pass is done every 7 ticks, or around 10 times per second.
 - If you have 900 roboports with the default chunk size, it will take 3 passes before the Activity data about your bots is updated (showing Available, Charging, Waiting, Picking Up or Delivering).
 - Undersupply and the storage analysis are more expensive per entity, so they use the chunk size divided by the *Analysis* divisor, 4 by default. If you have 1,100 requesters and a chunk size of 400, each analysis chunk is 100 requesters and the pass takes 11 chunks; the undersupply sampling below then cuts that further.
 
@@ -113,7 +113,7 @@ There are many ways in which this mod could become more useful, and I'll be look
 
 - Maybe it would be useful to step forward more than one tick at a time. Should there be a "step 10-ticks" button, or maybe a config option?
 - The main window right now is floating, which means you can position it anywhere, but it also means it might open overlapping with something else. Should it instead stick to the top or left sides? Should it be an option?
-- The max number of items that can be shown in Delivering/history is 10. Would more be useful?
+- The max number of items that can be shown in a row is 10. Would more be useful?
 
 ### Highlighting items
 
@@ -123,7 +123,7 @@ There are many ways in which this mod could become more useful, and I'll be look
 
 ### Completely new functionality
 
-- When focusing on a single bot (with right-click in a cell like Delivering), it might be fun to have a "follow" window that allows you to see where it's going.
+- When focusing on a single bot (with right-click in a cell like Deliveries), it might be fun to have a "follow" window that allows you to see where it's going.
 - I'd love to show a heat map of activity on the mini map, but I can't see a way for a mod to do this. Do you know how?
 - Maybe it would be useful to also show what Construction Bots are doing? Not sure about that, maybe that's another mod!
 
