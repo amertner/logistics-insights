@@ -1,22 +1,22 @@
 # Logistics Insights
 
-When playing Factorio, have you ever wondered what all of your logistics bots are up to? Whether you have too many, or too few? Whether you have enough storage? Particularly in the mid game where everything is scaling up, I've found that the answers sometimes are quite surprising.
+When playing Factorio, have you ever wondered what all of your logistics bots are up to? Whether you have too many, or too few? Whether you have enough storage? Particularly in the mid game, when everything is scaling up, the answers are often surprising.
 
 Logistics Insights can help:
 
-- Provides actionable insights on what to do to improve your network, based on how it's performing
-- Undersupply: Shows a list of the top things where demand consistently outstrips supply
-- Multi-network: Helps you keep an eye on your key networks and easily navigate between them
-- Multi-player: When you work together on a base, you can keep track of and help each other
-- Real-time: Shows what's happening in your networks real time
-- Interactive: Most things are clickable so you can easily get to the root of whatever the issue is
+- **Suggestions:** Tells you what to do to improve a network, based on how it is performing
+- **Undersupply:** Lists the items where demand consistently outstrips supply
+- **Multi-network:** Keeps an eye on all your networks and jumps between them
+- **Multiplayer:** Everyone sees the same data, so you can help each other out
+- **Real time:** Shows what is happening in your networks right now
+- **Interactive:** Most things are clickable, so you can go straight to the root of a problem
 
 ## Quick info available
 
 In the top left corner of the screen, you'll see two icons.
 
-- The lightbulb shows how many Suggestions you have across all of the networks being analyzed. Click this button to open/close the Networks window where you can see more detail.
-- The logistics bot shows how many logistics bots are idle in your current network. If this gets to 0, you most likely don't have enough. Click this button to open the Logistics Insights window to see much more detail about the network.
+- The lightbulb shows how many Suggestions you have across all of the networks being analyzed. Click it to open or close the Networks window where you can see more detail.
+- The logistics bot shows how many logistics bots are idle in your current network. If this gets to 0, you most likely don't have enough. Click it to open the main Logistics Insights window for much more detail about the network.
 
 ## The two main windows
 
@@ -44,17 +44,17 @@ There are several types of suggestions, depending on what is happening in your n
 - **Build more storage.** If your storage is close to full, your network will work less efficiently as bots need to go further to find available storage. This suggestion shows up when your storage is 70% full, and becomes High priority when it's 90% full. Note that "fullness" of storage is measured by stacks, so you may have more storage available than LI suggests as it only looks for empty stacks. A network with no storage chests at all is told so instead; if that is how you want it, for a mall or an outpost say, tick *Ignore when no storage* in the network settings.
 - **Build more unfiltered storage.** Filtered storage is great, but you may be running out of storage that isn't filtered. LI uses the same thresholds as for total storage here, and only makes this suggestion when some of your storage has a filter; without any, it would just repeat the one above.
 - **Filtered storage mismatch.** If your filtered storage has items that don't match the filter, LI suggests you fix it. You can click/right-click on the suggestion to see which chests show the problem, which is otherwise hard to find. If a mismatch doesn't matter to you, you can Shift-click on the cell to ignore the chests in question from flagging a mismatch.
-- **Too few bots**. Sometimes, you just don't have enough bots to do everything, and you might get this suggestion. It needs a network of at least 20 bots that have been 98% busy for a minute, and it stands down while bots are queuing to charge, because building more bots then only lengthens the queue.
-- **Too many bots**. If more than half your bots are idle, but you are still adding more new bots, LI will suggest that you stop adding more bots.
-- **Items carried unusually far.** If bots regularly carry an item much further than they usually do, e.g. to an outpost when the item mostly goes to a nearby mall, LI suggests a supply closer to that destination, or a belt or train. Click the suggestion to see the trip on the map. If the long trip is expected, Shift+click to exclude it. Trips to players and spidertrons are left out by default, as they go wherever the player is; a setting turns that off. How far is far enough to be worth mentioning depends on the base, so the minimum distance and the sensitivity are both settings, and the suggestion can be turned off entirely. This suggestion uses the delivery history, so it only appears for networks you have viewed with the History rows shown.
+- **Too few bots**. Sometimes you just don't have enough bots to do everything. This suggestion needs a network of at least 20 bots that have been 98% busy for a minute, and it stands down while bots are queuing to charge, because building more bots then only lengthens the queue.
+- **Too many bots**. In a network of at least 100 bots, if more than half are idle but you keep adding more, LI suggests that you stop.
+- **Items carried unusually far.** If bots regularly carry an item much further than they usually do, e.g. to an outpost when the item mostly goes to a nearby mall, LI suggests a supply closer to that destination, or a belt or train. Click the suggestion to see the trip on the map. If the long trip is expected, Shift+click to exclude it. Trips to players and spidertrons are left out by default, as they go wherever the player is; a setting turns that off. How far is far enough to be worth mentioning depends on the base, so the minimum distance and the sensitivity are both settings, and the suggestion can be turned off entirely. This suggestion is made from the delivery history, which LI only records for a network while a player is in it with the main window open and "Record and show delivery history" turned on.
 
 ## How to keep an eye on things
 
-Before a base reaches megabase level, keep the Networks window open to keep an eye on whether there are a lot of things in Undersupply or Suggestions. Then, if there is an issue, click on the network to immediately move the map view there and see the main Insights window:
+Keep the Networks window open to see at a glance whether any network has a lot in Undersupply or Suggestions. When one does, click it to move the map view there and open the main window:
 
 **In the Delivering/Totals/Distance carried/Longest trip rows**
 
-- If there is some item that's being transported unnecessarily (i.e. it shows up early in the Totals list), perhaps could belt that item instead. For example, in one case I found that my bots were transporting iron ore 90% of the time, filling up my storage chests, all because I accidentally put ore in an active provider chest.
+- If there is some item that's being transported unnecessarily (i.e. it shows up early in the Totals list), perhaps you could belt that item instead. For example, in one case I found that my bots were transporting iron ore 90% of the time, filling up my storage chests, all because I accidentally put ore in an active provider chest.
 - Distance carried shows which items take up most of your bots' work: the total distance bots have flown carrying each one. The items at the top are the best candidates for belts or trains, or for a source closer to where they're needed.
 - Longest trip shows the items that bots carry furthest from pickup to delivery in one go. A long trip can be hidden among many short ones, e.g. iron plates carried a few metres to a mall and occasionally hundreds of metres to an outpost, so look for items with an average trip much higher than the median. Distances are shown in metres and kilometres; one tile is one metre. A distance shown with a tilde, like ~435 m, is an estimate: the bot was first seen already carrying the item, so the trip is at least that long.
 - Click an item in Longest trip to show the destinations of up to 5 of its longest trips on the map, one at a time, and right-click to show where the trip being shown starts. If a long trip is expected, Shift+click to exclude it; excluded items and destinations can be managed in the network settings. For an item that is needed a bit here and a bit there, Ctrl+Shift+click ignores its trips to every destination; ignored items have their own list in the network settings.
@@ -63,20 +63,20 @@ Before a base reaches megabase level, keep the Networks window open to keep an e
 
 **In the Activity row**
 
-- If too many bots are "waiting to charge", you'll get a "Build more Roboports" suggestion
-- If too few bots are "available", you'll need to add more bots. A suggestion will show this.
-- If most of the bots are "available", you can probably stop adding more bots. If you continue adding bots to a network where most of them are idle, you'll get a suggestion that you stop adding more.
+- If too many bots are "waiting to charge", you'll get a "Build more roboports" suggestion.
+- If too few bots are "available", you need more bots, and a suggestion will say so.
+- If most of the bots are "available", you can stop adding more. Keep adding them anyway and a suggestion will tell you so.
 
 **In the Network row**
 
-- If I'm trying to update my bots to a higher quality level, this makes it easy to see how many are still at the lower level
-- If I've upgraded my bots to a higher level, but my roboports are low quality, charging will take much longer. Upgrade them asap!
+- If you are upgrading your bots to a higher quality, this shows how many are still at the lower one
+- If your bots are high quality but your roboports are not, charging takes much longer. Upgrade the roboports too!
 
 ## Settings
 
 Logistics Insights has several settings that are on a per-map basis. These allow you to control what data is gathered and whether you allow freezing the game; since all data gathered is global to all players, these are configured for everyone. They come in four groups: what is gathered (quality data, undersupply, player requests, whether data is kept for networks nobody is in), the suggestions (how long a resolved suggestion lingers, what counts as a long trip, whether trips to players count), performance (chunk size, ticks between chunks, the two analysis divisors and the background refresh interval) and, on its own, whether highlighting freezes the game.
 
-There are also player-specific settings that allow each player to configure what is displayed on their screen: which rows to show, how many columns, the two mini windows, how long highlights stay, the zoom level, and whether estimated trip starts are drawn. Showing the History rows is also what makes LI record history for the network you are in.
+There are also player-specific settings that allow each player to configure what is displayed on their screen: which rows to show, how many columns, the two mini windows, how long highlights stay, the zoom level, and whether estimated trip starts are drawn. "Record and show delivery history" is also what makes LI record the history for the network you are in.
 
 While in the game, there are settings that apply to individual networks and allow you to fine tune what is collected and suggested at that level. To access this, click the gear icon next to the Network row in the main window, which opens a settings pane below the main window. This is where the ignore lists live (chests for the filter mismatch, items for undersupply, and destinations and items for long trips), along with whether higher-quality items count as a filter mismatch, whether buffer chests count as demand, and whether a network without storage should be told so.
 
@@ -88,7 +88,7 @@ What Logistics Insights does takes time, and for very large bot networks can cau
 
 It is tempting to lower the chunk size to reduce the load, but that is the wrong way round: a larger chunk is cheaper per bot, because the fixed cost of a pass is spread over more of them, and it gives a more consistent picture, because every bot in a chunk is seen at the same moment. The mod copies the full list and processes it one chunk at a time, so with small chunks the game state moves on between the first chunk and the last. The only cost of a large chunk is that all its work lands in one tick; lower the size only if that shows up as stutter.
 
-A progress indicator shows the chunk processing in action, and the chunks apply both bots, roboports, undersupply and suggestions. For example,
+A progress indicator shows the chunk processing in action. Chunking applies to bots, roboports, undersupply and suggestions alike. For example:
 
 - If you have 1,800 bots and use the default chunk size of 400, it will take 5 passes before the bot data showing Delivering and History (Totals, Distance carried and Longest trip) is updated. A pass is done every 7 ticks, or around 10 times per second.
 - If you have 900 roboports with the default chunk size, it will take 3 passes before the Activity data about your bots is updated (showing Available, Charging, Waiting, Picking Up or Delivering).
@@ -98,7 +98,7 @@ If you have fewer items than the chunk size, the data will be updated on every p
 
 On a powerful machine, you can easily have a chunk size of 1,000 or more, and process data every 3 ticks. On a less powerful machine, you may want to process fewer items at a time, less often.
 
-From v0.10, Logistics Insights uses a custom scheduler that smooths the load across many ticks, allowing you to get up to date information even with many networks and several players, without suffering a noticeable performance impact on the game.
+Logistics Insights uses a custom scheduler that smooths the load across many ticks, allowing you to get up to date information even with many networks and several players, without suffering a noticeable performance impact on the game.
 
 Five settings control the tradeoff between how current the information is and CPU load: the chunk size and the ticks between chunks described above, the background refresh interval (how often networks nobody is looking at are scanned and analysed), and two that apply to the analysis steps only:
 
@@ -129,7 +129,7 @@ There are many ways in which this mod could become more useful, and I'll be look
 
 ## Factorio 2.0 and 2.1
 
-Factorio only loads a mod marked for the game version it is running, so every release of Logistics Insights is published twice with identical code: 1.2.x for Factorio 2.0 and 1.3.x for Factorio 2.1, with the same last number in both, so 1.2.5 and 1.3.5 are the same release. The in-game mod browser offers the right one for your game. Both zips are produced by `build.sh` from the same source.
+Factorio only loads a mod marked for the game version it is running, so every release of Logistics Insights is published twice with identical code: 1.2.x for Factorio 2.0 and 1.3.x for Factorio 2.1, with the same last number in both, so 1.2.5 and 1.3.5 are the same release. The in-game mod browser offers the right one for your game.
 
 ## Known issues
 
@@ -145,7 +145,7 @@ You can also create an issue if you find a bug or have an idea for a feature, ei
 
 ## Translation
 
-The mod is currently available in **English** and **Danish**, but it's easy to contribute even just a few strings. Go to [This project](https://crowdin.com/project/factorio-mods-localization), pick the language you'd like to contribute to, and find the Logistics Insights mod. Translations will show up in the game later, typically about a week.
+The mod is fully translated into **English** and **Danish**, and partly into many other languages. It's easy to contribute, even just a few strings. Go to [This project](https://crowdin.com/project/factorio-mods-localization), pick the language you'd like to contribute to, and find the Logistics Insights mod. Translations show up in the game later, typically within a week.
 
 ## Thanks
 
