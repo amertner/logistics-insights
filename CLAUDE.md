@@ -1,6 +1,6 @@
 # Logistics Insights - Factorio Mod
 
-Real-time analytics mod for Factorio 2.0 logistics bot networks. Monitors bot activity, identifies bottlenecks, and suggests improvements. Multiplayer-compatible.
+Real-time analytics mod for Factorio 2.0 and 2.1 logistics bot networks. Monitors bot activity, identifies bottlenecks, and suggests improvements. Multiplayer-compatible.
 
 ## Dependencies
 
@@ -64,8 +64,7 @@ scripts/
       ├── controller-gui.lua    # Mini window creation
       ├── tooltips-helper.lua   # Tooltip generation
       ├── migrations.lua        # Version upgrade handling
-      ├── debugger.lua          # Debug logging
-      └── json.lua              # JSON parsing
+      └── debugger.lua          # Debug logging
 ```
 
 ## Architecture
@@ -101,7 +100,7 @@ Large collections (bots, cells, requesters, storage) are processed in chunks acr
 ### Scanning Pipeline
 
 1. **Foreground scan** — Active player's network, high priority (every 7 ticks)
-2. **Background scan** — Other networks, periodic (default 10s)
+2. **Background scan** — Other networks, periodic (default 30s)
 3. **Analysis** — After scan completes: free suggestions (O(1)), then chunked undersupply and storage analysis
 
 ### Event System (`events.lua`)
